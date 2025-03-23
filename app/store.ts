@@ -2,13 +2,13 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export interface Player { // Add export keyword here
+export interface Player {
   id: string;
   name: string;
   drinksTaken?: number;
 }
 
-export interface Match { // Add export keyword here
+export interface Match {
   id: string;
   homeTeam: string;
   awayTeam: string;

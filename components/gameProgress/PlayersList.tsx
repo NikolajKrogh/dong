@@ -20,23 +20,27 @@ const PlayersList: React.FC<PlayersListProps> = ({
   handleDrinkIncrement,
   handleDrinkDecrement,
 }) => {
+  
   // Calculate drinks required for a player
   const calculateDrinksRequired = (playerId: string) => {
     let total = 0;
-
+  
     const commonMatch = matches.find((m) => m.id === commonMatchId);
     if (commonMatch) {
       total += commonMatch.goals * 1;
     }
-
+  
     const assignedMatchIds = playerAssignments[playerId] || [];
     assignedMatchIds.forEach((matchId) => {
+      // Skip the common match since we've already counted it
+      if (matchId === commonMatchId) return;
+      
       const match = matches.find((m) => m.id === matchId);
       if (match) {
         total += match.goals * 0.5;
       }
     });
-
+  
     return total;
   };
 

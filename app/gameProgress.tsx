@@ -132,8 +132,6 @@ const GameProgressScreen = () => {
     setSelectedMatchId(matchId);
     setIsQuickActionsVisible(true);
   };
-
-   // ...existing code...
   
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -164,7 +162,7 @@ const GameProgressScreen = () => {
           </View>
         </TabNavigation>
         
-        {/* Footer buttons stay fixed at bottom of screen */}
+        {/* Footer buttons */}
         <View style={styles.footerContainer}>
           <FooterButtons
             onBackToSetup={handleBackToSetup}
