@@ -222,7 +222,7 @@ data.matches.forEach((match: MatchData) => {
       return;
     }
 
-    // Process filters directly here
+    // filters
     try {
       const hasTimeFilter = Boolean(startTime && endTime);
       const hasDateFilter = Boolean(startDate && endDate);
@@ -232,7 +232,7 @@ data.matches.forEach((match: MatchData) => {
         return;
       }
 
-      // Process time filter
+      // time filter
       const startMinutes = hasTimeFilter ? convertTimeToMinutes(startTime) : -1;
       const endMinutes = hasTimeFilter ? convertTimeToMinutes(endTime) : -1;
 
