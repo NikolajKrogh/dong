@@ -96,12 +96,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,        // Ensure it's above other content
   },
-  emptyListText: {
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "center",
-    marginVertical: 12,
-  },
+  // emptyListText: {
+  //   color: "#666",
+  //   fontStyle: "italic",
+  //   textAlign: "center",
+  //   marginVertical: 12,
+  // },
   instructionText: {
     fontSize: 14,
     color: "#666",
@@ -594,12 +594,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 4,
   },
-  dropdownItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
-  },
   dropdownText: {
     fontSize: 14,
     color: '#333',
@@ -696,17 +690,139 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "500",
   },
-  datePickerButton: {
+  clearButton: {
+    padding: 5,
+  },
+  clearButtonText: {
+    fontSize: 16,
+    color: '#999',
+  },
+  emptyListContainer: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  emptyListText: {
+    color: '#999',
+    marginBottom: 10,
+  },
+  addNewButton: {
+    padding: 8,
+    backgroundColor: '#f0f7ff',
+    borderRadius: 4,
+    margin: 10,
+  },
+  addNewButtonText: {
+    color: '#007bff',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    width: '100%',
+    maxHeight: '80%',
     padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  datePickerText: {
-    marginLeft: 5,
+  modalSearchInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  modalCloseButton: {
+    padding: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+  },
+  modalCloseText: {
+    color: '#333',
+  },
+  modalItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalItemText: {
     fontSize: 16,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    width: '100%',
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  leagueFilterContainer: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  leagueFilterLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  leagueButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  leagueButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  leagueButtonSelected: {
+    backgroundColor: '#007bff',
+    borderColor: '#0056b3',
+  },
+  leagueButtonText: {
+    fontSize: 13,
+    color: '#333',
+  },
+  leagueButtonTextSelected: {
+    color: '#fff',
+  },
+  modalItemLeague: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
   },
 });
 

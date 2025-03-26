@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useMemo, FC } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { Match } from "../../app/store";
 import styles from "../../app/style/setupGameStyles";
 import MatchFilter from "./Filter";
 import TeamSelectionRow from "./TeamSelectionRow ";
 import MatchItem from "./MatchItem";
 
-// Define interfaces for the API data structure
+/**
+ * @brief Interface for the match data structure from the API.
+ *
+ * This interface defines the structure of match data received from the API,
+ * including team names, scores, date, and time.
+ */
 interface MatchData {
   team1: string;
   team2: string;
@@ -17,11 +28,35 @@ interface MatchData {
   time?: string;
 }
 
+/**
+ * @brief Interface for the API response structure.
+ *
+ * This interface defines the structure of the API response, which includes
+ * a name and an array of matches.
+ */
 interface ApiResponse {
   name: string;
   matches: MatchData[];
 }
 
+/**
+ * @brief Interface for a team with its league information.
+ *
+ * This interface defines the structure for storing team information along with
+ * the league they belong to.
+ */
+interface TeamWithLeague {
+  key: string;
+  value: string;
+  league: string;
+}
+
+/**
+ * @brief Interface for the MatchList component props.
+ *
+ * This interface defines the props that the MatchList component accepts,
+ * including matches, team names, and handler functions for adding/removing matches.
+ */
 interface MatchListProps {
   matches: Match[];
   homeTeam: string;
@@ -34,6 +69,16 @@ interface MatchListProps {
   handleSelectCommonMatch: (matchId: string) => void;
 }
 
+/**
+ * @brief MatchList component for displaying and managing a list of matches.
+ *
+ * This component fetches match data from multiple leagues, allows filtering of teams
+ * based on selected leagues, and provides functionality to add and remove matches
+ * from the list.
+ *
+ * @param props - The props for the MatchList component.
+ * @returns A React functional component.
+ */
 const MatchList: FC<MatchListProps> = ({
   matches,
   homeTeam,
@@ -48,10 +93,10 @@ const MatchList: FC<MatchListProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [teamsData, setTeamsData] = useState<{ key: string; value: string }[]>(
-    []
-  );
-  const [apiData, setApiData] = useState<ApiResponse | null>(null);
+  const [teamsData, setTeamsData] = useState<TeamWithLeague[]>([]);
+  const [apiData, setApiData] = useState<ApiResponse[]>([]);
+  const [selectedLeagues, setSelectedLeagues] = useState<string[]>([]);
+  const [availableLeagues, setAvailableLeagues] = useState<string[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<MatchData[]>([]);
   const [processingMatchIndex, setProcessingMatchIndex] = useState<number>(-1);
   const [matchesToProcess, setMatchesToProcess] = useState<MatchData[]>([]);
@@ -65,9 +110,9 @@ const MatchList: FC<MatchListProps> = ({
   // Time filter states
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [filteredTeamsData, setFilteredTeamsData] = useState<
-    { key: string; value: string }[]
-  >([]);
+  const [filteredTeamsData, setFilteredTeamsData] = useState<TeamWithLeague[]>(
+    []
+  );
   const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
 
   // Date state
@@ -75,22 +120,31 @@ const MatchList: FC<MatchListProps> = ({
   const [endDate, setEndDate] = useState("");
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
 
+  /**
+   * @brief Cleans a team name by removing common prefixes and suffixes.
+   *
+   * This function removes common prefixes and suffixes from a team name to
+   * standardize the names.
+   *
+   * @param teamName - The team name to clean.
+   * @returns The cleaned team name.
+   */
   const cleanTeamName = (teamName: string): string => {
-    // Remove "FC" from the end of team names
     let cleaned = teamName.trim();
-    if (cleaned.endsWith(" FC")) {
-      cleaned = cleaned.substring(0, cleaned.length - 3).trim();
-    }
-    
-    // Remove "AFC" from the beginning of team names
-    if (cleaned.startsWith("AFC ")) {
-      cleaned = cleaned.substring(4).trim();
-    }
-    
-    return cleaned;
+
+    // Remove common prefixes and suffixes using regular expressions
+    cleaned = cleaned.replace(/ FC$/i, ""); // Remove " FC" suffix (case-insensitive)
+    cleaned = cleaned.replace(/^(AFC|FC|1\. FSV|1\. FC|SS|SSC) /i, ""); // Remove prefixes (case-insensitive)
+
+    return cleaned.trim();
   };
 
-  // Fetch Premier League teams on component mount
+  /**
+   * @brief Fetches teams from multiple leagues on component mount.
+   *
+   * This useEffect hook fetches team data from multiple league APIs and populates
+   * the teamsData and availableLeagues state variables.
+   */
   useEffect(() => {
     const fetchTeams = async () => {
       setIsLoading(true);
@@ -98,45 +152,104 @@ const MatchList: FC<MatchListProps> = ({
       setErrorMessage("");
 
       try {
-        // Try to fetch from API
-        const response = await fetch(
-          "https://raw.githubusercontent.com/openfootball/football.json/master/2024-25/en.1.json"
+        // League API URLs
+        const leagueUrls = [
+          // Premier League
+          "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.1.json",
+          // Championship
+          "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.2.json",
+          // Bundesliga
+          "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/de.1.json",
+          // La Liga
+          "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/es.1.json",
+          // Serie A
+          "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/it.1.json",
+          // Ligue 1
+          "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/fr.1.json",
+        ];
+
+        const leagueNames = [
+          "Premier League",
+          "Championship",
+          "Bundesliga",
+          "La Liga",
+          "Serie A",
+          "Ligue 1",
+        ];
+
+        // Fetch all leagues in parallel
+        const responses = await Promise.all(
+          leagueUrls.map((url) => fetch(url))
         );
 
-        if (!response.ok) {
-          throw new Error(`API responded with status: ${response.status}`);
+        // Process responses
+        const allData: ApiResponse[] = [];
+        const allTeams: TeamWithLeague[] = [];
+        const leagueSet = new Set<string>();
+
+        for (let i = 0; i < responses.length; i++) {
+          const response = responses[i];
+
+          if (!response.ok) {
+            console.warn(
+              `API for ${leagueNames[i]} responded with status: ${response.status}`
+            );
+            continue;
+          }
+
+          const data: ApiResponse = await response.json();
+          allData.push(data);
+
+          // Extract unique team names from matches with league info
+          const leagueName = leagueNames[i];
+          leagueSet.add(leagueName);
+
+          const teamSet = new Set<string>();
+          data.matches.forEach((match: MatchData) => {
+            const homeTeam = match.team1 ? cleanTeamName(match.team1) : "";
+            const awayTeam = match.team2 ? cleanTeamName(match.team2) : "";
+
+            // Extract time from date if it exists
+            if (match.date && !match.time) {
+              if (match.date.includes("T")) {
+                const timePart = match.date.split("T")[1];
+                match.time = timePart.substring(0, 5); // Extract HH:MM
+              }
+            }
+
+            if (homeTeam) teamSet.add(homeTeam);
+            if (awayTeam) teamSet.add(awayTeam);
+          });
+
+          // Add teams with league info
+          Array.from(teamSet).forEach((team) => {
+            allTeams.push({
+              key: `${team}-${leagueName}`,
+              value: team,
+              league: leagueName,
+            });
+          });
         }
 
-        const data: ApiResponse = await response.json();
-        setApiData(data);
+        // Set the leagues and teams
+        setApiData(allData);
+        setAvailableLeagues(Array.from(leagueSet));
+        setSelectedLeagues(["Premier League"]); // Default: select Premier League 
 
-        // Extract unique team names from matches
-const teamSet = new Set<string>();
-data.matches.forEach((match: MatchData) => {
-  const homeTeam = match.team1 ? cleanTeamName(match.team1) : "";
-  const awayTeam = match.team2 ? cleanTeamName(match.team2) : "";
+        // Sort teams alphabetically
+        const sortedTeams = allTeams.sort((a, b) =>
+          a.value.localeCompare(b.value)
+        );
 
-  // Extract time from date if it exists
-  if (match.date && !match.time) {
-    // Example: "2023-08-11T19:00:00Z"
-    if (match.date.includes("T")) {
-      const timePart = match.date.split("T")[1];
-      match.time = timePart.substring(0, 5); // Extract HH:MM
-    }
-  }
-
-  if (homeTeam) teamSet.add(homeTeam);
-  if (awayTeam) teamSet.add(awayTeam);
-});
-
-        // Convert to format needed for SelectList
-        const formattedTeams = Array.from(teamSet)
-          .sort()
-          .map((team) => ({ key: team, value: team }));
-
-        setTeamsData(formattedTeams);
-        setFilteredTeamsData(formattedTeams); // Initialize filtered teams with all teams
-        console.log("Teams loaded:", formattedTeams.length);
+        setTeamsData(sortedTeams);
+        setFilteredTeamsData(sortedTeams); // Initialize filtered teams with all teams
+        console.log(
+          "Teams loaded:",
+          sortedTeams.length,
+          "from",
+          leagueSet.size,
+          "leagues"
+        );
       } catch (error) {
         console.error(
           "Error fetching teams:",
@@ -149,30 +262,36 @@ data.matches.forEach((match: MatchData) => {
 
         // Fallback to static list on error
         const fallbackTeams = [
-          "Arsenal FC",
-          "Aston Villa FC",
-          "AFC Bournemouth",
-          "Brentford FC",
-          "Brighton & Hove Albion FC",
-          "Chelsea FC",
-          "Crystal Palace FC",
-          "Everton FC",
-          "Fulham FC",
-          "Leicester City FC",
-          "Liverpool FC",
-          "Manchester City FC",
-          "Manchester United FC",
-          "Newcastle United FC",
-          "Nottingham Forest FC",
-          "Southampton FC",
-          "Tottenham Hotspur FC",
-          "West Ham United FC",
-          "Wolverhampton Wanderers FC",
-          "Ipswich Town FC",
-        ].map((team) => ({ key: team, value: team }));
+          "Arsenal",
+          "Aston Villa",
+          "Bournemouth",
+          "Brentford",
+          "Brighton & Hove Albion",
+          "Chelsea",
+          "Crystal Palace",
+          "Everton",
+          "Fulham",
+          "Leicester City",
+          "Liverpool",
+          "Manchester City",
+          "Manchester United",
+          "Newcastle United",
+          "Nottingham Forest",
+          "Southampton",
+          "Tottenham Hotspur",
+          "West Ham United",
+          "Wolverhampton Wanderers",
+          "Ipswich Town",
+        ].map((team) => ({
+          key: team,
+          value: cleanTeamName(team),
+          league: "Premier League",
+        }));
 
         setTeamsData(fallbackTeams);
         setFilteredTeamsData(fallbackTeams);
+        setAvailableLeagues(["Premier League"]);
+        setSelectedLeagues(["Premier League"]);
       } finally {
         setIsLoading(false);
       }
@@ -181,7 +300,49 @@ data.matches.forEach((match: MatchData) => {
     fetchTeams();
   }, []);
 
-  // Helper function to convert time string to minutes
+  /**
+   * @brief Handles a change in the selected leagues.
+   *
+   * This function updates the selectedLeagues state based on the user's selection.
+   *
+   * @param league - The league to add or remove from the selected leagues.
+   */
+  const handleLeagueChange = (league: string) => {
+    setSelectedLeagues((prev) => {
+      if (prev.includes(league)) {
+        return prev.filter((l) => l !== league);
+      } else {
+        return [...prev, league];
+      }
+    });
+  };
+
+  /**
+   * @brief Filters teams based on the selected leagues.
+   *
+   * This useEffect hook filters the teamsData based on the selectedLeagues and
+   * updates the filteredTeamsData state.
+   */
+  useEffect(() => {
+    if (teamsData.length > 0 && selectedLeagues.length > 0) {
+      const filtered = teamsData.filter((team) =>
+        selectedLeagues.includes(team.league)
+      );
+      setFilteredTeamsData(filtered);
+    } else if (teamsData.length > 0) {
+      // If no leagues selected, show all teams
+      setFilteredTeamsData(teamsData);
+    }
+  }, [selectedLeagues, teamsData]);
+
+  /**
+   * @brief Converts a time string to minutes.
+   *
+   * This helper function converts a time string in HH:MM format to minutes.
+   *
+   * @param timeString - The time string to convert.
+   * @returns The time in minutes, or -1 if the time string is invalid.
+   */
   const convertTimeToMinutes = (timeString: string): number => {
     if (!timeString || !timeString.includes(":")) return -1;
 
@@ -195,7 +356,16 @@ data.matches.forEach((match: MatchData) => {
     }
   };
 
-  // New helper function to check if a date is within a range
+  /**
+   * @brief Checks if a date is within a specified range.
+   *
+   * This helper function checks if a given date falls within a specified date range.
+   *
+   * @param dateStr - The date to check (as a string).
+   * @param startDateStr - The start date of the range (as a string).
+   * @param endDateStr - The end date of the range (as a string).
+   * @returns True if the date is within the range, false otherwise.
+   */
   const isDateInRange = (
     dateStr: string,
     startDateStr: string,
@@ -215,9 +385,15 @@ data.matches.forEach((match: MatchData) => {
     }
   };
 
+  /**
+   * @brief Handles adding all filtered matches to the list.
+   *
+   * This function applies the time and date filters to the available match data
+   * and adds the matching matches to the list.
+   */
   const handleAddAllFilteredMatches = () => {
     // Apply filters first to ensure we have up-to-date data
-    if (!apiData) {
+    if (!apiData || apiData.length === 0) {
       alert("No match data available");
       return;
     }
@@ -241,8 +417,16 @@ data.matches.forEach((match: MatchData) => {
         return;
       }
 
+      // Combine matches from all leagues in apiData
+      const allMatches: MatchData[] = [];
+      apiData.forEach((leagueData) => {
+        if (leagueData.matches) {
+          allMatches.push(...leagueData.matches);
+        }
+      });
+
       // Filter for matches from the API
-      const matchingMatches = apiData.matches.filter((match) => {
+      const matchingMatches = allMatches.filter((match) => {
         let includeMatch = true;
 
         // Apply date filter if active
@@ -304,7 +488,12 @@ data.matches.forEach((match: MatchData) => {
     }
   };
 
-  // Update the useEffect to use matchesToProcess instead of filteredMatches
+  /**
+   * @brief Processes matches to be added to the list.
+   *
+   * This useEffect hook processes matches from the matchesToProcess array and adds
+   * them to the list if they do not already exist.
+   */
   useEffect(() => {
     if (
       processingMatchIndex >= 0 &&
@@ -344,7 +533,12 @@ data.matches.forEach((match: MatchData) => {
     }
   }, [processingMatchIndex, matchesToProcess, matches]);
 
-  // Update processNextMatch to use matchesToProcess
+  /**
+   * @brief Processes the next match in the queue.
+   *
+   * This function increments the processingMatchIndex to move to the next match
+   * in the matchesToProcess array.
+   */
   const processNextMatch = () => {
     setTimeout(() => {
       if (processingMatchIndex < matchesToProcess.length - 1) {
@@ -362,7 +556,11 @@ data.matches.forEach((match: MatchData) => {
     }, 100);
   };
 
-  // Reset filters
+  /**
+   * @brief Resets all filters to their default values.
+   *
+   * This function resets the time, date, and team filters to their default values.
+   */
   const resetAllFilters = () => {
     setStartTime("");
     setEndTime("");
@@ -373,36 +571,82 @@ data.matches.forEach((match: MatchData) => {
     setIsDateFilterActive(false);
   };
 
-// Filter team options, excluding already used teams
-const homeTeamOptions = useMemo(() => {
-  // Get teams already used in existing matches
-  const usedTeams = new Set<string>();
-  matches.forEach(match => {
-    usedTeams.add(cleanTeamName(match.homeTeam));
-    usedTeams.add(cleanTeamName(match.awayTeam));
-  });
-  
-  return filteredTeamsData.filter(team => 
-    team.value !== awayTeam && // Can't select same team as away
-    !usedTeams.has(team.value) // Can't select teams already used in other matches
-  );
-}, [filteredTeamsData, awayTeam, matches]);
+  /**
+   * @brief Adds a new home team to the list of teams.
+   *
+   * This function adds a new home team to the list of available teams.
+   *
+   * @param newTeamName - The name of the new home team.
+   */
+  const addNewHomeTeam = (newTeamName: string) => {
+    // Default to first selected league or "Custom" if none selected
+    const league = selectedLeagues.length > 0 ? selectedLeagues[0] : "Custom";
+    const newTeam = { key: String(Date.now()), value: newTeamName, league };
+    setTeamsData([...teamsData, newTeam]);
+    setFilteredTeamsData([...filteredTeamsData, newTeam]);
+  };
 
-const awayTeamOptions = useMemo(() => {
-  // Get teams already used in existing matches
-  const usedTeams = new Set<string>();
-  matches.forEach(match => {
-    usedTeams.add(cleanTeamName(match.homeTeam));
-    usedTeams.add(cleanTeamName(match.awayTeam));
-  });
-  
-  return filteredTeamsData.filter(team => 
-    team.value !== homeTeam && // Can't select same team as home
-    !usedTeams.has(team.value) // Can't select teams already used in other matches
-  );
-}, [filteredTeamsData, homeTeam, matches]);
+  /**
+   * @brief Adds a new away team to the list of teams.
+   *
+   * This function adds a new away team to the list of available teams.
+   *
+   * @param newTeamName - The name of the new away team.
+   */
+  const addNewAwayTeam = (newTeamName: string) => {
+    const league = selectedLeagues.length > 0 ? selectedLeagues[0] : "Custom";
+    const newTeam = { key: String(Date.now()), value: newTeamName, league };
+    setTeamsData([...teamsData, newTeam]);
+    setFilteredTeamsData([...filteredTeamsData, newTeam]);
+  };
 
-  // Clear selections after adding a match
+  /**
+   * @brief Filters the home team options, excluding already used teams.
+   *
+   * This useMemo hook filters the home team options, excluding teams that are
+   * already used in existing matches.
+   */
+  const homeTeamOptions = useMemo(() => {
+    // Get teams already used in existing matches
+    const usedTeams = new Set<string>();
+    matches.forEach((match) => {
+      usedTeams.add(cleanTeamName(match.homeTeam));
+      usedTeams.add(cleanTeamName(match.awayTeam));
+    });
+
+    return filteredTeamsData.filter(
+      (team) =>
+        team.value !== awayTeam && // Can't select same team as away
+        !usedTeams.has(team.value) // Can't select teams already used in other matches
+    );
+  }, [filteredTeamsData, awayTeam, matches]);
+
+  /**
+   * @brief Filters the away team options, excluding already used teams.
+   *
+   * This useMemo hook filters the away team options, excluding teams that are
+   * already used in existing matches.
+   */
+  const awayTeamOptions = useMemo(() => {
+    // Get teams already used in existing matches
+    const usedTeams = new Set<string>();
+    matches.forEach((match) => {
+      usedTeams.add(cleanTeamName(match.homeTeam));
+      usedTeams.add(cleanTeamName(match.awayTeam));
+    });
+
+    return filteredTeamsData.filter(
+      (team) =>
+        team.value !== homeTeam && // Can't select same team as home
+        !usedTeams.has(team.value) // Can't select teams already used in other matches
+    );
+  }, [filteredTeamsData, homeTeam, matches]);
+
+  /**
+   * @brief Handles adding a match and clearing the team selections.
+   *
+   * This function adds a match to the list and clears the home and away team selections.
+   */
   const handleAddMatchAndClear = () => {
     handleAddMatch();
     setHomeTeam("");
@@ -412,6 +656,36 @@ const awayTeamOptions = useMemo(() => {
   return (
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Matches</Text>
+
+      {/* League Filter Section */}
+      {!isLoading && !isError && availableLeagues.length > 0 && (
+        <View style={styles.leagueFilterContainer}>
+          <Text style={styles.leagueFilterLabel}>Select Leagues:</Text>
+          <View style={styles.leagueButtonsContainer}>
+            {availableLeagues.map((league) => (
+              <TouchableOpacity
+                key={league}
+                style={[
+                  styles.leagueButton,
+                  selectedLeagues.includes(league) &&
+                    styles.leagueButtonSelected,
+                ]}
+                onPress={() => handleLeagueChange(league)}
+              >
+                <Text
+                  style={[
+                    styles.leagueButtonText,
+                    selectedLeagues.includes(league) &&
+                      styles.leagueButtonTextSelected,
+                  ]}
+                >
+                  {league}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Filter Component */}
       <MatchFilter
@@ -452,6 +726,8 @@ const awayTeamOptions = useMemo(() => {
           homeTeamOptions={homeTeamOptions}
           awayTeamOptions={awayTeamOptions}
           handleAddMatchAndClear={handleAddMatchAndClear}
+          addNewHomeTeam={addNewHomeTeam} // Pass the function
+          addNewAwayTeam={addNewAwayTeam} // Pass the function
         />
       )}
 
