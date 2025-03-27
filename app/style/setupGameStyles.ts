@@ -390,11 +390,6 @@ const styles = StyleSheet.create({
     shadowRadius: 1.5,
     minHeight: 80,
   },
-  commonMatchGridItem: {
-    backgroundColor: '#e3f2fd',
-    borderWidth: 1,
-    borderColor: '#90caf9',
-  },
   matchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
