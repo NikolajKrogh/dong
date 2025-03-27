@@ -1,8 +1,8 @@
-import React from "react";
-import { View, Text, TouchableOpacity, Modal, ScrollView, Dimensions, StyleSheet, SafeAreaView } from "react-native";
+import React, { useRef, useEffect } from "react";
+import { View, Text, TouchableOpacity, Modal, ScrollView, Dimensions, StyleSheet, SafeAreaView, Animated } from "react-native";
 import { Match, Player } from "../../app/store";
 import { Ionicons } from "@expo/vector-icons";
-import  Styles from "../../app/style/gameProgressStyles"; 
+import Styles from "../../app/style/gameProgressStyles";
 
 interface MatchQuickActionsModalProps {
   isVisible: boolean;
@@ -31,16 +31,73 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 }) => {
   // Skip rendering if no match is selected
   if (!selectedMatchId || !isVisible) return null;
-  
+
   // Find the selected match
   const match = matches.find((m) => m.id === selectedMatchId);
   if (!match) return null;
+
+  // Animation values
+  const decrementAnim = useRef(new Animated.Value(1)).current;
+  const incrementAnim = useRef(new Animated.Value(1)).current;
+  const closeButtonAnim = useRef(new Animated.Value(1)).current;
+  const goalValueAnim = useRef(new Animated.Value(1)).current;
+  const modalContentAnim = useRef(new Animated.Value(0)).current;
   
+  // Previous goal value reference
+  const prevGoalsRef = useRef(match.goals);
+
+  // Button press animation
+  const animateButtonPress = (buttonAnim: Animated.Value) => {
+    Animated.sequence([
+      Animated.timing(buttonAnim, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // Modal entry animation
+  useEffect(() => {
+    if (isVisible) {
+      Animated.timing(modalContentAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isVisible]);
+
+  // Goal value change animation
+  useEffect(() => {
+    if (prevGoalsRef.current !== match.goals) {
+      Animated.sequence([
+        Animated.timing(goalValueAnim, {
+          toValue: 1.3,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(goalValueAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
+      prevGoalsRef.current = match.goals;
+    }
+  }, [match.goals]);
+
   // Calculate affected players
   const affectedPlayers = players.filter(
-    (p) => match.id === commonMatchId || 
-           (playerAssignments[p.id] && 
-            playerAssignments[p.id].includes(match.id))
+    (p) => match.id === commonMatchId ||
+      (playerAssignments[p.id] &&
+        playerAssignments[p.id].includes(match.id))
   );
 
   return (
@@ -52,19 +109,33 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
         onRequestClose={onClose}
         statusBarTranslucent={true}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={modalStyles.overlayTouchable}
           activeOpacity={1}
           onPress={onClose}
         >
           <View style={modalStyles.centeredView}>
-            <View style={modalStyles.modalContainer}>
-              <TouchableOpacity 
+            <Animated.View 
+              style={[
+                modalStyles.modalContainer,
+                { 
+                  opacity: modalContentAnim,
+                  transform: [
+                    { scale: modalContentAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.9, 1]
+                      })
+                    }
+                  ]
+                }
+              ]}
+            >
+              <TouchableOpacity
                 activeOpacity={1}
                 onPress={(e) => e.stopPropagation()}
                 style={{ width: '100%' }}
               >
-                <ScrollView 
+                <ScrollView
                   contentContainerStyle={modalStyles.scrollContent}
                   bounces={false}
                   showsVerticalScrollIndicator={false}
@@ -73,39 +144,71 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                     {match.homeTeam} vs {match.awayTeam}
                   </Text>
 
-                  
-
                   <View style={modalStyles.goalActions}>
-                    <TouchableOpacity
-                      style={[modalStyles.actionButton, modalStyles.decrementButton]}
-                      onPress={() => handleGoalDecrement(match.id)}
-                    >
-                      <Ionicons name="remove" size={24} color="white" />
-                    </TouchableOpacity>
+                    <Animated.View style={{
+                      transform: [{ scale: decrementAnim }]
+                    }}>
+                      <TouchableOpacity
+                        style={[modalStyles.actionButton, modalStyles.decrementButton]}
+                        onPress={() => {
+                          handleGoalDecrement(match.id);
+                          animateButtonPress(decrementAnim);
+                        }}
+                      >
+                        <Ionicons name="remove" size={24} color="white" />
+                      </TouchableOpacity>
+                    </Animated.View>
 
-                    <View style={modalStyles.goalCounter}>
+                    <Animated.View 
+                      style={[
+                        modalStyles.goalCounter,
+                        { transform: [{ scale: goalValueAnim }] }
+                      ]}
+                    >
                       <Text style={modalStyles.goalValue}>{match.goals}</Text>
                       <Text style={modalStyles.goalLabel}>GOALS</Text>
-                    </View>
+                    </Animated.View>
 
-                    <TouchableOpacity
-                      style={[modalStyles.actionButton, modalStyles.incrementButton]}
-                      onPress={() => handleGoalIncrement(match.id)}
-                    >
-                      <Ionicons name="add" size={24} color="white" />
-                    </TouchableOpacity>
+                    <Animated.View style={{
+                      transform: [{ scale: incrementAnim }]
+                    }}>
+                      <TouchableOpacity
+                        style={[modalStyles.actionButton, modalStyles.incrementButton]}
+                        onPress={() => {
+                          handleGoalIncrement(match.id);
+                          animateButtonPress(incrementAnim);
+                        }}
+                      >
+                        <Ionicons name="add" size={24} color="white" />
+                      </TouchableOpacity>
+                    </Animated.View>
                   </View>
 
                   <View style={modalStyles.sectionHeader}>
                     <Ionicons name="people" size={16} color="#555" />
                     <Text style={modalStyles.sectionTitle}>This will affect:</Text>
                   </View>
+                  
                   {affectedPlayers.length > 0 ? (
                     <View style={modalStyles.playerListContainer}>
-                      {affectedPlayers.map(player => (
-                        <View key={player.id} style={modalStyles.playerCard}>
+                      {affectedPlayers.map((player, index) => (
+                        <Animated.View 
+                          key={player.id} 
+                          style={[
+                            modalStyles.playerCard,
+                            { 
+                              opacity: modalContentAnim,
+                              transform: [{ 
+                                translateY: modalContentAnim.interpolate({
+                                  inputRange: [0, 1],
+                                  outputRange: [20, 0]
+                                })
+                              }]
+                            }
+                          ]}
+                        >
                           <Text style={modalStyles.playerName}>{player.name}</Text>
-                        </View>
+                        </Animated.View>
                       ))}
                     </View>
                   ) : (
@@ -115,15 +218,23 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                     </View>
                   )}
 
-                  <TouchableOpacity
-                    style={modalStyles.closeButton}
-                    onPress={onClose}
-                  >
-                    <Text style={modalStyles.closeButtonText}>Close</Text>
-                  </TouchableOpacity>
+                  <Animated.View style={{
+                    transform: [{ scale: closeButtonAnim }]
+                  }}>
+                    <TouchableOpacity
+                      style={modalStyles.closeButton}
+                      onPress={() => {
+                        animateButtonPress(closeButtonAnim);
+                        // Short delay before closing modal to show the animation
+                        setTimeout(onClose, 150);
+                      }}
+                    >
+                      <Text style={modalStyles.closeButtonText}>Close</Text>
+                    </TouchableOpacity>
+                  </Animated.View>
                 </ScrollView>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -199,10 +310,10 @@ const modalStyles = StyleSheet.create({
     alignItems: 'center',
   },
   decrementButton: {
-    backgroundColor: '#f44336',
+    backgroundColor: '#0275d8',
   },
   incrementButton: {
-    backgroundColor: '#4caf50',
+    backgroundColor: '#0275d8',
   },
   sectionTitle: {
     fontSize: 14, // Reduced font size

@@ -1,6 +1,6 @@
 import React, { ReactNode, useRef } from "react";
 import { View, Text, TouchableOpacity, Dimensions, StyleSheet } from "react-native";
-import { PanGestureHandler, ScrollView, NativeViewGestureHandler } from "react-native-gesture-handler";
+import { PanGestureHandler } from "react-native-gesture-handler";
 import Animated, { 
   useAnimatedGestureHandler,
   useAnimatedStyle,
@@ -8,12 +8,15 @@ import Animated, {
   withSpring,
   runOnJS
 } from "react-native-reanimated";
+import { Ionicons } from "@expo/vector-icons";
 import styles from "../../app/style/gameProgressStyles";
 
 interface TabNavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   children: ReactNode[];
+  matchesCount: number;
+  playersCount: number;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -22,7 +25,9 @@ const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.2;
 const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   setActiveTab,
-  children
+  children,
+  matchesCount,
+  playersCount  
 }) => {
   const tabs = ["matches", "players"];
   const activeIndex = tabs.indexOf(activeTab);
@@ -110,22 +115,47 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
     };
   });
 
+  // Get the tab count based on tab name
+  const getTabCount = (tab: string) => {
+    return tab === 'matches' ? matchesCount : playersCount;
+  };
+
+  // Get the icon name based on tab name
+  const getTabIcon = (tab: string) => {
+    return tab === 'matches' ? 'football' : 'people';
+  };
+
   return (
     <View style={localStyles.container}>
-      <View style={styles.tabContainer}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => handleTabChange(tab)}
-          >
-            <Text
-              style={[styles.tabText, activeTab === tab && styles.activeTabText]}
+      {/* Enhanced Tab Bar */}
+      <View style={localStyles.tabBarContainer}>
+        <View style={localStyles.tabBar}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                localStyles.tabButton,
+                activeTab === tab && localStyles.activeTabButton
+              ]}
+              onPress={() => handleTabChange(tab)}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Ionicons 
+                name={getTabIcon(tab)} 
+                size={20} 
+                color={activeTab === tab ? "#0275d8" : "#777"} 
+              />
+              <Text style={[
+                localStyles.tabButtonText,
+                activeTab === tab && localStyles.activeTabButtonText
+              ]}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+              <View style={localStyles.tabBadge}>
+                <Text style={localStyles.tabBadgeText}>{getTabCount(tab)}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
       
       <View style={localStyles.contentContainer}>
@@ -147,7 +177,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   );
 };
 
-// Local styles to ensure proper layout
+// Local styles for the enhanced UI
 const localStyles = StyleSheet.create({
   container: {
     flex: 1,
@@ -161,6 +191,52 @@ const localStyles = StyleSheet.create({
   tabPage: {
     width: SCREEN_WIDTH,
     flex: 1,
+  },
+  tabBarContainer: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+  },
+  activeTabButton: {
+    backgroundColor: '#e3f2fd',
+  },
+  tabButtonText: {
+    fontSize: 15,
+    color: '#777',
+    marginLeft: 8,
+  },
+  activeTabButtonText: {
+    color: '#0275d8',
+    fontWeight: '500',
+  },
+  tabBadge: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  tabBadgeText: {
+    fontSize: 12,
+    color: '#666',
   }
 });
 

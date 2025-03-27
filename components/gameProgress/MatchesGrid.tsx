@@ -52,7 +52,6 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
           <TouchableOpacity
             style={[
               styles.matchGridItem,
-              item.id === commonMatchId && styles.commonMatchGridItem,
             ]}
             onPress={() => openQuickActions(item.id)}
           >
