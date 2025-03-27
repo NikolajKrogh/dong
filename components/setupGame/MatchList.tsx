@@ -5,7 +5,9 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
+  ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Match } from "../../app/store";
 import styles from "../../app/style/setupGameStyles";
 import MatchFilter from "./Filter";
@@ -106,7 +108,7 @@ const MatchList: FC<MatchListProps> = ({
     matchesSkipped: 0,
     totalToProcess: 0,
   });
-
+  const [isLeagueExpanded, setIsLeagueExpanded] = useState(false);
   // Time filter states
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -234,7 +236,7 @@ const MatchList: FC<MatchListProps> = ({
         // Set the leagues and teams
         setApiData(allData);
         setAvailableLeagues(Array.from(leagueSet));
-        setSelectedLeagues(["Premier League"]); // Default: select Premier League 
+        setSelectedLeagues(["Premier League"]); // Default: select Premier League
 
         // Sort teams alphabetically
         const sortedTeams = allTeams.sort((a, b) =>
@@ -658,35 +660,67 @@ const MatchList: FC<MatchListProps> = ({
       <Text style={styles.sectionTitle}>Matches</Text>
 
       {/* League Filter Section */}
-      {!isLoading && !isError && availableLeagues.length > 0 && (
-        <View style={styles.leagueFilterContainer}>
-          <Text style={styles.leagueFilterLabel}>Select Leagues:</Text>
-          <View style={styles.leagueButtonsContainer}>
+
+      <TouchableOpacity
+        style={styles.expandableCard}
+        onPress={() => setIsLeagueExpanded(!isLeagueExpanded)}
+      >
+        <View style={styles.expandableCardContent}>
+          <View style={styles.expandableCardLeft}>
+            <Ionicons name="funnel-outline" size={20} color="#0275d8" />
+            <Text style={styles.expandableCardTitle}>League Filter</Text>
+          </View>
+
+          <View style={styles.rightContent}>
+            <View style={styles.filterBadgesContainer}>
+              {selectedLeagues.map((league) => (
+                <View key={league} style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{league}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.compactIndicator}>
+              <Ionicons
+                name={isLeagueExpanded ? "chevron-up" : "chevron-down"}
+                size={18}
+                color="#777"
+              />
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      {isLeagueExpanded && (
+        <View style={styles.expandedCardContent}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.leagueChipsScrollContent}
+          >
             {availableLeagues.map((league) => (
               <TouchableOpacity
                 key={league}
                 style={[
-                  styles.leagueButton,
-                  selectedLeagues.includes(league) &&
-                    styles.leagueButtonSelected,
+                  styles.leagueChip,
+                  selectedLeagues.includes(league) && styles.selectedLeagueChip,
                 ]}
                 onPress={() => handleLeagueChange(league)}
               >
                 <Text
                   style={[
-                    styles.leagueButtonText,
+                    styles.leagueChipText,
                     selectedLeagues.includes(league) &&
-                      styles.leagueButtonTextSelected,
+                      styles.selectedLeagueChipText,
                   ]}
                 >
                   {league}
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
       )}
-
       {/* Filter Component */}
       <MatchFilter
         startDate={startDate}
