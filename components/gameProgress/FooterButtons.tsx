@@ -66,7 +66,10 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
         >
           {/* Menu content */}
           <View 
-            style={[styles.menuContainer, { left: 20, bottom: 75 }]}
+            style={[styles.menuContainer, { 
+              left: SCREEN_WIDTH * 0.05, 
+              bottom: SCREEN_HEIGHT * 0.1 
+            }]}
           >
             <View style={styles.expandableMenu}>
               <TouchableOpacity 
@@ -104,7 +107,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
           </View>
         </TouchableOpacity>
       </Modal>
-      
+
       {/* Menu toggle button */}
       <View style={styles.footer}>
         <TouchableOpacity 
@@ -126,7 +129,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
   },
   menuContainer: {
     position: 'absolute',
