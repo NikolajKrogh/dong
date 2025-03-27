@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { TeamWithLeague, MatchData, cleanTeamName } from '../utils/matchUtils';
+import { TeamWithLeague, MatchData, cleanTeamName, isDateInRange, convertTimeToMinutes } from '../utils/matchUtils';
 import { Match } from '../app/store';
 
 /**
@@ -102,32 +102,4 @@ export function filterMatchesByDateAndTime(
     
     return includeMatch;
   });
-}
-
-function isDateInRange(dateStr: string, startDateStr: string, endDateStr: string): boolean {
-  if (!dateStr || !startDateStr || !endDateStr) return true;
-
-  try {
-    const date = new Date(dateStr);
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(endDateStr);
-
-    return date >= startDate && date <= endDate;
-  } catch (e) {
-    console.error("Date comparison error:", e);
-    return true; // Default to including the match if there's an error
-  }
-}
-
-function convertTimeToMinutes(timeString: string): number {
-  if (!timeString || !timeString.includes(":")) return -1;
-
-  try {
-    const [hours, minutes] = timeString.split(":").map(Number);
-    if (isNaN(hours) || isNaN(minutes)) return -1;
-    return hours * 60 + minutes;
-  } catch (e) {
-    console.error("Time conversion error:", e);
-    return -1;
-  }
 }
