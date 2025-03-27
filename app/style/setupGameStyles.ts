@@ -96,12 +96,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,        // Ensure it's above other content
   },
-  emptyListText: {
-    color: "#666",
-    fontStyle: "italic",
-    textAlign: "center",
-    marginVertical: 12,
-  },
+  // emptyListText: {
+  //   color: "#666",
+  //   fontStyle: "italic",
+  //   textAlign: "center",
+  //   marginVertical: 12,
+  // },
   instructionText: {
     fontSize: 14,
     color: "#666",
@@ -356,9 +356,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  disabledButton: {
-    backgroundColor: '#ccc',
-  },
   matchSelectItem: {
     margin: 4, // Reduced margin from 8 to 4
     padding: 12, // Reduced padding from 16 to 12
@@ -594,12 +591,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginTop: 4,
   },
-  dropdownItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
-  },
   dropdownText: {
     fontSize: 14,
     color: '#333',
@@ -636,54 +627,11 @@ const styles = StyleSheet.create({
     width: 80,
     fontSize: 14,
   },
-  timeInput: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    backgroundColor: 'white',
-  },
-  filterButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 5,
-  },
-  applyFilterButton: {
-    backgroundColor: '#007bff',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-  },
-  resetFilterButton: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-    marginRight: 10,
-  },
-  applyFilterText: {
-    color: 'white',
-    fontWeight: '500',
-  },
-  resetFilterText: {
-    color: '#666',
-  },
   filterStatusText: {
     marginTop: 10,
     fontSize: 13,
     color: '#666',
     fontStyle: 'italic',
-  },
-  filterSectionTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#555',
-    marginTop: 10,
-    marginBottom: 8,
   },
   addAllButton: {
     backgroundColor: "#28a745", // Green color
@@ -696,17 +644,341 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "500",
   },
-  datePickerButton: {
+  clearButton: {
+    padding: 5,
+  },
+  clearButtonText: {
+    fontSize: 16,
+    color: '#999',
+  },
+  emptyListContainer: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  emptyListText: {
+    color: '#999',
+    marginBottom: 10,
+  },
+  addNewButton: {
+    padding: 8,
+    backgroundColor: '#f0f7ff',
+    borderRadius: 4,
+    margin: 10,
+  },
+  addNewButtonText: {
+    color: '#007bff',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    width: '100%',
+    maxHeight: '80%',
     padding: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 5,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  datePickerText: {
-    marginLeft: 5,
+  modalSearchInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  modalCloseButton: {
+    padding: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 4,
+  },
+  modalCloseText: {
+    color: '#333',
+  },
+  modalItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalItemText: {
     fontSize: 16,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 40,
+    width: '100%',
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 8,
+    fontSize: 14,
+  },
+  leagueFilterContainer: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  leagueFilterLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  leagueButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  leagueButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  leagueButtonSelected: {
+    backgroundColor: '#007bff',
+    borderColor: '#0056b3',
+  },
+  leagueButtonText: {
+    fontSize: 13,
+    color: '#333',
+  },
+  leagueButtonTextSelected: {
+    color: '#fff',
+  },
+  modalItemLeague: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  leagueChipsContainer: {
+    marginVertical: 8,
+    paddingHorizontal: 16,
+  },
+  leagueChipsScrollContent: {
+    paddingVertical: 8,
+  },
+  leagueChip: {
+    backgroundColor: '#f1f3f4',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 4,
+  },
+  selectedLeagueChip: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#2196f3',
+    borderWidth: 1,
+  },
+  leagueChipText: {
+    fontSize: 14,
+    color: '#555',
+  },
+  selectedLeagueChipText: {
+    color: '#0275d8',
+    fontWeight: '500',
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#444',
+    marginBottom: 8,
+  },
+  inputGroup: {
+    marginBottom: 12,
+  },
+  labeledInput: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  dateInput: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8f8f8',
+    fontSize: 15,
+  },
+  timeInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeInput: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#f8f8f8',
+    fontSize: 15,
+  },
+  timeSeparator: {
+    paddingHorizontal: 8,
+  },
+  timeSeparatorText: {
+    color: '#777',
+    fontSize: 14,
+  },
+  filterSummary: {
+    backgroundColor: '#f0f9ff',
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 16,
+  },
+  matchCountText: {
+    color: '#0275d8',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  filterButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  resetFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 6,
+    backgroundColor: '#f8f8f8',
+  },
+  resetFilterText: {
+    color: '#666',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  applyFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#0275d8',
+    borderRadius: 6,
+  },
+  applyFilterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  disabledButton: {
+    backgroundColor: '#b0b0b0',
+    opacity: 0.7,
+  },
+  activeInput: {
+    borderColor: '#0275d8',
+    backgroundColor: '#f5faff',
+  },
+  expandableCard: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e1e4e8',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  expandableCardContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  expandableCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  expandableCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 10,
+  },
+  rightContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compactIndicator: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  filterBadgesContainer: {
+    flexDirection: 'row',
+    marginLeft: 12,
+  },
+  filterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginRight: 6,
+  },
+  filterBadgeText: {
+    fontSize: 12,
+    color: '#0275d8',
+    marginLeft: 4,
+  },
+  expandedCardContent: {
+    padding: 16,
+    backgroundColor: '#f8f9fa',
+    borderTopWidth: 1,
+    borderTopColor: '#e1e4e8',
+  },
+  processingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f9ff',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#b8daff',
   },
 });
 

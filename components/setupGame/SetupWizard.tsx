@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import styles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router"; // Add this import
+import { useRouter } from "expo-router";
 
 interface SetupWizardProps {
   renderPlayersStep: () => React.ReactNode;
