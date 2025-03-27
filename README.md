@@ -12,9 +12,15 @@ This project was started to create an app to support the drinking game "DONG".
 
 2. Start the app
 
-   ```bash
-    npx expo start
-   ```
+View on the web:
+```bash
+npx expo start --dev-client
+```
+
+View on an android
+```bash
+npx expo run:android 
+```
 
 ## Compiling the app
 
