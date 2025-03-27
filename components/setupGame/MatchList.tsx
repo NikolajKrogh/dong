@@ -101,55 +101,123 @@ const MatchList: FC<MatchListProps> = ({
       alert("No match data available");
       return;
     }
-
+  
     const hasTimeFilter = Boolean(startTime && endTime);
     const hasDateFilter = Boolean(startDate && endDate);
-
+  
     if (!hasTimeFilter && !hasDateFilter) {
       alert("Please set date or time filters first");
       return;
     }
-
-    // Combine matches from all leagues in apiData
+  
+    // Combine all matches from API data regardless of league first
     const allMatches: MatchData[] = [];
     apiData.forEach((leagueData) => {
       if (leagueData.matches) {
         allMatches.push(...leagueData.matches);
       }
     });
-
-    // Filter matches
-    const matchingMatches = filterMatchesByDateAndTime(
+  
+    console.log(`Found ${allMatches.length} total matches in API data`);
+  
+    // Filter matches by date and time first
+    const timeFilteredMatches = filterMatchesByDateAndTime(
       allMatches,
       startDate,
       endDate,
       startTime,
       endTime
     );
-
+  
+    console.log(`After date/time filtering: ${timeFilteredMatches.length} matches`);
+  
+    // Now filter by league using the team data which has league information
+    const selectedLeagueSet = new Set(selectedLeagues);
+  
+    // Get teams that belong to selected leagues with normalized names for comparison
+    const teamsInSelectedLeagues = teamsData
+      .filter(team => selectedLeagueSet.has(team.league))
+      .map(team => ({
+        normalizedName: normalizeTeamName(team.value),
+        originalName: team.value,
+        league: team.league
+      }));
+  
+    // Create a lookup map for faster team matching
+    const teamNameMap = new Map();
+    teamsInSelectedLeagues.forEach(team => {
+      teamNameMap.set(team.normalizedName, team);
+    });
+  
+    console.log(`Found ${teamsInSelectedLeagues.length} teams in selected leagues`);
+  
+    // Debug - print first few teams to check normalization
+    if (teamsInSelectedLeagues.length > 0) {
+      console.log("Sample teams:", teamsInSelectedLeagues.slice(0, 3).map(t => 
+        `${t.originalName} -> ${t.normalizedName}`));
+    }
+  
+    // Filter matches to only include those with both teams in selected leagues
+    const leagueFilteredMatches = timeFilteredMatches.filter(match => {
+      if (!match.team1 || !match.team2) return false;
+      
+      const normalizedTeam1 = normalizeTeamName(match.team1);
+      const normalizedTeam2 = normalizeTeamName(match.team2);
+      
+      const team1Found = teamNameMap.has(normalizedTeam1);
+      const team2Found = teamNameMap.has(normalizedTeam2);
+      
+      // Debug first few unmatched teams
+      if (!team1Found || !team2Found) {
+        console.log(`Match team not found: ${match.team1} (${normalizedTeam1}) -> ${team1Found}, ${match.team2} (${normalizedTeam2}) -> ${team2Found}`);
+      }
+      
+      return team1Found && team2Found;
+    });
+  
+    console.log(`After league filtering: ${leagueFilteredMatches.length} matches`);
+  
     // Update filtered matches state
-    setFilteredMatches(matchingMatches);
-
-    // Update team filters
+    setFilteredMatches(leagueFilteredMatches);
+  
+    // Update team filters with the teams from filtered matches
     const matchingTeams = new Set<string>();
-    matchingMatches.forEach((match) => {
+    leagueFilteredMatches.forEach((match) => {
       if (match.team1) matchingTeams.add(match.team1);
       if (match.team2) matchingTeams.add(match.team2);
     });
-
-    const filtered = teamsData.filter((team) => matchingTeams.has(team.value));
-    setFilteredTeamsData(filtered);
+  
+    const filteredTeams = teamsData.filter((team) => 
+      matchingTeams.has(team.value) || 
+      matchingTeams.has(normalizeTeamName(team.value))
+    );
+    
+    setFilteredTeamsData(filteredTeams);
     setIsTimeFilterActive(hasTimeFilter);
     setIsDateFilterActive(hasDateFilter);
-
+  
     // Check if we found any matches
-    if (matchingMatches.length === 0) {
+    if (leagueFilteredMatches.length === 0) {
       alert("No matches found with current filters");
       return;
     }
-
+  
     // Start processing matches
-    startProcessing(matchingMatches);
+    startProcessing(leagueFilteredMatches);
+  };
+  
+  // Helper function to normalize team names for comparison
+  const normalizeTeamName = (name: string): string => {
+    if (!name) return '';
+    
+    return name
+      .toLowerCase()
+      .replace(/\s+fc$/i, '') // Remove FC suffix
+      .replace(/^(fc|afc|1\.\s*fc|1\.\s*fsv)\s+/i, '') // Remove common prefixes
+      .replace(/united|city|albion|hotspur/gi, '') // Remove common words
+      .replace(/&\s+/g, '') // Remove & and spaces
+      .replace(/[\s\-\.]+/g, '') // Remove spaces, hyphens, periods
+      .trim();
   };
 
   const addNewHomeTeam = (newTeamName: string) => {
