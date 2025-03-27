@@ -74,7 +74,7 @@ const modalStyles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    width: SCREEN_WIDTH * 0.8,
+    width: SCREEN_WIDTH * 0.85,
     backgroundColor: "white",
     borderRadius: 20,
     padding: 20,
@@ -105,16 +105,17 @@ const modalStyles = StyleSheet.create({
     width: "100%"
   },
   button: {
-    borderRadius: 10,
+    borderRadius: 20,
     padding: 10,
     elevation: 2,
-    minWidth: 80,
+    marginHorizontal: 5,
+    minWidth: 120,
   },
   buttonCancel: {
-    backgroundColor: "#ddd",
+    backgroundColor: "#6c757d",
   },
   buttonConfirm: {
-    backgroundColor: "#F44336", // Changed from blue (#2196F3) to red
+    backgroundColor: "#dc3545", // Changed from blue (#2196F3) to red
   },
   textStyle: {
     color: "white",

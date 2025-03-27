@@ -132,12 +132,17 @@ const GameProgressScreen = () => {
     setSelectedMatchId(matchId);
     setIsQuickActionsVisible(true);
   };
-  
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Tab Navigation with swipeable content */}
-        <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab}>
+        <TabNavigation
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          matchesCount={matches.length}
+          playersCount={players.length}
+        >
           {/* First tab - Matches */}
           <View style={styles.tabContent}>
             <MatchesGrid
@@ -148,7 +153,7 @@ const GameProgressScreen = () => {
               openQuickActions={openQuickActions}
             />
           </View>
-          
+
           {/* Second tab - Players */}
           <View style={styles.tabContent}>
             <PlayersList
@@ -161,7 +166,7 @@ const GameProgressScreen = () => {
             />
           </View>
         </TabNavigation>
-        
+
         {/* Footer buttons */}
         <View style={styles.footerContainer}>
           <FooterButtons
@@ -170,7 +175,7 @@ const GameProgressScreen = () => {
           />
         </View>
       </View>
-  
+
       {/* Modals */}
       <MatchQuickActionsModal
         isVisible={isQuickActionsVisible}
@@ -183,7 +188,7 @@ const GameProgressScreen = () => {
         handleGoalIncrement={handleGoalIncrement}
         handleGoalDecrement={handleGoalDecrement}
       />
-  
+
       <EndGameModal
         isVisible={isAlertVisible}
         onCancel={cancelEndGame}
