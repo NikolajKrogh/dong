@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   goalBadge: {
-    backgroundColor: '#ff5722',
+    backgroundColor: '#0275d8',
     width: 32,
     height: 32,
     borderRadius: 16,
