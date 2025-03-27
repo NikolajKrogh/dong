@@ -1,4 +1,4 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
+import { ExpoConfig, ConfigContext } from "expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "DONG",
@@ -11,10 +11,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    "icon": {
+    icon: {
       dark: "./assets/icons/ios_light.png",
       light: "./assets/icons/ios_dark.png",
-      tinted: "./assets/icons/ios_tinted.png"
+      tinted: "./assets/icons/ios_tinted.png",
     },
   },
   android: {
@@ -23,7 +23,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: "./assets/icons/android.png",
       backgroundColor: "#FCE38A",
     },
-    package: "com.krogh.dong",
+    package:
+      process.env.NODE_ENV === "development"
+        ? "com.krogh.dong.dev"
+        : "com.krogh.dong",
   },
   web: {
     bundler: "metro",
@@ -40,9 +43,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
-            image: "./assets/icons/splash_screen_light.png",
-            backgroundColor: "#000000",
-        }
+          image: "./assets/icons/splash_screen_light.png",
+          backgroundColor: "#000000",
+        },
       },
     ],
   ],
