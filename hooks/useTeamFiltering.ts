@@ -27,37 +27,33 @@ export function useTeamFiltering(
     }
   }, [selectedLeagues, teamsData]);
 
+  // Memoize the set of used teams
+  const usedTeams = useMemo(() => {
+    const teams = new Set<string>();
+    matches.forEach((match) => {
+      teams.add(cleanTeamName(match.homeTeam));
+      teams.add(cleanTeamName(match.awayTeam));
+    });
+    return teams;
+  }, [matches]);
+
   // Filter home team options, excluding already used teams
   const homeTeamOptions = useMemo(() => {
-    // Get teams already used in existing matches
-    const usedTeams = new Set<string>();
-    matches.forEach((match) => {
-      usedTeams.add(cleanTeamName(match.homeTeam));
-      usedTeams.add(cleanTeamName(match.awayTeam));
-    });
-
     return filteredTeamsData.filter(
       (team) =>
         team.value !== awayTeam && // Can't select same team as away
         !usedTeams.has(team.value) // Can't select teams already used in other matches
     );
-  }, [filteredTeamsData, awayTeam, matches]);
+  }, [filteredTeamsData, awayTeam, usedTeams]);
 
   // Filter away team options, excluding already used teams
   const awayTeamOptions = useMemo(() => {
-    // Get teams already used in existing matches
-    const usedTeams = new Set<string>();
-    matches.forEach((match) => {
-      usedTeams.add(cleanTeamName(match.homeTeam));
-      usedTeams.add(cleanTeamName(match.awayTeam));
-    });
-
     return filteredTeamsData.filter(
       (team) =>
         team.value !== homeTeam && // Can't select same team as home
         !usedTeams.has(team.value) // Can't select teams already used in other matches
     );
-  }, [filteredTeamsData, homeTeam, matches]);
+  }, [filteredTeamsData, homeTeam, usedTeams]);
 
   return {
     filteredTeamsData,
