@@ -8,6 +8,7 @@ export { default as SetupWizard } from "./setupGame/SetupWizard";
 export { default as MatchItem } from "./setupGame/MatchItem";
 export { default as TeamSelectionRow } from "./setupGame/TeamSelectionRow ";
 export { default as MatchFilter } from "./setupGame/Filter";
+export { default as LeagueFilter } from "./setupGame/LeagueFilter";
 
 // GameProgress
 export { default as EndGameModal } from "./gameProgress/EndGameModal";

@@ -969,6 +969,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e1e4e8',
   },
+  processingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0f9ff',
+    padding: 10,
+    borderRadius: 8,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#b8daff',
+  },
 });
 
 export default styles;
