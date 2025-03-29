@@ -975,6 +975,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#b8daff',
   },
+  matchTeamsSection: {
+    flex: 1,
+    paddingVertical: 6,
+    paddingLeft: 10,
+  },
+  matchTeamRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 3,
+  },
+  matchDivider: {
+    alignItems: "flex-start",
+    marginVertical: 2,
+    paddingLeft: 10,
+  },
+  matchTeamLogo: {
+    width: 24,
+    height: 24,
+    resizeMode: "contain",
+    marginRight: 8,
+  },
+  matchTeamName: {
+    fontSize: 14,
+    color: "#333",
+    flex: 1,
+    fontWeight: "500",
+  },
+  matchVsText: {
+    fontSize: 12,
+    color: "#777",
+  },
+  matchActionsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 6,
+  },
+  matchSelectionIndicator: {
+    marginRight: 8,
+    padding: 2,
+  },
+  matchDeleteButton: {
+    padding: 4,
+  }
 });
 
 export default styles;
