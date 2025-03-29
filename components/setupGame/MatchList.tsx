@@ -214,7 +214,6 @@ const MatchList: FC<MatchListProps> = ({
       .toLowerCase()
       .replace(/\s+fc$/i, '') // Remove FC suffix
       .replace(/^(fc|afc|1\.\s*fc|1\.\s*fsv)\s+/i, '') // Remove common prefixes
-      .replace(/united|city|albion|hotspur/gi, '') // Remove common words
       .replace(/&\s+/g, '') // Remove & and spaces
       .replace(/[\s\-\.]+/g, '') // Remove spaces, hyphens, periods
       .trim();
