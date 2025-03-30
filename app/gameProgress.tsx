@@ -2,6 +2,7 @@ import React from "react";
 import { View, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "./store";
+import { Audio } from "expo-av"; // Import Audio from expo-av 
 import styles from "./style/gameProgressStyles";
 
 // Import components
@@ -33,6 +34,29 @@ const GameProgressScreen = () => {
     resetState,
   } = useGameStore();
 
+  // State to track if the sound is currently playing
+  const [isSoundPlaying, setIsSoundPlaying] = React.useState(false);
+
+  /**
+   * Function to play the dong.mp3 sound with debounce.
+   */
+  const playDongSound = async () => {
+    if (isSoundPlaying) return; // Prevent playing if already playing
+
+    setIsSoundPlaying(true); // Set the state to indicate sound is playing
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require("../assets/sounds/dong.mp3")
+      );
+      await sound.playAsync();
+      setTimeout(() => {
+        setIsSoundPlaying(false); // Allow sound to play again after 3 seconds
+      }, 3000);
+    } catch (error) {
+      console.error("Error playing sound:", error);
+      setIsSoundPlaying(false); // Reset state in case of an error
+    }
+  };
   /**
    * Handles the action to end the game, making the alert modal visible.
    */
@@ -74,6 +98,7 @@ const GameProgressScreen = () => {
         match.id === matchId ? { ...match, goals: match.goals + 1 } : match
       )
     );
+    playDongSound(); // Play sound when goal is incremented
   };
 
   /**
