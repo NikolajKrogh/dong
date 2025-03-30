@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "./store";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";
+import { Video, ResizeMode } from "expo-av";
 
 interface Player {
   name: string;
@@ -17,14 +18,29 @@ interface Game {
 
 const HomeScreen = () => {
   const router = useRouter();
-  const { players, matches, history, resetState } = useGameStore();
+  const { players, matches, history, resetState, hasVideoPlayed, setHasVideoPlayed } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [isVideoVisible, setIsVideoVisible] = useState(false);
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+ 
+    // Show the video only if it hasn't been played yet
+    if (!hasVideoPlayed) {
+      setIsVideoVisible(true);
+    }
+  }, []); // Only run on component mount
 
   const hasGameInProgress = players.length > 0 && matches.length > 0;
 
   const handleCancelGame = () => {
     resetState();
     setIsConfirmModalVisible(false);
+  };
+
+  const handleVideoEnd = () => { 
+    setIsVideoVisible(false);
+    setHasVideoPlayed(true); 
   };
 
   // Helper functions to calculate stats
@@ -138,7 +154,6 @@ const HomeScreen = () => {
           <View style={styles.statsContainer}>
             <Text style={styles.statsTitle}>Game Stats</Text>
             <View style={styles.statsContent}>
-              {/* Total games played */}
               <View style={styles.statItem}>
                 <View style={styles.iconContainer}>
                   <Ionicons name="calendar" size={20} color="#0275d8" />
@@ -149,7 +164,6 @@ const HomeScreen = () => {
                 </View>
               </View>
 
-              {/* Top drinker */}
               {history.length > 0 && (
                 <View style={styles.statItem}>
                   <View style={styles.iconContainer}>
@@ -162,7 +176,6 @@ const HomeScreen = () => {
                 </View>
               )}
 
-              {/* Total drinks consumed */}
               <View style={styles.statItem}>
                 <View style={styles.iconContainer}>
                   <Ionicons name="beer" size={20} color="#0275d8" />
@@ -206,6 +219,21 @@ const HomeScreen = () => {
               </View>
             </View>
           </View>
+        </Modal>
+
+        <Modal animationType="fade" transparent={false} visible={isVideoVisible}>
+          <Video
+            ref={videoRef}
+            source={require("../assets/videos/dong_animation.mp4")}
+            style={StyleSheet.absoluteFill}
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay
+            onPlaybackStatusUpdate={(status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                handleVideoEnd();
+              }
+            }}
+          />
         </Modal>
       </View>
     </>
