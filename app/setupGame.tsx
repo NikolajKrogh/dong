@@ -62,6 +62,7 @@ const SetupGameScreen = () => {
       handleRemoveMatch={handleRemoveMatch}
       selectedCommonMatch={selectedCommonMatch}
       handleSelectCommonMatch={handleSelectCommonMatch}
+      setGlobalMatches={setGlobalMatches}
     />
   );
 
