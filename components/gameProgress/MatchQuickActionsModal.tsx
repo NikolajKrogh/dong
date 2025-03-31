@@ -1,8 +1,19 @@
-import React, { useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, Modal, ScrollView, Dimensions, StyleSheet, SafeAreaView, Animated } from "react-native";
+import React, { useRef, useEffect, useMemo } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Dimensions,
+  StyleSheet,
+  SafeAreaView,
+  Animated,
+  Image,
+} from "react-native";
 import { Match, Player } from "../../app/store";
 import { Ionicons } from "@expo/vector-icons";
-import Styles from "../../app/style/gameProgressStyles";
+import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 interface MatchQuickActionsModalProps {
   isVisible: boolean;
@@ -16,7 +27,7 @@ interface MatchQuickActionsModalProps {
   handleGoalDecrement: (matchId: string) => void;
 }
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   isVisible,
@@ -29,22 +40,35 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   handleGoalIncrement,
   handleGoalDecrement,
 }) => {
-  // Skip rendering if no match is selected
-  if (!selectedMatchId || !isVisible) return null;
-
-  // Find the selected match
-  const match = matches.find((m) => m.id === selectedMatchId);
-  if (!match) return null;
-
-  // Animation values
+  // Animation values - declare all hooks unconditionally
   const decrementAnim = useRef(new Animated.Value(1)).current;
   const incrementAnim = useRef(new Animated.Value(1)).current;
   const closeButtonAnim = useRef(new Animated.Value(1)).current;
   const goalValueAnim = useRef(new Animated.Value(1)).current;
   const modalContentAnim = useRef(new Animated.Value(0)).current;
-  
+
+  // Find the selected match using useMemo to prevent unnecessary calculations
+  const match = useMemo(() => {
+    return selectedMatchId
+      ? matches.find((m) => m.id === selectedMatchId)
+      : null;
+  }, [selectedMatchId, matches]);
+
   // Previous goal value reference
-  const prevGoalsRef = useRef(match.goals);
+  const prevGoalsRef = useRef(match?.goals ?? 0);
+
+  // Calculate affected players with useMemo
+  const affectedPlayers = useMemo(() => {
+    if (!match) return [];
+    return players.filter(
+      (p) =>
+        match.id === commonMatchId ||
+        (playerAssignments[p.id] && playerAssignments[p.id].includes(match.id))
+    );
+  }, [match, players, commonMatchId, playerAssignments]);
+
+  // Check if this is a common match
+  const isCommonMatch = match ? match.id === commonMatchId : false;
 
   // Button press animation
   const animateButtonPress = (buttonAnim: Animated.Value) => {
@@ -64,18 +88,25 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
   // Modal entry animation
   useEffect(() => {
-    if (isVisible) {
+    if (isVisible && match) {
       Animated.timing(modalContentAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 200,
         useNativeDriver: true,
       }).start();
     }
-  }, [isVisible]);
+
+    // Reset animation when closing
+    return () => {
+      if (!isVisible) {
+        modalContentAnim.setValue(0);
+      }
+    };
+  }, [isVisible, match, modalContentAnim]);
 
   // Goal value change animation
   useEffect(() => {
-    if (prevGoalsRef.current !== match.goals) {
+    if (match && prevGoalsRef.current !== match.goals) {
       Animated.sequence([
         Animated.timing(goalValueAnim, {
           toValue: 1.3,
@@ -88,68 +119,114 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
           useNativeDriver: true,
         }),
       ]).start();
-      
+
       prevGoalsRef.current = match.goals;
     }
-  }, [match.goals]);
+  }, [match?.goals, goalValueAnim]);
 
-  // Calculate affected players
-  const affectedPlayers = players.filter(
-    (p) => match.id === commonMatchId ||
-      (playerAssignments[p.id] &&
-        playerAssignments[p.id].includes(match.id))
-  );
+  // Player columns 3-columns
+  const playerColumns = useMemo(() => {
+    const result: Player[][] = [[], [], []];
+
+    affectedPlayers.forEach((player, index) => {
+      const columnIndex = index % 3;
+      result[columnIndex].push(player);
+    });
+
+    return result;
+  }, [affectedPlayers]);
+
+  // If no match or modal is not visible, don't render anything
+  if (!match || !isVisible) return null;
 
   return (
     <SafeAreaView style={{ flex: 0 }}>
       <Modal
-        animationType="slide"
+        animationType="none"
         transparent={true}
         visible={isVisible}
         onRequestClose={onClose}
         statusBarTranslucent={true}
       >
         <TouchableOpacity
-          style={modalStyles.overlayTouchable}
+          style={styles.overlayTouchable}
           activeOpacity={1}
           onPress={onClose}
         >
-          <View style={modalStyles.centeredView}>
-            <Animated.View 
+          <View style={styles.centeredView}>
+            <Animated.View
               style={[
-                modalStyles.modalContainer,
-                { 
+                styles.modalContainer,
+                {
                   opacity: modalContentAnim,
                   transform: [
-                    { scale: modalContentAnim.interpolate({
+                    {
+                      scale: modalContentAnim.interpolate({
                         inputRange: [0, 1],
-                        outputRange: [0.9, 1]
-                      })
-                    }
-                  ]
-                }
+                        outputRange: [0.95, 1],
+                      }),
+                    },
+                  ],
+                },
               ]}
             >
               <TouchableOpacity
                 activeOpacity={1}
                 onPress={(e) => e.stopPropagation()}
-                style={{ width: '100%' }}
+                style={styles.modalInnerContainer}
               >
                 <ScrollView
-                  contentContainerStyle={modalStyles.scrollContent}
+                  contentContainerStyle={styles.scrollContent}
                   bounces={false}
                   showsVerticalScrollIndicator={false}
                 >
-                  <Text style={modalStyles.title}>
-                    {match.homeTeam} vs {match.awayTeam}
-                  </Text>
+                  {/* Teams Header */}
+                  <View style={styles.matchHeaderSection}>
+                    {/* Home team */}
+                    <View style={styles.matchTeamContainer}>
+                      <Image
+                        source={getTeamLogoWithFallback(match.homeTeam)}
+                        style={styles.matchTeamLogo}
+                      />
+                      <Text style={styles.matchTeamName} numberOfLines={1}>
+                        {match.homeTeam}
+                      </Text>
+                    </View>
 
-                  <View style={modalStyles.goalActions}>
-                    <Animated.View style={{
-                      transform: [{ scale: decrementAnim }]
-                    }}>
+                    {/* VS badge */}
+                    <View style={styles.matchVsBadge}>
+                      <Text style={styles.matchVsText}>VS</Text>
+                    </View>
+
+                    {/* Away team */}
+                    <View style={styles.matchTeamContainer}>
+                      <Image
+                        source={getTeamLogoWithFallback(match.awayTeam)}
+                        style={styles.matchTeamLogo}
+                      />
+                      <Text style={styles.matchTeamName} numberOfLines={1}>
+                        {match.awayTeam}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Common match badge if applicable */}
+                  {isCommonMatch && (
+                    <View style={styles.commonMatchBadge}>
+                      <Text style={styles.commonMatchText}>Common Match</Text>
+                    </View>
+                  )}
+
+                  <View style={styles.divider} />
+
+                  <View style={styles.goalActions}>
+                    <Animated.View
+                      style={{
+                        transform: [{ scale: decrementAnim }],
+                      }}
+                    >
                       <TouchableOpacity
-                        style={[modalStyles.actionButton, modalStyles.decrementButton]}
+                        style={[styles.actionButton, styles.blueButton]}
                         onPress={() => {
                           handleGoalDecrement(match.id);
                           animateButtonPress(decrementAnim);
@@ -159,21 +236,23 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                       </TouchableOpacity>
                     </Animated.View>
 
-                    <Animated.View 
+                    <Animated.View
                       style={[
-                        modalStyles.goalCounter,
-                        { transform: [{ scale: goalValueAnim }] }
+                        styles.goalCounter,
+                        { transform: [{ scale: goalValueAnim }] },
                       ]}
                     >
-                      <Text style={modalStyles.goalValue}>{match.goals}</Text>
-                      <Text style={modalStyles.goalLabel}>GOALS</Text>
+                      <Text style={styles.goalValue}>{match.goals}</Text>
+                      <Text style={styles.goalLabel}>GOALS</Text>
                     </Animated.View>
 
-                    <Animated.View style={{
-                      transform: [{ scale: incrementAnim }]
-                    }}>
+                    <Animated.View
+                      style={{
+                        transform: [{ scale: incrementAnim }],
+                      }}
+                    >
                       <TouchableOpacity
-                        style={[modalStyles.actionButton, modalStyles.incrementButton]}
+                        style={[styles.actionButton, styles.blueButton]}
                         onPress={() => {
                           handleGoalIncrement(match.id);
                           animateButtonPress(incrementAnim);
@@ -184,52 +263,77 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                     </Animated.View>
                   </View>
 
-                  <View style={modalStyles.sectionHeader}>
-                    <Ionicons name="people" size={16} color="#555" />
-                    <Text style={modalStyles.sectionTitle}>This will affect:</Text>
-                  </View>
-                  
-                  {affectedPlayers.length > 0 ? (
-                    <View style={modalStyles.playerListContainer}>
-                      {affectedPlayers.map((player, index) => (
-                        <Animated.View 
-                          key={player.id} 
-                          style={[
-                            modalStyles.playerCard,
-                            { 
-                              opacity: modalContentAnim,
-                              transform: [{ 
-                                translateY: modalContentAnim.interpolate({
-                                  inputRange: [0, 1],
-                                  outputRange: [20, 0]
-                                })
-                              }]
-                            }
-                          ]}
-                        >
-                          <Text style={modalStyles.playerName}>{player.name}</Text>
-                        </Animated.View>
-                      ))}
-                    </View>
-                  ) : (
-                    <View style={modalStyles.emptyStateContainer}>
-                      <Ionicons name="person-outline" size={24} color="#aaa" />
-                      <Text style={modalStyles.noPlayersText}>No players affected</Text>
+                  <View style={styles.divider} />
+
+                  {affectedPlayers.length > 0 && (
+                    <View style={styles.sectionHeader}>
+                      <Ionicons name="people" size={16} color="#555" />
+                      <Text style={styles.sectionTitle}>
+                        Players ({affectedPlayers.length})
+                      </Text>
                     </View>
                   )}
 
-                  <Animated.View style={{
-                    transform: [{ scale: closeButtonAnim }]
-                  }}>
+                  {affectedPlayers.length > 0 ? (
+                    <View style={styles.compactContainer}>
+                      {playerColumns.map(
+                        (column, columnIndex) =>
+                          column.length > 0 && (
+                            <View
+                              key={`column-${columnIndex}`}
+                              style={styles.playerColumn}
+                            >
+                              {column.map((player) => (
+                                <Animated.View
+                                  key={player.id}
+                                  style={[
+                                    styles.compactPlayerCard,
+                                    {
+                                      opacity: modalContentAnim,
+                                      transform: [
+                                        {
+                                          translateY:
+                                            modalContentAnim.interpolate({
+                                              inputRange: [0, 1],
+                                              outputRange: [5, 0],
+                                            }),
+                                        },
+                                      ],
+                                    },
+                                  ]}
+                                >
+                                  <Text style={styles.compactPlayerName}>
+                                    {player.name}
+                                  </Text>
+                                </Animated.View>
+                              ))}
+                            </View>
+                          )
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.emptyStateContainer}>
+                      <Ionicons name="person-outline" size={24} color="#aaa" />
+                      <Text style={styles.noPlayersText}>
+                        No players affected
+                      </Text>
+                    </View>
+                  )}
+
+                  <Animated.View
+                    style={{
+                      transform: [{ scale: closeButtonAnim }],
+                      width: "100%",
+                    }}
+                  >
                     <TouchableOpacity
-                      style={modalStyles.closeButton}
+                      style={styles.closeButton}
                       onPress={() => {
                         animateButtonPress(closeButtonAnim);
-                        // Short delay before closing modal to show the animation
-                        setTimeout(onClose, 150);
+                        setTimeout(onClose, 100);
                       }}
                     >
-                      <Text style={modalStyles.closeButtonText}>Close</Text>
+                      <Text style={styles.closeButtonText}>Close</Text>
                     </TouchableOpacity>
                   </Animated.View>
                 </ScrollView>
@@ -242,159 +346,213 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   );
 };
 
-const modalStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   overlayTouchable: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
-    left: 0, 
+    left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
+    zIndex: 1000,
   },
   centeredView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
   },
   modalContainer: {
-    width: SCREEN_WIDTH * 0.8, // Reduced width
-    maxHeight: SCREEN_HEIGHT * 0.6, // Reduced height
-    backgroundColor: '#fff',
+    width: SCREEN_WIDTH * 0.85,
+    maxWidth: 400,
+    backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 16, // Reduced padding
-    alignItems: 'center',
-    // Shadow for iOS
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    // Elevation for Android
-    elevation: 8,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    zIndex: 1001,
+  },
+  modalInnerContainer: {
+    width: "100%",
   },
   scrollContent: {
-    width: '100%',
-    alignItems: 'center',
-    paddingBottom: 8,
+    padding: 16,
+    alignItems: "center",
   },
-  title: {
-    fontSize: 18, // Reduced font size
-    fontWeight: 'bold',
-    marginBottom: 12, // Reduced margin
-    textAlign: 'center',
+  // Match header styling to match MatchesGrid
+  matchHeaderSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    paddingBottom: 12,
   },
+  matchTeamContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  matchTeamLogo: {
+    width: 50,
+    height: 50,
+    resizeMode: "contain",
+    marginBottom: 8,
+  },
+  matchTeamName: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#333",
+    maxWidth: 120,
+  },
+  matchVsBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 10,
+  },
+  matchVsText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#666",
+  },
+  // Common match badge
+  commonMatchBadge: {
+    backgroundColor: "#4caf50",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  commonMatchText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#eeeeee",
+    width: "100%",
+    marginVertical: 12,
+  },
+  // Goal actions
   goalActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginVertical: 16, // Reduced margin
-    width: '100%',
-    paddingHorizontal: 8, // Reduced padding
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "80%",
+    paddingVertical: 8,
   },
   goalCounter: {
-    alignItems: 'center',
+    alignItems: "center",
+    paddingHorizontal: 20,
   },
   goalValue: {
-    fontSize: 28, // Reduced font size
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#0275d8",
   },
   goalLabel: {
-    fontSize: 12, // Reduced font size
-    color: '#666',
-    marginTop: 4,
+    fontSize: 12,
+    color: "#666",
+    marginTop: 2,
+    letterSpacing: 1,
   },
   actionButton: {
-    width: 40, // Reduced width
-    height: 40, // Reduced height
-    borderRadius: 20, // Reduced border radius
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  decrementButton: {
-    backgroundColor: '#0275d8',
+  blueButton: {
+    backgroundColor: "#0275d8", // Blue for both buttons
   },
-  incrementButton: {
-    backgroundColor: '#0275d8',
+  // Players section
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 8,
   },
   sectionTitle: {
-    fontSize: 14, // Reduced font size
-    fontWeight: 'bold',
-    marginTop: 6, // Reduced margin
-    marginBottom: 8, // Reduced margin
-    alignSelf: 'flex-start',
-    marginLeft: 6,
-    color: '#555',
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#555",
+    marginLeft: 8,
   },
   playerListContainer: {
-    width: '100%',
+    width: "100%",
     marginBottom: 12,
-    backgroundColor: '#f5f5f5',
     borderRadius: 8,
-    maxHeight: SCREEN_HEIGHT * 0.15,
-    paddingVertical: 4,
+    overflow: "hidden",
+    backgroundColor: "#f9f9f9",
   },
-  noPlayersText: {
-    fontSize: 12,
-    color: '#999',
-    fontStyle: 'italic',
-    marginLeft: 8,
+  // Player section - super compact layout
+  compactContainer: {
+    flexDirection: "row",
+    width: "100%",
+    marginBottom: 12,
+    justifyContent: "flex-start",
   },
-  closeButton: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 8, // Reduced padding
-    paddingHorizontal: 16, // Reduced padding
-    borderRadius: 6, // Reduced border radius
-    marginTop: 6, // Reduced margin
-  },
-  closeButtonText: {
-    fontSize: 14, // Reduced font size
-    color: '#333',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    marginBottom: 6,
-  },
-  playerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ebebeb',
-  },
-  playerName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+  playerColumn: {
     flex: 1,
+    marginHorizontal: 2,
+  },
+  compactPlayerCard: {
+    backgroundColor: "#f6f6f6",
+    borderRadius: 6,
+    paddingVertical: 4, // Even more compact
+    paddingHorizontal: 6,
+    marginBottom: 4,
+    marginHorizontal: 2,
+  },
+  compactPlayerName: {
+    fontSize: 12, // Smaller font for compactness
+    fontWeight: "500",
+    color: "#333",
+    textAlign: "center",
   },
   emptyStateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f9f9f9',
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     marginBottom: 12,
   },
-  playerIconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  playerInitial: {
-    color: '#fff',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  playerStatusIcon: {
+  noPlayersText: {
+    fontSize: 14,
+    color: "#888",
+    fontStyle: "italic",
     marginLeft: 8,
-  }
+  },
+  // Close button
+  closeButton: {
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    alignItems: "center",
+    width: "100%",
+  },
+  closeButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
+  },
 });
 
 export default MatchQuickActionsModal;
