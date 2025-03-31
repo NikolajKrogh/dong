@@ -45,7 +45,7 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "Wolverhampton Wanderers FC": require("../assets/images/teams/premier-league/wolves.png"),
 
 // "Blackburn Rovers FC": require("../assets/images/teams/championship/blackburn-rovers-fc.png"),
-  // "Bristol City FC": require("../assets/images/teams/championship/bristol-city.png"),
+  "Bristol City FC": require("../assets/images/teams/championship/bristol-city.png"),
   // "Burnley FC": require("../assets/images/teams/championship/burnley-fc.png"),
   // "Cardiff City FC": require("../assets/images/teams/championship/cardiff-city-fc.png"),
   // "Coventry City FC": require("../assets/images/teams/championship/coventry-city-fc.png"),
