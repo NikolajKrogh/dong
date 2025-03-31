@@ -34,6 +34,7 @@ interface GameState {
   commonMatchId: string | null;
   playerAssignments: PlayerAssignments;
   matchesPerPlayer: number; // Add this property
+  hasVideoPlayed: boolean; // Add this property
   
   // Game history
   history: GameSession[];
@@ -44,6 +45,7 @@ interface GameState {
   setCommonMatchId: (commonMatchId: string | null) => void;
   setPlayerAssignments: (playerAssignments: PlayerAssignments | ((prev: PlayerAssignments) => PlayerAssignments)) => void;
   setMatchesPerPlayer: (count: number) => void; // Add this action
+  setHasVideoPlayed: (value: boolean) => void; // Add this action
   
   // Actions for game history
   saveGameToHistory: () => void;
@@ -59,7 +61,8 @@ export const useGameStore = create<GameState>()(
       commonMatchId: null,
       playerAssignments: {},
       matchesPerPlayer: 1, // Default value
-      
+      hasVideoPlayed: false, // Default to false
+
       // Game history
       history: [],
       
@@ -75,6 +78,7 @@ export const useGameStore = create<GameState>()(
         playerAssignments: typeof playerAssignments === 'function' ? playerAssignments(state.playerAssignments) : playerAssignments 
       })),
       setMatchesPerPlayer: (count) => set({ matchesPerPlayer: count }), // Add this action
+      setHasVideoPlayed: (value) => set({ hasVideoPlayed: value }), // Add this action
       
       // Actions for game history
       saveGameToHistory: () => set((state) => {
@@ -100,12 +104,22 @@ export const useGameStore = create<GameState>()(
         matches: [], 
         commonMatchId: null, 
         playerAssignments: {},
-        matchesPerPlayer: 1 // Reset to default
+        matchesPerPlayer: 1, // Reset to default
+        hasVideoPlayed: false, // Reset to default
       }),
     }),
     {
       name: 'dong-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        // Exclude hasVideoPlayed from being persisted
+        players: state.players,
+        matches: state.matches,
+        commonMatchId: state.commonMatchId,
+        playerAssignments: state.playerAssignments,
+        matchesPerPlayer: state.matchesPerPlayer,
+        history: state.history,
+      }),
     }
   )
 );
