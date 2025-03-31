@@ -39,6 +39,27 @@ export function useMatchProcessing(
   const isProcessingMatchRef = useRef(false);
   const matchesRef = useRef(matches);
 
+  // Add refs to track the current team values
+  const homeTeamRef = useRef("");
+  const awayTeamRef = useRef("");
+
+  // Create wrapped setters that update the refs
+  const setHomeTeamWithTracking = useCallback(
+    (team: string) => {
+      homeTeamRef.current = team;
+      setHomeTeam(team);
+    },
+    [setHomeTeam]
+  );
+
+  const setAwayTeamWithTracking = useCallback(
+    (team: string) => {
+      awayTeamRef.current = team;
+      setAwayTeam(team);
+    },
+    [setAwayTeam]
+  );
+
   // Keep matches ref updated with latest value
   useEffect(() => {
     matchesRef.current = matches;
@@ -159,16 +180,17 @@ export function useMatchProcessing(
         return false;
       };
 
-      // Set the teams first
-      setHomeTeam(match.team1);
-      setAwayTeam(match.team2);
+      // Set the teams first with tracking wrappers
+      setHomeTeamWithTracking(match.team1);
+      setAwayTeamWithTracking(match.team2);
 
       // Wait for team state to be set properly
       await waitForStateUpdate(
         "teams to be set",
-        // This is a heuristic - since we can't directly observe state updates
-        () => true,
-        300
+        () =>
+          homeTeamRef.current === match.team1 &&
+          awayTeamRef.current === match.team2,
+        500 // Allow a bit more time just in case
       );
 
       // Add the match
@@ -201,8 +223,8 @@ export function useMatchProcessing(
     currentIndex,
     matchesToProcess,
     handleAddMatch,
-    setHomeTeam,
-    setAwayTeam,
+    setHomeTeamWithTracking,
+    setAwayTeamWithTracking,
     isProcessing,
   ]);
 
