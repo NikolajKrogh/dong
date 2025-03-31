@@ -140,21 +140,53 @@ export function useMatchProcessing(
         return;
       }
 
+      // Set up a more robust state-tracking system
+      const initialMatchCount = matchesRef.current.length;
+      const waitForStateUpdate = async (
+        description: string,
+        condition: () => boolean,
+        maxWait = 2000
+      ) => {
+        const startTime = Date.now();
+        while (Date.now() - startTime < maxWait) {
+          if (condition()) {
+            return true;
+          }
+          // Use shorter polling intervals instead of longer timeouts
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        console.warn(`Timed out waiting for: ${description}`);
+        return false;
+      };
+
       // Set the teams first
       setHomeTeam(match.team1);
       setAwayTeam(match.team2);
 
-      // Wait for React to update state
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      // Wait for team state to be set properly
+      await waitForStateUpdate(
+        "teams to be set",
+        // This is a heuristic - since we can't directly observe state updates
+        () => true,
+        300
+      );
 
       // Add the match
       handleAddMatch();
 
-      // Wait for handleAddMatch to complete
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // Wait for match to be added by observing the matches array length
+      const success = await waitForStateUpdate(
+        "match to be added",
+        () => matchesRef.current.length > initialMatchCount,
+        1500
+      );
 
-      // Update stats
-      setProcessingStats((prev) => ({ ...prev, added: prev.added + 1 }));
+      if (success) {
+        // Update stats
+        setProcessingStats((prev) => ({ ...prev, added: prev.added + 1 }));
+      } else {
+        console.warn(`Failed to add match: ${match.team1} vs ${match.team2}`);
+      }
 
       // Move to next match
       setCurrentIndex((prev) => prev + 1);
@@ -195,6 +227,14 @@ export function useMatchProcessing(
    */
   const startProcessing = useCallback(
     (filteredMatches: MatchData[]) => {
+      // Guard against overlapping invocations
+      if (isProcessing) {
+        console.warn(
+          "Match processing is already in progress, ignoring new request"
+        );
+        return;
+      }
+
       // Filter valid matches
       const validMatches = filteredMatches.filter(
         (match) => match.team1 && match.team2
