@@ -1,3 +1,4 @@
+//! Find more logos at: https://brandlogos.net/ 
 import { cleanTeamName } from "./matchUtils";
 import { TEAM_ALIASES } from "./teamAliases";
 
@@ -5,7 +6,7 @@ import { TEAM_ALIASES } from "./teamAliases";
 export const TEAM_LOGOS: { [key: string]: any } = {
   // Bundesliga
   "1. FC Heidenheim 1846": require("../assets/images/teams/bundesliga/heidenheim.png"),
-  "1. FC Union Berlin": require("../assets/images/teams/bundesliga/hertha-berlin.png"),
+  "1. FC Union Berlin": require("../assets/images/teams/bundesliga/union-berlin.png"),
   "1. FSV Mainz 05": require("../assets/images/teams/bundesliga/mainz.png"),
   "Bayer 04 Leverkusen": require("../assets/images/teams/bundesliga/leverkusen.png"),
   "Borussia Dortmund": require("../assets/images/teams/bundesliga/dortmund.png"),

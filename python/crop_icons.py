@@ -1,5 +1,5 @@
-from PIL import Image, ImageOps
 import os
+from PIL import Image, ImageOps
 
 def crop_image(input_path, output_path):
     # Open the image
@@ -27,9 +27,15 @@ def crop_image(input_path, output_path):
     # Save the final image
     new_img.save(output_path)
 
-# Folder with PNG files
-input_folder = "/home/krogh/src/dong/assets/images/teams"
-output_folder = "/home/krogh/src/dong/assets/images/teams"
+# Get the absolute path to the script's directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Use absolute paths based on the script location
+input_folder = os.path.abspath(os.path.join(script_dir, "../assets/images/teams/"))
+output_folder = os.path.abspath(os.path.join(script_dir, "../assets/images/teams/"))
+
+print(f"Input folder: {input_folder}")
+print(f"Output folder: {output_folder}")
 
 # Process each image in the folder
 for root, _, files in os.walk(input_folder):
@@ -43,4 +49,5 @@ for root, _, files in os.walk(input_folder):
             os.makedirs(output_dir, exist_ok=True)
             
             output_path = os.path.join(output_dir, filename)
+            print(f"Processing: {input_path} -> {output_path}")
             crop_image(input_path, output_path)

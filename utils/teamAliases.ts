@@ -457,10 +457,6 @@ export const TEAM_ALIASES: { [key: string]: string } = {
   "Le Havre Athletic Club": "Le Havre AC",
   "Le Havre Athletic Club Football": "Le Havre AC",
   "AC Le Havre": "Le Havre AC",
-  // FC St. Pauli 1910
-  "Pau Football Club": "FC St. Pauli 1910",
-  "FC Pau": "FC St. Pauli 1910",
-  Pau: "FC St. Pauli 1910",
 
   // Italian Serie A
   // AS Roma
