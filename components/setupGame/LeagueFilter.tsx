@@ -51,7 +51,7 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
         <View style={styles.expandableCardContent}>
           <View style={styles.expandableCardLeft}>
             <Ionicons name="football-outline" size={20} color="#0275d8" />
-            <Text style={styles.expandableCardTitle}>League Filter</Text>
+            <Text style={styles.expandableCardTitle}>Choose Leauges</Text>
           </View>
 
           <View style={styles.rightContent}>

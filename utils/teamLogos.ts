@@ -1,10 +1,11 @@
 import { cleanTeamName } from "./matchUtils";
+import { TEAM_ALIASES } from "./teamAliases";
 
 // Map team names to their logo images
 export const TEAM_LOGOS: { [key: string]: any } = {
   // Bundesliga
   "1. FC Heidenheim 1846": require("../assets/images/teams/bundesliga/heidenheim.png"),
-  "1. FC Union Berlin": require("../assets/images/teams/bundesliga/hertha-bsc-berlin.png"),
+  "1. FC Union Berlin": require("../assets/images/teams/bundesliga/hertha-berlin.png"),
   "1. FSV Mainz 05": require("../assets/images/teams/bundesliga/mainz.png"),
   "Bayer 04 Leverkusen": require("../assets/images/teams/bundesliga/leverkusen.png"),
   "Borussia Dortmund": require("../assets/images/teams/bundesliga/dortmund.png"),
@@ -44,104 +45,94 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "West Ham United FC": require("../assets/images/teams/premier-league/west-ham-united.png"),
   "Wolverhampton Wanderers FC": require("../assets/images/teams/premier-league/wolves.png"),
 
-// "Blackburn Rovers FC": require("../assets/images/teams/championship/blackburn-rovers-fc.png"),
+  "Blackburn Rovers FC": require("../assets/images/teams/championship/blackburn.png"),
   "Bristol City FC": require("../assets/images/teams/championship/bristol-city.png"),
-  // "Burnley FC": require("../assets/images/teams/championship/burnley-fc.png"),
-  // "Cardiff City FC": require("../assets/images/teams/championship/cardiff-city-fc.png"),
-  // "Coventry City FC": require("../assets/images/teams/championship/coventry-city-fc.png"),
-  // "Derby County FC": require("../assets/images/teams/championship/derby-county-fc.png"),
-  // "Hull City AFC": require("../assets/images/teams/championship/hull-city-afc.png"),
-  // "Leeds United FC": require("../assets/images/teams/championship/leeds-united-fc.png"),
-  // "Luton Town FC": require("../assets/images/teams/championship/luton-town-fc.png"),
-  // "Middlesbrough FC": require("../assets/images/teams/championship/middlesbrough-fc.png"),
-  // "Millwall FC": require("../assets/images/teams/championship/millwall-fc.png"),
-  // "Norwich City FC": require("../assets/images/teams/championship/norwich-city-fc.png"),
-  // "Oxford United FC": require("../assets/images/teams/championship/oxford-united-fc.png"),
-  // "Plymouth Argyle FC": require("../assets/images/teams/championship/plymouth-argyle-fc.png"),
-  // "Portsmouth FC": require("../assets/images/teams/championship/portsmouth-fc.png"),
-  // "Preston North End FC": require("../assets/images/teams/championship/preston-north-end-fc.png"),
-  // "Queens Park Rangers FC": require("../assets/images/teams/championship/queens-park-rangers-fc.png"),
-  // "Sheffield United FC": require("../assets/images/teams/championship/sheffield-united-fc.png"),
-  // "Sheffield Wednesday FC": require("../assets/images/teams/championship/sheffield-wednesday-fc.png"),
-  // "Stoke City FC": require("../assets/images/teams/championship/stoke-city-fc.png"),
-  // "Sunderland AFC": require("../assets/images/teams/championship/sunderland-afc.png"),
-  // "Swansea City AFC": require("../assets/images/teams/championship/swansea-city-afc.png"),
-  // "Watford FC": require("../assets/images/teams/championship/watford-fc.png"),
-  // "West Bromwich Albion FC": require("../assets/images/teams/championship/west-bromwich-albion-fc.png"),
+  "Burnley FC": require("../assets/images/teams/championship/burnley.png"),
+  "Cardiff City FC": require("../assets/images/teams/championship/cardiff-city.png"),
+  "Coventry City FC": require("../assets/images/teams/championship/coventry-city.png"),
+  "Derby County FC": require("../assets/images/teams/championship/derby-county.png"),
+  "Hull City AFC": require("../assets/images/teams/championship/hull-city.png"),
+  "Leeds United FC": require("../assets/images/teams/championship/leeds.png"),
+  "Luton Town FC": require("../assets/images/teams/championship/luton.png"),
+  "Middlesbrough FC": require("../assets/images/teams/championship/middlesbrough.png"),
+  "Millwall FC": require("../assets/images/teams/championship/millwall.png"),
+  "Norwich City FC": require("../assets/images/teams/championship/norwich-city.png"),
+  "Oxford United FC": require("../assets/images/teams/championship/oxford-united.png"),
+  "Plymouth Argyle FC": require("../assets/images/teams/championship/plymouth.png"),
+  "Portsmouth FC": require("../assets/images/teams/championship/portsmouth.png"),
+  "Preston North End FC": require("../assets/images/teams/championship/preston.png"),
+  "Queens Park Rangers FC": require("../assets/images/teams/championship/qpr.png"),
+  "Sheffield United FC": require("../assets/images/teams/championship/sheffield-united.png"),
+  "Sheffield Wednesday FC": require("../assets/images/teams/championship/sheffield-wednesday.png"),
+  "Stoke City FC": require("../assets/images/teams/championship/stoke-city.png"),
+  "Sunderland AFC": require("../assets/images/teams/championship/sunderland.png"),
+  "Swansea City AFC": require("../assets/images/teams/championship/swansea-city.png"),
+  "Watford FC": require("../assets/images/teams/championship/watford.png"),
+  "West Bromwich Albion FC": require("../assets/images/teams/championship/west-bromwich-albion.png"),
 
   // Serie A
-  "AC Milan": require("../assets/images/teams/serie-a/ac-milan.png"),
-  // "AC Monza": require("../assets/images/teams/serie-a/ac-monza.png"),
+  "AC Milan": require("../assets/images/teams/serie-a/milan.png"),
+  "AC Monza": require("../assets/images/teams/serie-a/monza.png"),
   "ACF Fiorentina": require("../assets/images/teams/serie-a/fiorentina.png"),
   "AS Roma": require("../assets/images/teams/serie-a/roma.png"),
   "Atalanta BC": require("../assets/images/teams/serie-a/atalanta.png"),
   "Bologna FC 1909": require("../assets/images/teams/serie-a/bologna.png"),
   "Cagliari Calcio": require("../assets/images/teams/serie-a/cagliari.png"),
-  // "Como 1907": require("../assets/images/teams/serie-a/como.png"),
+  "Como 1907": require("../assets/images/teams/serie-a/como.png"),
   "Empoli FC": require("../assets/images/teams/serie-a/empoli.png"),
-  // "FC Internazionale Milano": require("../assets/images/teams/serie-a/inter.png"),
-  // "Genoa CFC": require("../assets/images/teams/serie-a/genoa.png"),
+  "FC Internazionale Milano": require("../assets/images/teams/serie-a/inter.png"),
+  "Genoa CFC": require("../assets/images/teams/serie-a/genoa.png"),
   "Hellas Verona FC": require("../assets/images/teams/serie-a/hellas-verona.png"),
   "Juventus FC": require("../assets/images/teams/serie-a/juventus.png"),
-  // "Parma Calcio 1913": require("../assets/images/teams/serie-a/parma-calcio.png"),
+  "Parma Calcio 1913": require("../assets/images/teams/serie-a/parma.png"),
   "SS Lazio": require("../assets/images/teams/serie-a/lazio.png"),
   "SSC Napoli": require("../assets/images/teams/serie-a/napoli.png"),
-  // "Torino FC": require("../assets/images/teams/serie-a/torino.png"),
-  // "US Lecce": require("../assets/images/teams/serie-a/lecce.png"),
-  // "Udinese Calcio": require("../assets/images/teams/serie-a/udinese.png"),
-  // "Venezia FC": require("../assets/images/teams/serie-a/venezia.png"),
-  
+  "Torino FC": require("../assets/images/teams/serie-a/torino.png"),
+  "US Lecce": require("../assets/images/teams/serie-a/lecce.png"),
+  "Udinese Calcio": require("../assets/images/teams/serie-a/udinese.png"),
+  "Venezia FC": require("../assets/images/teams/serie-a/venezia.png"),
+
   // Ligue 1
-  // "AJ Auxerre": require("../assets/images/teams/ligue-1/aj-auxerre.png"),
-  "AS Monaco FC": require("../assets/images/teams/ligue-1/as-monaco.png"),
-  "AS Saint-Étienne": require("../assets/images/teams/ligue-1/as-saint-etienne.png"),
+  "AJ Auxerre": require("../assets/images/teams/ligue-1/auxerre.png"),
+  "AS Monaco FC": require("../assets/images/teams/ligue-1/monaco.png"),
+  "AS Saint-Étienne": require("../assets/images/teams/ligue-1/saint-etienne.png"),
   "Angers SCO": require("../assets/images/teams/ligue-1/angers-sco.png"),
-  "FC Nantes": require("../assets/images/teams/ligue-1/fc-nantes.png"),
-  // "Le Havre AC": require("../assets/images/teams/ligue-1/le-havre-ac.png"),
-  "Lille OSC": require("../assets/images/teams/ligue-1/losc-lille.png"),
+  "FC Nantes": require("../assets/images/teams/ligue-1/nantes.png"),
+  "Le Havre AC": require("../assets/images/teams/ligue-1/havre.png"),
+  "Lille OSC": require("../assets/images/teams/ligue-1/lille.png"),
   "Montpellier HSC": require("../assets/images/teams/ligue-1/montpellier-herault.png"),
-  // "OGC Nice": require("../assets/images/teams/ligue-1/ogc-nice.png"),
-  "Olympique Lyonnais": require("../assets/images/teams/ligue-1/olympique-lyonnais.png"),
-  "Olympique de Marseille": require("../assets/images/teams/ligue-1/olympique-de-marseille.png"),
-  "Paris Saint-Germain FC": require("../assets/images/teams/ligue-1/paris-saint-germain.png"),
-  // "RC Strasbourg Alsace": require("../assets/images/teams/ligue-1/rc-strasbourg-alsace.png"),
-  "Racing Club de Lens": require("../assets/images/teams/ligue-1/rc-lens.png"),
-  "Stade Brestois 29": require("../assets/images/teams/ligue-1/stade-brestois-29.png"),
-  "Stade Rennais FC 1901": require("../assets/images/teams/ligue-1/stade-rennais-fc.png"),
-  "Stade de Reims": require("../assets/images/teams/ligue-1/stade-de-reims.png"),
-  // "Toulouse FC": require("../assets/images/teams/ligue-1/toulouse.png"),
-  
+  "OGC Nice": require("../assets/images/teams/ligue-1/nice.png"),
+  "Olympique Lyonnais": require("../assets/images/teams/ligue-1/lyon.png"),
+  "Olympique de Marseille": require("../assets/images/teams/ligue-1/marseille.png"),
+  "Paris Saint-Germain FC": require("../assets/images/teams/ligue-1/psg.png"),
+  "RC Strasbourg Alsace": require("../assets/images/teams/ligue-1/strasbourg.png"),
+  "Racing Club de Lens": require("../assets/images/teams/ligue-1/lens.png"),
+  "Stade Brestois 29": require("../assets/images/teams/ligue-1/brest.png"),
+  "Stade Rennais FC 1901": require("../assets/images/teams/ligue-1/rennes.png"),
+  "Stade de Reims": require("../assets/images/teams/ligue-1/reims.png"),
+  "Toulouse FC": require("../assets/images/teams/ligue-1/toulouse.png"),
+
   // La Liga
-  // "Athletic Club": require("../assets/images/teams/la-liga/athletic.png"),
-  // "CA Osasuna": require("../assets/images/teams/la-liga/osasuna.png"),
-  // "CD Leganés": require("../assets/images/teams/la-liga/leganes.png"),
+  "Athletic Club": require("../assets/images/teams/la-liga/athletic.png"),
+  "CA Osasuna": require("../assets/images/teams/la-liga/osasuna.png"),
+  "CD Leganés": require("../assets/images/teams/la-liga/leganes.png"),
   "Club Atlético de Madrid": require("../assets/images/teams/la-liga/atletico-madrid.png"),
-  // "Deportivo Alavés": require("../assets/images/teams/la-liga/deportivo-alavez"),
+  "Deportivo Alavés": require("../assets/images/teams/la-liga/alaves.png"),
   "FC Barcelona": require("../assets/images/teams/la-liga/barcelona.png"),
   "Getafe CF": require("../assets/images/teams/la-liga/getafe.png"),
-  // "Girona FC": require("../assets/images/teams/la-liga/girona.png"),
+  "Girona FC": require("../assets/images/teams/la-liga/girona.png"),
   "RC Celta de Vigo": require("../assets/images/teams/la-liga/celta.png"),
   "RCD Espanyol de Barcelona": require("../assets/images/teams/la-liga/espanyol.png"),
-  // "RCD Mallorca": require("../assets/images/teams/la-liga/mallorca.png"),
+  "RCD Mallorca": require("../assets/images/teams/la-liga/mallorca.png"),
   "Rayo Vallecano de Madrid": require("../assets/images/teams/la-liga/rayo-vallecano.png"),
   "Real Betis Balompié": require("../assets/images/teams/la-liga/real-betis.png"),
   "Real Madrid CF": require("../assets/images/teams/la-liga/real-madrid.png"),
   "Real Sociedad de Fútbol": require("../assets/images/teams/la-liga/real-sociedad.png"),
-  // "Real Valladolid CF": require("../assets/images/teams/la-liga/real-valladolid.png"),
+  "Real Valladolid CF": require("../assets/images/teams/la-liga/real-valladolid.png"),
   "Sevilla FC": require("../assets/images/teams/la-liga/sevilla.png"),
-  // "UD Las Palmas": require("../assets/images/teams/la-liga/las-palmas.png"),
+  "UD Las Palmas": require("../assets/images/teams/la-liga/las-palmas.png"),
   "Valencia CF": require("../assets/images/teams/la-liga/valencia.png"),
   "Villarreal CF": require("../assets/images/teams/la-liga/villarreal.png"),
-};
-
-// Map alternative team names to standard names
-const TEAM_NAME_ALIASES: { [key: string]: string } = {
-  "Bayern Munich": "FC Bayern München",
-  Bayern: "FC Bayern München",
-  Dortmund: "Borussia Dortmund",
-  BVB: "Borussia Dortmund",
-  Leverkusen: "Bayer 04 Leverkusen",
-  Heidenheim: "1. FC Heidenheim 1846",
 };
 
 // Expanded mapping for cleaned team names to official names
@@ -157,39 +148,65 @@ Object.keys(TEAM_LOGOS).forEach((officialName) => {
   }
 });
 
+// Create normalized lookup maps for faster case-insensitive matching
+const NORMALIZED_LOGOS: { [key: string]: any } = {};
+const NORMALIZED_ALIASES: { [key: string]: string } = {};
+const NORMALIZED_CLEANED_MAPPING: { [key: string]: string } = {};
+
+// Initialize the normalized maps
+Object.entries(TEAM_LOGOS).forEach(([key, value]) => {
+  NORMALIZED_LOGOS[key.toLowerCase()] = value;
+});
+
+Object.entries(TEAM_ALIASES).forEach(([alias, team]) => {
+  NORMALIZED_ALIASES[alias.toLowerCase()] = team;
+});
+
+Object.entries(CLEANED_NAME_MAPPING).forEach(([cleaned, official]) => {
+  NORMALIZED_CLEANED_MAPPING[cleaned.toLowerCase()] = official;
+});
+
 // Helper function to get team logo by name
 export const getTeamLogo = (teamName: string) => {
   return TEAM_LOGOS[teamName] || null;
 };
 
-// Get team logo with enhanced fallbacks
+// Get team logo with case-insensitive matching
 export const getTeamLogoWithFallback = (teamName: string) => {
+  // Normalize the input name
+  const normalizedName = teamName.trim();
+  const lowerCaseName = normalizedName.toLowerCase();
+
   // Try direct match first
-  const directLogo = TEAM_LOGOS[teamName];
-  if (directLogo) return directLogo;
+  if (NORMALIZED_LOGOS[lowerCaseName]) {
+    return NORMALIZED_LOGOS[lowerCaseName];
+  }
 
   // Check for aliases
-  const standardizedName = TEAM_NAME_ALIASES[teamName];
-  if (standardizedName && TEAM_LOGOS[standardizedName]) {
-    return TEAM_LOGOS[standardizedName];
+  const aliasedTeam = NORMALIZED_ALIASES[lowerCaseName];
+  if (aliasedTeam && TEAM_LOGOS[aliasedTeam]) {
+    return TEAM_LOGOS[aliasedTeam];
   }
 
   // Check if this is a cleaned name
-  const cleanedName = cleanTeamName(teamName);
-  if (cleanedName !== teamName && TEAM_LOGOS[cleanedName]) {
-    return TEAM_LOGOS[cleanedName];
+  const cleanedName = cleanTeamName(normalizedName).toLowerCase();
+  if (NORMALIZED_LOGOS[cleanedName]) {
+    return NORMALIZED_LOGOS[cleanedName];
   }
 
   // Check the mapping of cleaned names to official names
-  const officialFromCleaned = CLEANED_NAME_MAPPING[cleanedName];
+  const officialFromCleaned = NORMALIZED_CLEANED_MAPPING[cleanedName];
   if (officialFromCleaned && TEAM_LOGOS[officialFromCleaned]) {
     return TEAM_LOGOS[officialFromCleaned];
   }
 
-  // As a last resort, try to find any team that ends with this name
-  for (const key of Object.keys(TEAM_LOGOS)) {
-    if (key.endsWith(teamName) || key.includes(teamName)) {
-      return TEAM_LOGOS[key];
+  // Partial match as a last resort
+  for (const [lowercaseKey, logo] of Object.entries(NORMALIZED_LOGOS)) {
+    if (
+      lowercaseKey.includes(lowerCaseName) ||
+      lowerCaseName.includes(lowercaseKey)
+    ) {
+      return logo;
     }
   }
 

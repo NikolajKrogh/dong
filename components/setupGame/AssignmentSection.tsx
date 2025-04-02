@@ -37,10 +37,31 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   const [isRandomModalVisible, setIsRandomModalVisible] = useState(false);
   // Track current layout mode
   const [useGridLayout, setUseGridLayout] = useState(false);
-  // Track collapsed player sections
+  // Initialize all players as collapsed by default
   const [collapsedPlayers, setCollapsedPlayers] = useState<
     Record<string, boolean>
-  >({});
+  >(() => {
+    // Create an object with all players collapsed
+    const initialState: Record<string, boolean> = {};
+    players.forEach((player) => {
+      initialState[player.id] = true; // true = collapsed
+    });
+    return initialState;
+  });
+
+  // Add this useEffect to handle changes to the players array
+  React.useEffect(() => {
+    setCollapsedPlayers((prev) => {
+      const updated = { ...prev };
+      players.forEach((player) => {
+        // Only set if not already defined
+        if (updated[player.id] === undefined) {
+          updated[player.id] = true; // true = collapsed
+        }
+      });
+      return updated;
+    });
+  }, [players]);
 
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
