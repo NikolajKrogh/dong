@@ -1,19 +1,25 @@
 /**
- * Utility functions for match processing
+ * @file Utility functions for match processing.
  */
 
 /**
- * Cleans a team name by removing common prefixes and suffixes.
+ * @brief Cleans a team name by removing common prefixes and suffixes.
+ *
+ * @param teamName The team name to clean.
+ * @return The cleaned team name.
  */
 export const cleanTeamName = (teamName: string): string => {
   let cleaned = teamName.trim();
-  cleaned = cleaned.replace(/ FC$/i, ""); // Remove " FC" suffix
-  cleaned = cleaned.replace(/^(AFC|FC|1\. FSV|1\. FC|SS|SSC) /i, ""); // Remove prefixes
+  cleaned = cleaned.replace(/ FC$/i, "");
+  cleaned = cleaned.replace(/^(AFC|FC|1\. FSV|1\. FC|SS|SSC) /i, "");
   return cleaned.trim();
 };
 
 /**
- * Converts a time string to minutes.
+ * @brief Converts a time string to minutes since midnight.
+ *
+ * @param timeString The time string to convert (HH:MM).
+ * @return The number of minutes since midnight, or -1 if the time string is invalid.
  */
 export const convertTimeToMinutes = (timeString: string): number => {
   if (!timeString || !timeString.includes(":")) return -1;
@@ -23,13 +29,17 @@ export const convertTimeToMinutes = (timeString: string): number => {
     if (isNaN(hours) || isNaN(minutes)) return -1;
     return hours * 60 + minutes;
   } catch (e) {
-    console.error("Time conversion error:", e);
     return -1;
   }
 };
 
 /**
- * Checks if a date is within a specified range.
+ * @brief Checks if a date is within a specified range.
+ *
+ * @param dateStr The date string to check (YYYY-MM-DD).
+ * @param startDateStr The start date string of the range (YYYY-MM-DD).
+ * @param endDateStr The end date string of the range (YYYY-MM-DD).
+ * @return True if the date is within the range (inclusive), false otherwise.
  */
 export const isDateInRange = (
   dateStr: string,
@@ -45,11 +55,13 @@ export const isDateInRange = (
 
     return date >= startDate && date <= endDate;
   } catch (e) {
-    console.error("Date comparison error:", e);
-    return true; // Default to including the match if there's an error
+    return true;
   }
 };
 
+/**
+ * @brief Interface for match data.
+ */
 export interface MatchData {
   team1: string;
   team2: string;
@@ -60,13 +72,61 @@ export interface MatchData {
   time?: string;
 }
 
+/**
+ * @brief Interface for API response data.
+ */
 export interface ApiResponse {
   name: string;
   matches: MatchData[];
 }
 
+/**
+ * @brief Interface for team data with league information.
+ */
 export interface TeamWithLeague {
   key: string;
   value: string;
   league: string;
+}
+
+/**
+ * @brief Extracts team names from ESPN event data.
+ *
+ * This function attempts to extract home and away team names from various
+ * properties of the ESPN event object. It prioritizes the `competitors` array
+ * if available, then falls back to parsing the `name` or `shortName` properties.
+ *
+ * @param event The ESPN event object.
+ * @return An object containing the extracted home and away team names.
+ */
+export function extractTeamsFromESPNEvent(event: any): {
+  homeTeam: string;
+  awayTeam: string;
+} {
+  const result = { homeTeam: "", awayTeam: "" };
+
+  if (
+    event.competitions &&
+    event.competitions[0] &&
+    event.competitions[0].competitors
+  ) {
+    const competitors = event.competitions[0].competitors;
+    competitors.forEach((team: any) => {
+      if (team.homeAway === "home") {
+        result.homeTeam = team.team?.displayName || team.team?.name || "";
+      } else if (team.homeAway === "away") {
+        result.awayTeam = team.team?.displayName || team.team?.name || "";
+      }
+    });
+  } else if (event.name && event.name.includes(" at ")) {
+    const parts = event.name.split(" at ");
+    result.awayTeam = parts[0].trim();
+    result.homeTeam = parts[1].trim();
+  } else if (event.shortName && event.shortName.includes(" @ ")) {
+    const parts = event.shortName.split(" @ ");
+    result.awayTeam = parts[0].trim();
+    result.homeTeam = parts[1].trim();
+  }
+
+  return result;
 }

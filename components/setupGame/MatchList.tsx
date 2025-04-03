@@ -1,5 +1,11 @@
-import React, { useState, useEffect, FC } from "react";
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
+import React, { useState, FC, useEffect } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+} from "react-native";
 import { Match } from "../../app/store";
 import styles from "../../app/style/setupGameStyles";
 import MatchFilter from "./Filter";
@@ -14,12 +20,19 @@ import {
 import { useMatchProcessing } from "../../hooks/useMatchProcessing";
 import { MatchData, TeamWithLeague } from "../../utils/matchUtils";
 
-// Helper function to get today's date in YYYY-MM-DD format
+/**
+ * @brief Helper function to get today's date in YYYY-MM-DD format.
+ *
+ * @return A string representing today's date in YYYY-MM-DD format.
+ */
 const getTodayDate = (): string => {
   const today = new Date();
   return today.toISOString().split("T")[0];
 };
 
+/**
+ * @brief Interface for the props of the MatchList component.
+ */
 interface MatchListProps {
   matches: Match[];
   homeTeam: string;
@@ -33,6 +46,25 @@ interface MatchListProps {
   setGlobalMatches?: (matches: Match[]) => void;
 }
 
+/**
+ * @brief Functional component that renders a list of matches with filtering and team selection.
+ *
+ * This component fetches match data from an API, allows users to filter matches by league, date, and time,
+ * and provides team selection rows for adding matches.
+ *
+ * @param matches Array of Match objects to display.
+ * @param homeTeam The name of the home team.
+ * @param awayTeam The name of the away team.
+ * @param setHomeTeam Function to set the home team.
+ * @param setAwayTeam Function to set the away team.
+ * @param handleAddMatch Function to handle adding a match.
+ * @param handleRemoveMatch Function to handle removing a match.
+ * @param selectedCommonMatch The ID of the selected common match.
+ * @param handleSelectCommonMatch Function to handle selecting a common match.
+ * @param setGlobalMatches Function to set the global matches state.
+ *
+ * @return A React element, representing the match list.
+ */
 const MatchList: FC<MatchListProps> = ({
   matches,
   homeTeam,
@@ -45,7 +77,10 @@ const MatchList: FC<MatchListProps> = ({
   handleSelectCommonMatch,
   setGlobalMatches,
 }) => {
-  // Get match data from API
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [startDate, setStartDate] = useState(getTodayDate());
+  const [endDate, setEndDate] = useState(getTodayDate());
+
   const {
     isLoading,
     isError,
@@ -53,21 +88,18 @@ const MatchList: FC<MatchListProps> = ({
     teamsData,
     apiData,
     availableLeagues,
-  } = useMatchData();
+  } = useMatchData(selectedDate);
 
-  // State for filtering
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([
-    "Premier League", "Championship"
+    "Premier League",
+    "Championship",
   ]);
   const [filteredMatches, setFilteredMatches] = useState<MatchData[]>([]);
-  const [startTime, setStartTime] = useState("15:00"); // Default start time
-  const [endTime, setEndTime] = useState("22:00"); // Default end time
-  const [startDate, setStartDate] = useState(getTodayDate()); // Default to today's date
-  const [endDate, setEndDate] = useState(getTodayDate()); // Default to today's date
+  const [startTime, setStartTime] = useState("15:00");
+  const [endTime, setEndTime] = useState("16:00");
   const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
 
-  // Team filtering
   const {
     filteredTeamsData,
     setFilteredTeamsData,
@@ -75,7 +107,6 @@ const MatchList: FC<MatchListProps> = ({
     awayTeamOptions,
   } = useTeamFiltering(teamsData, selectedLeagues, matches, homeTeam, awayTeam);
 
-  // Match processing
   const { startProcessing, processingState } = useMatchProcessing(
     matches,
     setHomeTeam,
@@ -84,11 +115,9 @@ const MatchList: FC<MatchListProps> = ({
     setGlobalMatches
   );
 
-  // Automatically filter matches on component mount
   useEffect(() => {
     if (!apiData || apiData.length === 0) return;
 
-    // Combine all matches from API data
     const allMatches: MatchData[] = [];
     apiData.forEach((leagueData) => {
       if (leagueData.matches) {
@@ -96,12 +125,10 @@ const MatchList: FC<MatchListProps> = ({
       }
     });
 
-    // Filter matches by the selected date
     const dateFilteredMatches = allMatches.filter(
       (match) => match.date === startDate
     );
 
-    // Filter matches by time range
     const timeFilteredMatches = filterMatchesByDateAndTime(
       dateFilteredMatches,
       startDate,
@@ -110,7 +137,6 @@ const MatchList: FC<MatchListProps> = ({
       endTime
     );
 
-    // Filter matches by selected leagues
     const selectedLeagueSet = new Set(selectedLeagues);
     const teamsInSelectedLeagues = teamsData
       .filter((team) => selectedLeagueSet.has(team.league))
@@ -131,13 +157,13 @@ const MatchList: FC<MatchListProps> = ({
       const normalizedTeam1 = normalizeTeamName(match.team1);
       const normalizedTeam2 = normalizeTeamName(match.team2);
 
-      return teamNameMap.has(normalizedTeam1) && teamNameMap.has(normalizedTeam2);
+      return (
+        teamNameMap.has(normalizedTeam1) && teamNameMap.has(normalizedTeam2)
+      );
     });
 
-    // Update filtered matches state
     setFilteredMatches(leagueFilteredMatches);
 
-    // Update team filters with the teams from filtered matches
     const matchingTeams = new Set<string>();
     leagueFilteredMatches.forEach((match) => {
       if (match.team1) matchingTeams.add(match.team1);
@@ -155,7 +181,10 @@ const MatchList: FC<MatchListProps> = ({
     setIsDateFilterActive(true);
   }, [apiData, startDate, endDate, startTime, endTime, selectedLeagues]);
 
-  // Handler functions
+  useEffect(() => {
+    setSelectedDate(startDate);
+  }, [startDate]);
+
   const handleLeagueChange = (league: string) => {
     setSelectedLeagues((prev) => {
       if (prev.includes(league)) {
@@ -167,10 +196,12 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   const resetAllFilters = () => {
-    setStartTime("13:00"); // Reset to default start time
-    setEndTime("22:00"); // Reset to default end time
-    setStartDate(getTodayDate()); // Reset to today's date
-    setEndDate(getTodayDate()); // Reset to today's date
+    const today = getTodayDate();
+    setStartTime("15:00");
+    setEndTime("16:00");
+    setStartDate(today);
+    setEndDate(today);
+    setSelectedDate(today);
     setFilteredTeamsData(teamsData);
     setIsTimeFilterActive(false);
     setIsDateFilterActive(false);
@@ -190,7 +221,6 @@ const MatchList: FC<MatchListProps> = ({
       return;
     }
 
-    // Combine all matches from API data regardless of league first
     const allMatches: MatchData[] = [];
     apiData.forEach((leagueData) => {
       if (leagueData.matches) {
@@ -198,7 +228,6 @@ const MatchList: FC<MatchListProps> = ({
       }
     });
 
-    // Filter matches by date and time first
     const timeFilteredMatches = filterMatchesByDateAndTime(
       allMatches,
       startDate,
@@ -207,10 +236,8 @@ const MatchList: FC<MatchListProps> = ({
       endTime
     );
 
-    // Now filter by league using the team data which has league information
     const selectedLeagueSet = new Set(selectedLeagues);
 
-    // Get teams that belong to selected leagues with normalized names for comparison
     const teamsInSelectedLeagues = teamsData
       .filter((team) => selectedLeagueSet.has(team.league))
       .map((team) => ({
@@ -219,13 +246,11 @@ const MatchList: FC<MatchListProps> = ({
         league: team.league,
       }));
 
-    // Create a lookup map for faster team matching
     const teamNameMap = new Map();
     teamsInSelectedLeagues.forEach((team) => {
       teamNameMap.set(team.normalizedName, team);
     });
 
-    // Filter matches to only include those with both teams in selected leagues
     const leagueFilteredMatches = timeFilteredMatches.filter((match) => {
       if (!match.team1 || !match.team2) return false;
 
@@ -238,10 +263,8 @@ const MatchList: FC<MatchListProps> = ({
       return team1Found && team2Found;
     });
 
-    // Update filtered matches state
     setFilteredMatches(leagueFilteredMatches);
 
-    // Update team filters with the teams from filtered matches
     const matchingTeams = new Set<string>();
     leagueFilteredMatches.forEach((match) => {
       if (match.team1) matchingTeams.add(match.team1);
@@ -258,26 +281,29 @@ const MatchList: FC<MatchListProps> = ({
     setIsTimeFilterActive(hasTimeFilter);
     setIsDateFilterActive(hasDateFilter);
 
-    // Check if we found any matches
     if (leagueFilteredMatches.length === 0) {
       alert("No matches found with current filters");
       return;
     }
 
-    // Start processing matches
     startProcessing(leagueFilteredMatches);
   };
 
-  // Helper function to normalize team names for comparison
+  /**
+   * @brief Normalizes team names for comparison by removing common suffixes, prefixes, and special characters.
+   *
+   * @param name The team name to normalize.
+   * @return The normalized team name.
+   */
   const normalizeTeamName = (name: string): string => {
     if (!name) return "";
 
     return name
       .toLowerCase()
-      .replace(/\s+fc$/i, "") // Remove FC suffix
-      .replace(/^(fc|afc|1\.\s*fc|1\.\s*fsv)\s+/i, "") // Remove common prefixes
-      .replace(/&\s+/g, "") // Remove & and spaces
-      .replace(/[\s\-\.]+/g, "") // Remove spaces, hyphens, periods
+      .replace(/\s+fc$/i, "")
+      .replace(/^(fc|afc|1\.\s*fc|1\.\s*fsv)\s+/i, "")
+      .replace(/&\s+/g, "")
+      .replace(/[\s\-\.]+/g, "")
       .trim();
   };
 
@@ -311,20 +337,20 @@ const MatchList: FC<MatchListProps> = ({
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Matches</Text>
 
-      {/* League Filter */}
       <LeagueFilter
         availableLeagues={availableLeagues}
         selectedLeagues={selectedLeagues}
         handleLeagueChange={handleLeagueChange}
       />
 
-      {/* Filter Component */}
       <MatchFilter
         startDate={startDate}
         endDate={endDate}
         startTime={startTime}
         endTime={endTime}
-        setStartDate={setStartDate}
+        setStartDate={(date) => {
+          setStartDate(date);
+        }}
         setEndDate={setEndDate}
         setStartTime={setStartTime}
         setEndTime={setEndTime}
@@ -334,9 +360,9 @@ const MatchList: FC<MatchListProps> = ({
         isDateFilterActive={isDateFilterActive}
         filteredTeamsData={filteredTeamsData}
         filteredMatches={filteredMatches}
+        isLoading={isLoading}
       />
 
-      {/* Handling loading and error states */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#007bff" />
@@ -362,7 +388,6 @@ const MatchList: FC<MatchListProps> = ({
         />
       )}
 
-      {/* Display processing state if applicable */}
       {processingState.isProcessing && (
         <View style={styles.processingIndicator}>
           <Text>
@@ -373,7 +398,6 @@ const MatchList: FC<MatchListProps> = ({
         </View>
       )}
 
-      {/* Match List */}
       <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
@@ -392,7 +416,6 @@ const MatchList: FC<MatchListProps> = ({
         contentContainerStyle={styles.matchesGridContainer}
       />
 
-      {/* Clear All Matches Button */}
       {matches.length > 0 && (
         <TouchableOpacity
           style={styles.clearAllButton}

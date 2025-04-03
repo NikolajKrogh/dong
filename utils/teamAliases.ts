@@ -67,7 +67,7 @@ export const TEAM_ALIASES: { [key: string]: string } = {
   "Preston North End": "Preston North End FC",
   "Preston North End Football Club": "Preston North End FC",
   // Manchester United FC
-  "MUFC": "Manchester United FC",
+  MUFC: "Manchester United FC",
   "Man Utd": "Manchester United FC",
   "Man United": "Manchester United FC",
   "Manchester U.": "Manchester United FC",
@@ -551,3 +551,49 @@ export const TEAM_ALIASES: { [key: string]: string } = {
   "Como Calcio": "Como 1907",
   "Calcio Como": "Como 1907",
 };
+
+/**
+ * Mapping of team codes to full team names for major leagues
+ */
+export const TEAM_CODE_MAP: Record<string, string> = {
+  // Premier League
+  ARS: "Arsenal",
+  AVL: "Aston Villa",
+  BOU: "Bournemouth",
+  BRE: "Brentford",
+  BHA: "Brighton & Hove Albion",
+  CHE: "Chelsea",
+  CRY: "Crystal Palace",
+  EVE: "Everton",
+  FUL: "Fulham",
+  LEI: "Leicester City",
+  LIV: "Liverpool",
+  MCI: "Manchester City",
+  MUN: "Manchester United",
+  NEW: "Newcastle United",
+  NFO: "Nottingham Forest",
+  SOU: "Southampton",
+  TOT: "Tottenham Hotspur",
+  WHU: "West Ham United",
+  WOL: "Wolverhampton Wanderers",
+  IPS: "Ipswich Town",
+
+  // Add other leagues as needed
+};
+
+/**
+ * Attempts to convert a team code to its full name
+ * @param code The team code (e.g., "TOT")
+ * @returns The full team name or the original code if not found
+ */
+export function getFullTeamName(code: string): string {
+  if (!code) return "";
+
+  // If already appears to be a full name, return it
+  if (code.length > 3 && code.includes(" ")) {
+    return code;
+  }
+
+  // Try to find the code in our map
+  return TEAM_CODE_MAP[code.toUpperCase()] || code;
+}
