@@ -1,4 +1,4 @@
-import { ExpoConfig, ConfigContext } from "expo/config";
+import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "DONG",
@@ -9,6 +9,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: "myapp",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
+  owner: "olivervn1",
   ios: {
     supportsTablet: true,
     icon: {
@@ -23,10 +24,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       monochromeImage: "./assets/icons/android.png",
       backgroundColor: "#FCE38A",
     },
-    package:
-      process.env.NODE_ENV === "development"
-        ? "com.krogh.dong.dev"
-        : "com.krogh.dong",
+    package: "com.krogh.dong",
   },
   web: {
     bundler: "metro",
@@ -57,7 +55,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       origin: false,
     },
     eas: {
-      projectId: "4b18ea94-9748-4ec0-88f9-87b386034ecf",
+      projectId: "2a98aee4-0b06-44a8-a102-1eeaa14e6f85",
     },
   },
 });
