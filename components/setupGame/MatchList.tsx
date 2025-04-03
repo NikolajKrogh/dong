@@ -1,4 +1,4 @@
-import React, { useState, FC } from "react";
+import React, { useState, useEffect, FC } from "react";
 import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { Match } from "../../app/store";
 import styles from "../../app/style/setupGameStyles";
@@ -13,6 +13,12 @@ import {
 } from "../../hooks/useTeamFiltering";
 import { useMatchProcessing } from "../../hooks/useMatchProcessing";
 import { MatchData, TeamWithLeague } from "../../utils/matchUtils";
+
+// Helper function to get today's date in YYYY-MM-DD format
+const getTodayDate = (): string => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+};
 
 interface MatchListProps {
   matches: Match[];
@@ -51,13 +57,13 @@ const MatchList: FC<MatchListProps> = ({
 
   // State for filtering
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([
-    "Premier League",
+    "Premier League", "Championship"
   ]);
   const [filteredMatches, setFilteredMatches] = useState<MatchData[]>([]);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startTime, setStartTime] = useState("15:00"); // Default start time
+  const [endTime, setEndTime] = useState("22:00"); // Default end time
+  const [startDate, setStartDate] = useState(getTodayDate()); // Default to today's date
+  const [endDate, setEndDate] = useState(getTodayDate()); // Default to today's date
   const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
 
@@ -78,6 +84,77 @@ const MatchList: FC<MatchListProps> = ({
     setGlobalMatches
   );
 
+  // Automatically filter matches on component mount
+  useEffect(() => {
+    if (!apiData || apiData.length === 0) return;
+
+    // Combine all matches from API data
+    const allMatches: MatchData[] = [];
+    apiData.forEach((leagueData) => {
+      if (leagueData.matches) {
+        allMatches.push(...leagueData.matches);
+      }
+    });
+
+    // Filter matches by the selected date
+    const dateFilteredMatches = allMatches.filter(
+      (match) => match.date === startDate
+    );
+
+    // Filter matches by time range
+    const timeFilteredMatches = filterMatchesByDateAndTime(
+      dateFilteredMatches,
+      startDate,
+      endDate,
+      startTime,
+      endTime
+    );
+
+    // Filter matches by selected leagues
+    const selectedLeagueSet = new Set(selectedLeagues);
+    const teamsInSelectedLeagues = teamsData
+      .filter((team) => selectedLeagueSet.has(team.league))
+      .map((team) => ({
+        normalizedName: normalizeTeamName(team.value),
+        originalName: team.value,
+        league: team.league,
+      }));
+
+    const teamNameMap = new Map();
+    teamsInSelectedLeagues.forEach((team) => {
+      teamNameMap.set(team.normalizedName, team);
+    });
+
+    const leagueFilteredMatches = timeFilteredMatches.filter((match) => {
+      if (!match.team1 || !match.team2) return false;
+
+      const normalizedTeam1 = normalizeTeamName(match.team1);
+      const normalizedTeam2 = normalizeTeamName(match.team2);
+
+      return teamNameMap.has(normalizedTeam1) && teamNameMap.has(normalizedTeam2);
+    });
+
+    // Update filtered matches state
+    setFilteredMatches(leagueFilteredMatches);
+
+    // Update team filters with the teams from filtered matches
+    const matchingTeams = new Set<string>();
+    leagueFilteredMatches.forEach((match) => {
+      if (match.team1) matchingTeams.add(match.team1);
+      if (match.team2) matchingTeams.add(match.team2);
+    });
+
+    const filteredTeams = teamsData.filter(
+      (team) =>
+        matchingTeams.has(team.value) ||
+        matchingTeams.has(normalizeTeamName(team.value))
+    );
+
+    setFilteredTeamsData(filteredTeams);
+    setIsTimeFilterActive(true);
+    setIsDateFilterActive(true);
+  }, [apiData, startDate, endDate, startTime, endTime, selectedLeagues]);
+
   // Handler functions
   const handleLeagueChange = (league: string) => {
     setSelectedLeagues((prev) => {
@@ -90,10 +167,10 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   const resetAllFilters = () => {
-    setStartTime("");
-    setEndTime("");
-    setStartDate("");
-    setEndDate("");
+    setStartTime("13:00"); // Reset to default start time
+    setEndTime("22:00"); // Reset to default end time
+    setStartDate(getTodayDate()); // Reset to today's date
+    setEndDate(getTodayDate()); // Reset to today's date
     setFilteredTeamsData(teamsData);
     setIsTimeFilterActive(false);
     setIsDateFilterActive(false);
