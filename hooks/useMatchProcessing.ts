@@ -263,7 +263,7 @@ export function useMatchProcessing(
       );
 
       if (validMatches.length === 0) {
-        alert("No valid matches to add");
+        console.warn("No valid matches to add"); // Replace alert with console.warn
         return;
       }
 
@@ -280,7 +280,7 @@ export function useMatchProcessing(
       );
 
       if (uniqueMatches.length === 0) {
-        alert("All filtered matches are already in your list");
+        console.warn("All filtered matches are already in your list"); // Replace alert with console.warn
         return;
       }
 
