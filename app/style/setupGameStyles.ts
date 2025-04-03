@@ -73,13 +73,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-  addButton: {
-    backgroundColor: "#007bff",
-    borderRadius: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginLeft: 8,
-  },
   addButtonText: {
     color: "#fff",
     fontWeight: "bold",
@@ -96,12 +89,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,        // Ensure it's above other content
   },
-  // emptyListText: {
-  //   color: "#666",
-  //   fontStyle: "italic",
-  //   textAlign: "center",
-  //   marginVertical: 12,
-  // },
   instructionText: {
     fontSize: 14,
     color: "#666",
@@ -485,9 +472,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     marginHorizontal: 8,
-  },
-  inputContainer: {
-    marginBottom: 16,
   },
   suggestionsContainer: {
     position: 'relative',
@@ -1017,7 +1001,125 @@ const styles = StyleSheet.create({
   },
   matchDeleteButton: {
     padding: 4,
-  }
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  gridItem: {
+    width: '32%', // Just under 33.3% for a 3-column layout
+    marginBottom: 8,
+  },
+  compactMatchItem: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#eaeaea',
+  },
+  selectedCompactMatchItem: {
+    backgroundColor: '#e6f2ff',
+    borderColor: '#b3d7ff',
+  },
+  compactTeamsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  compactTeamLogo: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+  },
+  compactVsText: {
+    fontSize: 10,
+    color: '#888',
+    marginHorizontal: 4,
+  },
+  compactCheckContainer: {
+    marginLeft: 2,
+  },
+  playerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+  },
+  playerHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  playerBadge: {
+    backgroundColor: '#e8f0fe', 
+    paddingHorizontal: 8, 
+    paddingVertical: 2, 
+    borderRadius: 12,
+    marginLeft: 8
+  },
+  playerBadgeText: {
+    fontSize: 13, 
+    color: '#0275d8'
+  },
+  chevronIcon: {
+    marginRight: 8,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  headerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  layoutToggleButton: {
+    marginRight: 12,
+  },
+  playerContainer: {
+    marginBottom: 16, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#eeeeee', 
+    paddingBottom: 8,
+  },
+  inputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    backgroundColor: '#f5f7fa',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    paddingHorizontal: 12,
+  },
+  inputIcon: {
+    marginRight: 8,
+  },
+  textInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+    color: '#333',
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#0275d8',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  addButtonDisabled: {
+    backgroundColor: '#b0c1d9',
+  },
 });
 
 export default styles;
