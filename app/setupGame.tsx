@@ -198,6 +198,15 @@ const SetupGameScreen = () => {
       return;
     }
 
+    // Remove matches with no player assignments
+    const assignedMatchIds = new Set(
+      Object.values(playerAssignments).flat()
+    );
+    const filteredMatches = matches.filter((match) =>
+      assignedMatchIds.has(match.id)
+    );
+    setGlobalMatches(filteredMatches);
+
     router.push("/gameProgress");
   };
 
