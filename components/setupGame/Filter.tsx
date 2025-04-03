@@ -74,15 +74,15 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
 
   return (
     <View style={styles.filterContainer}>
-      <TouchableOpacity
-        style={styles.expandableCard}
-        onPress={() => setShowTimeFilter(!showTimeFilter)}
-      >
-        <View style={styles.expandableCardContent}>
-          <View style={styles.expandableCardLeft}>
-            <Ionicons name="options-outline" size={20} color="#0275d8" />
-            <Text style={styles.expandableCardTitle}>Match Filters</Text>
-          </View>
+<TouchableOpacity
+  style={styles.expandableCard}
+  onPress={() => setShowTimeFilter(!showTimeFilter)}
+>
+  <View style={styles.expandableCardContent}>
+    <View style={styles.expandableCardLeft}>
+      <Ionicons name="options-outline" size={20} color="#0275d8" />
+      <Text style={styles.expandableCardTitle}>Find Matches</Text>
+    </View>
 
           <View style={styles.rightContent}>
             <View style={styles.filterBadgesContainer}>

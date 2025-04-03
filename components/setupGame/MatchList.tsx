@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FC } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity } from "react-native";
 import { Match } from "../../app/store";
 import styles from "../../app/style/setupGameStyles";
 import MatchFilter from "./Filter";
@@ -299,6 +299,14 @@ const MatchList: FC<MatchListProps> = ({
     setAwayTeam("");
   };
 
+  const handleClearAllMatches = () => {
+    if (matches.length === 0) {
+      alert("No matches to clear.");
+      return;
+    }
+    setGlobalMatches && setGlobalMatches([]);
+  };
+
   return (
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Matches</Text>
@@ -383,6 +391,16 @@ const MatchList: FC<MatchListProps> = ({
         scrollEnabled={false}
         contentContainerStyle={styles.matchesGridContainer}
       />
+
+      {/* Clear All Matches Button */}
+      {matches.length > 0 && (
+        <TouchableOpacity
+          style={styles.clearAllButton}
+          onPress={handleClearAllMatches}
+        >
+          <Text style={styles.clearAllButtonText}>Clear All Matches</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

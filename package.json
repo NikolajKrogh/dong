@@ -35,7 +35,9 @@
     "expo-symbols": "~0.2.2",
     "expo-system-ui": "~4.0.8",
     "expo-web-browser": "~14.0.2",
+    "image-size": "^2.0.2",
     "js-base64": "^3.7.7",
+    "node-fetch": "^3.3.2",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.7",
@@ -49,6 +51,7 @@
     "react-native-ui-datepicker": "^3.0.7",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
+    "zustand": "^5.0.3"
     "zustand": "^5.0.3"
   },
   "devDependencies": {
