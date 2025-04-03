@@ -1,4 +1,4 @@
-//! Find more logos at: https://brandlogos.net/ 
+//! Find more logos at: https://brandlogos.net/
 import { cleanTeamName } from "./matchUtils";
 import { TEAM_ALIASES } from "./teamAliases";
 
