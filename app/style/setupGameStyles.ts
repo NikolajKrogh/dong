@@ -1120,6 +1120,18 @@ const styles = StyleSheet.create({
   addButtonDisabled: {
     backgroundColor: '#b0c1d9',
   },
+  clearAllButton: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#ff4d4d",
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  clearAllButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default styles;
