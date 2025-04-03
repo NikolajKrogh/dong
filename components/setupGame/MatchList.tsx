@@ -60,7 +60,7 @@ const MatchList: FC<MatchListProps> = ({
     "Premier League", "Championship"
   ]);
   const [filteredMatches, setFilteredMatches] = useState<MatchData[]>([]);
-  const [startTime, setStartTime] = useState("13:00"); // Default start time
+  const [startTime, setStartTime] = useState("15:00"); // Default start time
   const [endTime, setEndTime] = useState("22:00"); // Default end time
   const [startDate, setStartDate] = useState(getTodayDate()); // Default to today's date
   const [endDate, setEndDate] = useState(getTodayDate()); // Default to today's date
@@ -96,9 +96,14 @@ const MatchList: FC<MatchListProps> = ({
       }
     });
 
-    // Filter matches by date and time
+    // Filter matches by the selected date
+    const dateFilteredMatches = allMatches.filter(
+      (match) => match.date === startDate
+    );
+
+    // Filter matches by time range
     const timeFilteredMatches = filterMatchesByDateAndTime(
-      allMatches,
+      dateFilteredMatches,
       startDate,
       endDate,
       startTime,
@@ -148,9 +153,6 @@ const MatchList: FC<MatchListProps> = ({
     setFilteredTeamsData(filteredTeams);
     setIsTimeFilterActive(true);
     setIsDateFilterActive(true);
-
-    // Automatically process matches
-    startProcessing(leagueFilteredMatches);
   }, [apiData, startDate, endDate, startTime, endTime, selectedLeagues]);
 
   // Handler functions
