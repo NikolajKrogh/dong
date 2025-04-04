@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "./store";
 import { Ionicons } from "@expo/vector-icons";
@@ -86,8 +86,11 @@ const HomeScreen = () => {
       />
       <View style={[styles.safeArea, { paddingTop: 22 }]}>
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>DONG</Text>
-          <Text style={styles.subtitle}>Drink ON Goal</Text>
+          <Image
+            source={require("../assets/icons/logo_png/dong_logo.png")}
+            style={styles.logo}
+          />
+          <Text style={styles.subtitle}>Drink on Goal</Text>
         </View>
 
         {hasGameInProgress ? (
