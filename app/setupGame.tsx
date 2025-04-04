@@ -11,6 +11,13 @@ import {
 } from "../components"; // Import components
 import { Player, Match } from "./store";
 
+/**
+ * @brief SetupGameScreen component for configuring the game.
+ *
+ * This component allows users to add players, define matches,
+ * assign matches to players, and select a common match.
+ * It uses the `useGameStore` hook to manage the game state.
+ */
 const SetupGameScreen = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("players");
@@ -34,13 +41,16 @@ const SetupGameScreen = () => {
     setMatchesPerPlayer,
   } = useGameStore();
 
-  // Logic for determining when steps can be advanced
   const canAdvanceToMatches = players.length > 0;
   const canAdvanceToAssign = matches.length > 0 && commonMatchId !== null;
   const canStartGame =
     Object.keys(playerAssignments).length > 0 &&
     Object.values(playerAssignments).some((matches) => matches.length > 0);
 
+  /**
+   * @brief Renders the player list setup step.
+   * @return The JSX element for the player list setup.
+   */
   const renderPlayersStep = () => (
     <SetupGamePlayerList
       players={players}
@@ -51,6 +61,10 @@ const SetupGameScreen = () => {
     />
   );
 
+  /**
+   * @brief Renders the matches setup step.
+   * @return The JSX element for the matches setup.
+   */
   const renderMatchesStep = () => (
     <MatchList
       matches={matches}
@@ -66,6 +80,10 @@ const SetupGameScreen = () => {
     />
   );
 
+  /**
+   * @brief Renders the assignment setup step.
+   * @return The JSX element for the assignment setup.
+   */
   const renderAssignStep = () => (
     <AssignmentSection
       players={players}
@@ -79,6 +97,9 @@ const SetupGameScreen = () => {
     />
   );
 
+  /**
+   * @brief Handles adding a new player to the game.
+   */
   const handleAddPlayer = () => {
     if (newPlayerName.trim()) {
       const newPlayer: Player = {
@@ -95,6 +116,10 @@ const SetupGameScreen = () => {
     }
   };
 
+  /**
+   * @brief Handles removing a player from the game.
+   * @param playerId The ID of the player to remove.
+   */
   const handleRemovePlayer = (playerId: string) => {
     setGlobalPlayers((prevPlayers) =>
       prevPlayers.filter((player) => player.id !== playerId)
@@ -109,6 +134,9 @@ const SetupGameScreen = () => {
     });
   };
 
+  /**
+   * @brief Handles adding a new match to the game.
+   */
   const handleAddMatch = () => {
     if (homeTeam.trim() && awayTeam.trim()) {
       const newMatch: Match = {
@@ -123,6 +151,10 @@ const SetupGameScreen = () => {
     }
   };
 
+  /**
+   * @brief Handles removing a match from the game.
+   * @param matchId The ID of the match to remove.
+   */
   const handleRemoveMatch = (matchId: string) => {
     setGlobalMatches((prevMatches) =>
       prevMatches.filter((match) => match.id !== matchId)
@@ -146,11 +178,20 @@ const SetupGameScreen = () => {
     }
   };
 
+  /**
+   * @brief Handles selecting a common match for the game.
+   * @param matchId The ID of the common match.
+   */
   const handleSelectCommonMatch = (matchId: string) => {
     setSelectedCommonMatch(matchId);
     setGlobalCommonMatchId(matchId);
   };
 
+  /**
+   * @brief Toggles the assignment of a match to a player.
+   * @param playerId The ID of the player.
+   * @param matchId The ID of the match.
+   */
   const toggleMatchAssignment = (playerId: string, matchId: string) => {
     setGlobalPlayerAssignments(
       (prevAssignments: { [playerId: string]: string[] }) => {
@@ -173,6 +214,12 @@ const SetupGameScreen = () => {
     );
   };
 
+  /**
+   * @brief Handles the start game action.
+   *
+   * Validates that there are players, matches, and a common match selected
+   * before navigating to the game progress screen.
+   */
   const handleStartGame = () => {
     if (players.length === 0) {
       Alert.alert(
@@ -198,12 +245,11 @@ const SetupGameScreen = () => {
       return;
     }
 
-    // Remove matches with no player assignments
-    const assignedMatchIds = new Set(
-      Object.values(playerAssignments).flat()
-    );
-    const filteredMatches = matches.filter((match) =>
-      assignedMatchIds.has(match.id)
+    const assignedMatchIds = new Set(Object.values(playerAssignments).flat());
+    const filteredMatches = matches.filter(
+      (match) =>
+        assignedMatchIds.has(match.id) ||
+        (commonMatchId && match.id === commonMatchId)
     );
     setGlobalMatches(filteredMatches);
 
