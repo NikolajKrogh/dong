@@ -228,6 +228,12 @@ const styles = StyleSheet.create({
   iconContainer: {
     marginRight: 8,
   },
+  logo: {
+    width: 512,
+    height: 120,
+    resizeMode: "contain",
+    marginBottom: 8,
+  },
 });
 
 export default styles;
