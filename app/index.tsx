@@ -86,6 +86,12 @@ const HomeScreen = () => {
       />
       <View style={[styles.safeArea, { paddingTop: 22 }]}>
         <View style={styles.headerContainer}>
+          <TouchableOpacity
+            style={styles.userPreferencesButton}
+            onPress={() => router.push("/userPreferences")}
+          >
+            <Ionicons name="person-circle-outline" size={28} color="#0275d8" />
+          </TouchableOpacity>
           <Text style={styles.title}>DONG</Text>
           <Text style={styles.subtitle}>Drink ON Goal</Text>
         </View>

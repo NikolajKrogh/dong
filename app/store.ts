@@ -35,6 +35,7 @@ interface GameState {
   playerAssignments: PlayerAssignments;
   matchesPerPlayer: number; // Add this property
   hasVideoPlayed: boolean; // Add this property
+  soundEnabled: boolean; // Add this property
   
   // Game history
   history: GameSession[];
@@ -46,6 +47,7 @@ interface GameState {
   setPlayerAssignments: (playerAssignments: PlayerAssignments | ((prev: PlayerAssignments) => PlayerAssignments)) => void;
   setMatchesPerPlayer: (count: number) => void; // Add this action
   setHasVideoPlayed: (value: boolean) => void; // Add this action
+  setSoundEnabled: (enabled: boolean) => void; // Add this action
   
   // Actions for game history
   saveGameToHistory: () => void;
@@ -62,6 +64,7 @@ export const useGameStore = create<GameState>()(
       playerAssignments: {},
       matchesPerPlayer: 1, // Default value
       hasVideoPlayed: false, // Default to false
+      soundEnabled: true, // Default to true
 
       // Game history
       history: [],
@@ -79,6 +82,7 @@ export const useGameStore = create<GameState>()(
       })),
       setMatchesPerPlayer: (count) => set({ matchesPerPlayer: count }), // Add this action
       setHasVideoPlayed: (value) => set({ hasVideoPlayed: value }), // Add this action
+      setSoundEnabled: (enabled) => set({ soundEnabled: enabled }), // Add this action
       
       // Actions for game history
       saveGameToHistory: () => set((state) => {
@@ -106,6 +110,7 @@ export const useGameStore = create<GameState>()(
         playerAssignments: {},
         matchesPerPlayer: 1, // Reset to default
         hasVideoPlayed: false, // Reset to default
+        soundEnabled: true, // Reset to default
       }),
     }),
     {
