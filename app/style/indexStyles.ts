@@ -223,16 +223,19 @@ const styles = StyleSheet.create({
   },
   userPreferencesButton: {
     position: "absolute",
-    left: 12,
-    top: Platform.OS === "android" ? StatusBar.currentHeight || 12 : 12, 
-    padding: 6,
-    borderRadius: 20,
-    backgroundColor: "#f0f8ff", 
+    bottom: 16, // Position at the bottom
+    right: 16, // Position at the right
+    padding: 12,
+    borderRadius: 30,
+    backgroundColor: "#0275d8",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    zIndex: 10, 
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 10,
+  },
+  userPreferencesButtonHover: {
+    backgroundColor: "#025aa5", // Darker shade for hover effect
   },
   logo: {
     width: 512,
