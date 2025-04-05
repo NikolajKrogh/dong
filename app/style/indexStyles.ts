@@ -234,6 +234,12 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     zIndex: 10, 
   },
+  logo: {
+    width: 512,
+    height: 120,
+    resizeMode: "contain",
+    marginBottom: 8,
+  },
 });
 
 export default styles;
