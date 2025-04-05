@@ -22,6 +22,7 @@ const HomeScreen = () => {
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
   const videoRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
  
@@ -133,26 +134,6 @@ const HomeScreen = () => {
           </TouchableOpacity>
         )}
 
-        {/*
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.setupButton}
-            onPress={() => router.push("/setupGame")}
-          >
-            <Ionicons name="settings-outline" size={20} color="#fff" />
-            <Text style={styles.smallButtonText}>Setup</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.historyButton}
-            onPress={() => router.push("/history")}
-          >
-            <Ionicons name="time-outline" size={20} color="#fff" />
-            <Text style={styles.smallButtonText}>History</Text>
-          </TouchableOpacity>
-        </View>
-        */}
-
         {history.length > 0 && (
           <View style={styles.statsContainer}>
             <Text style={styles.statsTitle}>Game Stats</Text>
@@ -191,6 +172,13 @@ const HomeScreen = () => {
             </View>
           </View>
         )}
+
+        <TouchableOpacity
+          style={styles.userPreferencesButton}
+          onPress={() => router.push("/userPreferences")}
+        >
+          <Ionicons name="person-circle-outline" size={28} color="#fff" />
+        </TouchableOpacity>
 
         <Text style={styles.footer}>The perfect drinking game for football fans</Text>
 

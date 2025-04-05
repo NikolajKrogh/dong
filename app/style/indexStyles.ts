@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform, StatusBar } from 'react-native';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -7,24 +7,17 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: 'center',
-    paddingVertical: 12, // Reduced padding
-    backgroundColor: '#f5f5f5', // Subtle background color
-    // borderBottomWidth: 1, // Removed border
-    // borderBottomColor: '#e0e0e0', // Removed border color
-    marginBottom: 12, // Reduced margin
-    // elevation: 1, // Added subtle shadow
-    // shadowColor: '#000', // Added subtle shadow color
-    // shadowOffset: { width: 0, height: 1 }, // Added subtle shadow offset
-    // shadowOpacity: 0.1, // Added subtle shadow opacity
-    // shadowRadius: 0.5, // Added subtle shadow radius
+    paddingVertical: 12, 
+    backgroundColor: '#f5f5f5', 
+    marginBottom: 12, 
   },
   title: {
-    fontSize: 40, // Adjusted font size
+    fontSize: 40, 
     fontWeight: 'bold',
     color: '#0275d8',
   },
   subtitle: {
-    fontSize: 12, // Adjusted font size
+    fontSize: 12, 
     color: '#6c757d',
     marginTop: 4,
   },
@@ -68,7 +61,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   startButton: {
-    backgroundColor: '#28a745', // Changed to green
+    backgroundColor: '#28a745',
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
@@ -227,6 +220,22 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     marginRight: 8,
+  },
+  userPreferencesButton: {
+    position: "absolute",
+    bottom: 16, // Position at the bottom
+    right: 16, // Position at the right
+    padding: 12,
+    borderRadius: 30,
+    backgroundColor: "#0275d8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 10,
+  },
+  userPreferencesButtonHover: {
+    backgroundColor: "#025aa5", // Darker shade for hover effect
   },
   logo: {
     width: 512,

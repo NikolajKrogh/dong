@@ -32,6 +32,7 @@ const GameProgressScreen = () => {
     setMatches,
     saveGameToHistory,
     resetState,
+    soundEnabled
   } = useGameStore();
 
   // State to track if the sound is currently playing
@@ -41,8 +42,7 @@ const GameProgressScreen = () => {
    * Function to play the dong.mp3 sound with debounce.
    */
   const playDongSound = async () => {
-    if (isSoundPlaying) return; // Prevent playing if already playing
-
+    if (!soundEnabled || isSoundPlaying) return; // Respect user preference
     setIsSoundPlaying(true); // Set the state to indicate sound is playing
     try {
       const { sound } = await Audio.Sound.createAsync(
