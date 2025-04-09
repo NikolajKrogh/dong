@@ -9,7 +9,9 @@ export default function RootLayout() {
         screenOptions={{
           headerShown: false, // This hides the header on all screens
         }}
-      />
+      >
+        <Stack.Screen name="userPreferences" options={{ title: "Preferences" }} />
+      </Stack>
     </GestureHandlerRootView>
   );
 }
