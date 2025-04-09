@@ -3,6 +3,22 @@
  */
 
 /**
+ * @brief Formats a date string as YYYYMMDD for the ESPN API.
+ *
+ * If no date string is provided, it returns today's date in the same format.
+ *
+ * @param dateString The date string to format (YYYY-MM-DD).
+ * @return The formatted date string (YYYYMMDD).
+ */
+export const formatDateForAPI = (dateString: string): string => {
+  if (!dateString) {
+    const today = new Date();
+    return today.toISOString().split("T")[0].replace(/-/g, "");
+  }
+  return dateString.replace(/-/g, "");
+};
+
+/**
  * @brief Cleans a team name by removing common prefixes and suffixes.
  *
  * @param teamName The team name to clean.

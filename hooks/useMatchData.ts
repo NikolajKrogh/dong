@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import {
-  TeamWithLeague,
-  cleanTeamName,
-} from "../utils/matchUtils";
+import { TeamWithLeague, cleanTeamName } from "../utils/matchUtils";
+import { ESPNResponse, ESPNEvent } from "../types/espn";
 
 /**
  * @brief Makes direct requests without proxy.
@@ -76,7 +74,7 @@ export function useMatchData(selectedDate?: string) {
         const responses = await Promise.all(
           leagueEndpoints.map((league) =>
             fetchDataFromESPN(
-              `http://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`
+              `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`
             )
           )
         );
@@ -105,11 +103,11 @@ export function useMatchData(selectedDate?: string) {
             let homeTeam = "";
             let awayTeam = "";
 
-            if (event.name.includes(" at ")) {
+            if (event.name && event.name.includes(" at ")) {
               const parts = event.name.split(" at ");
               awayTeam = parts[0].trim();
               homeTeam = parts[1].trim();
-            } else if (event.shortName) {
+            } else if (event.shortName && event.shortName.includes(" @ ")) {
               const parts = event.shortName.split(" @ ");
               if (parts.length === 2) {
                 awayTeam = parts[0].trim();
