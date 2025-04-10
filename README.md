@@ -6,9 +6,9 @@ This project was started to create an app to support the drinking game "DONG".
 
 1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+ ```bash
+npm install
+```
 
 2. Start the app
 
