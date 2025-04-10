@@ -25,7 +25,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const steps = ["Players", "Matches", "Assignments"];
-  const router = useRouter(); // Add router
+  const router = useRouter();
 
   return (
     <View style={styles.wizardContainer}>

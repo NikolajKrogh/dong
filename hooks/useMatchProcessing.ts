@@ -34,12 +34,10 @@ export function useMatchProcessing(
     total: 0,
   });
 
-  // Use refs to avoid race conditions during asynchronous processing
   const totalMatchesRef = useRef(0);
   const isProcessingMatchRef = useRef(false);
   const matchesRef = useRef(matches);
 
-  // Add refs to track the current team values
   const homeTeamRef = useRef("");
   const awayTeamRef = useRef("");
 
@@ -93,7 +91,7 @@ export function useMatchProcessing(
 
       // Convert MatchData to Match format
       const newMatches = uniqueMatches.map((match) => ({
-        id: String(Date.now()) + Math.random().toString(36).substr(2, 9),
+        id: match.id, // Use the ESPN event ID directly
         homeTeam: match.team1,
         awayTeam: match.team2,
         goals: 0,

@@ -1,9 +1,17 @@
-import React from "react";
-import { View, SafeAreaView } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { useLiveScores } from "../hooks/useLiveScores";
+import {
+  View,
+  SafeAreaView,
+  Text,
+  RefreshControl,
+  StyleSheet,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "./store";
-import { Audio } from "expo-av"; // Import Audio from expo-av 
+import { Audio } from "expo-av";
 import styles from "./style/gameProgressStyles";
+import { Ionicons } from "@expo/vector-icons";
 
 // Import components
 import TabNavigation from "../components/gameProgress/TabNavigation";
@@ -22,6 +30,7 @@ const GameProgressScreen = () => {
   );
   const [isQuickActionsVisible, setIsQuickActionsVisible] =
     React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     players,
@@ -32,7 +41,7 @@ const GameProgressScreen = () => {
     setMatches,
     saveGameToHistory,
     resetState,
-    soundEnabled
+    soundEnabled,
   } = useGameStore();
 
   // State to track if the sound is currently playing
@@ -57,6 +66,7 @@ const GameProgressScreen = () => {
       setIsSoundPlaying(false); // Reset state in case of an error
     }
   };
+
   /**
    * Handles the action to end the game, making the alert modal visible.
    */
@@ -89,16 +99,33 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * Handles incrementing the goal count for a specific match.
-   * @param matchId - The ID of the match to increment the goal count for.
+   * Handles updating the goal count for a specific match.
+   * @param matchId - The ID of the match to update the goal count for.
+   * @param newTotal - The new total number of goals for this match.
    */
-  const handleGoalIncrement = (matchId: string) => {
+  const handleGoalIncrement = (matchId: string, newTotal: number) => {
+    setMatches((prevMatches) =>
+      prevMatches.map((match) => {
+        if (match.id === matchId) {
+          // Only play sound if the goal count actually increased
+          if (newTotal > match.goals) {
+            playDongSound(); // Play sound when goal is incremented
+          }
+          return { ...match, goals: newTotal }; // Set to the exact new total
+        }
+        return match;
+      })
+    );
+  };
+
+  // For manual +1 adjustments
+  const handleManualGoalIncrement = (matchId: string) => {
     setMatches((prevMatches) =>
       prevMatches.map((match) =>
         match.id === matchId ? { ...match, goals: match.goals + 1 } : match
       )
     );
-    playDongSound(); // Play sound when goal is incremented
+    playDongSound();
   };
 
   /**
@@ -158,6 +185,57 @@ const GameProgressScreen = () => {
     setIsQuickActionsVisible(true);
   };
 
+  // Call the useLiveScores hook
+  const {
+    liveMatches,
+    isPolling,
+    lastUpdated,
+    startPolling,
+    stopPolling,
+    fetchCurrentScores,
+  } = useLiveScores(
+    matches,
+    handleGoalIncrement,
+    60000, // Poll every minute
+    soundEnabled
+  );
+
+  // Start polling as soon as the component mounts
+  useEffect(() => {
+    // Use local references to the functions to avoid dependency issues
+    const start = () => {
+      if (matches.length > 0) {
+        startPolling();
+      }
+    };
+
+    const stop = () => {
+      if (isPolling) {
+        stopPolling();
+      }
+    };
+
+    start();
+
+    // Clean up when component unmounts
+    return () => {
+      stop();
+    };
+  }, []);
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchCurrentScores();
+      // No need to set lastUpdated - fetchCurrentScores already does this
+    } catch (error) {
+      console.error("Error refreshing:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchCurrentScores]);
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -170,12 +248,28 @@ const GameProgressScreen = () => {
         >
           {/* First tab - Matches */}
           <View style={styles.tabContent}>
+
+
+            {/* Pass liveMatches to your MatchesGrid */}
             <MatchesGrid
               matches={matches}
               players={players}
               commonMatchId={commonMatchId ?? ""}
               playerAssignments={playerAssignments}
               openQuickActions={openQuickActions}
+              liveMatches={liveMatches}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={["#0275d8"]}
+                  tintColor="#0275d8"
+                />
+              }
+              onRefresh={onRefresh} // Make sure this is passed
+              refreshing={refreshing} // This too
+              lastUpdated={lastUpdated} // And this
+              isPolling={isPolling}
             />
           </View>
 
@@ -210,7 +304,7 @@ const GameProgressScreen = () => {
         players={players}
         commonMatchId={commonMatchId ?? ""}
         playerAssignments={playerAssignments}
-        handleGoalIncrement={handleGoalIncrement}
+        handleGoalIncrement={handleManualGoalIncrement}
         handleGoalDecrement={handleGoalDecrement}
       />
 

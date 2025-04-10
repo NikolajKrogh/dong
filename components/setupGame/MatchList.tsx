@@ -80,6 +80,9 @@ const MatchList: FC<MatchListProps> = ({
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [startDate, setStartDate] = useState(getTodayDate());
   const [endDate, setEndDate] = useState(getTodayDate());
+  const [selectedMatchData, setSelectedMatchData] = useState<MatchData | null>(
+    null
+  );
 
   const {
     isLoading,
@@ -319,8 +322,28 @@ const MatchList: FC<MatchListProps> = ({
     setFilteredTeamsData([...filteredTeamsData, newTeam]);
   };
 
+  const handleAddMatchLocally = () => {
+    if (homeTeam.trim() && awayTeam.trim()) {
+      const newMatch: Match = {
+        id: selectedMatchData?.id || String(Date.now()), // Use ESPN ID when available
+        homeTeam: homeTeam.trim(),
+        awayTeam: awayTeam.trim(),
+        goals: 0,
+      };
+
+      // Add null check before calling
+      if (setGlobalMatches) {
+        setGlobalMatches([...matches, newMatch]);
+      }
+
+      setHomeTeam("");
+      setAwayTeam("");
+      setSelectedMatchData(null);
+    }
+  };
+
   const handleAddMatchAndClear = () => {
-    handleAddMatch();
+    handleAddMatchLocally();
     setHomeTeam("");
     setAwayTeam("");
   };
@@ -331,6 +354,13 @@ const MatchList: FC<MatchListProps> = ({
       return;
     }
     setGlobalMatches && setGlobalMatches([]);
+  };
+
+  // When selecting a team from the dropdown, store the match data
+  const selectMatchFromDropdown = (match: MatchData) => {
+    setHomeTeam(match.team1);
+    setAwayTeam(match.team2);
+    setSelectedMatchData(match); // Store the full match data
   };
 
   return (

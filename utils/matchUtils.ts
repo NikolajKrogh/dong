@@ -79,6 +79,7 @@ export const isDateInRange = (
  * @brief Interface for match data.
  */
 export interface MatchData {
+  id: string;
   team1: string;
   team2: string;
   score?: {

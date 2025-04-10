@@ -49,7 +49,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return initialState;
   });
 
-  // Add this useEffect to handle changes to the players array
+  // Update collapsed players when players change
   React.useEffect(() => {
     setCollapsedPlayers((prev) => {
       const updated = { ...prev };

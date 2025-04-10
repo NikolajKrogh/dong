@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Alert } from "react-native";
 import { Match } from "../app/store";
 import { formatDateForAPI } from "../utils/matchUtils";
 import { Audio } from "expo-av";
-import { ESPNResponse, ESPNEvent } from "../types/espn";
+import { ESPNResponse } from "../types/espn"; // cspell:ignore espn
 
 /**
  * @brief Interface for match state with score information.
  */
-interface MatchWithScore {
+export interface MatchWithScore {
   id: string;
   homeTeam: string;
   awayTeam: string;
@@ -63,7 +64,6 @@ export function useLiveScores(
         setIsSoundPlaying(false);
       }, 3000);
     } catch (error) {
-      console.error("Error playing goal sound:", error);
       setIsSoundPlaying(false);
     }
   };
@@ -71,7 +71,15 @@ export function useLiveScores(
   /**
    * @brief Fetches current scores from the ESPN API.
    */
-  const fetchCurrentScores = async () => {
+  const fetchCurrentScores = useCallback(async () => {
+    // First verify network connectivity
+    try {
+      const testResponse = await fetch("https://www.google.com");
+      if (!testResponse.ok) return;
+    } catch (error) {
+      return; // Skip API calls if no connectivity
+    }
+
     try {
       // Get today's date formatted for the API
       const today = new Date();
@@ -80,7 +88,7 @@ export function useLiveScores(
       // Create a map of match IDs to track which matches we're monitoring
       const matchIdsToTrack = new Set(matches.map((m) => m.id));
 
-      // Only fetch leagues that we need based on the matches
+      // Fetch data from these leagues
       const leagueEndpoints = [
         { code: "eng.1", name: "Premier League" },
         { code: "eng.2", name: "Championship" },
@@ -99,15 +107,13 @@ export function useLiveScores(
         )
       );
 
-      console.log("Fetching scores for", matches.length, "matches");
-      console.log("Match IDs being tracked:", Array.from(matchIdsToTrack));
-
       const updatedMatches: MatchWithScore[] = [];
       const newGoals: Record<string, number> = {};
 
       // Process all responses
       for (let i = 0; i < responses.length; i++) {
         const response = responses[i];
+
         if (!response.ok) continue;
 
         const data: ESPNResponse = await response.json();
@@ -175,9 +181,6 @@ export function useLiveScores(
         }
       }
 
-      console.log("Updated live matches:", updatedMatches);
-      console.log("New goals detected:", newGoals);
-
       // Update UI with new matches
       setLiveMatches(updatedMatches);
       setLastUpdated(new Date());
@@ -194,14 +197,14 @@ export function useLiveScores(
         });
       }
     } catch (error) {
-      console.error("Error fetching live scores:", error);
+      // Silently fail - we'll try again next polling interval
     }
-  };
+  }, [matches, updateCallback, autoPlaySound]);
 
   /**
    * @brief Starts polling the API for score updates.
    */
-  const startPolling = () => {
+  const startPolling = useCallback(() => {
     if (isPolling) return;
 
     setIsPolling(true);
@@ -211,106 +214,18 @@ export function useLiveScores(
 
     // Set up the interval for subsequent fetches
     pollingIntervalRef.current = setInterval(fetchCurrentScores, intervalMs);
-  };
+  }, [isPolling, intervalMs]);
 
   /**
    * @brief Stops polling the API for score updates.
    */
-  const stopPolling = () => {
+  const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
     setIsPolling(false);
-  };
-
-  // Add this at the end of the hook, right before the return statement
-  const startDemoMode = () => {
-    if (isPolling) stopPolling();
-
-    setIsPolling(true);
-    setLastUpdated(new Date());
-
-    // Create demo matches from actual matches
-    const demoMatches: MatchWithScore[] = matches.map((match) => ({
-      id: match.id,
-      homeTeam: match.homeTeam,
-      awayTeam: match.awayTeam,
-      homeScore: 0,
-      awayScore: 0,
-      status: "in",
-      isLive: true,
-    }));
-
-    setLiveMatches(demoMatches);
-
-    // Store current scores to track changes
-    const currentScores = new Map<string, { home: number; away: number }>();
-    matches.forEach((match) => {
-      currentScores.set(match.id, { home: 0, away: 0 });
-    });
-
-    // Simulate a goal every 10 seconds
-    let goalCounter = 0;
-    pollingIntervalRef.current = setInterval(() => {
-      if (goalCounter >= matches.length) {
-        // Reset goal counter when all matches have had a goal
-        goalCounter = 0;
-      }
-
-      const matchToUpdate = matches[goalCounter];
-      if (!matchToUpdate) return;
-
-      // Get current score for this match
-      const currentScore = currentScores.get(matchToUpdate.id) || {
-        home: 0,
-        away: 0,
-      };
-
-      // Randomly choose home or away team to score
-      const isHomeGoal = Math.random() > 0.5;
-
-      // Update the score
-      const newScore = {
-        home: isHomeGoal ? currentScore.home + 1 : currentScore.home,
-        away: isHomeGoal ? currentScore.away : currentScore.away + 1,
-      };
-
-      // Save the updated score
-      currentScores.set(matchToUpdate.id, newScore);
-
-      // Update liveMatches state
-      setLiveMatches((prev) =>
-        prev.map((m) => {
-          if (m.id === matchToUpdate.id) {
-            return {
-              ...m,
-              homeScore: newScore.home,
-              awayScore: newScore.away,
-            };
-          }
-          return m;
-        })
-      );
-
-      // Calculate new total goals and call the update callback
-      const newTotal = newScore.home + newScore.away;
-
-      // This is the key line that updates the actual game state
-      updateCallback(matchToUpdate.id, newTotal);
-
-      // Log for debugging
-      console.log(
-        `Demo mode: Goal in ${matchToUpdate.homeTeam} vs ${matchToUpdate.awayTeam}`
-      );
-      console.log(
-        `New score: ${newScore.home} - ${newScore.away}, Total: ${newTotal}`
-      );
-
-      // Move to next match for next goal
-      goalCounter++;
-    }, 10000); // Goal every 10 seconds
-  };
+  }, []);
 
   // Clean up on unmount
   useEffect(() => {
@@ -327,6 +242,6 @@ export function useLiveScores(
     lastUpdated,
     startPolling,
     stopPolling,
-    startDemoMode, // Add this
+    fetchCurrentScores,
   };
 }
