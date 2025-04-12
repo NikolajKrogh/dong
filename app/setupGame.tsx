@@ -143,7 +143,8 @@ const SetupGameScreen = () => {
         id: String(Date.now()),
         homeTeam: homeTeam.trim(),
         awayTeam: awayTeam.trim(),
-        goals: 0,
+        homeGoals: 0,
+        awayGoals: 0,
       };
       setGlobalMatches([...matches, newMatch]);
       setHomeTeam("");

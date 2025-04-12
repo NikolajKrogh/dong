@@ -6,10 +6,12 @@ import {
   Text,
   RefreshControl,
   StyleSheet,
+  AppState,
+  AppStateStatus,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "./store";
-import { Audio } from "expo-av";
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import styles from "./style/gameProgressStyles";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -21,6 +23,12 @@ import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActions
 import EndGameModal from "../components/gameProgress/EndGameModal";
 import FooterButtons from "../components/gameProgress/FooterButtons";
 
+/**
+ * @component GameProgressScreen
+ * @brief Represents the main screen during active gameplay.
+ * Displays matches, player stats, and provides controls for game interaction and management.
+ * It handles live score updates, sound effects, and navigation between game setup and history.
+ */
 const GameProgressScreen = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = React.useState("matches"); // 'matches' or 'players'
@@ -31,6 +39,8 @@ const GameProgressScreen = () => {
   const [isQuickActionsVisible, setIsQuickActionsVisible] =
     React.useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [appState, setAppState] = useState(AppState.currentState);
+  const [soundObject, setSoundObject] = useState<Audio.Sound | null>(null);
 
   const {
     players,
@@ -48,34 +58,112 @@ const GameProgressScreen = () => {
   const [isSoundPlaying, setIsSoundPlaying] = React.useState(false);
 
   /**
-   * Function to play the dong.mp3 sound with debounce.
+   * @brief Plays the 'dong.mp3' sound effect.
+   * Plays if sound is enabled, the app is active, and no sound is currently playing.
+   * Manages audio focus and unloads the sound upon completion.
+   * @async
    */
   const playDongSound = async () => {
-    if (!soundEnabled || isSoundPlaying) return; // Respect user preference
-    setIsSoundPlaying(true); // Set the state to indicate sound is playing
+    if (!soundEnabled || isSoundPlaying || appState !== "active") return;
+
+    setIsSoundPlaying(true);
+
     try {
+      // Set audio mode to request proper audio focus
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      });
+
       const { sound } = await Audio.Sound.createAsync(
         require("../assets/sounds/dong.mp3")
       );
+
+      setSoundObject(sound);
+
       await sound.playAsync();
-      setTimeout(() => {
-        setIsSoundPlaying(false); // Allow sound to play again after 3 seconds
-      }, 3000);
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (
+          status.isLoaded &&
+          !status.isPlaying &&
+          status.positionMillis > 0 &&
+          status.durationMillis !== undefined &&
+          status.positionMillis === status.durationMillis
+        ) {
+          sound.unloadAsync();
+          setIsSoundPlaying(false);
+        }
+      });
     } catch (error) {
       console.error("Error playing sound:", error);
-      setIsSoundPlaying(false); // Reset state in case of an error
+      setIsSoundPlaying(false);
     }
   };
 
   /**
-   * Handles the action to end the game, making the alert modal visible.
+   * @brief Stops the currently playing sound effect.
+   * Stops the sound, if any, and unloads the audio resource to free up memory.
+   * Resets the sound playing state.
+   * @async
+   */
+  const stopSound = async () => {
+    if (soundObject) {
+      try {
+        await soundObject.stopAsync();
+        await soundObject.unloadAsync();
+        setSoundObject(null);
+      } catch (error) {
+        console.error("Error stopping sound:", error);
+      }
+      setIsSoundPlaying(false);
+    }
+  };
+
+  // Listen for app state changes
+  useEffect(() => {
+    /**
+     * @brief Handles application state changes.
+     * Callback function triggered when the application's state changes (e.g., active, background, inactive).
+     * Stops sound playback if the app moves away from the active state.
+     * @param {AppStateStatus} nextAppState - The new state of the application.
+     */
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState !== "active" && appState === "active") {
+        // App moving to background
+        stopSound();
+      }
+      setAppState(nextAppState);
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      subscription.remove();
+      stopSound();
+    };
+  }, [appState]);
+
+  /**
+   * @brief Initiates the end game process.
+   * Displays a confirmation modal to the user.
    */
   const handleEndGame = () => {
     setIsAlertVisible(true);
   };
 
   /**
-   * Confirms the action to end the game, saves the game to history, resets the state, and navigates to the home screen.
+   * @brief Confirms the end game action.
+   * Saves the current game state to history, resets the application state for a new game,
+   * and navigates the user back to the home screen.
    */
   const confirmEndGame = () => {
     setIsAlertVisible(false);
@@ -85,66 +173,97 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * Cancels the action to end the game, hiding the alert modal.
+   * @brief Cancels the end game action.
+   * Hides the confirmation modal.
    */
   const cancelEndGame = () => {
     setIsAlertVisible(false);
   };
 
   /**
-   * Navigates back to the setup game screen without resetting game state
+   * @brief Navigates back to the game setup screen.
+   * Navigates the user to '/setupGame', allowing modification of the game setup
+   * without ending the current game progress.
    */
   const handleBackToSetup = () => {
     router.push("/setupGame");
   };
 
   /**
-   * Handles updating the goal count for a specific match.
-   * @param matchId - The ID of the match to update the goal count for.
-   * @param newTotal - The new total number of goals for this match.
+   * @brief Increments the goal count for a team.
+   * Increments the goal count for a specified team in a given match.
+   * Can optionally set the goal count to a specific value (used for live updates).
+   * Plays a sound effect if a goal was actually added (not just synced).
+   * @param {string} matchId - The ID of the match to update.
+   * @param {'home' | 'away'} team - The team ('home' or 'away') whose score is changing.
+   * @param {number} [newTotal] - Optional. If provided, sets the goal count directly to this value.
    */
-  const handleGoalIncrement = (matchId: string, newTotal: number) => {
+  const handleGoalIncrement = (
+    matchId: string,
+    team: "home" | "away",
+    newTotal?: number
+  ) => {
     setMatches((prevMatches) =>
       prevMatches.map((match) => {
         if (match.id === matchId) {
-          // Only play sound if the goal count actually increased
-          if (newTotal > match.goals) {
-            playDongSound(); // Play sound when goal is incremented
+          // Handle the case where we're updating with a specific value from live data
+          if (typeof newTotal === "number") {
+            if (team === "home") {
+              // Only play sound if the goal count actually increased
+              if (newTotal > (match.homeGoals || 0)) {
+                playDongSound();
+              }
+              return { ...match, homeGoals: newTotal };
+            } else {
+              if (newTotal > (match.awayGoals || 0)) {
+                playDongSound();
+              }
+              return { ...match, awayGoals: newTotal };
+            }
           }
-          return { ...match, goals: newTotal }; // Set to the exact new total
+          // Otherwise just increment by 1
+          else {
+            if (team === "home") {
+              return { ...match, homeGoals: (match.homeGoals || 0) + 1 };
+            } else {
+              return { ...match, awayGoals: (match.awayGoals || 0) + 1 };
+            }
+          }
+        }
+        return match;
+      })
+    );
+    if (typeof newTotal === "undefined") {
+      playDongSound();
+    }
+  };
+
+  /**
+   * @brief Decrements the goal count for a team.
+   * Decrements the goal count for a specified team in a given match.
+   * Ensures the goal count does not go below zero.
+   * @param {string} matchId - The ID of the match to update.
+   * @param {'home' | 'away'} team - The team ('home' or 'away') whose score is changing.
+   */
+  const handleGoalDecrement = (matchId: string, team: "home" | "away") => {
+    setMatches((prevMatches) =>
+      prevMatches.map((match) => {
+        if (match.id === matchId) {
+          if (team === "home" && (match.homeGoals || 0) > 0) {
+            return { ...match, homeGoals: (match.homeGoals || 0) - 1 };
+          } else if (team === "away" && (match.awayGoals || 0) > 0) {
+            return { ...match, awayGoals: (match.awayGoals || 0) - 1 };
+          }
         }
         return match;
       })
     );
   };
 
-  // For manual +1 adjustments
-  const handleManualGoalIncrement = (matchId: string) => {
-    setMatches((prevMatches) =>
-      prevMatches.map((match) =>
-        match.id === matchId ? { ...match, goals: match.goals + 1 } : match
-      )
-    );
-    playDongSound();
-  };
-
   /**
-   * Handles decrementing the goal count for a specific match, ensuring it does not go below 0.
-   * @param matchId - The ID of the match to decrement the goal count for.
-   */
-  const handleGoalDecrement = (matchId: string) => {
-    setMatches((prevMatches) =>
-      prevMatches.map((match) =>
-        match.id === matchId && match.goals > 0
-          ? { ...match, goals: match.goals - 1 }
-          : match
-      )
-    );
-  };
-
-  /**
-   * Handles incrementing the drink count for a specific player.
-   * @param playerId - The ID of the player to increment the drink count for.
+   * @brief Increments the drinks taken by a player.
+   * Increments the number of drinks taken by a specific player by 0.5.
+   * @param {string} playerId - The ID of the player whose drink count is increasing.
    */
   const handleDrinkIncrement = (playerId: string) => {
     setPlayers((prevPlayers) =>
@@ -160,8 +279,10 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * Handles decrementing the drink count for a specific player, ensuring it does not go below 0.
-   * @param playerId - The ID of the player to decrement the drink count for.
+   * @brief Decrements the drinks taken by a player.
+   * Decrements the number of drinks taken by a specific player by 0.5.
+   * Ensures the drink count does not go below zero.
+   * @param {string} playerId - The ID of the player whose drink count is decreasing.
    */
   const handleDrinkDecrement = (playerId: string) => {
     setPlayers((prevPlayers) =>
@@ -177,12 +298,42 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * Opens the quick action panel for a match
-   * @param matchId - The ID of the match to open quick actions for
+   * @brief Opens the quick actions modal for a match.
+   * Opens the modal allowing rapid goal adjustments for the specified match.
+   * @param {string} matchId - The ID of the match for which to show quick actions.
    */
   const openQuickActions = (matchId: string) => {
     setSelectedMatchId(matchId);
     setIsQuickActionsVisible(true);
+  };
+
+  /**
+   * @brief Migrates older match data formats.
+   * Migrates formats using a single 'goals' property to the current format
+   * using 'homeGoals' and 'awayGoals'. Ensures goal counts are initialized to 0 if undefined.
+   */
+  const migrateMatchData = () => {
+    setMatches((prevMatches) =>
+      prevMatches.map((match) => {
+        // If it's an old match with just the goals property
+        if (
+          match.goals !== undefined &&
+          (match.homeGoals === undefined || match.awayGoals === undefined)
+        ) {
+          return {
+            ...match,
+            homeGoals: Math.floor(match.goals / 2), // Split existing goals between home and away
+            awayGoals: Math.ceil(match.goals / 2),
+          };
+        }
+        // Make sure homeGoals and awayGoals are initialized
+        return {
+          ...match,
+          homeGoals: match.homeGoals || 0,
+          awayGoals: match.awayGoals || 0,
+        };
+      })
+    );
   };
 
   // Call the useLiveScores hook
@@ -223,12 +374,20 @@ const GameProgressScreen = () => {
     };
   }, []);
 
-  // Handle pull-to-refresh
+  // Call migration function when component mounts
+  useEffect(() => {
+    migrateMatchData();
+  }, []);
+
+  /**
+   * @brief Handles the pull-to-refresh action.
+   * Manually triggers fetching of current live scores and updates the refreshing state.
+   * @async
+   */
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await fetchCurrentScores();
-      // No need to set lastUpdated - fetchCurrentScores already does this
     } catch (error) {
       console.error("Error refreshing:", error);
     } finally {
@@ -248,8 +407,6 @@ const GameProgressScreen = () => {
         >
           {/* First tab - Matches */}
           <View style={styles.tabContent}>
-
-
             {/* Pass liveMatches to your MatchesGrid */}
             <MatchesGrid
               matches={matches}
@@ -304,7 +461,7 @@ const GameProgressScreen = () => {
         players={players}
         commonMatchId={commonMatchId ?? ""}
         playerAssignments={playerAssignments}
-        handleGoalIncrement={handleManualGoalIncrement}
+        handleGoalIncrement={handleGoalIncrement}
         handleGoalDecrement={handleGoalDecrement}
       />
 

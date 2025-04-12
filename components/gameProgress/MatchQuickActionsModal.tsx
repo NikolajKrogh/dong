@@ -15,20 +15,39 @@ import { Match, Player } from "../../app/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
+/**
+ * @interface MatchQuickActionsModalProps
+ * @brief Defines the properties required by the MatchQuickActionsModal component.
+ */
 interface MatchQuickActionsModalProps {
+  /** @param isVisible Boolean indicating if the modal should be visible. */
   isVisible: boolean;
+  /** @param onClose Function to call when the modal should be closed. */
   onClose: () => void;
+  /** @param selectedMatchId The ID of the match currently selected for quick actions, or null. */
   selectedMatchId: string | null;
+  /** @param matches Array of all match objects from the game store. */
   matches: Match[];
+  /** @param players Array of all player objects from the game store. */
   players: Player[];
+  /** @param commonMatchId The ID of the match designated as 'common'. */
   commonMatchId: string;
+  /** @param playerAssignments Record mapping player IDs to an array of match IDs they are assigned to. */
   playerAssignments: Record<string, string[]>;
-  handleGoalIncrement: (matchId: string) => void;
-  handleGoalDecrement: (matchId: string) => void;
+  /** @param handleGoalIncrement Function to increment the goal count for a team in a match. */
+  handleGoalIncrement: (matchId: string, team: "home" | "away") => void;
+  /** @param handleGoalDecrement Function to decrement the goal count for a team in a match. */
+  handleGoalDecrement: (matchId: string, team: "home" | "away") => void;
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
+/**
+ * @component MatchQuickActionsModal
+ * @brief A modal component providing quick actions (increment/decrement goals) for a selected match.
+ * Displays team information, current scores, and players affected by the match. Includes animations for interactions.
+ * @param {MatchQuickActionsModalProps} props - The properties for the component.
+ */
 const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   isVisible,
   onClose,
@@ -40,24 +59,35 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   handleGoalIncrement,
   handleGoalDecrement,
 }) => {
-  // Animation values - declare all hooks unconditionally
-  const decrementAnim = useRef(new Animated.Value(1)).current;
-  const incrementAnim = useRef(new Animated.Value(1)).current;
+  // Animation values for various UI elements
+  const decrementAnimHome = useRef(new Animated.Value(1)).current;
+  const incrementAnimHome = useRef(new Animated.Value(1)).current;
+  const decrementAnimAway = useRef(new Animated.Value(1)).current;
+  const incrementAnimAway = useRef(new Animated.Value(1)).current;
   const closeButtonAnim = useRef(new Animated.Value(1)).current;
-  const goalValueAnim = useRef(new Animated.Value(1)).current;
+  const goalValueAnimHome = useRef(new Animated.Value(1)).current;
+  const goalValueAnimAway = useRef(new Animated.Value(1)).current;
   const modalContentAnim = useRef(new Animated.Value(0)).current;
 
-  // Find the selected match using useMemo to prevent unnecessary calculations
+  /**
+   * @brief Memoized calculation to find the currently selected match object.
+   * Returns the match object corresponding to `selectedMatchId` or null if not found or `selectedMatchId` is null.
+   */
   const match = useMemo(() => {
     return selectedMatchId
       ? matches.find((m) => m.id === selectedMatchId)
       : null;
   }, [selectedMatchId, matches]);
 
-  // Previous goal value reference
-  const prevGoalsRef = useRef(match?.goals ?? 0);
+  // References to store previous goal values for animation triggering
+  const prevGoalsHomeRef = useRef(match?.homeGoals ?? 0);
+  const prevGoalsAwayRef = useRef(match?.awayGoals ?? 0);
 
-  // Calculate affected players with useMemo
+  /**
+   * @brief Memoized calculation to determine players affected by the selected match.
+   * Filters the players list to include those assigned to the selected match or the common match.
+   * Returns an array of Player objects.
+   */
   const affectedPlayers = useMemo(() => {
     if (!match) return [];
     return players.filter(
@@ -67,10 +97,13 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     );
   }, [match, players, commonMatchId, playerAssignments]);
 
-  // Check if this is a common match
+  // Check if the selected match is the common match
   const isCommonMatch = match ? match.id === commonMatchId : false;
 
-  // Button press animation
+  /**
+   * @brief Animates a button press effect (scale down then back up).
+   * @param {Animated.Value} buttonAnim - The Animated value associated with the button's scale transform.
+   */
   const animateButtonPress = (buttonAnim: Animated.Value) => {
     Animated.sequence([
       Animated.timing(buttonAnim, {
@@ -86,7 +119,10 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     ]).start();
   };
 
-  // Modal entry animation
+  /**
+   * @brief Effect to handle the modal's entry animation (fade in and scale up).
+   * Runs when the modal becomes visible and a match is selected. Resets animation on close.
+   */
   useEffect(() => {
     if (isVisible && match) {
       Animated.timing(modalContentAnim, {
@@ -104,27 +140,56 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     };
   }, [isVisible, match, modalContentAnim]);
 
-  // Goal value change animation
+  /**
+   * @brief Effect to animate the home goal value when it changes (scale up then back down).
+   * Compares the current home goal count with the previously stored value.
+   */
   useEffect(() => {
-    if (match && prevGoalsRef.current !== match.goals) {
+    if (match && prevGoalsHomeRef.current !== (match.homeGoals ?? 0)) {
       Animated.sequence([
-        Animated.timing(goalValueAnim, {
+        Animated.timing(goalValueAnimHome, {
           toValue: 1.3,
           duration: 200,
           useNativeDriver: true,
         }),
-        Animated.timing(goalValueAnim, {
+        Animated.timing(goalValueAnimHome, {
           toValue: 1,
           duration: 200,
           useNativeDriver: true,
         }),
       ]).start();
 
-      prevGoalsRef.current = match.goals;
+      prevGoalsHomeRef.current = match.homeGoals ?? 0;
     }
-  }, [match?.goals, goalValueAnim]);
+  }, [match?.homeGoals, goalValueAnimHome]); // Dependency includes optional chaining
 
-  // Player columns 3-columns
+  /**
+   * @brief Effect to animate the away goal value when it changes (scale up then back down).
+   * Compares the current away goal count with the previously stored value.
+   */
+  useEffect(() => {
+    if (match && prevGoalsAwayRef.current !== (match.awayGoals ?? 0)) {
+      Animated.sequence([
+        Animated.timing(goalValueAnimAway, {
+          toValue: 1.3,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(goalValueAnimAway, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
+      prevGoalsAwayRef.current = match.awayGoals ?? 0;
+    }
+  }, [match?.awayGoals, goalValueAnimAway]); // Dependency includes optional chaining
+
+  /**
+   * @brief Memoized calculation to distribute affected players into three columns for display.
+   * Returns a 2D array where each sub-array represents a column of players.
+   */
   const playerColumns = useMemo(() => {
     const result: Player[][] = [[], [], []];
 
@@ -136,7 +201,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     return result;
   }, [affectedPlayers]);
 
-  // If no match or modal is not visible, don't render anything
+  // If no match is selected or the modal is not visible, render nothing.
   if (!match || !isVisible) return null;
 
   return (
@@ -220,47 +285,103 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                   <View style={styles.divider} />
 
                   <View style={styles.goalActions}>
-                    <Animated.View
-                      style={{
-                        transform: [{ scale: decrementAnim }],
-                      }}
-                    >
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.blueButton]}
-                        onPress={() => {
-                          handleGoalDecrement(match.id);
-                          animateButtonPress(decrementAnim);
-                        }}
-                      >
-                        <Ionicons name="remove" size={24} color="white" />
-                      </TouchableOpacity>
-                    </Animated.View>
+                    {/* Home team goal controls */}
+                    <View style={styles.teamGoalControls}>
+                      <Text style={styles.teamLabel}>{match.homeTeam}</Text>
+                      <View style={styles.scoreControlRow}>
+                        <Animated.View
+                          style={{
+                            transform: [{ scale: decrementAnimHome }],
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.blueButton]}
+                            onPress={() => {
+                              handleGoalDecrement(match.id, "home");
+                              animateButtonPress(decrementAnimHome);
+                            }}
+                          >
+                            <Ionicons name="remove" size={20} color="#fff" />
+                          </TouchableOpacity>
+                        </Animated.View>
 
-                    <Animated.View
-                      style={[
-                        styles.goalCounter,
-                        { transform: [{ scale: goalValueAnim }] },
-                      ]}
-                    >
-                      <Text style={styles.goalValue}>{match.goals}</Text>
-                      <Text style={styles.goalLabel}>GOALS</Text>
-                    </Animated.View>
+                        <Animated.View
+                          style={[
+                            styles.goalCounter,
+                            { transform: [{ scale: goalValueAnimHome }] },
+                          ]}
+                        >
+                          <Text style={styles.goalValue}>
+                            {match.homeGoals || 0}
+                          </Text>
+                        </Animated.View>
 
-                    <Animated.View
-                      style={{
-                        transform: [{ scale: incrementAnim }],
-                      }}
-                    >
-                      <TouchableOpacity
-                        style={[styles.actionButton, styles.blueButton]}
-                        onPress={() => {
-                          handleGoalIncrement(match.id);
-                          animateButtonPress(incrementAnim);
-                        }}
-                      >
-                        <Ionicons name="add" size={24} color="white" />
-                      </TouchableOpacity>
-                    </Animated.View>
+                        <Animated.View
+                          style={{
+                            transform: [{ scale: incrementAnimHome }],
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.blueButton]}
+                            onPress={() => {
+                              handleGoalIncrement(match.id, "home");
+                              animateButtonPress(incrementAnimHome);
+                            }}
+                          >
+                            <Ionicons name="add" size={20} color="#fff" />
+                          </TouchableOpacity>
+                        </Animated.View>
+                      </View>
+                    </View>
+
+                    {/* Away team goal controls */}
+                    <View style={styles.teamGoalControls}>
+                      <Text style={styles.teamLabel}>{match.awayTeam}</Text>
+                      <View style={styles.scoreControlRow}>
+                        <Animated.View
+                          style={{
+                            transform: [{ scale: decrementAnimAway }],
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.blueButton]}
+                            onPress={() => {
+                              handleGoalDecrement(match.id, "away");
+                              animateButtonPress(decrementAnimAway);
+                            }}
+                          >
+                            <Ionicons name="remove" size={20} color="#fff" />
+                          </TouchableOpacity>
+                        </Animated.View>
+
+                        <Animated.View
+                          style={[
+                            styles.goalCounter,
+                            { transform: [{ scale: goalValueAnimAway }] },
+                          ]}
+                        >
+                          <Text style={styles.goalValue}>
+                            {match.awayGoals || 0}
+                          </Text>
+                        </Animated.View>
+
+                        <Animated.View
+                          style={{
+                            transform: [{ scale: incrementAnimAway }],
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={[styles.actionButton, styles.blueButton]}
+                            onPress={() => {
+                              handleGoalIncrement(match.id, "away");
+                              animateButtonPress(incrementAnimAway);
+                            }}
+                          >
+                            <Ionicons name="add" size={20} color="#fff" />
+                          </TouchableOpacity>
+                        </Animated.View>
+                      </View>
+                    </View>
                   </View>
 
                   <View style={styles.divider} />
@@ -447,8 +568,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    width: "80%",
+    width: "100%",
     paddingVertical: 8,
+  },
+  teamGoalControls: {
+    flex: 1,
+    alignItems: "center",
+  },
+  teamLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
+  },
+  scoreControlRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   goalCounter: {
     alignItems: "center",

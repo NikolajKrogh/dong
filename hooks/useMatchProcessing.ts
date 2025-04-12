@@ -91,10 +91,11 @@ export function useMatchProcessing(
 
       // Convert MatchData to Match format
       const newMatches = uniqueMatches.map((match) => ({
-        id: match.id, // Use the ESPN event ID directly
+        id: match.id,
         homeTeam: match.team1,
         awayTeam: match.team2,
-        goals: 0,
+        homeGoals: 0,
+        awayGoals: 0
       }));
 
       // Update state directly with all new matches

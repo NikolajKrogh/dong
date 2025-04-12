@@ -199,26 +199,38 @@ const PlayersList: React.FC<PlayersListProps> = ({
     ]).start();
   };
 
-  // Calculate drinks required for a player
+/**
+ * @brief Calculates the number of drinks required for a player based on assigned matches and goals scored.
+ *
+ * This function calculates the total number of drinks a player needs to take based on the goals scored in matches
+ * they are assigned to. Goals from the common match are weighted more heavily than goals from other assigned matches.
+ *
+ * @param playerId The ID of the player for whom to calculate the drinks required.
+ * @return The total number of drinks required for the player.
+ */
   const calculateDrinksRequired = (playerId: string) => {
     let total = 0;
-
+  
     const commonMatch = matches.find((m) => m.id === commonMatchId);
     if (commonMatch) {
-      total += commonMatch.goals * 1;
+      // Calculate total goals from home and away goals
+      const commonMatchGoals = (commonMatch.homeGoals || 0) + (commonMatch.awayGoals || 0);
+      total += commonMatchGoals * 1;
     }
-
+  
     const assignedMatchIds = playerAssignments[playerId] || [];
     assignedMatchIds.forEach((matchId) => {
       // Skip the common match since we've already counted it
       if (matchId === commonMatchId) return;
-
+  
       const match = matches.find((m) => m.id === matchId);
       if (match) {
-        total += match.goals * 0.5;
+        // Calculate total goals from home and away goals
+        const matchGoals = (match.homeGoals || 0) + (match.awayGoals || 0);
+        total += matchGoals * 0.5;
       }
     });
-
+  
     return total;
   };
 

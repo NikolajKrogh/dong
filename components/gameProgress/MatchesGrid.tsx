@@ -16,20 +16,41 @@ import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import styles from "../../app/style/gameProgressStyles";
 import { MatchWithScore } from "../../hooks/useLiveScores";
 
+/**
+ * @interface MatchesGridProps
+ * @brief Defines the properties required by the MatchesGrid component.
+ */
 interface MatchesGridProps {
+  /** @param matches Array of match objects from the game store. */
   matches: Match[];
+  /** @param players Array of player objects from the game store. */
   players: Player[];
+  /** @param commonMatchId The ID of the match designated as 'common'. */
   commonMatchId: string;
+  /** @param playerAssignments Record mapping player IDs to an array of match IDs they are assigned to. */
   playerAssignments: Record<string, string[]>;
+  /** @param openQuickActions Function to open the quick actions modal for a specific match. */
   openQuickActions: (matchId: string) => void;
+  /** @param liveMatches Optional array of live match data with scores. */
   liveMatches?: MatchWithScore[];
+  /** @param refreshControl Optional React element for pull-to-refresh functionality. */
   refreshControl?: React.ReactElement;
+  /** @param onRefresh Function to call when a refresh is triggered. */
   onRefresh: () => void;
+  /** @param refreshing Boolean indicating if a refresh is currently in progress. */
   refreshing: boolean;
+  /** @param lastUpdated Date object indicating the last time live scores were updated. */
   lastUpdated: Date | null;
+  /** @param isPolling Boolean indicating if live score polling is active. */
   isPolling: boolean;
 }
 
+/**
+ * @component MatchesGrid
+ * @brief Displays a list or grid of matches with scores, player assignments, and live status.
+ * Allows toggling between list and grid layouts and provides refresh functionality.
+ * @param {MatchesGridProps} props - The properties for the component.
+ */
 const MatchesGrid: React.FC<MatchesGridProps> = ({
   matches,
   players,
@@ -73,7 +94,9 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     outputRange: ["0deg", "360deg"],
   });
 
-  // Toggle between grid and list layouts
+  /**
+   * @brief Toggles the display mode between grid and list layouts.
+   */
   const toggleLayoutMode = () => {
     setUseGridLayout(!useGridLayout);
   };
@@ -82,6 +105,10 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
   const screenWidth = Dimensions.get("window").width;
   const numColumns = useGridLayout ? (screenWidth > 600 ? 3 : 2) : 1;
 
+  /**
+   * @brief Memoized sorted list of matches.
+   * Sorts matches with the common match first, then alphabetically by home team name.
+   */
   const sortedMatches = React.useMemo(() => {
     return [...matches].sort((a, b) => {
       // First priority: common match always first
@@ -93,23 +120,42 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     });
   }, [matches, commonMatchId]);
 
-  const getLiveMatchInfo = (matchId: string) => {
-    // Only check for real live match data
+  /**
+   * @brief Retrieves live match information for a given match ID.
+   * @param {string} matchId - The ID of the match to find live info for.
+   * @returns {MatchWithScore | undefined} The live match data or undefined if not found.
+   */
+  const getLiveMatchInfo = (matchId: string): MatchWithScore | undefined => {
     return liveMatches.find((m) => m.id === matchId);
   };
 
-  // Render a compact match item for grid view
+  /**
+   * @brief Renders a single match item in the grid layout.
+   * Displays team logos, scores, live status (minutes played), and assigned player count.
+   * @param {{ item: Match }} param0 - Object containing the match item to render.
+   * @returns {React.ReactElement} The rendered grid item component.
+   */
   const renderGridItem = ({ item }: { item: Match }) => {
     // Get all players assigned to this match
     const assignedPlayers = players.filter(
       (player) =>
-        item.id === commonMatchId || // Either it's the common match (all players)
+        item.id === commonMatchId ||
         (playerAssignments[player.id] &&
-          playerAssignments[player.id].includes(item.id)) // Or specifically assigned
+          playerAssignments[player.id].includes(item.id))
     );
 
     const liveMatch = getLiveMatchInfo(item.id);
-    const isLive = liveMatch?.isLive || false;
+    // Determine the status string ('FT', 'HT', '45'', '?') from live data
+    const displayStatus = liveMatch?.minutesPlayed || "?";
+    // Check if the status indicates a finished or half-time state
+    const isFinishedOrHalfTime =
+      displayStatus === "FT" || displayStatus === "HT";
+    // Check the live flag from the API data
+    const isCurrentlyLive = liveMatch?.isLive || false;
+
+    // Use live match data if available, otherwise use local state
+    const homeScore = liveMatch ? liveMatch.homeScore : item.homeGoals || 0; // Prefer live score if available
+    const awayScore = liveMatch ? liveMatch.awayScore : item.awayGoals || 0; // Prefer live score if available
 
     return (
       <TouchableOpacity
@@ -117,64 +163,55 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
         onPress={() => openQuickActions(item.id)}
         activeOpacity={0.7}
       >
-        {/* Common indicator - small green dot */}
+        {/* Common indicator */}
         {item.id === commonMatchId && <View style={styles.commonIndicator} />}
 
-        {/* Live indicator */}
-        {isLive && (
-          <View style={localStyles.gridLiveIndicator}>
-            <Text style={localStyles.gridLiveText}>LIVE</Text>
-          </View>
-        )}
-
         <View style={styles.teamsContainer}>
-          {/* Team logos with VS */}
+          {/* Team logos with scores positioned horizontally */}
           <View style={styles.logosRow}>
-            <View style={styles.teamColumn}>
+            {/* Home team: Logo on LEFT */}
+            <View style={styles.teamLogoContainer}>
               <Image
                 source={getTeamLogoWithFallback(item.homeTeam)}
                 style={styles.teamLogo}
                 resizeMode="contain"
               />
-              {isLive && (
-                <Text style={localStyles.gridScoreText}>
-                  {liveMatch?.homeScore}
-                </Text>
-              )}
             </View>
 
-            <Text style={styles.vsText}>{isLive ? "-" : "vs"}</Text>
+            <View style={styles.scoresContainer}>
+              <Text style={styles.gridScoreText}>{homeScore}</Text>
 
-            <View style={styles.teamColumn}>
+              {/* Show match status: FT/HT > Live Time > '-' */}
+              {isFinishedOrHalfTime ? (
+                <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show FT or HT
+              ) : isCurrentlyLive ? (
+                <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show live minutes
+              ) : (
+                <Text style={styles.vsText}>-</Text> // Fallback
+              )}
+
+              <Text style={styles.gridScoreText}>{awayScore}</Text>
+            </View>
+
+            {/* Away team: Logo on RIGHT */}
+            <View style={styles.teamLogoContainer}>
               <Image
                 source={getTeamLogoWithFallback(item.awayTeam)}
                 style={styles.teamLogo}
                 resizeMode="contain"
               />
-              {isLive && (
-                <Text style={localStyles.gridScoreText}>
-                  {liveMatch?.awayScore}
-                </Text>
-              )}
             </View>
           </View>
 
-          {/* Compact stats row */}
+          {/* Stats row remains the same */}
           <View style={styles.statsRow}>
-            {!isLive ? (
-              <View style={styles.statItem}>
-                <Ionicons name="football-outline" size={14} color="#0275d8" />
-                <Text style={styles.statValue}>{item.goals}</Text>
-              </View>
-            ) : null}
-
             <View style={styles.statItem}>
               <Ionicons name="people-outline" size={13} color="#666" />
               <Text style={styles.statValue}>
                 {assignedPlayers.length > 0
                   ? assignedPlayers.length === 1
-                    ? assignedPlayers[0].name.split(" ")[0]
-                    : `${assignedPlayers.length}`
+                    ? assignedPlayers[0].name.split(" ")[0] // Show first name if only one player
+                    : `${assignedPlayers.length}` // Show count if multiple players
                   : "0"}
               </Text>
             </View>
@@ -184,35 +221,46 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     );
   };
 
-  // Render a match item for the list view (original card)
+  /**
+   * @brief Renders a single match item in the list layout (card view).
+   * Displays team logos, names, scores, live status (minutes played), assigned player count, and names preview.
+   * @param {{ item: Match }} param0 - Object containing the match item to render.
+   * @returns {React.ReactElement} The rendered list item component.
+   */
   const renderListItem = ({ item }: { item: Match }) => {
     // Get all players assigned to this match
     const assignedPlayers = players.filter(
       (player) =>
-        item.id === commonMatchId || // Either it's the common match (all players)
+        item.id === commonMatchId ||
         (playerAssignments[player.id] &&
-          playerAssignments[player.id].includes(item.id)) // Or specifically assigned
+          playerAssignments[player.id].includes(item.id))
     );
 
     const liveMatch = getLiveMatchInfo(item.id);
-    const isLive = liveMatch?.isLive || false;
+    // Determine the status string ('FT', 'HT', '45'', '?') from live data
+    const displayStatus = liveMatch?.minutesPlayed || "?";
+    // Check if the status indicates a finished or half-time state
+    const isFinishedOrHalfTime =
+      displayStatus === "FT" || displayStatus === "HT";
+    // Check the live flag from the API data
+    const isCurrentlyLive = liveMatch?.isLive || false;
+
+    // Use live match data if available, otherwise use local state
+    const homeScore = liveMatch ? liveMatch.homeScore : item.homeGoals || 0; // Prefer live score if available
+    const awayScore = liveMatch ? liveMatch.awayScore : item.awayGoals || 0; // Prefer live score if available
 
     return (
       <TouchableOpacity
         style={[
           styles.matchCardContainer,
-          {
-            flex: 1,
-            margin: 6,
-            marginBottom: 12,
-          },
+          { flex: 1, margin: 6, marginBottom: 12 }, // Ensure consistent margin
         ]}
         onPress={() => openQuickActions(item.id)}
         activeOpacity={0.8}
       >
-        {/* More compact layout with horizontal team display */}
+        {/* Header with teams and scores */}
         <View style={styles.matchHeaderSection}>
-          {/* Home team */}
+          {/* Home team: Logo, Name (in column) */}
           <View style={styles.matchTeamContainer}>
             <Image
               source={getTeamLogoWithFallback(item.homeTeam)}
@@ -221,25 +269,32 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
             <Text style={styles.matchTeamName} numberOfLines={1}>
               {item.homeTeam}
             </Text>
-
-            {/* Add score next to team name */}
-            {isLive ? (
-              <Text style={localStyles.scoreText}>{liveMatch?.homeScore}</Text>
-            ) : null}
           </View>
 
-          {/* VS badge */}
-          <View style={styles.matchVsBadge}>
-            <Text style={styles.matchVsText}>{isLive ? "-" : "VS"}</Text>
+          {/* VS badge with scores on sides */}
+          <View style={styles.scoreVsContainer}>
+            <Text style={styles.scoreText}>{homeScore}</Text>
+
+            {/* Show match status: FT/HT > Live Time > '-' Badge */}
+            {isFinishedOrHalfTime ? (
+              <View style={styles.listMinutesContainer}>
+                <Text style={styles.minutesPlayedText}>{displayStatus}</Text>
+              </View> // Show FT or HT
+            ) : isCurrentlyLive ? (
+              <View style={styles.listMinutesContainer}>
+                <Text style={styles.minutesPlayedText}>{displayStatus}</Text>
+              </View> // Show live minutes
+            ) : (
+              <View style={styles.matchVsBadge}>
+                <Text style={styles.matchVsText}>-</Text>
+              </View> // Fallback badge
+            )}
+
+            <Text style={styles.scoreText}>{awayScore}</Text>
           </View>
 
-          {/* Away team */}
+          {/* Away team: Logo, Name (in column) */}
           <View style={styles.matchTeamContainer}>
-            {/* Add score next to team name */}
-            {isLive ? (
-              <Text style={localStyles.scoreText}>{liveMatch?.awayScore}</Text>
-            ) : null}
-
             <Image
               source={getTeamLogoWithFallback(item.awayTeam)}
               style={styles.matchTeamLogo}
@@ -250,54 +305,32 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
           </View>
         </View>
 
-        {/* Compact match details with ONLY players section when live */}
+        {/* Player details section */}
         <View style={styles.matchCompactDetails}>
-          {/* Goals section - only show when not live */}
-          {!isLive && (
-            <>
-              <View style={styles.matchCompactGoalsSection}>
-                <Ionicons name="football" size={16} color="#0275d8" />
-                <Text style={styles.matchGoalsCount}>{item.goals}</Text>
-              </View>
-              <View style={styles.matchDetailsDivider} />
-            </>
-          )}
-
-          {/* Player section - simplified */}
-          <View
-            style={[
-              styles.matchCompactPlayersSection,
-              !isLive ? {} : { flex: 1 },
-            ]}
-          >
+          <View style={styles.matchCompactPlayersSection}>
             <Text style={styles.matchPlayerCount}>
               <Ionicons name="people-outline" size={12} color="#666" />{" "}
-              {assignedPlayers.length}
+              {assignedPlayers.length} Player
+              {assignedPlayers.length !== 1 ? "s" : ""}
             </Text>
 
+            {/* Show player names preview */}
             {assignedPlayers.length > 0 && assignedPlayers.length <= 2 ? (
               <Text style={styles.matchPlayerPreview} numberOfLines={1}>
                 {assignedPlayers.map((p) => p.name).join(", ")}
               </Text>
             ) : assignedPlayers.length > 2 ? (
               <Text style={styles.matchPlayerPreview} numberOfLines={1}>
-                {assignedPlayers[0].name}, +{assignedPlayers.length - 1}
+                {assignedPlayers[0].name}, +{assignedPlayers.length - 1} more
               </Text>
             ) : null}
           </View>
         </View>
 
-        {/* Common badge - moved to bottom right */}
+        {/* Common badge */}
         {item.id === commonMatchId && (
           <View style={styles.matchCommonBadge}>
             <Text style={styles.matchCommonBadgeText}>Common</Text>
-          </View>
-        )}
-
-        {/* Live status indicator */}
-        {isLive && (
-          <View style={localStyles.liveIndicator}>
-            <Text style={localStyles.liveText}>LIVE</Text>
           </View>
         )}
       </TouchableOpacity>
@@ -306,23 +339,21 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Header with toggle button */}
+      {/* Header with title, refresh status, and layout toggle */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Matches</Text>
 
-        <View style={localStyles.headerButtons}>
-          {/* Live status indicator */}
-          <View style={updatedStyles.headerStatus}>
+        <View style={styles.headerButtons}>
+          {/* Live status indicator and refresh button */}
+          <View style={styles.headerStatus}>
             <View
               style={[
-                updatedStyles.statusDot,
-                isPolling
-                  ? updatedStyles.statusActive
-                  : updatedStyles.statusIdle,
+                styles.statusDot,
+                isPolling ? styles.statusActive : styles.statusIdle,
               ]}
             />
             <TouchableOpacity
-              style={updatedStyles.refreshButton}
+              style={styles.refreshButton}
               onPress={onRefresh}
               disabled={refreshing}
             >
@@ -333,16 +364,20 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
                   color={refreshing ? "#adb5bd" : "#0275d8"}
                 />
               </Animated.View>
-              <Text style={updatedStyles.lastUpdateText}>
+              <Text style={styles.lastUpdateText}>
                 {lastUpdated
-                  ? lastUpdated.toLocaleTimeString().substr(0, 5)
+                  ? lastUpdated.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }) // Format time HH:MM
                   : "--:--"}
               </Text>
             </TouchableOpacity>
           </View>
 
+          {/* Layout toggle button */}
           <TouchableOpacity
-            style={localStyles.layoutToggleButton}
+            style={styles.layoutToggleButton}
             onPress={toggleLayoutMode}
           >
             <Ionicons
@@ -354,111 +389,19 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
         </View>
       </View>
 
-      {/* Match list/grid - Add refreshControl here */}
+      {/* Match list/grid using FlatList */}
       <FlatList
-        refreshControl={refreshControl}
-        key={`matches-${useGridLayout ? "grid" : "list"}-${numColumns}`}
+        refreshControl={refreshControl} // Attach the refresh control passed via props
+        key={`matches-${useGridLayout ? "grid" : "list"}-${numColumns}`} // Dynamic key to force re-render on layout change
         data={sortedMatches}
         keyExtractor={(item) => item.id}
-        numColumns={useGridLayout ? numColumns : 1}
-        renderItem={useGridLayout ? renderGridItem : renderListItem}
-        contentContainerStyle={
-          useGridLayout ? styles.gridContainer : styles.gridContainer
-        }
-        columnWrapperStyle={useGridLayout ? styles.gridRow : undefined}
+        numColumns={useGridLayout ? numColumns : 1} // Set number of columns based on layout mode
+        renderItem={useGridLayout ? renderGridItem : renderListItem} // Choose render function based on layout mode
+        contentContainerStyle={styles.gridContainer} // Use same style for padding regardless of layout
+        columnWrapperStyle={useGridLayout ? styles.gridRow : undefined} // Apply only for grid layout
       />
     </View>
   );
 };
-
-const localStyles = StyleSheet.create({
-  liveIndicator: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#e74c3c",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  liveText: {
-    color: "#ffffff",
-    fontSize: 10,
-    fontWeight: "bold",
-  },
-  headerButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  layoutToggleButton: {
-    padding: 8,
-    marginLeft: 8,
-    borderRadius: 8,
-    backgroundColor: "rgba(2, 117, 216, 0.08)",
-  },
-  // New styles for live scores
-  scoreText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#0275d8",
-    marginHorizontal: 6,
-  },
-  gridLiveIndicator: {
-    position: "absolute",
-    top: 5,
-    right: 5,
-    backgroundColor: "#e74c3c",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    zIndex: 10,
-  },
-  gridLiveText: {
-    color: "#ffffff",
-    fontSize: 8,
-    fontWeight: "bold",
-  },
-  gridScoreText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#0275d8",
-    marginTop: 4,
-  },
-});
-
-const updatedStyles = StyleSheet.create({
-  headerStatus: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  statusActive: {
-    backgroundColor: "#10b981",
-  },
-  statusIdle: {
-    backgroundColor: "#adb5bd",
-  },
-  refreshButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 16,
-    backgroundColor: "rgba(2, 117, 216, 0.08)",
-  },
-  lastUpdateText: {
-    fontSize: 12,
-    color: "#495057",
-    fontWeight: "500",
-    marginLeft: 4,
-  },
-});
 
 export default MatchesGrid;

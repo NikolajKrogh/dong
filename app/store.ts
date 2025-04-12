@@ -12,7 +12,9 @@ export interface Match {
   id: string;
   homeTeam: string;
   awayTeam: string;
-  goals: number;
+  homeGoals: number;
+  awayGoals: number;
+  goals?: number;
 }
 
 type PlayerAssignments = { [playerId: string]: string[] };

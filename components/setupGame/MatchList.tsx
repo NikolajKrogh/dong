@@ -325,10 +325,11 @@ const MatchList: FC<MatchListProps> = ({
   const handleAddMatchLocally = () => {
     if (homeTeam.trim() && awayTeam.trim()) {
       const newMatch: Match = {
-        id: selectedMatchData?.id || String(Date.now()), // Use ESPN ID when available
+        id: selectedMatchData?.id || String(Date.now()),
         homeTeam: homeTeam.trim(),
         awayTeam: awayTeam.trim(),
-        goals: 0,
+        homeGoals: 0,
+        awayGoals: 0
       };
 
       // Add null check before calling
