@@ -15,17 +15,27 @@ const fetchDataFromESPN = async (url: string) => {
 /**
  * @brief Formats a date string as YYYYMMDD for the ESPN API.
  *
- * If no date string is provided, it returns today's date in the same format.
+ * If no date string is provided or it's invalid, it returns today's date in the same format.
  *
- * @param dateString The date string to format (YYYY-MM-DD).
+ * @param dateString The date string to format (expected YYYY-MM-DD).
  * @return The formatted date string (YYYYMMDD).
  */
-const formatDateForAPI = (dateString: string): string => {
-  if (!dateString) {
+const formatDateForAPI = (dateString?: string): string => {
+  // Regex to validate YYYY-MM-DD format
+  const dateFormatRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (dateString && dateFormatRegex.test(dateString)) {
+    return dateString.replace(/-/g, "");
+  } else {
+    // Log a warning if an invalid format is provided (optional)
+    if (dateString) {
+      console.warn(
+        `Invalid date format provided to formatDateForAPI: "${dateString}". Defaulting to today.`
+      );
+    }
     const today = new Date();
     return today.toISOString().split("T")[0].replace(/-/g, "");
   }
-  return dateString.replace(/-/g, "");
 };
 
 /**
@@ -34,8 +44,8 @@ const formatDateForAPI = (dateString: string): string => {
  * This hook fetches team and match data from the ESPN API for a given date.
  * It handles loading states, errors, and provides the fetched data.
  *
- * @param selectedDate (optional) The date for which to fetch matches (YYYY-MM-DD).
- *        If not provided, defaults to today's date.
+ * @param selectedDate (optional) The date for which to fetch matches (expected YYYY-MM-DD).
+ *        If not provided or invalid format, defaults to today's date.
  *
  * @return An object containing:
  *   - isLoading: A boolean indicating whether the data is currently being loaded.
@@ -60,7 +70,8 @@ export function useMatchData(selectedDate?: string) {
       setErrorMessage("");
 
       try {
-        const dateParam = formatDateForAPI(selectedDate || "");
+        // formatDateForAPI now handles validation and defaults to today if needed
+        const dateParam = formatDateForAPI(selectedDate);
 
         const leagueEndpoints = [
           { code: "eng.1", name: "Premier League" },
