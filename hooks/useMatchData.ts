@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { TeamWithLeague, cleanTeamName } from "../utils/matchUtils";
+import {
+  TeamWithLeague,
+  cleanTeamName,
+  formatDateForAPI,
+} from "../utils/matchUtils";
 import { ESPNResponse, ESPNEvent } from "../types/espn";
 
 /**
@@ -12,31 +16,6 @@ const fetchDataFromESPN = async (url: string) => {
   return fetch(url);
 };
 
-/**
- * @brief Formats a date string as YYYYMMDD for the ESPN API.
- *
- * If no date string is provided or it's invalid, it returns today's date in the same format.
- *
- * @param dateString The date string to format (expected YYYY-MM-DD).
- * @return The formatted date string (YYYYMMDD).
- */
-const formatDateForAPI = (dateString?: string): string => {
-  // Regex to validate YYYY-MM-DD format
-  const dateFormatRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-  if (dateString && dateFormatRegex.test(dateString)) {
-    return dateString.replace(/-/g, "");
-  } else {
-    // Log a warning if an invalid format is provided (optional)
-    if (dateString) {
-      console.warn(
-        `Invalid date format provided to formatDateForAPI: "${dateString}". Defaulting to today.`
-      );
-    }
-    const today = new Date();
-    return today.toISOString().split("T")[0].replace(/-/g, "");
-  }
-};
 
 /**
  * @brief Custom hook for fetching match data from the ESPN API.
@@ -70,7 +49,7 @@ export function useMatchData(selectedDate?: string) {
       setErrorMessage("");
 
       try {
-        // formatDateForAPI now handles validation and defaults to today if needed
+        // Use the imported formatDateForAPI function
         const dateParam = formatDateForAPI(selectedDate);
 
         const leagueEndpoints = [

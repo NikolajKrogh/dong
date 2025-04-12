@@ -5,17 +5,29 @@
 /**
  * @brief Formats a date string as YYYYMMDD for the ESPN API.
  *
- * If no date string is provided, it returns today's date in the same format.
+ * If no date string is provided or it's invalid (not YYYY-MM-DD),
+ * it returns today's date in the YYYYMMDD format.
  *
- * @param dateString The date string to format (YYYY-MM-DD).
+ * @param dateString (optional) The date string to format (expected YYYY-MM-DD).
  * @return The formatted date string (YYYYMMDD).
  */
-export const formatDateForAPI = (dateString: string): string => {
-  if (!dateString) {
+export const formatDateForAPI = (dateString?: string): string => {
+  // Ensure dateString is optional
+  // Regex to validate YYYY-MM-DD format
+  const dateFormatRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+  if (dateString && dateFormatRegex.test(dateString)) {
+    return dateString.replace(/-/g, "");
+  } else {
+    // Log a warning if an invalid format is provided (optional)
+    if (dateString) {
+      console.warn(
+        `Invalid date format provided to formatDateForAPI: "${dateString}". Defaulting to today.`
+      );
+    }
     const today = new Date();
     return today.toISOString().split("T")[0].replace(/-/g, "");
   }
-  return dateString.replace(/-/g, "");
 };
 
 /**
