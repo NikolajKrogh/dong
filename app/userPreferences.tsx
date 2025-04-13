@@ -11,10 +11,12 @@ import {
 import { useRouter } from "expo-router";
 import { useGameStore } from "./store";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const UserPreferencesScreen = () => {
   const router = useRouter();
   const { soundEnabled, setSoundEnabled } = useGameStore();
+  const insets = useSafeAreaInsets();
 
   const goBack = () => {
     router.push("/");
@@ -22,7 +24,7 @@ const UserPreferencesScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) }]}>
         <TouchableOpacity onPress={goBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#0275d8" />
         </TouchableOpacity>
@@ -94,7 +96,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    paddingTop: 25, 
   },
   header: {
     flexDirection: "row",
