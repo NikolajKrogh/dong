@@ -10,6 +10,19 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LastUpdatedFooterProps } from "./types";
 
+/**
+ * @brief A footer component displaying the last updated time and a refresh button.
+ * - Shows the time of the last score update.
+ * - Provides a button to manually trigger a refresh.
+ * - Indicates when a refresh is in progress with a spinning icon.
+ * - Shows a live indicator dot when polling is active.
+ * @param {LastUpdatedFooterProps} props - The properties passed to the component.
+ * @param {() => void} props.onRefresh - Callback function executed when the refresh button is pressed.
+ * @param {boolean} props.refreshing - Indicates if a refresh operation is currently in progress.
+ * @param {Date | null} props.lastUpdated - The timestamp of the last successful update. Null if no update has occurred.
+ * @param {boolean} props.isPolling - Indicates if automatic polling for updates is active.
+ * @returns {React.ReactElement} The rendered footer component.
+ */
 const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
   onRefresh,
   refreshing,
@@ -34,6 +47,8 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
     } else {
       // Stop animation
       spinValue.setValue(0);
+      // Ensure the loop is stopped explicitly if it was running
+      spinValue.stopAnimation();
     }
   }, [refreshing, spinValue]);
 

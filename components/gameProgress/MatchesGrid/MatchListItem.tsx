@@ -5,7 +5,20 @@ import { MatchItemProps } from "./types";
 import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
 import styles from "../../../app/style/gameProgressStyles";
 
-const MatchListItem: React.FC<MatchItemProps> = ({
+/**
+ * @brief Renders a single match item in a grid layout.
+ * - Displays team logos, scores, match status (live time, FT, HT), and assigned player count.
+ * - Highlights the common match.
+ * - Allows opening quick actions via touch.
+ * @param {MatchItemProps} props - The properties passed to the component.
+ * @param {Match} props.match - The local match data.
+ * @param {string | null} props.commonMatchId - The ID of the common match, if any.
+ * @param {Player[]} props.assignedPlayers - Array of players assigned to this match.
+ * @param {MatchWithScore | undefined} props.liveMatch - Live score data for the match, if available.
+ * @param {(matchId: string) => void} props.openQuickActions - Function to call when the item is pressed.
+ * @returns {React.ReactElement} The rendered grid item component.
+ */
+const MatchGridItem: React.FC<MatchItemProps> = ({
   match,
   commonMatchId,
   assignedPlayers,
@@ -25,90 +38,66 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 
   return (
     <TouchableOpacity
-      style={[
-        styles.matchCardContainer,
-        { flex: 1, margin: 6, marginBottom: 12 }, // Ensure consistent margin
-      ]}
+      style={styles.gridItem}
       onPress={() => openQuickActions(match.id)}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
-      {/* Header with teams and scores */}
-      <View style={styles.matchHeaderSection}>
-        {/* Home team: Logo, Name (in column) */}
-        <View style={styles.matchTeamContainer}>
-          <Image
-            source={getTeamLogoWithFallback(match.homeTeam)}
-            style={styles.matchTeamLogo}
-          />
-          <Text style={styles.matchTeamName} numberOfLines={1}>
-            {match.homeTeam}
-          </Text>
+      {/* Common indicator */}
+      {match.id === commonMatchId && <View style={styles.commonIndicator} />}
+
+      <View style={styles.teamsContainer}>
+        {/* Team logos with scores positioned horizontally */}
+        <View style={styles.logosRow}>
+          {/* Home team: Logo on LEFT */}
+          <View style={styles.teamLogoContainer}>
+            <Image
+              source={getTeamLogoWithFallback(match.homeTeam)}
+              style={styles.teamLogo}
+              resizeMode="contain"
+            />
+          </View>
+
+          <View style={styles.scoresContainer}>
+            <Text style={styles.gridScoreText}>{homeScore}</Text>
+
+            {/* Show match status: FT/HT > Live Time > '-' */}
+            {isFinishedOrHalfTime ? (
+              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show FT or HT
+            ) : isCurrentlyLive ? (
+              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show live minutes
+            ) : (
+              <Text style={styles.vsText}>-</Text> // Fallback
+            )}
+
+            <Text style={styles.gridScoreText}>{awayScore}</Text>
+          </View>
+
+          {/* Away team: Logo on RIGHT */}
+          <View style={styles.teamLogoContainer}>
+            <Image
+              source={getTeamLogoWithFallback(match.awayTeam)}
+              style={styles.teamLogo}
+              resizeMode="contain"
+            />
+          </View>
         </View>
 
-        {/* VS badge with scores on sides */}
-        <View style={styles.scoreVsContainer}>
-          <Text style={styles.scoreText}>{homeScore}</Text>
-
-          {/* Show match status: FT/HT > Live Time > '-' Badge */}
-          {isFinishedOrHalfTime ? (
-            <View style={styles.listMinutesContainer}>
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text>
-            </View> // Show FT or HT
-          ) : isCurrentlyLive ? (
-            <View style={styles.listMinutesContainer}>
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text>
-            </View> // Show live minutes
-          ) : (
-            <View style={styles.matchVsBadge}>
-              <Text style={styles.matchVsText}>-</Text>
-            </View> // Fallback badge
-          )}
-
-          <Text style={styles.scoreText}>{awayScore}</Text>
-        </View>
-
-        {/* Away team: Logo, Name (in column) */}
-        <View style={styles.matchTeamContainer}>
-          <Image
-            source={getTeamLogoWithFallback(match.awayTeam)}
-            style={styles.matchTeamLogo}
-          />
-          <Text style={styles.matchTeamName} numberOfLines={1}>
-            {match.awayTeam}
-          </Text>
+        {/* Stats row remains the same */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Ionicons name="people-outline" size={13} color="#666" />
+            <Text style={styles.statValue}>
+              {assignedPlayers.length > 0
+                ? assignedPlayers.length === 1
+                  ? assignedPlayers[0].name.split(" ")[0] // Show first name if only one player
+                  : `${assignedPlayers.length}` // Show count if multiple players
+                : "0"}
+            </Text>
+          </View>
         </View>
       </View>
-
-      {/* Player details section */}
-      <View style={styles.matchCompactDetails}>
-        <View style={styles.matchCompactPlayersSection}>
-          <Text style={styles.matchPlayerCount}>
-            <Ionicons name="people-outline" size={12} color="#666" />{" "}
-            {assignedPlayers.length} Player
-            {assignedPlayers.length !== 1 ? "s" : ""}
-          </Text>
-
-          {/* Show player names preview */}
-          {assignedPlayers.length > 0 && assignedPlayers.length <= 2 ? (
-            <Text style={styles.matchPlayerPreview} numberOfLines={1}>
-              {assignedPlayers.map((p) => p.name).join(", ")}
-            </Text>
-          ) : assignedPlayers.length > 2 ? (
-            <Text style={styles.matchPlayerPreview} numberOfLines={1}>
-              {assignedPlayers[0].name}, +{assignedPlayers.length - 1} more
-            </Text>
-          ) : null}
-        </View>
-      </View>
-
-      {/* Common badge */}
-      {match.id === commonMatchId && (
-        <View style={styles.matchCommonBadge}>
-          <Text style={styles.matchCommonBadgeText}>Common</Text>
-        </View>
-      )}
     </TouchableOpacity>
   );
 };
 
-export default React.memo(MatchListItem);
+export default React.memo(MatchGridItem);

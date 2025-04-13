@@ -1,15 +1,42 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions, SafeAreaView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  StyleSheet,
+  Dimensions,
+  SafeAreaView,
+} from "react-native";
 
+/**
+ * @brief Interface defining the properties for the EndGameModal component.
+ */
 interface EndGameModalProps {
+  /** @brief Controls the visibility of the modal. */
   isVisible: boolean;
+  /** @brief Callback function executed when the user cancels the end game action. */
   onCancel: () => void;
+  /** @brief Callback function executed when the user confirms the end game action. */
   onConfirm: () => void;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-const EndGameModal: React.FC<EndGameModalProps> = ({ isVisible, onCancel, onConfirm }) => {
+/**
+ * @brief A modal component to confirm the end game action.
+ * - Displays a confirmation message and provides options to either confirm ending the game or cancel the action.
+ * @param {EndGameModalProps} props - The properties passed to the component.
+ * @param {boolean} props.isVisible - Determines if the modal is currently visible.
+ * @param {() => void} props.onCancel - Function to call when the cancel button or overlay is pressed.
+ * @param {() => void} props.onConfirm - Function to call when the confirm button is pressed.
+ * @returns {React.ReactElement | null} The rendered modal component or null if not visible.
+ */
+const EndGameModal: React.FC<EndGameModalProps> = ({
+  isVisible,
+  onCancel,
+  onConfirm,
+}) => {
   return (
     <SafeAreaView style={{ flex: 0 }}>
       <Modal
@@ -19,22 +46,22 @@ const EndGameModal: React.FC<EndGameModalProps> = ({ isVisible, onCancel, onConf
         onRequestClose={onCancel}
         statusBarTranslucent={true}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={modalStyles.overlayTouchable}
           activeOpacity={1}
           onPress={onCancel}
         >
           <View style={modalStyles.centeredView}>
             <View style={modalStyles.modalContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 activeOpacity={1}
                 onPress={(e) => e.stopPropagation()}
-                style={{ width: '100%' }}
+                style={{ width: "100%" }}
               >
                 <Text style={modalStyles.modalTitle}>End Game</Text>
                 <Text style={modalStyles.modalText}>
-                  Are you sure you want to end the current game? This will save the
-                  results to history.
+                  Are you sure you want to end the current game? This will save
+                  the results to history.
                 </Text>
                 <View style={modalStyles.modalButtons}>
                   <TouchableOpacity
@@ -61,17 +88,17 @@ const EndGameModal: React.FC<EndGameModalProps> = ({ isVisible, onCancel, onConf
 
 const modalStyles = StyleSheet.create({
   overlayTouchable: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
-    left: 0, 
+    left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   centeredView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
     width: SCREEN_WIDTH * 0.85,
@@ -82,7 +109,7 @@ const modalStyles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 2
+      height: 2,
     },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -93,16 +120,16 @@ const modalStyles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 15,
-    textAlign: "center"
+    textAlign: "center",
   },
   modalText: {
     marginBottom: 20,
-    textAlign: "center"
+    textAlign: "center",
   },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-around",
-    width: "100%"
+    width: "100%",
   },
   button: {
     borderRadius: 20,
@@ -120,8 +147,8 @@ const modalStyles = StyleSheet.create({
   textStyle: {
     color: "white",
     fontWeight: "bold",
-    textAlign: "center"
-  }
+    textAlign: "center",
+  },
 });
 
 export default EndGameModal;

@@ -3,6 +3,18 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SortModalProps } from "./types";
 
+/**
+ * @brief A modal component for selecting match sorting options.
+ * - Allows users to sort matches by Home Team, Away Team, or Player Name.
+ * - Displays the current sort field and direction.
+ * @param {SortModalProps} props - The properties passed to the component.
+ * @param {boolean} props.visible - Controls the visibility of the modal.
+ * @param {string} props.sortField - The currently active sort field ('homeTeam', 'awayTeam', 'playerName').
+ * @param {'asc' | 'desc'} props.sortDirection - The current sort direction.
+ * @param {() => void} props.onClose - Function to call when the modal should be closed (e.g., overlay press).
+ * @param {(field: 'homeTeam' | 'awayTeam' | 'playerName') => void} props.onSortChange - Function to call when a sort option is selected.
+ * @returns {React.ReactElement} The rendered sort modal component.
+ */
 const SortModal: React.FC<SortModalProps> = ({
   visible,
   sortField,
