@@ -43,7 +43,7 @@ export function useLiveScores(
     newGoals: number
   ) => void, // Updated signature
   intervalMs = 60000, // Poll every minute by default
-  autoPlaySound = true
+  autoPlaySound = false // Default to not auto-playing sound
 ) {
   const [liveMatches, setLiveMatches] = useState<MatchWithScore[]>([]);
   const [isPolling, setIsPolling] = useState(false);
