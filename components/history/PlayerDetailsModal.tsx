@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Modal, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
-import { styles, colors } from "./historyStyles";
+import { styles, colors } from "../../app/style/historyStyles";
 import { formatModalDate } from "./historyUtils";
 
 /**

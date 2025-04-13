@@ -11,7 +11,7 @@ import {
   Animated,
   Image,
 } from "react-native";
-import { Match, Player } from "../../app/store";
+import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 

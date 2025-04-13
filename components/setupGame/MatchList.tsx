@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
-import { Match } from "../../app/store";
+import { Match } from "../../store/store";
 import styles from "../../app/style/setupGameStyles";
 import MatchFilter from "./Filter";
 import TeamSelectionRow from "./TeamSelectionRow ";
@@ -329,7 +329,7 @@ const MatchList: FC<MatchListProps> = ({
         homeTeam: homeTeam.trim(),
         awayTeam: awayTeam.trim(),
         homeGoals: 0,
-        awayGoals: 0
+        awayGoals: 0,
       };
 
       // Add null check before calling

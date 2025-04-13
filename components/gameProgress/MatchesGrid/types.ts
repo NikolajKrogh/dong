@@ -1,4 +1,4 @@
-import { Match, Player } from "../../../app/store";
+import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../hooks/useLiveScores";
 
 // Define sorting options

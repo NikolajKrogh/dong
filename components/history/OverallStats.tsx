@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { GameSession } from "./historyTypes";
-import { styles } from "./historyStyles";
+import { styles } from "../../app/style/historyStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateTotalGoals, calculateTotalDrinks } from "./historyUtils";
 
