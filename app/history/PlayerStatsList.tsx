@@ -64,7 +64,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   }) => {
     // Calculate percentage width for drink visualization
     const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
-    const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 30); // At least 30% width
+    const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 0); 
 
     return (
       <TouchableOpacity
@@ -91,7 +91,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
           </View>
         )}
 
-               {/* Player name and games count */}
+        {/* Player name and games count */}
         <View style={styles.playerHeader}>
           <View style={styles.playerNameContainer}>
             <Ionicons
@@ -105,8 +105,8 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
             </Text>
           </View>
         </View>
-        
-        {/* Drink visualization bar with improved labeling */}
+
+        {/* Drink visualization bar */}
         <View style={styles.drinkBarSection}>
           <View style={styles.drinkBarHeader}>
             <Ionicons name="beer" size={16} color={colors.primary} />

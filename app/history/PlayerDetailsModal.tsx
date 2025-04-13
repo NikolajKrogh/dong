@@ -117,7 +117,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
 
                 <View style={styles.modalStatItem}>
                   <Ionicons
-                    name="trending-up"
+                    name="flash"
                     size={24}
                     color={colors.primary}
                     style={styles.summaryIcon}
