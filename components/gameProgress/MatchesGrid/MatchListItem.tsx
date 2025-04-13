@@ -6,19 +6,14 @@ import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
 import styles from "../../../app/style/gameProgressStyles";
 
 /**
- * @brief Renders a single match item in a grid layout.
+ * @brief Renders a single match item in a list layout.
  * - Displays team logos, scores, match status (live time, FT, HT), and assigned player count.
  * - Highlights the common match.
  * - Allows opening quick actions via touch.
  * @param {MatchItemProps} props - The properties passed to the component.
- * @param {Match} props.match - The local match data.
- * @param {string | null} props.commonMatchId - The ID of the common match, if any.
- * @param {Player[]} props.assignedPlayers - Array of players assigned to this match.
- * @param {MatchWithScore | undefined} props.liveMatch - Live score data for the match, if available.
- * @param {(matchId: string) => void} props.openQuickActions - Function to call when the item is pressed.
- * @returns {React.ReactElement} The rendered grid item component.
+ * @returns {React.ReactElement} The rendered list item component.
  */
-const MatchGridItem: React.FC<MatchItemProps> = ({
+const MatchListItem: React.FC<MatchItemProps> = ({
   match,
   commonMatchId,
   assignedPlayers,
@@ -36,9 +31,22 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
   const homeScore = liveMatch ? liveMatch.homeScore : match.homeGoals || 0;
   const awayScore = liveMatch ? liveMatch.awayScore : match.awayGoals || 0;
 
+  const enhancedLogoStyle = {
+    width: 45,
+    height: 45,
+    resizeMode: "contain" as "contain",
+  };
+
+  const enhancedLogoContainer = {
+    width: 40,
+    height: 50,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  };
+
   return (
     <TouchableOpacity
-      style={styles.gridItem}
+      style={[styles.gridItem, { height: 120 }]}
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}
     >
@@ -49,15 +57,14 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
         {/* Team logos with scores positioned horizontally */}
         <View style={styles.logosRow}>
           {/* Home team: Logo on LEFT */}
-          <View style={styles.teamLogoContainer}>
+          <View style={[enhancedLogoContainer, { paddingLeft: 45 }]}>
             <Image
               source={getTeamLogoWithFallback(match.homeTeam)}
-              style={styles.teamLogo}
-              resizeMode="contain"
+              style={enhancedLogoStyle}
             />
           </View>
 
-          <View style={styles.scoresContainer}>
+          <View style={[styles.scoresContainer, { paddingHorizontal: 6 }]}>
             <Text style={styles.gridScoreText}>{homeScore}</Text>
 
             {/* Show match status: FT/HT > Live Time > '-' */}
@@ -73,11 +80,10 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           </View>
 
           {/* Away team: Logo on RIGHT */}
-          <View style={styles.teamLogoContainer}>
+          <View style={[enhancedLogoContainer, { paddingRight: 45 }]}>
             <Image
               source={getTeamLogoWithFallback(match.awayTeam)}
-              style={styles.teamLogo}
-              resizeMode="contain"
+              style={enhancedLogoStyle}
             />
           </View>
         </View>
@@ -100,4 +106,4 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
   );
 };
 
-export default React.memo(MatchGridItem);
+export default React.memo(MatchListItem);
