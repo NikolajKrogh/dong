@@ -38,10 +38,6 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
   game,
   onDetailsPress,
 }) => {
-  /**
-   * @brief State variable to control the visibility of the matches list.
-   */
-  const [showMatches, setShowMatches] = useState(false);
 
   // Use utility functions for calculations
   /**
