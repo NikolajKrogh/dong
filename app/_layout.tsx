@@ -1,16 +1,19 @@
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-export default function RootLayout() {
+export default function Layout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* Your existing app content */}
       <Stack
+        initialRouteName="index"
         screenOptions={{
-          headerShown: false, // This hides the header on all screens
+          headerShown: false,
         }}
       >
-        <Stack.Screen name="userPreferences" options={{ title: "Preferences" }} />
+        <Stack.Screen
+          name="userPreferences"
+          options={{ title: "Preferences" }}
+        />
       </Stack>
     </GestureHandlerRootView>
   );

@@ -19,7 +19,7 @@ const UserPreferencesScreen = () => {
   const insets = useSafeAreaInsets();
 
   const goBack = () => {
-    router.push("/");
+    router.push("../");
   };
 
   return (

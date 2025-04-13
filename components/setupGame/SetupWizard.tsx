@@ -89,7 +89,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         {currentStep === 0 ? (
           <TouchableOpacity
             style={[styles.navButton, { backgroundColor: "#6c757d" }]}
-            onPress={() => router.push("/")}
+            onPress={() => router.push("../")}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons
