@@ -115,8 +115,11 @@ const GameProgressScreen = () => {
   const stopSound = async () => {
     if (soundObject) {
       try {
-        await soundObject.stopAsync();
-        await soundObject.unloadAsync();
+        const status = await soundObject.getStatusAsync();
+        if (status.isLoaded) {
+          await soundObject.stopAsync();
+          await soundObject.unloadAsync();
+        }
         setSoundObject(null);
       } catch (error) {
         console.error("Error stopping sound:", error);
