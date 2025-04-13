@@ -28,6 +28,18 @@ interface GameSession {
   players: Player[];
 }
 
+/**
+ * @brief The main home screen component for the Dong application.
+ * - Displays the app logo and provides navigation options.
+ * - Shows current game status (if a game is in progress) with options to continue or cancel.
+ * - Presents a button to start a new game if no game is active.
+ * - Displays overall game statistics (games played, top drinker, total drinks) if history exists.
+ * - Includes a button to navigate to user preferences.
+ * - Plays an introductory video animation once per app session on initial load.
+ * - Handles the logic for canceling a game via a confirmation modal.
+ * @params None
+ * @return {React.ReactElement} The rendered home screen UI.
+ */
 const HomeScreen = () => {
   const router = useRouter();
   const {
@@ -40,27 +52,49 @@ const HomeScreen = () => {
   } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
+  const hasTriggeredVideoRef = useRef(false);
   const videoRef = useRef(null);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (!hasVideoPlayed) {
+    // Only show video if it hasn't played globally AND hasn't been triggered in this session
+    if (!hasVideoPlayed && !hasTriggeredVideoRef.current) {
+      hasTriggeredVideoRef.current = true;
       setIsVideoVisible(true);
     }
-  }, [hasVideoPlayed]);
+  }, []); // Remove hasVideoPlayed from dependencies to prevent re-triggering
 
   const hasGameInProgress = players.length > 0 && matches.length > 0;
 
+  /**
+   * @brief Handles the action of canceling the current game.
+   * - Resets the game state using the store's resetState function.
+   * - Hides the confirmation modal.
+   * @params None
+   * @return None
+   */
   const handleCancelGame = () => {
     resetState();
     setIsConfirmModalVisible(false);
   };
 
+  /**
+   * @brief Handles the completion of the introductory video playback.
+   * - Hides the video modal.
+   * - Sets the global flag indicating the video has played for this session.
+   * @params None
+   * @return None
+   */
   const handleVideoEnd = () => {
     setIsVideoVisible(false);
     setHasVideoPlayed(true);
   };
 
+  /**
+   * @brief Calculates the total number of drinks consumed across all games in the history.
+   * @param {GameSession[]} gameHistory - An array of past game sessions.
+   * @return {number} The total sum of drinks taken across all players and games.
+   */
   const getTotalDrinks = (gameHistory: GameSession[]) => {
     return gameHistory.reduce(
       (sum, game) =>
@@ -74,6 +108,11 @@ const HomeScreen = () => {
     );
   };
 
+  /**
+   * @brief Determines the player who has consumed the most drinks across all games in the history.
+   * @param {GameSession[]} gameHistory - An array of past game sessions.
+   * @return {{ name: string, drinks: number } | null} An object containing the name and drink count of the top drinker, or null if history is empty or no drinks were recorded.
+   */
   const getTopDrinker = (gameHistory: GameSession[]) => {
     const playerDrinks = new Map<string, number>();
 
