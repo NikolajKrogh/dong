@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Alert, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
-import { useGameStore } from "./store";
+import { useGameStore } from "../store/store";
 import styles from "./style/setupGameStyles";
 import {
   SetupGamePlayerList,
@@ -9,7 +9,7 @@ import {
   AssignmentSection,
   SetupWizard,
 } from "../components"; // Import components
-import { Player, Match } from "./store";
+import { Player, Match } from "../store/store";
 
 /**
  * @brief SetupGameScreen component for configuring the game.

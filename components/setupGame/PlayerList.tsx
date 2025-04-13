@@ -7,7 +7,7 @@ import {
   TextInput,
   StyleSheet,
 } from "react-native";
-import { Player } from "../../app/store";
+import { Player } from "../../store/store";
 import styles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -27,7 +27,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
   handleRemovePlayer,
 }) => {
   const inputRef = useRef<TextInput>(null);
-  
+
   const addPlayerAndFocus = () => {
     if (newPlayerName.trim()) {
       handleAddPlayer();
@@ -42,7 +42,12 @@ const PlayerList: React.FC<PlayerListProps> = ({
       <View style={styles.inputRow}>
         {/* Input with icon inside */}
         <View style={localStyles.inputContainer}>
-          <Ionicons name="person-outline" size={18} color="#777" style={localStyles.inputIcon} />
+          <Ionicons
+            name="person-outline"
+            size={18}
+            color="#777"
+            style={localStyles.inputIcon}
+          />
           <TextInput
             ref={inputRef}
             style={localStyles.textInput}
@@ -54,13 +59,13 @@ const PlayerList: React.FC<PlayerListProps> = ({
             onSubmitEditing={addPlayerAndFocus}
           />
         </View>
-        
+
         {/* Improved add button */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[
-            localStyles.addButton, 
-            !newPlayerName.trim() && localStyles.addButtonDisabled
-          ]} 
+            localStyles.addButton,
+            !newPlayerName.trim() && localStyles.addButtonDisabled,
+          ]}
           onPress={addPlayerAndFocus}
           disabled={!newPlayerName.trim()}
         >
@@ -102,13 +107,13 @@ const PlayerList: React.FC<PlayerListProps> = ({
 const localStyles = StyleSheet.create({
   inputContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     height: 48,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: "#f5f7fa",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     paddingHorizontal: 12,
   },
   inputIcon: {
@@ -116,21 +121,21 @@ const localStyles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    height: '100%',
+    height: "100%",
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   addButton: {
     width: 48,
     height: 48,
-    backgroundColor: '#0275d8',
+    backgroundColor: "#0275d8",
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 10,
   },
   addButtonDisabled: {
-    backgroundColor: '#b0c1d9',
+    backgroundColor: "#b0c1d9",
   },
 });
 

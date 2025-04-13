@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
 import { PlayerStat } from "./historyTypes";
-import { styles, colors } from "./historyStyles";
+import { styles, colors } from "../../app/style/historyStyles";
 import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
-import { useGameStore } from "../store"; // To access game history
+import { useGameStore } from "../../store/store"; // To access game history
 
 /**
  * @interface PlayerStatsListProps
@@ -64,7 +64,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   }) => {
     // Calculate percentage width for drink visualization
     const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
-    const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 0); 
+    const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 0);
 
     return (
       <TouchableOpacity

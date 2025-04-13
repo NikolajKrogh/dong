@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Alert } from "react-native";
-import { Match } from "../app/store";
+import { Match } from "../store/store";
 import { formatDateForAPI } from "../utils/matchUtils";
 import { Audio } from "expo-av";
 import { ESPNResponse } from "../types/espn"; // cspell:ignore espn
@@ -91,7 +91,9 @@ export function useLiveScores(
     // First verify network connectivity
     try {
       // Using a reliable endpoint for connectivity check
-      const testResponse = await fetch("https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?limit=1");
+      const testResponse = await fetch(
+        "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?limit=1"
+      );
       if (!testResponse.ok) {
         console.log("Network connectivity check failed.");
         return; // Skip API calls if no connectivity
@@ -139,8 +141,10 @@ export function useLiveScores(
 
         // Skip failed requests
         if (!response.ok) {
-           console.error(`Failed to fetch ${leagueEndpoints[i].name}: ${response.status}`);
-           continue;
+          console.error(
+            `Failed to fetch ${leagueEndpoints[i].name}: ${response.status}`
+          );
+          continue;
         }
 
         const data: ESPNResponse = await response.json();

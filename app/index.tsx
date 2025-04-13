@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useGameStore } from "./store";
+import { useGameStore } from "../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";

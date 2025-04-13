@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { MatchData } from "../utils/matchUtils";
-import { Match } from "../app/store";
+import { Match } from "../store/store";
 
 /**
  * @brief Custom hook for reliable batch match processing
@@ -95,7 +95,7 @@ export function useMatchProcessing(
         homeTeam: match.team1,
         awayTeam: match.team2,
         homeGoals: 0,
-        awayGoals: 0
+        awayGoals: 0,
       }));
 
       // Update state directly with all new matches

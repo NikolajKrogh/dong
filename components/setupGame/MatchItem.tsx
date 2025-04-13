@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Match } from "../../app/store";
+import { Match } from "../../store/store";
 import styles from "../../app/style/setupGameStyles";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 

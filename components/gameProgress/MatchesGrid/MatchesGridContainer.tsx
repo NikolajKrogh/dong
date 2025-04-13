@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, FlatList, Dimensions } from "react-native";
 import { MatchesGridProps, SortField, SortDirection } from "./types";
-import { Match, Player } from "../../../app/store";
+import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../hooks/useLiveScores";
 import styles from "../../../app/style/gameProgressStyles";
 

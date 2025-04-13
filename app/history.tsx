@@ -8,20 +8,17 @@ import {
   ScrollView,
   ActivityIndicator,
 } from "react-native";
-// Remove or comment out reanimated/gesture handler imports
-// import Animated, { ... } from 'react-native-reanimated';
-// import { PanGestureHandler, ... } from 'react-native-gesture-handler';
 import { useNavigation } from "@react-navigation/native";
-import { useGameStore } from "../store";
-import { styles, colors } from "./historyStyles";
-import { GameSession, PlayerStat } from "./historyTypes";
-import GameHistoryItem from "./GameHistoryItem";
-import GameDetailsModal from "./GameDetailsModal";
-import PlayerStatsList from "./PlayerStatsList";
-import OverallStats from "./OverallStats";
+import { useGameStore } from "../store/store";
+import { styles, colors } from "./style/historyStyles";
+import { GameSession, PlayerStat } from "../components/history/historyTypes";
+import GameHistoryItem from "../components/history/GameHistoryItem";
+import GameDetailsModal from "../components/history/GameDetailsModal";
+import PlayerStatsList from "../components/history/PlayerStatsList";
+import OverallStats from "../components/history/OverallStats";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { calculateLifetimePlayerStats } from "./historyUtils";
+import { calculateLifetimePlayerStats } from "../components/history/historyUtils";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];

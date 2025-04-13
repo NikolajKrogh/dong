@@ -10,7 +10,7 @@ import {
   AppStateStatus,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useGameStore } from "./store";
+import { useGameStore } from "../store/store";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import styles from "./style/gameProgressStyles";
 import { Ionicons } from "@expo/vector-icons";

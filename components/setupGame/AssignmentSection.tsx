@@ -7,7 +7,7 @@ import {
   Modal,
   Image,
 } from "react-native";
-import { Player, Match } from "../../app/store";
+import { Player, Match } from "../../store/store";
 import baseStyles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";

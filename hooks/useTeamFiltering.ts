@@ -1,6 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
-import { TeamWithLeague, MatchData, cleanTeamName, isDateInRange, convertTimeToMinutes } from '../utils/matchUtils';
-import { Match } from '../app/store';
+import { useState, useEffect, useMemo } from "react";
+import {
+  TeamWithLeague,
+  MatchData,
+  cleanTeamName,
+  isDateInRange,
+  convertTimeToMinutes,
+} from "../utils/matchUtils";
+import { Match } from "../store/store";
 
 /**
  * @brief Custom hook for filtering teams based on selected leagues and existing matches.
@@ -24,7 +30,8 @@ export function useTeamFiltering(
   homeTeam: string,
   awayTeam: string
 ) {
-  const [filteredTeamsData, setFilteredTeamsData] = useState<TeamWithLeague[]>(teamsData);
+  const [filteredTeamsData, setFilteredTeamsData] =
+    useState<TeamWithLeague[]>(teamsData);
 
   // Filter teams by selected leagues
   useEffect(() => {
@@ -71,7 +78,7 @@ export function useTeamFiltering(
     filteredTeamsData,
     setFilteredTeamsData,
     homeTeamOptions,
-    awayTeamOptions
+    awayTeamOptions,
   };
 }
 
@@ -117,8 +124,7 @@ export function filterMatchesByDateAndTime(
       const endMinutes = convertTimeToMinutes(endTime);
 
       // Check if match time falls within the specified range
-      includeMatch =
-        matchMinutes >= startMinutes && matchMinutes <= endMinutes;
+      includeMatch = matchMinutes >= startMinutes && matchMinutes <= endMinutes;
     }
 
     return includeMatch; // Return true if the match passes all active filters
