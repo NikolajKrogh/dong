@@ -17,7 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 // Import components
 import TabNavigation from "../components/gameProgress/TabNavigation";
-import MatchesGrid from "../components/gameProgress/MatchesGrid";
+import MatchesGrid from "../components/gameProgress/MatchesGrid/";
 import PlayersList from "../components/gameProgress/PlayersList";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import EndGameModal from "../components/gameProgress/EndGameModal";
