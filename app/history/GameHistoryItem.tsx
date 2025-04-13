@@ -9,7 +9,6 @@ import {
   findTopDrinker,
   formatHistoryDate,
 } from "./historyUtils";
-import StatDisplayItem from "./StatDisplayItem";
 import MatchCard from "./MatchCard";
 
 /**
@@ -69,35 +68,65 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
         <Ionicons
           name="calendar-outline"
           size={20}
-          color={colors.secondary}
+          color={colors.primary}
           style={{ marginRight: styles.gameIcon.marginRight }}
         />
         <Text style={styles.gameDate}>{formatHistoryDate(game.date)}</Text>
       </View>
 
-      {/* Game Summary Stats using StatDisplayItem */}
+      {/* Game Summary Stats - Inlined */}
       <View style={styles.gameSummary}>
-        <StatDisplayItem
-          iconName="people"
-          value={game.players.length}
-          label="Players"
-        />
-        <StatDisplayItem
-          iconName="beer"
-          value={totalDrinks.toFixed(1)}
-          label="Drinks"
-          iconColor={colors.primary}
-        />
-        <StatDisplayItem
-          iconName="football"
-          value={totalGoals}
-          label="Goals"
-        />
-        <StatDisplayItem
-          iconName="trophy"
-          value={game.matches.length}
-          label="Matches"
-        />
+        {/* Players Stat */}
+        <View style={styles.summaryItem}>
+          <Ionicons
+            name="people"
+            size={20}
+            color={colors.primary}
+            style={styles.summaryIcon}
+          />
+          <Text style={styles.summaryValue}>
+            {game.players.length.toString()}
+          </Text>
+          <Text style={styles.summaryLabel}>Players</Text>
+        </View>
+
+        {/* Drinks Stat */}
+        <View style={styles.summaryItem}>
+          <Ionicons
+            name="beer"
+            size={20}
+            color={colors.primary}
+            style={styles.summaryIcon}
+          />
+          <Text style={styles.summaryValue}>{totalDrinks.toFixed(1)}</Text>
+          <Text style={styles.summaryLabel}>Drinks</Text>
+        </View>
+
+        {/* Goals Stat */}
+        <View style={styles.summaryItem}>
+          <Ionicons
+            name="football"
+            size={20}
+            color={colors.primary}
+            style={styles.summaryIcon}
+          />
+          <Text style={styles.summaryValue}>{totalGoals.toString()}</Text>
+          <Text style={styles.summaryLabel}>Goals</Text>
+        </View>
+
+        {/* Matches Stat */}
+        <View style={styles.summaryItem}>
+          <Ionicons
+            name="trophy"
+            size={20}
+            color={colors.primary}
+            style={styles.summaryIcon}
+          />
+          <Text style={styles.summaryValue}>
+            {game.matches.length.toString()}
+          </Text>
+          <Text style={styles.summaryLabel}>Matches</Text>
+        </View>
       </View>
 
       {/* Top Drinker Highlight */}
@@ -105,9 +134,9 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
         <View style={styles.topDrinkerContainer}>
           <Ionicons name="flame" size={18} color="#ff8c00" />
           <Text style={styles.topDrinkerText} numberOfLines={1}>
-            Top Drinker:{" "}
-            <Text style={styles.topDrinkerName}>{topDrinker.name}</Text> (
-            {topDrinker.drinksTaken || 0})
+            {"Top Drinker: "}
+            <Text style={styles.topDrinkerName}>{topDrinker.name}</Text>
+            <Text> ({topDrinker.drinksTaken?.toFixed(1) ?? "0"})</Text>
           </Text>
         </View>
       )}
