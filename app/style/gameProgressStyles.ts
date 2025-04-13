@@ -163,64 +163,63 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
 
-    minutesPlayedBadge: {
-      backgroundColor: "transparent",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-    },
+  minutesPlayedBadge: {
+    backgroundColor: "transparent",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-    scoresContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      flex: 2,
-      paddingHorizontal: 12,
-    },
+  scoresContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 2,
+    paddingHorizontal: 12,
+  },
 
-    scoreVsContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      flex: 1,
-    },
-    listMinutesContainer: {
-      backgroundColor: "transparent",
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    headerStatus: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    statusDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      marginRight: 8,
-    },
-    statusActive: {
-      backgroundColor: "#10b981",
-    },
-    statusIdle: {
-      backgroundColor: "#adb5bd",
-    },
-    refreshButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 16,
-      backgroundColor: "rgba(2, 117, 216, 0.08)",
-    },
-    lastUpdateText: {
-      fontSize: 12,
-      color: "#495057",
-      fontWeight: "500",
-      marginLeft: 4,
-    },
-
+  scoreVsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  listMinutesContainer: {
+    backgroundColor: "transparent",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  statusActive: {
+    backgroundColor: "#10b981",
+  },
+  statusIdle: {
+    backgroundColor: "#adb5bd",
+  },
+  refreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 16,
+    backgroundColor: "rgba(2, 117, 216, 0.08)",
+  },
+  lastUpdateText: {
+    fontSize: 12,
+    color: "#495057",
+    fontWeight: "500",
+    marginLeft: 4,
+  },
 
   // ============ Match Item Styles ============
   matchGridItem: {
@@ -1066,6 +1065,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#888",
     marginLeft: 4,
+  },
+  sortToggleButton: {
+    paddingHorizontal: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
 

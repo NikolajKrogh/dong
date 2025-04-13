@@ -9,12 +9,17 @@ import {
   StyleSheet,
   Animated,
   Easing,
+  Modal,
 } from "react-native";
 import { Match, Player } from "../../app/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import styles from "../../app/style/gameProgressStyles";
 import { MatchWithScore } from "../../hooks/useLiveScores";
+
+// Define sorting options
+type SortField = "homeTeam" | "awayTeam" | "playerName";
+type SortDirection = "asc" | "desc";
 
 /**
  * @interface MatchesGridProps
@@ -66,6 +71,11 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
 }) => {
   // State to track layout mode
   const [useGridLayout, setUseGridLayout] = useState(false);
+  // State for sorting options
+  const [sortField, setSortField] = useState<SortField>("homeTeam");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  // State for sort options modal
+  const [sortModalVisible, setSortModalVisible] = useState(false);
 
   // Keep animation for refresh indicator
   const spinValue = React.useRef(new Animated.Value(0)).current;
@@ -101,24 +111,81 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     setUseGridLayout(!useGridLayout);
   };
 
+  /**
+   * @brief Changes the sort field and toggles direction if same field is selected
+   */
+  const changeSortOption = (field: SortField) => {
+    if (field === sortField) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // New field, default to ascending
+      setSortField(field);
+      setSortDirection("asc");
+    }
+    setSortModalVisible(false);
+  };
+
   // Calculate number of columns based on screen width
   const screenWidth = Dimensions.get("window").width;
   const numColumns = useGridLayout ? (screenWidth > 600 ? 3 : 2) : 1;
 
   /**
+   * @brief Gets the sorted list of players for a match
+   * @param {Match} match - The match to get players for
+   * @returns {Player[]} The sorted list of players assigned to the match
+   */
+  const getSortedPlayersForMatch = (match: Match): Player[] => {
+    return players
+      .filter(
+        (player) =>
+          match.id === commonMatchId ||
+          (playerAssignments[player.id] &&
+            playerAssignments[player.id].includes(match.id))
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  /**
    * @brief Memoized sorted list of matches.
-   * Sorts matches with the common match first, then alphabetically by home team name.
+   * Sorts matches based on selected sort field and direction.
    */
   const sortedMatches = React.useMemo(() => {
     return [...matches].sort((a, b) => {
-      // First priority: common match always first
+      // Always prioritize common match first regardless of sort settings
       if (a.id === commonMatchId) return -1;
       if (b.id === commonMatchId) return 1;
 
-      // Second priority: alphabetical sort by homeTeam
-      return a.homeTeam.localeCompare(b.homeTeam);
+      // Get player information for sorting by player name
+      const playersA = getSortedPlayersForMatch(a);
+      const playersB = getSortedPlayersForMatch(b);
+
+      // Apply sorting based on selected field
+      let comparison: number;
+
+      if (sortField === "homeTeam") {
+        comparison = a.homeTeam.localeCompare(b.homeTeam);
+      } else if (sortField === "awayTeam") {
+        comparison = a.awayTeam.localeCompare(b.awayTeam);
+      } else {
+        // playerName
+        // Sort by first player name alphabetically or empty string if no players
+        const firstPlayerNameA = playersA.length > 0 ? playersA[0].name : "";
+        const firstPlayerNameB = playersB.length > 0 ? playersB[0].name : "";
+        comparison = firstPlayerNameA.localeCompare(firstPlayerNameB);
+      }
+
+      // Apply sort direction
+      return sortDirection === "asc" ? comparison : -comparison;
     });
-  }, [matches, commonMatchId]);
+  }, [
+    matches,
+    commonMatchId,
+    sortField,
+    sortDirection,
+    players,
+    playerAssignments,
+  ]);
 
   /**
    * @brief Retrieves live match information for a given match ID.
@@ -129,12 +196,7 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     return liveMatches.find((m) => m.id === matchId);
   };
 
-  /**
-   * @brief Renders a single match item in the grid layout.
-   * Displays team logos, scores, live status (minutes played), and assigned player count.
-   * @param {{ item: Match }} param0 - Object containing the match item to render.
-   * @returns {React.ReactElement} The rendered grid item component.
-   */
+  // Keeping the existing renderGridItem and renderListItem functions unchanged...
   const renderGridItem = ({ item }: { item: Match }) => {
     // Get all players assigned to this match
     const assignedPlayers = players.filter(
@@ -221,12 +283,6 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     );
   };
 
-  /**
-   * @brief Renders a single match item in the list layout (card view).
-   * Displays team logos, names, scores, live status (minutes played), assigned player count, and names preview.
-   * @param {{ item: Match }} param0 - Object containing the match item to render.
-   * @returns {React.ReactElement} The rendered list item component.
-   */
   const renderListItem = ({ item }: { item: Match }) => {
     // Get all players assigned to this match
     const assignedPlayers = players.filter(
@@ -337,6 +393,108 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
     );
   };
 
+  /**
+   * @brief Renders the sort options modal
+   */
+  const renderSortOptionsModal = () => (
+    <Modal
+      transparent={true}
+      visible={sortModalVisible}
+      animationType="fade"
+      onRequestClose={() => setSortModalVisible(false)}
+    >
+      <TouchableOpacity
+        style={sortStyles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setSortModalVisible(false)}
+      >
+        <View style={sortStyles.modalContent}>
+          <Text style={sortStyles.modalTitle}>Sort Matches</Text>
+
+          {/* Sort by Home Team option */}
+          <TouchableOpacity
+            style={sortStyles.sortOption}
+            onPress={() => changeSortOption("homeTeam")}
+          >
+            <Text style={sortStyles.sortOptionText}>Home Team</Text>
+            {sortField === "homeTeam" && (
+              <Ionicons
+                name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
+                size={18}
+                color="#0275d8"
+              />
+            )}
+          </TouchableOpacity>
+
+          {/* Sort by Away Team option */}
+          <TouchableOpacity
+            style={sortStyles.sortOption}
+            onPress={() => changeSortOption("awayTeam")}
+          >
+            <Text style={sortStyles.sortOptionText}>Away Team</Text>
+            {sortField === "awayTeam" && (
+              <Ionicons
+                name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
+                size={18}
+                color="#0275d8"
+              />
+            )}
+          </TouchableOpacity>
+
+          {/* Sort by Player Name option */}
+          <TouchableOpacity
+            style={sortStyles.sortOption}
+            onPress={() => changeSortOption("playerName")}
+          >
+            <Text style={sortStyles.sortOptionText}>Player Name</Text>
+            {sortField === "playerName" && (
+              <Ionicons
+                name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
+                size={18}
+                color="#0275d8"
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  // Define a footer component for the FlatList that can trigger refresh
+  const ListFooter = () => (
+    <View style={timestampStyles.footerContainer}>
+      <TouchableOpacity
+        style={[
+          timestampStyles.pill,
+          refreshing && timestampStyles.pillRefreshing,
+        ]}
+        onPress={onRefresh}
+        activeOpacity={0.6}
+        disabled={refreshing}
+      >
+        {refreshing ? (
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <Ionicons name="sync" size={14} color="#666" />
+          </Animated.View>
+        ) : (
+          <Ionicons name="time-outline" size={14} color="#666" />
+        )}
+
+        <Text style={timestampStyles.timeText}>
+          {refreshing
+            ? "Refreshing..."
+            : lastUpdated
+            ? lastUpdated.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "--:--"}
+        </Text>
+        {isPolling && !refreshing && <View style={timestampStyles.liveDot} />}
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1 }}>
       {/* Header with title, refresh status, and layout toggle */}
@@ -344,36 +502,24 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
         <Text style={styles.headerTitle}>Matches</Text>
 
         <View style={styles.headerButtons}>
-          {/* Live status indicator and refresh button */}
-          <View style={styles.headerStatus}>
-            <View
-              style={[
-                styles.statusDot,
-                isPolling ? styles.statusActive : styles.statusIdle,
-              ]}
+          {/* Sort button */}
+          <TouchableOpacity
+            style={sortStyles.sortButton}
+            onPress={() => setSortModalVisible(true)}
+          >
+            <Ionicons name="funnel-outline" size={18} color="#0275d8" />
+            <Ionicons
+              name={
+                sortDirection === "asc"
+                  ? "arrow-up-outline"
+                  : "arrow-down-outline"
+              }
+              size={14}
+              color="#0275d8"
+              style={{ marginLeft: 2 }}
             />
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={onRefresh}
-              disabled={refreshing}
-            >
-              <Animated.View style={{ transform: [{ rotate: spin }] }}>
-                <Ionicons
-                  name="refresh"
-                  size={18}
-                  color={refreshing ? "#adb5bd" : "#0275d8"}
-                />
-              </Animated.View>
-              <Text style={styles.lastUpdateText}>
-                {lastUpdated
-                  ? lastUpdated.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }) // Format time HH:MM
-                  : "--:--"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
+
 
           {/* Layout toggle button */}
           <TouchableOpacity
@@ -389,19 +535,112 @@ const MatchesGrid: React.FC<MatchesGridProps> = ({
         </View>
       </View>
 
-      {/* Match list/grid using FlatList */}
-      <FlatList
-        refreshControl={refreshControl} // Attach the refresh control passed via props
-        key={`matches-${useGridLayout ? "grid" : "list"}-${numColumns}`} // Dynamic key to force re-render on layout change
-        data={sortedMatches}
-        keyExtractor={(item) => item.id}
-        numColumns={useGridLayout ? numColumns : 1} // Set number of columns based on layout mode
-        renderItem={useGridLayout ? renderGridItem : renderListItem} // Choose render function based on layout mode
-        contentContainerStyle={styles.gridContainer} // Use same style for padding regardless of layout
-        columnWrapperStyle={useGridLayout ? styles.gridRow : undefined} // Apply only for grid layout
-      />
+      {/* Sort options modal */}
+      {renderSortOptionsModal()}
+
+      {/* Match list container - makes content scrollable but keeps pill fixed */}
+      <View style={{ flex: 1 }}>
+        {/* Match list/grid using FlatList */}
+        <FlatList
+          refreshControl={refreshControl}
+          key={`matches-${
+            useGridLayout ? "grid" : "list"
+          }-${numColumns}-${sortField}-${sortDirection}`}
+          data={sortedMatches}
+          keyExtractor={(item) => item.id}
+          numColumns={useGridLayout ? numColumns : 1}
+          renderItem={useGridLayout ? renderGridItem : renderListItem}
+          contentContainerStyle={styles.gridContainer}
+          columnWrapperStyle={useGridLayout ? styles.gridRow : undefined}
+          ListFooterComponent={ListFooter} // Add the timestamp as footer component
+        />
+      </View>
     </View>
   );
 };
+
+// Additional styles for sorting UI
+const sortStyles = StyleSheet.create({
+  sortButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 16,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  sortOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  sortOptionText: {
+    fontSize: 16,
+  },
+});
+
+// Additional styles for the timestamp pill with fixed positioning
+const timestampStyles = StyleSheet.create({
+  footerContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+    width: "100%",
+  },
+  pill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
+    borderRadius: 20,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  pillRefreshing: {
+    backgroundColor: "#f0f0f0",
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+  },
+  timeText: {
+    fontSize: 13,
+    color: "#666",
+    marginLeft: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#28a745",
+    marginLeft: 4,
+  },
+});
 
 export default MatchesGrid;
