@@ -466,6 +466,7 @@ const GameProgressScreen = () => {
         playerAssignments={playerAssignments}
         handleGoalIncrement={handleGoalIncrement}
         handleGoalDecrement={handleGoalDecrement}
+        liveMatches={liveMatches}
       />
 
       <EndGameModal
