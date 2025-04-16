@@ -14,6 +14,7 @@ import {
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { MatchWithScore } from "../../hooks/useLiveScores";
 
 /**
  * @interface MatchQuickActionsModalProps
@@ -38,6 +39,8 @@ interface MatchQuickActionsModalProps {
   handleGoalIncrement: (matchId: string, team: "home" | "away") => void;
   /** @param handleGoalDecrement Function to decrement the goal count for a team in a match. */
   handleGoalDecrement: (matchId: string, team: "home" | "away") => void;
+  /** @param liveMatches Array of live match objects with scores. */
+  liveMatches: MatchWithScore[];
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -58,6 +61,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   playerAssignments,
   handleGoalIncrement,
   handleGoalDecrement,
+  liveMatches,
 }) => {
   // Animation values for various UI elements
   const decrementAnimHome = useRef(new Animated.Value(1)).current;
@@ -78,6 +82,40 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
       ? matches.find((m) => m.id === selectedMatchId)
       : null;
   }, [selectedMatchId, matches]);
+
+  /**
+   * @brief Memoized calculation to find the live match data for the selected match.
+   * Returns the `MatchWithScore` object from `liveMatches` corresponding to `selectedMatchId`, or undefined if not found.
+   */
+  const liveMatchData = useMemo(() => {
+    return liveMatches?.find((m) => m.id === selectedMatchId);
+  }, [liveMatches, selectedMatchId]);
+
+  /**
+   * @brief Memoized calculation to extract goal scorers for the home team from live match data.
+   * Filters the `goalScorers` array from `liveMatchData` based on the home team's ID derived from the `match` object.
+   * Returns an array of `GoalScorer` objects for the home team, or an empty array if none are found or data is unavailable.
+   */
+  const homeTeamScorers = useMemo(() => {
+    return (
+      liveMatchData?.goalScorers?.filter(
+        (scorer) => scorer.teamId === match?.id.split(":")[0] // Assuming team IDs match
+      ) || []
+    );
+  }, [liveMatchData, match]);
+
+  /**
+   * @brief Memoized calculation to extract goal scorers for the away team from live match data.
+   * Filters the `goalScorers` array from `liveMatchData` based on the away team's ID (assumed to be different from the home team ID derived from the `match` object).
+   * Returns an array of `GoalScorer` objects for the away team, or an empty array if none are found or data is unavailable.
+   */
+  const awayTeamScorers = useMemo(() => {
+    return (
+      liveMatchData?.goalScorers?.filter(
+        (scorer) => scorer.teamId !== match?.id.split(":")[0]
+      ) || []
+    );
+  }, [liveMatchData, match]);
 
   // References to store previous goal values for animation triggering
   const prevGoalsHomeRef = useRef(match?.homeGoals ?? 0);
@@ -332,6 +370,22 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                           </TouchableOpacity>
                         </Animated.View>
                       </View>
+
+                      {/* Add goal scorers section */}
+                      {homeTeamScorers.length > 0 && (
+                        <View style={styles.scorerContainer}>
+                          {homeTeamScorers.map((scorer, index) => (
+                            <Text
+                              key={`home-${index}`}
+                              style={styles.scorerText}
+                            >
+                              {scorer.name} {scorer.time}
+                              {scorer.isPenalty ? " (P)" : ""}
+                              {scorer.isOwnGoal ? " (OG)" : ""}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
                     </View>
 
                     {/* Away team goal controls */}
@@ -381,6 +435,22 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                           </TouchableOpacity>
                         </Animated.View>
                       </View>
+
+                      {/* Add goal scorers section */}
+                      {awayTeamScorers.length > 0 && (
+                        <View style={styles.scorerContainer}>
+                          {awayTeamScorers.map((scorer, index) => (
+                            <Text
+                              key={`away-${index}`}
+                              style={styles.scorerText}
+                            >
+                              {scorer.name} {scorer.time}
+                              {scorer.isPenalty ? " (P)" : ""}
+                              {scorer.isOwnGoal ? " (OG)" : ""}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   </View>
 
@@ -688,6 +758,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#333",
+  },
+  scorerContainer: {
+    marginTop: 8,
+    paddingTop: 6,
+    paddingBottom: 2,
+    alignItems: "center",
+  },
+  scorerText: {
+    fontSize: 11,
+    color: "#444",
+    marginVertical: 2,
+    fontStyle: "italic",
   },
 });
 

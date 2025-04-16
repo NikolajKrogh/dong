@@ -59,6 +59,7 @@ export function useMatchData(selectedDate?: string) {
           { code: "esp.1", name: "La Liga" },
           { code: "ita.1", name: "Serie A" },
           { code: "fra.1", name: "Ligue 1" },
+          { code: "den.1", name: "Superliga" },
         ];
 
         const responses = await Promise.all(

@@ -23,6 +23,7 @@ const LEAGUE_LOGOS: LeagueLogos = {
   "La Liga": require("../../assets/images/leagues/la-liga.png"),
   "Serie A": require("../../assets/images/leagues/serie-a.png"),
   "Ligue 1": require("../../assets/images/leagues/ligue-1.png"),
+  "Superliga": require("../../assets/images/leagues/superliga.png"),
 };
 
 interface LeagueFilterProps {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
@@ -43,6 +43,63 @@ const MatchListItem: React.FC<MatchItemProps> = ({
     justifyContent: "center" as const,
     alignItems: "center" as const,
   };
+
+  /**
+   * @brief Creates a visual representation of players assigned to a match using badges.
+   *
+   * This memoized function generates a component that displays player information with the following behavior:
+   * - For empty assignments: Displays a "0" in muted styling
+   * - For any number of players: Shows as many player badges as will fit within the MAX_CHARS limit
+   * - Each badge displays the player's first name only
+   * - When not all players can be shown, adds a "+N" counter badge for remaining players
+   *
+   * @returns {React.ReactNode} A View component containing player badges and optional count indicator
+   */
+  const playerDisplayText = useMemo(() => {
+    if (!assignedPlayers || assignedPlayers.length === 0) {
+      return <Text style={styles.emptyPlayerCount}>0</Text>;
+    }
+    // Show as many as reasonably fit with truncation
+
+    // Calculate how many badges we can show based on character count
+    const firstNames = assignedPlayers.map((p) => p.name.split(" ")[0]);
+    const MAX_CHARS = 20;
+
+    let charCount = 0;
+    let namesCount = 0;
+
+    for (const name of firstNames) {
+      // Approximate space needed for each badge
+      if (charCount + name.length <= MAX_CHARS) {
+        charCount += name.length;
+        namesCount++;
+      } else {
+        break;
+      }
+    }
+
+    // Show visible badges + count badge if needed
+    const visiblePlayers = assignedPlayers.slice(0, namesCount);
+    const remaining = assignedPlayers.length - namesCount;
+
+    return (
+      <View style={styles.playerBadgeContainer}>
+        {visiblePlayers.map((player, index) => (
+          <View key={player.id} style={styles.playerBadge}>
+            <Text style={styles.playerBadgeText}>
+              {player.name.split(" ")[0]}
+            </Text>
+          </View>
+        ))}
+
+        {remaining > 0 && (
+          <View style={styles.countBadge}>
+            <Text style={styles.countBadgeText}>+{remaining}</Text>
+          </View>
+        )}
+      </View>
+    );
+  }, [assignedPlayers]);
 
   return (
     <TouchableOpacity
@@ -92,13 +149,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Ionicons name="people-outline" size={13} color="#666" />
-            <Text style={styles.statValue}>
-              {assignedPlayers.length > 0
-                ? assignedPlayers.length === 1
-                  ? assignedPlayers[0].name.split(" ")[0] // Show first name if only one player
-                  : `${assignedPlayers.length}` // Show count if multiple players
-                : "0"}
-            </Text>
+            <Text style={styles.statValue}>{playerDisplayText}</Text>
           </View>
         </View>
       </View>

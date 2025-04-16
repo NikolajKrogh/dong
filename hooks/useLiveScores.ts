@@ -13,11 +13,20 @@ export interface MatchWithScore {
   homeScore: number;
   awayScore: number;
   isLive: boolean;
-  minutesPlayed?: string; // Make sure this is defined as a string
-  // Add missing properties
+  minutesPlayed?: string;
   homeTeam: string;
   awayTeam: string;
   status: string;
+  goalScorers?: GoalScorer[];
+}
+
+export interface GoalScorer {
+  name: string;
+  time: string;
+  teamId: string;
+  isPenalty: boolean;
+  isOwnGoal: boolean;
+  goalType: string;
 }
 
 /**
@@ -120,6 +129,7 @@ export function useLiveScores(
         { code: "esp.1", name: "La Liga" },
         { code: "ita.1", name: "Serie A" },
         { code: "fra.1", name: "Ligue 1" },
+        { code: "den.1", name: "Superliga" },
         // Add more leagues if needed
       ];
 
@@ -334,6 +344,34 @@ const processApiMatch = (event: any): MatchWithScore | null => {
       matchTimeDisplay = shortDetail || "?";
     }
 
+    // Extract goal scorers from the details array
+    const goalScorers: GoalScorer[] = [];
+
+    // Check if details array exists and has scoring plays
+    if (event.competitions?.[0]?.details) {
+      const details = event.competitions[0].details;
+
+      // Process each detail to find goals
+      for (const detail of details) {
+        // Check if it's a scoring play
+        if (detail.scoringPlay && detail.team?.id) {
+          // Get the athlete information if available
+          const athlete = detail.athletesInvolved?.[0];
+          const name =
+            athlete?.displayName || athlete?.shortName || "Unknown Player";
+
+          goalScorers.push({
+            name: name,
+            time: detail.clock?.displayValue || "?",
+            teamId: detail.team.id,
+            isPenalty: detail.penaltyKick || false,
+            isOwnGoal: detail.ownGoal || false,
+            goalType: detail.type?.text || "Goal",
+          });
+        }
+      }
+    }
+
     // Construct the result object
     return {
       id,
@@ -344,6 +382,7 @@ const processApiMatch = (event: any): MatchWithScore | null => {
       status: event.status?.type?.description || "Scheduled", // Provide fallback status description
       isLive,
       minutesPlayed: matchTimeDisplay, // Use the determined display string
+      goalScorers: goalScorers.length > 0 ? goalScorers : undefined,
     };
   } catch (error) {
     console.error("Error processing API match event:", error, event); // Log the specific event data on error
