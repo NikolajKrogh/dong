@@ -134,6 +134,20 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "UD Las Palmas": require("../assets/images/teams/la-liga/las-palmas.png"),
   "Valencia CF": require("../assets/images/teams/la-liga/valencia.png"),
   "Villarreal CF": require("../assets/images/teams/la-liga/villarreal.png"),
+
+
+  // Superliga
+  "AAB": require("../assets/images/teams/superliga/aab.png"),
+  "AGF": require("../assets/images/teams/superliga/agf.png"),
+  "Brøndby IF": require("../assets/images/teams/superliga/brøndby.png"),
+  "F.C. København": require("../assets/images/teams/superliga/københavn.png"),
+  "Lyngby Boldklub": require("../assets/images/teams/superliga/lyngby.png"),
+  "FC Midtjylland": require("../assets/images/teams/superliga/midtjylland.png"),
+  "FC Nordsjælland": require("../assets/images/teams/superliga/nordsjælland.png"),
+  "Silkeborg IF": require("../assets/images/teams/superliga/silkeborg.png"),
+  "Sønderjyske Foldbold": require("../assets/images/teams/superliga/sønderjyske.png"),
+  "Viborg FF": require("../assets/images/teams/superliga/viborg.png"),
+  "Vejle Boldklub": require("../assets/images/teams/superliga/vejle.png"),
 };
 
 // Expanded mapping for cleaned team names to official names
