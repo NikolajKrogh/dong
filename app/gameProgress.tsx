@@ -14,6 +14,7 @@ import { useGameStore } from "../store/store";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import styles from "./style/gameProgressStyles";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 // Import components
 import TabNavigation from "../components/gameProgress/TabNavigation";
@@ -22,6 +23,7 @@ import PlayersList from "../components/gameProgress/PlayersList";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import EndGameModal from "../components/gameProgress/EndGameModal";
 import FooterButtons from "../components/gameProgress/FooterButtons";
+import { goalToastConfig } from "../components/gameProgress/GoalToast";
 
 /**
  * @component GameProgressScreen
@@ -215,11 +217,13 @@ const GameProgressScreen = () => {
               // Only play sound if the goal count actually increased
               if (newTotal > (match.homeGoals || 0)) {
                 playDongSound();
+                showGoalToast(matchId, team);
               }
               return { ...match, homeGoals: newTotal };
             } else {
               if (newTotal > (match.awayGoals || 0)) {
                 playDongSound();
+                showGoalToast(matchId, team);
               }
               return { ...match, awayGoals: newTotal };
             }
@@ -227,8 +231,10 @@ const GameProgressScreen = () => {
           // Otherwise just increment by 1
           else {
             if (team === "home") {
+              showGoalToast(matchId, team);
               return { ...match, homeGoals: (match.homeGoals || 0) + 1 };
             } else {
+              showGoalToast(matchId, team);
               return { ...match, awayGoals: (match.awayGoals || 0) + 1 };
             }
           }
@@ -337,6 +343,73 @@ const GameProgressScreen = () => {
         };
       })
     );
+  };
+
+  /**
+   * @brief Determines which players should drink when a goal is scored
+   * @param {string} matchId - The ID of the match where a goal was scored
+   * @return {string[]} Array of player names who should drink
+   */
+  const getPlayersWhoDrink = (matchId: string): string[] => {
+    // If it's the common match, all players drink
+    if (matchId === commonMatchId) {
+      return players.map((p) => p.name);
+    }
+
+    // Otherwise, only players assigned to this match drink
+    return players
+      .filter(
+        (player) =>
+          playerAssignments[player.id] &&
+          playerAssignments[player.id].includes(matchId)
+      )
+      .map((p) => p.name);
+  };
+
+  /**
+   * @brief Shows a toast notification when a goal is scored
+   * @param {string} matchId - The ID of the match where a goal was scored
+   * @param {'home' | 'away'} team - The team that scored the goal
+   */
+  const showGoalToast = (matchId: string, team: "home" | "away") => {
+    const match = matches.find((m) => m.id === matchId);
+    if (!match) return;
+
+    // Calculate the NEW score after this goal is scored
+    const homeScore =
+      team === "home" ? (match.homeGoals || 0) + 1 : match.homeGoals || 0;
+
+    const awayScore =
+      team === "away" ? (match.awayGoals || 0) + 1 : match.awayGoals || 0;
+
+    const scoreTitle = `${match.homeTeam} ${homeScore}-${awayScore} ${match.awayTeam}`;
+
+    // Get players who should drink
+    const playersToDrink = getPlayersWhoDrink(matchId);
+
+    if (playersToDrink.length === 0) return;
+
+    // Create message based on number of players
+    let message;
+    if (playersToDrink.length <= 3) {
+      message = `${playersToDrink.join(", ")} should drink!`;
+    } else {
+      message = `${playersToDrink.slice(0, 2).join(", ")} and ${
+        playersToDrink.length - 2
+      } others should drink!`;
+    }
+
+    // Show the toast - pass the scoring team info
+    Toast.show({
+      type: "success",
+      text1: scoreTitle,
+      text2: message,
+      props: {
+        scoringTeam: team, // Pass which team scored
+      },
+      position: "bottom",
+      visibilityTime: 5000,
+    });
   };
 
   // Call the useLiveScores hook
@@ -474,6 +547,9 @@ const GameProgressScreen = () => {
         onCancel={cancelEndGame}
         onConfirm={confirmEndGame}
       />
+
+      {/* Add this line to include Toast */}
+      <Toast config={goalToastConfig} />
     </SafeAreaView>
   );
 };
