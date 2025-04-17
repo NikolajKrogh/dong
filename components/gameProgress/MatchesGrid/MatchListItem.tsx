@@ -108,7 +108,25 @@ const MatchListItem: React.FC<MatchItemProps> = ({
       activeOpacity={0.7}
     >
       {/* Common indicator */}
-      {match.id === commonMatchId && <View style={styles.commonIndicator} />}
+      {match.id === commonMatchId && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            backgroundColor: "#4caf50",
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderBottomLeftRadius: 6,
+            borderTopRightRadius: 7,
+            zIndex: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 7, fontWeight: "600" }}>
+            Common
+          </Text>
+        </View>
+      )}
 
       <View style={styles.teamsContainer}>
         {/* Team logos with scores positioned horizontally */}
@@ -122,18 +140,27 @@ const MatchListItem: React.FC<MatchItemProps> = ({
           </View>
 
           <View style={[styles.scoresContainer, { paddingHorizontal: 6 }]}>
-            <Text style={styles.gridScoreText}>{homeScore}</Text>
-
+            <Text style={[styles.gridScoreText, { fontSize: 26 }]}>
+              {homeScore}
+            </Text>
             {/* Show match status: FT/HT > Live Time > '-' */}
             {isFinishedOrHalfTime ? (
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show FT or HT
+              <Text style={[styles.minutesPlayedText, { fontSize: 20 }]}>
+                {displayStatus}
+              </Text> // Show FT or HT
             ) : isCurrentlyLive ? (
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show live minutes
+              <Text style={[styles.minutesPlayedText, { fontSize: 20 }]}>
+                {displayStatus}
+              </Text> // Show live minutes
             ) : (
-              <Text style={styles.vsText}>-</Text> // Fallback
+              <Text style={styles.vsText}>
+                <Text style={{ fontSize: 20 }}>-</Text>
+              </Text> // FallbackF
             )}
 
-            <Text style={styles.gridScoreText}>{awayScore}</Text>
+            <Text style={[styles.gridScoreText, { fontSize: 26 }]}>
+              {awayScore}
+            </Text>
           </View>
 
           {/* Away team: Logo on RIGHT */}

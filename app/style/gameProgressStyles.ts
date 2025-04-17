@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   vsText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#888",
     marginHorizontal: 10,
   },
@@ -1070,6 +1070,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     justifyContent: "center",
     alignItems: "center",
+  },
+  emptyPlayerCount: {
+    fontSize: 13,
+    color: '#666',
+  },
+  playerBadgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  playerBadge: {
+    backgroundColor: '#e3f2fd',
+    borderRadius: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    marginRight: 4,
+    marginBottom: 2,
+  },
+  playerBadgeText: {
+    fontSize: 11,
+    color: '#1976d2',
+    fontWeight: '500',
+  },
+  countBadge: {
+    backgroundColor: '#eeeeee',
+    borderRadius: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    color: '#616161',
+    fontWeight: '500',
   },
 });
 
