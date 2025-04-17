@@ -47,8 +47,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 /**
  * @component MatchQuickActionsModal
- * @brief A modal component providing quick actions (increment/decrement goals) for a selected match.
- * Displays team information, current scores, and players affected by the match. Includes animations for interactions.
+ * @brief A modal component displaying match information for a selected match.
+ * Displays team information, current scores, goal scorers and players affected by the match.
  * @param {MatchQuickActionsModalProps} props - The properties for the component.
  */
 const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
@@ -59,19 +59,19 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   players,
   commonMatchId,
   playerAssignments,
+  liveMatches,
   handleGoalIncrement,
   handleGoalDecrement,
-  liveMatches,
 }) => {
-  // Animation values for various UI elements
-  const decrementAnimHome = useRef(new Animated.Value(1)).current;
-  const incrementAnimHome = useRef(new Animated.Value(1)).current;
-  const decrementAnimAway = useRef(new Animated.Value(1)).current;
-  const incrementAnimAway = useRef(new Animated.Value(1)).current;
+  // Animation values for UI elements
   const closeButtonAnim = useRef(new Animated.Value(1)).current;
   const goalValueAnimHome = useRef(new Animated.Value(1)).current;
   const goalValueAnimAway = useRef(new Animated.Value(1)).current;
   const modalContentAnim = useRef(new Animated.Value(0)).current;
+  const incrementAnimHome = useRef(new Animated.Value(1)).current;
+  const decrementAnimHome = useRef(new Animated.Value(1)).current;
+  const incrementAnimAway = useRef(new Animated.Value(1)).current;
+  const decrementAnimAway = useRef(new Animated.Value(1)).current;
 
   /**
    * @brief Memoized calculation to find the currently selected match object.
@@ -90,6 +90,15 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   const liveMatchData = useMemo(() => {
     return liveMatches?.find((m) => m.id === selectedMatchId);
   }, [liveMatches, selectedMatchId]);
+
+  /**
+   * @brief Determines if the current match is controlled by the API or can be manually adjusted.
+   * If a match has corresponding live data from an API, we should display scores without controls.
+   * Otherwise, we should allow manual control of scores.
+   */
+  const isApiControlledMatch = useMemo(() => {
+    return !!liveMatchData; // If liveMatchData exists, this is an API-controlled match
+  }, [liveMatchData]);
 
   /**
    * @brief Memoized calculation to extract goal scorers for the home team from live match data.
@@ -322,137 +331,179 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
                   <View style={styles.divider} />
 
-                  <View style={styles.goalActions}>
-                    {/* Home team goal controls */}
-                    <View style={styles.teamGoalControls}>
-                      <Text style={styles.teamLabel}>{match.homeTeam}</Text>
-                      <View style={styles.scoreControlRow}>
-                        <Animated.View
-                          style={{
-                            transform: [{ scale: decrementAnimHome }],
-                          }}
-                        >
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.blueButton]}
-                            onPress={() => {
-                              handleGoalDecrement(match.id, "home");
-                              animateButtonPress(decrementAnimHome);
-                            }}
-                          >
-                            <Ionicons name="remove" size={20} color="#fff" />
-                          </TouchableOpacity>
-                        </Animated.View>
+                  {isApiControlledMatch ? (
+                    // Read-only score display for API matches
+                    <View style={styles.scoreContainer}>
+                      {/* Home team score */}
+                      <Animated.View
+                        style={[
+                          styles.scoreValue,
+                          { transform: [{ scale: goalValueAnimHome }] },
+                        ]}
+                      >
+                        <Text style={styles.scoreText}>
+                          {match.homeGoals || 0}
+                        </Text>
+                      </Animated.View>
 
-                        <Animated.View
-                          style={[
-                            styles.goalCounter,
-                            { transform: [{ scale: goalValueAnimHome }] },
-                          ]}
-                        >
-                          <Text style={styles.goalValue}>
-                            {match.homeGoals || 0}
-                          </Text>
-                        </Animated.View>
-
-                        <Animated.View
-                          style={{
-                            transform: [{ scale: incrementAnimHome }],
-                          }}
-                        >
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.blueButton]}
-                            onPress={() => {
-                              handleGoalIncrement(match.id, "home");
-                              animateButtonPress(incrementAnimHome);
-                            }}
-                          >
-                            <Ionicons name="add" size={20} color="#fff" />
-                          </TouchableOpacity>
-                        </Animated.View>
+                      {/* Score separator */}
+                      <View style={styles.scoreSeparator}>
+                        <Text style={styles.scoreSeparatorText}>:</Text>
                       </View>
 
-                      {/* Add goal scorers section */}
-                      {homeTeamScorers.length > 0 && (
-                        <View style={styles.scorerContainer}>
-                          {homeTeamScorers.map((scorer, index) => (
-                            <Text
-                              key={`home-${index}`}
-                              style={styles.scorerText}
-                            >
-                              {scorer.name} {scorer.time}
-                              {scorer.isPenalty ? " (P)" : ""}
-                              {scorer.isOwnGoal ? " (OG)" : ""}
-                            </Text>
-                          ))}
-                        </View>
-                      )}
+                      {/* Away team score */}
+                      <Animated.View
+                        style={[
+                          styles.scoreValue,
+                          { transform: [{ scale: goalValueAnimAway }] },
+                        ]}
+                      >
+                        <Text style={styles.scoreText}>
+                          {match.awayGoals || 0}
+                        </Text>
+                      </Animated.View>
                     </View>
-
-                    {/* Away team goal controls */}
-                    <View style={styles.teamGoalControls}>
-                      <Text style={styles.teamLabel}>{match.awayTeam}</Text>
-                      <View style={styles.scoreControlRow}>
-                        <Animated.View
-                          style={{
-                            transform: [{ scale: decrementAnimAway }],
-                          }}
-                        >
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.blueButton]}
-                            onPress={() => {
-                              handleGoalDecrement(match.id, "away");
-                              animateButtonPress(decrementAnimAway);
+                  ) : (
+                    // Editable score controls for manual matches
+                    <View style={styles.goalActions}>
+                      {/* Home team goal controls */}
+                      <View style={styles.teamGoalControls}>
+                        <View style={styles.scoreControlRow}>
+                          <Animated.View
+                            style={{
+                              transform: [{ scale: decrementAnimHome }],
                             }}
                           >
-                            <Ionicons name="remove" size={20} color="#fff" />
-                          </TouchableOpacity>
-                        </Animated.View>
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.blueButton]}
+                              onPress={() => {
+                                handleGoalDecrement(match.id, "home");
+                                animateButtonPress(decrementAnimHome);
+                              }}
+                            >
+                              <Ionicons name="remove" size={20} color="#fff" />
+                            </TouchableOpacity>
+                          </Animated.View>
 
-                        <Animated.View
-                          style={[
-                            styles.goalCounter,
-                            { transform: [{ scale: goalValueAnimAway }] },
-                          ]}
-                        >
-                          <Text style={styles.goalValue}>
-                            {match.awayGoals || 0}
-                          </Text>
-                        </Animated.View>
+                          <Animated.View
+                            style={[
+                              styles.goalCounter,
+                              { transform: [{ scale: goalValueAnimHome }] },
+                            ]}
+                          >
+                            <Text style={styles.goalValue}>
+                              {match.homeGoals || 0}
+                            </Text>
+                          </Animated.View>
 
-                        <Animated.View
-                          style={{
-                            transform: [{ scale: incrementAnimAway }],
-                          }}
-                        >
-                          <TouchableOpacity
-                            style={[styles.actionButton, styles.blueButton]}
-                            onPress={() => {
-                              handleGoalIncrement(match.id, "away");
-                              animateButtonPress(incrementAnimAway);
+                          <Animated.View
+                            style={{
+                              transform: [{ scale: incrementAnimHome }],
                             }}
                           >
-                            <Ionicons name="add" size={20} color="#fff" />
-                          </TouchableOpacity>
-                        </Animated.View>
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.blueButton]}
+                              onPress={() => {
+                                handleGoalIncrement(match.id, "home");
+                                animateButtonPress(incrementAnimHome);
+                              }}
+                            >
+                              <Ionicons name="add" size={20} color="#fff" />
+                            </TouchableOpacity>
+                          </Animated.View>
+                        </View>
                       </View>
 
-                      {/* Add goal scorers section */}
-                      {awayTeamScorers.length > 0 && (
-                        <View style={styles.scorerContainer}>
-                          {awayTeamScorers.map((scorer, index) => (
-                            <Text
-                              key={`away-${index}`}
-                              style={styles.scorerText}
+                      {/* Away team goal controls */}
+                      <View style={styles.teamGoalControls}>
+                        <View style={styles.scoreControlRow}>
+                          <Animated.View
+                            style={{
+                              transform: [{ scale: decrementAnimAway }],
+                            }}
+                          >
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.blueButton]}
+                              onPress={() => {
+                                handleGoalDecrement(match.id, "away");
+                                animateButtonPress(decrementAnimAway);
+                              }}
                             >
-                              {scorer.name} {scorer.time}
-                              {scorer.isPenalty ? " (P)" : ""}
-                              {scorer.isOwnGoal ? " (OG)" : ""}
+                              <Ionicons name="remove" size={20} color="#fff" />
+                            </TouchableOpacity>
+                          </Animated.View>
+
+                          <Animated.View
+                            style={[
+                              styles.goalCounter,
+                              { transform: [{ scale: goalValueAnimAway }] },
+                            ]}
+                          >
+                            <Text style={styles.goalValue}>
+                              {match.awayGoals || 0}
                             </Text>
-                          ))}
+                          </Animated.View>
+
+                          <Animated.View
+                            style={{
+                              transform: [{ scale: incrementAnimAway }],
+                            }}
+                          >
+                            <TouchableOpacity
+                              style={[styles.actionButton, styles.blueButton]}
+                              onPress={() => {
+                                handleGoalIncrement(match.id, "away");
+                                animateButtonPress(incrementAnimAway);
+                              }}
+                            >
+                              <Ionicons name="add" size={20} color="#fff" />
+                            </TouchableOpacity>
+                          </Animated.View>
                         </View>
-                      )}
+                      </View>
                     </View>
-                  </View>
+                  )}
+
+                  {/* Goal Scorers Container - Show for API matches */}
+                  {isApiControlledMatch && (
+                    <View style={styles.goalScorersContainer}>
+                      {/* Home team scorers */}
+                      <View style={styles.teamScorersColumn}>
+                        {homeTeamScorers.length > 0 ? (
+                          <View style={styles.scorerContainer}>
+                            {homeTeamScorers.map((scorer, index) => (
+                              <Text
+                                key={`home-${index}`}
+                                style={styles.scorerText}
+                              >
+                                {scorer.name} {scorer.time}
+                                {scorer.isPenalty ? " (P)" : ""}
+                                {scorer.isOwnGoal ? " (OG)" : ""}
+                              </Text>
+                            ))}
+                          </View>
+                        ) : null}
+                      </View>
+
+                      {/* Away team scorers */}
+                      <View style={styles.teamScorersColumn}>
+                        {awayTeamScorers.length > 0 ? (
+                          <View style={styles.scorerContainer}>
+                            {awayTeamScorers.map((scorer, index) => (
+                              <Text
+                                key={`away-${index}`}
+                                style={styles.scorerText}
+                              >
+                                {scorer.name} {scorer.time}
+                                {scorer.isPenalty ? " (P)" : ""}
+                                {scorer.isOwnGoal ? " (OG)" : ""}
+                              </Text>
+                            ))}
+                          </View>
+                        ) : null}
+                      </View>
+                    </View>
+                  )}
 
                   <View style={styles.divider} />
 
@@ -633,7 +684,32 @@ const styles = StyleSheet.create({
     width: "100%",
     marginVertical: 12,
   },
-  // Goal actions
+  // For API matches - read only display
+  scoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingVertical: 16,
+  },
+  scoreValue: {
+    alignItems: "center",
+    paddingHorizontal: 12,
+  },
+  scoreText: {
+    fontSize: 42,
+    fontWeight: "bold",
+    color: "#0275d8",
+  },
+  scoreSeparator: {
+    paddingHorizontal: 8,
+  },
+  scoreSeparatorText: {
+    fontSize: 36,
+    fontWeight: "bold",
+    color: "#777",
+  },
+  // For editable matches - with controls
   goalActions: {
     flexDirection: "row",
     alignItems: "center",
@@ -665,15 +741,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#0275d8",
   },
-  goalLabel: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 2,
-    letterSpacing: 1,
-  },
   actionButton: {
-    width: 44,
-    height: 44,
+    width: 32,
+    height: 32,
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
@@ -684,7 +754,31 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   blueButton: {
-    backgroundColor: "#0275d8", // Blue for both buttons
+    backgroundColor: "#0275d8",
+  },
+  // Goal Scorers display
+  goalScorersContainer: {
+    flexDirection: "row",
+    width: "100%",
+    minHeight: 0, // Minimum height even when empty
+    maxHeight: 120, // Maximum height before scrolling
+  },
+  teamScorersColumn: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  scorerContainer: {
+    width: "100%",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  scorerText: {
+    fontSize: 11,
+    color: "#444",
+    marginVertical: 2,
+    fontStyle: "italic",
+    textAlign: "center",
   },
   // Players section
   sectionHeader: {
@@ -698,13 +792,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#555",
     marginLeft: 8,
-  },
-  playerListContainer: {
-    width: "100%",
-    marginBottom: 12,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: "#f9f9f9",
   },
   // Player section - super compact layout
   compactContainer: {
@@ -758,18 +845,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#333",
-  },
-  scorerContainer: {
-    marginTop: 8,
-    paddingTop: 6,
-    paddingBottom: 2,
-    alignItems: "center",
-  },
-  scorerText: {
-    fontSize: 11,
-    color: "#444",
-    marginVertical: 2,
-    fontStyle: "italic",
   },
 });
 
