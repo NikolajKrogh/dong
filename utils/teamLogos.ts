@@ -144,6 +144,7 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "Lyngby Boldklub": require("../assets/images/teams/superliga/lyngby.png"),
   "FC Midtjylland": require("../assets/images/teams/superliga/midtjylland.png"),
   "FC Nordsjælland": require("../assets/images/teams/superliga/nordsjælland.png"),
+  "Randers FC": require("../assets/images/teams/superliga/randers.png"),
   "Silkeborg IF": require("../assets/images/teams/superliga/silkeborg.png"),
   "Sønderjyske Foldbold": require("../assets/images/teams/superliga/sønderjyske.png"),
   "Viborg FF": require("../assets/images/teams/superliga/viborg.png"),
