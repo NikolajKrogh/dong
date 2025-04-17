@@ -192,7 +192,13 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
    * Compares the current home goal count with the previously stored value.
    */
   useEffect(() => {
-    if (match && prevGoalsHomeRef.current !== (match.homeGoals ?? 0)) {
+    // Get the current score (prioritize live data if available)
+    const currentScore = isApiControlledMatch
+      ? liveMatchData?.homeScore ?? 0
+      : match?.homeGoals ?? 0;
+
+    if (prevGoalsHomeRef.current !== currentScore) {
+      // Run animation
       Animated.sequence([
         Animated.timing(goalValueAnimHome, {
           toValue: 1.3,
@@ -206,16 +212,22 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
         }),
       ]).start();
 
-      prevGoalsHomeRef.current = match.homeGoals ?? 0;
+      prevGoalsHomeRef.current = currentScore;
     }
-  }, [match?.homeGoals, goalValueAnimHome]); // Dependency includes optional chaining
+  }, [match?.homeGoals, liveMatchData?.homeScore, isApiControlledMatch]);
 
   /**
    * @brief Effect to animate the away goal value when it changes (scale up then back down).
    * Compares the current away goal count with the previously stored value.
    */
   useEffect(() => {
-    if (match && prevGoalsAwayRef.current !== (match.awayGoals ?? 0)) {
+    // Get the current score (prioritize live data if available)
+    const currentScore = isApiControlledMatch
+      ? liveMatchData?.awayScore ?? 0
+      : match?.awayGoals ?? 0;
+
+    if (prevGoalsAwayRef.current !== currentScore) {
+      // Run animation
       Animated.sequence([
         Animated.timing(goalValueAnimAway, {
           toValue: 1.3,
@@ -229,9 +241,9 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
         }),
       ]).start();
 
-      prevGoalsAwayRef.current = match.awayGoals ?? 0;
+      prevGoalsAwayRef.current = currentScore;
     }
-  }, [match?.awayGoals, goalValueAnimAway]); // Dependency includes optional chaining
+  }, [match?.awayGoals, liveMatchData?.awayScore, isApiControlledMatch]);
 
   /**
    * @brief Memoized calculation to distribute affected players into three columns for display.
@@ -342,7 +354,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         ]}
                       >
                         <Text style={styles.scoreText}>
-                          {match.homeGoals || 0}
+                          {liveMatchData?.homeScore || 0}
                         </Text>
                       </Animated.View>
 
@@ -359,7 +371,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         ]}
                       >
                         <Text style={styles.scoreText}>
-                          {match.awayGoals || 0}
+                          {liveMatchData?.awayScore || 0}
                         </Text>
                       </Animated.View>
                     </View>

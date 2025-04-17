@@ -1040,7 +1040,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   vsText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#888",
     marginHorizontal: 10,
   },

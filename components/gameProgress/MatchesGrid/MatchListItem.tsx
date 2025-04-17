@@ -122,18 +122,27 @@ const MatchListItem: React.FC<MatchItemProps> = ({
           </View>
 
           <View style={[styles.scoresContainer, { paddingHorizontal: 6 }]}>
-            <Text style={styles.gridScoreText}>{homeScore}</Text>
-
+            <Text style={[styles.gridScoreText, { fontSize: 26 }]}>
+              {homeScore}
+            </Text>
             {/* Show match status: FT/HT > Live Time > '-' */}
             {isFinishedOrHalfTime ? (
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show FT or HT
+              <Text style={[styles.minutesPlayedText, { fontSize: 20 }]}>
+                {displayStatus}
+              </Text> // Show FT or HT
             ) : isCurrentlyLive ? (
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show live minutes
+              <Text style={[styles.minutesPlayedText, { fontSize: 20 }]}>
+                {displayStatus}
+              </Text> // Show live minutes
             ) : (
-              <Text style={styles.vsText}>-</Text> // Fallback
+              <Text style={styles.vsText}>
+                <Text style={{ fontSize: 20 }}>-</Text>
+              </Text> // Fallback
             )}
 
-            <Text style={styles.gridScoreText}>{awayScore}</Text>
+            <Text style={[styles.gridScoreText, { fontSize: 26 }]}>
+              {awayScore}
+            </Text>
           </View>
 
           {/* Away team: Logo on RIGHT */}
