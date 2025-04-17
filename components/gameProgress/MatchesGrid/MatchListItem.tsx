@@ -108,7 +108,25 @@ const MatchListItem: React.FC<MatchItemProps> = ({
       activeOpacity={0.7}
     >
       {/* Common indicator */}
-      {match.id === commonMatchId && <View style={styles.commonIndicator} />}
+      {match.id === commonMatchId && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            backgroundColor: "#4caf50",
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            borderBottomLeftRadius: 6,
+            borderTopRightRadius: 7,
+            zIndex: 10,
+          }}
+        >
+          <Text style={{ color: "white", fontSize: 7, fontWeight: "600" }}>
+            Common
+          </Text>
+        </View>
+      )}
 
       <View style={styles.teamsContainer}>
         {/* Team logos with scores positioned horizontally */}
@@ -137,7 +155,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
             ) : (
               <Text style={styles.vsText}>
                 <Text style={{ fontSize: 20 }}>-</Text>
-              </Text> // Fallback
+              </Text> // FallbackF
             )}
 
             <Text style={[styles.gridScoreText, { fontSize: 26 }]}>

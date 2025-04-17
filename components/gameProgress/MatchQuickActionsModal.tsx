@@ -191,8 +191,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
    * @brief Effect to animate the home goal value when it changes (scale up then back down).
    * Compares the current home goal count with the previously stored value.
    */
-  useEffect(() => {
-    // Get the current score (prioritize live data if available)
+  useEffect(() => {    // Get the current score (prioritize live data if available)
     const currentScore = isApiControlledMatch
       ? liveMatchData?.homeScore ?? 0
       : match?.homeGoals ?? 0;
