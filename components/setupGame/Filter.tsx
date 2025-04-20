@@ -8,12 +8,10 @@ import styles from "../../app/style/setupGameStyles";
  * @brief Interface for the props of the MatchFilter component.
  */
 interface MatchFilterProps {
-  startDate: string;
-  endDate: string;
+  selectedDate: string; 
   startTime: string;
   endTime: string;
-  setStartDate: (date: string) => void;
-  setEndDate: (date: string) => void;
+  setSelectedDate: (date: string) => void;
   setStartTime: (time: string) => void;
   setEndTime: (time: string) => void;
   resetAllFilters: () => void;
@@ -31,12 +29,10 @@ interface MatchFilterProps {
  * This component allows users to filter matches by date and time.
  * It provides options to select a date, a time range, and actions to reset or apply the filters.
  *
- * @param startDate The start date for the filter.
- * @param endDate The end date for the filter.
+ * @param selectedDate The selected date for the filter.
  * @param startTime The start time for the filter.
  * @param endTime The end time for the filter.
- * @param setStartDate Function to set the start date.
- * @param setEndDate Function to set the end date.
+ * @param setSelectedDate Function to set the selected date.
  * @param setStartTime Function to set the start time.
  * @param setEndTime Function to set the end time.
  * @param resetAllFilters Function to reset all filters.
@@ -50,19 +46,16 @@ interface MatchFilterProps {
  * @return A React element, representing the match filter.
  */
 const MatchFilter: React.FC<MatchFilterProps> = ({
-  startDate,
-  endDate,
+  selectedDate,
   startTime = "15:00",
   endTime = "22:00",
-  setStartDate,
-  setEndDate,
+  setSelectedDate,
   setStartTime,
   setEndTime,
   resetAllFilters,
   handleAddAllFilteredMatches,
   isTimeFilterActive,
   isDateFilterActive,
-  filteredTeamsData,
   filteredMatches,
   isLoading = false,
 }) => {
@@ -85,11 +78,8 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   }, [isTimeFilterActive]);
 
   useEffect(() => {
-    if (startDate) {
-      setEndDate(startDate);
-      setLocalDateFilterActive(startDate.length > 0);
-    }
-  }, [startDate, setEndDate]);
+    setLocalDateFilterActive(selectedDate.length > 0);
+  }, [selectedDate]);
 
   useEffect(() => {
     const hasValidTime = startTime.length > 0 && endTime.length > 0;
@@ -116,7 +106,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 <View style={styles.filterBadge}>
                   <Ionicons name="calendar" size={14} color="#0275d8" />
                   <Text style={styles.filterBadgeText}>
-                    {startDate.substring(5) || "Date"}
+                    {selectedDate.substring(5) || "Date"}
                   </Text>
                 </View>
               )}
@@ -148,12 +138,12 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
             <TouchableOpacity
               style={[
                 styles.dateInput,
-                isDateFilterActive && styles.activeInput,
+                localDateFilterActive && styles.activeInput,
               ]}
               onPress={() => setIsDatePickerOpen(true)}
             >
               <Text>
-                {startDate || "Select Date"}
+                {selectedDate || "Select Date"}
                 {isLoading && " (Loading...)"}
               </Text>
             </TouchableOpacity>
@@ -161,10 +151,10 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               modal
               mode="date"
               open={isDatePickerOpen}
-              date={new Date(startDate || Date.now())}
+              date={new Date(selectedDate || Date.now())}
               onConfirm={(date) => {
                 setIsDatePickerOpen(false);
-                setStartDate(date.toISOString().split("T")[0]);
+                setSelectedDate(date.toISOString().split("T")[0]);
               }}
               onCancel={() => setIsDatePickerOpen(false)}
             />
@@ -176,7 +166,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               <TouchableOpacity
                 style={[
                   styles.timeInput,
-                  isTimeFilterActive && styles.activeInput,
+                  localTimeFilterActive && styles.activeInput,
                 ]}
                 onPress={() => setIsStartTimePickerOpen(true)}
               >
@@ -199,7 +189,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               <TouchableOpacity
                 style={[
                   styles.timeInput,
-                  isTimeFilterActive && styles.activeInput,
+                  localTimeFilterActive && styles.activeInput,
                 ]}
                 onPress={() => setIsEndTimePickerOpen(true)}
               >

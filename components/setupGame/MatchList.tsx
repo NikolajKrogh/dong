@@ -78,8 +78,6 @@ const MatchList: FC<MatchListProps> = ({
   setGlobalMatches,
 }) => {
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
-  const [startDate, setStartDate] = useState(getTodayDate());
-  const [endDate, setEndDate] = useState(getTodayDate());
   const [selectedMatchData, setSelectedMatchData] = useState<MatchData | null>(
     null
   );
@@ -119,7 +117,10 @@ const MatchList: FC<MatchListProps> = ({
   );
 
   useEffect(() => {
-    if (!apiData || apiData.length === 0) return;
+    if (!apiData || apiData.length === 0) {
+      setFilteredMatches([]);
+      return;
+    }
 
     const allMatches: MatchData[] = [];
     apiData.forEach((leagueData) => {
@@ -128,14 +129,9 @@ const MatchList: FC<MatchListProps> = ({
       }
     });
 
-    const dateFilteredMatches = allMatches.filter(
-      (match) => match.date === startDate
-    );
-
-    const timeFilteredMatches = filterMatchesByDateAndTime(
-      dateFilteredMatches,
-      startDate,
-      endDate,
+    const dateTimeFilteredMatches = filterMatchesByDateAndTime(
+      allMatches,
+      selectedDate,
       startTime,
       endTime
     );
@@ -154,7 +150,7 @@ const MatchList: FC<MatchListProps> = ({
       teamNameMap.set(team.normalizedName, team);
     });
 
-    const leagueFilteredMatches = timeFilteredMatches.filter((match) => {
+    const leagueFilteredMatches = dateTimeFilteredMatches.filter((match) => {
       if (!match.team1 || !match.team2) return false;
 
       const normalizedTeam1 = normalizeTeamName(match.team1);
@@ -167,6 +163,9 @@ const MatchList: FC<MatchListProps> = ({
 
     setFilteredMatches(leagueFilteredMatches);
 
+    setIsDateFilterActive(Boolean(selectedDate));
+    setIsTimeFilterActive(Boolean(startTime && endTime));
+
     const matchingTeams = new Set<string>();
     leagueFilteredMatches.forEach((match) => {
       if (match.team1) matchingTeams.add(match.team1);
@@ -179,22 +178,31 @@ const MatchList: FC<MatchListProps> = ({
         matchingTeams.has(normalizeTeamName(team.value))
     );
 
-    setFilteredTeamsData(filteredTeams);
-    setIsTimeFilterActive(true);
-    setIsDateFilterActive(true);
-  }, [apiData, startDate, endDate, startTime, endTime, selectedLeagues]);
-
-  useEffect(() => {
-    setSelectedDate(startDate);
-  }, [startDate]);
+    if (selectedLeagues.length > 0) {
+      setFilteredTeamsData(filteredTeams);
+    } else {
+      setFilteredTeamsData(teamsData);
+    }
+  }, [
+    apiData,
+    selectedDate,
+    startTime,
+    endTime,
+    selectedLeagues,
+    teamsData,
+    setFilteredTeamsData,
+  ]);
 
   const handleLeagueChange = (league: string) => {
     setSelectedLeagues((prev) => {
-      if (prev.includes(league)) {
-        return prev.filter((l) => l !== league);
-      } else {
-        return [...prev, league];
+      const newSelection = prev.includes(league)
+        ? prev.filter((l) => l !== league)
+        : [...prev, league];
+
+      if (newSelection.length === 0) {
+        setFilteredTeamsData(teamsData);
       }
+      return newSelection;
     });
   };
 
@@ -202,94 +210,26 @@ const MatchList: FC<MatchListProps> = ({
     const today = getTodayDate();
     setStartTime("15:00");
     setEndTime("16:00");
-    setStartDate(today);
-    setEndDate(today);
     setSelectedDate(today);
+    setSelectedLeagues(["Premier League", "Championship"]);
     setFilteredTeamsData(teamsData);
     setIsTimeFilterActive(false);
-    setIsDateFilterActive(false);
+    setIsDateFilterActive(true);
+    setFilteredMatches([]);
   };
 
   const handleAddAllFilteredMatches = () => {
-    if (!apiData || apiData.length === 0) {
-      alert("No match data available");
+    if (filteredMatches.length === 0) {
+      alert("No matches found with current filters to add.");
       return;
     }
 
-    const hasTimeFilter = Boolean(startTime && endTime);
-    const hasDateFilter = Boolean(startDate && endDate);
-
-    if (!hasTimeFilter && !hasDateFilter) {
-      alert("Please set date or time filters first");
+    if (!isDateFilterActive && !isTimeFilterActive) {
+      alert("Please apply date or time filters before adding all.");
       return;
     }
 
-    const allMatches: MatchData[] = [];
-    apiData.forEach((leagueData) => {
-      if (leagueData.matches) {
-        allMatches.push(...leagueData.matches);
-      }
-    });
-
-    const timeFilteredMatches = filterMatchesByDateAndTime(
-      allMatches,
-      startDate,
-      endDate,
-      startTime,
-      endTime
-    );
-
-    const selectedLeagueSet = new Set(selectedLeagues);
-
-    const teamsInSelectedLeagues = teamsData
-      .filter((team) => selectedLeagueSet.has(team.league))
-      .map((team) => ({
-        normalizedName: normalizeTeamName(team.value),
-        originalName: team.value,
-        league: team.league,
-      }));
-
-    const teamNameMap = new Map();
-    teamsInSelectedLeagues.forEach((team) => {
-      teamNameMap.set(team.normalizedName, team);
-    });
-
-    const leagueFilteredMatches = timeFilteredMatches.filter((match) => {
-      if (!match.team1 || !match.team2) return false;
-
-      const normalizedTeam1 = normalizeTeamName(match.team1);
-      const normalizedTeam2 = normalizeTeamName(match.team2);
-
-      const team1Found = teamNameMap.has(normalizedTeam1);
-      const team2Found = teamNameMap.has(normalizedTeam2);
-
-      return team1Found && team2Found;
-    });
-
-    setFilteredMatches(leagueFilteredMatches);
-
-    const matchingTeams = new Set<string>();
-    leagueFilteredMatches.forEach((match) => {
-      if (match.team1) matchingTeams.add(match.team1);
-      if (match.team2) matchingTeams.add(match.team2);
-    });
-
-    const filteredTeams = teamsData.filter(
-      (team) =>
-        matchingTeams.has(team.value) ||
-        matchingTeams.has(normalizeTeamName(team.value))
-    );
-
-    setFilteredTeamsData(filteredTeams);
-    setIsTimeFilterActive(hasTimeFilter);
-    setIsDateFilterActive(hasDateFilter);
-
-    if (leagueFilteredMatches.length === 0) {
-      alert("No matches found with current filters");
-      return;
-    }
-
-    startProcessing(leagueFilteredMatches);
+    startProcessing(filteredMatches);
   };
 
   /**
@@ -304,9 +244,16 @@ const MatchList: FC<MatchListProps> = ({
     return name
       .toLowerCase()
       .replace(/\s+fc$/i, "")
-      .replace(/^(fc|afc|1\.\s*fc|1\.\s*fsv)\s+/i, "")
+      .replace(
+        /^(fc|afc|1\.\s*fc|1\.\s*fsv|as|ss|ssc|rc|cd|ogc|vfl|vfb|tsg|sc)\s+/i,
+        ""
+      )
       .replace(/&\s+/g, "")
       .replace(/[\s\-\.]+/g, "")
+      .replace(/ø/g, "o")
+      .replace(/ü/g, "u")
+      .replace(/é/g, "e")
+      .replace(/á/g, "a")
       .trim();
   };
 
@@ -332,7 +279,6 @@ const MatchList: FC<MatchListProps> = ({
         awayGoals: 0,
       };
 
-      // Add null check before calling
       if (setGlobalMatches) {
         setGlobalMatches([...matches, newMatch]);
       }
@@ -347,6 +293,7 @@ const MatchList: FC<MatchListProps> = ({
     handleAddMatchLocally();
     setHomeTeam("");
     setAwayTeam("");
+    setSelectedMatchData(null);
   };
 
   const handleClearAllMatches = () => {
@@ -357,11 +304,10 @@ const MatchList: FC<MatchListProps> = ({
     setGlobalMatches && setGlobalMatches([]);
   };
 
-  // When selecting a team from the dropdown, store the match data
   const selectMatchFromDropdown = (match: MatchData) => {
     setHomeTeam(match.team1);
     setAwayTeam(match.team2);
-    setSelectedMatchData(match); // Store the full match data
+    setSelectedMatchData(match);
   };
 
   return (
@@ -375,14 +321,10 @@ const MatchList: FC<MatchListProps> = ({
       />
 
       <MatchFilter
-        startDate={startDate}
-        endDate={endDate}
+        selectedDate={selectedDate}
         startTime={startTime}
         endTime={endTime}
-        setStartDate={(date) => {
-          setStartDate(date);
-        }}
-        setEndDate={setEndDate}
+        setSelectedDate={setSelectedDate}
         setStartTime={setStartTime}
         setEndTime={setEndTime}
         resetAllFilters={resetAllFilters}
