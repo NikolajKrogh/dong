@@ -3,7 +3,6 @@ import {
   TeamWithLeague,
   MatchData,
   cleanTeamName,
-  isDateInRange,
   convertTimeToMinutes,
 } from "../utils/matchUtils";
 import { Match } from "../store/store";
@@ -83,24 +82,21 @@ export function useTeamFiltering(
 }
 
 /**
- * @brief Filters an array of match data based on specified date and time ranges.
+ * @brief Filters an array of match data based on a specified date and optional time range.
  * @param {MatchData[]} apiData Array of match data objects fetched from an API.
- * @param {string} startDate The start date for filtering (YYYY-MM-DD).
- * @param {string} endDate The end date for filtering (YYYY-MM-DD).
- * @param {string} startTime The start time for filtering (HH:MM).
- * @param {string} endTime The end time for filtering (HH:MM).
- * @returns {MatchData[]} A new array containing only the matches that fall within the specified date and time ranges.
- * If no date or time filters are provided, returns the original array.
+ * @param {string} selectedDate The date for filtering (YYYY-MM-DD). Can be empty if no date filter.
+ * @param {string} startTime The start time for filtering (HH:MM). Can be empty if no time filter.
+ * @param {string} endTime The end time for filtering (HH:MM). Can be empty if no time filter.
+ * @returns {MatchData[]} A new array containing only the matches that fall within the specified date and time range.
  */
 export function filterMatchesByDateAndTime(
   apiData: MatchData[],
-  startDate: string,
-  endDate: string,
+  selectedDate: string,
   startTime: string,
   endTime: string
 ): MatchData[] {
   const hasTimeFilter = Boolean(startTime && endTime);
-  const hasDateFilter = Boolean(startDate && endDate);
+  const hasDateFilter = Boolean(selectedDate);
 
   // Return original data if no filters are applied
   if (!hasTimeFilter && !hasDateFilter) {
@@ -113,8 +109,7 @@ export function filterMatchesByDateAndTime(
 
     // Apply date filter if active
     if (hasDateFilter) {
-      // Ensure match.date is valid before checking range
-      includeMatch = isDateInRange(match.date ?? "", startDate, endDate);
+      includeMatch = match.date === selectedDate;
     }
 
     // Apply time filter only if the date filter passed (or wasn't active) and time filter is active
@@ -124,9 +119,15 @@ export function filterMatchesByDateAndTime(
       const endMinutes = convertTimeToMinutes(endTime);
 
       // Check if match time falls within the specified range
-      includeMatch = matchMinutes >= startMinutes && matchMinutes <= endMinutes;
+      if (matchMinutes !== -1 && startMinutes !== -1 && endMinutes !== -1) {
+        includeMatch = matchMinutes >= startMinutes && matchMinutes <= endMinutes;
+      } else {
+        includeMatch = false;
+      }
+    } else if (includeMatch && hasTimeFilter && !match.time) {
+      includeMatch = false;
     }
 
-    return includeMatch; // Return true if the match passes all active filters
+    return includeMatch;
   });
 }

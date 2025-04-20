@@ -1,8 +1,22 @@
+/**
+ * @file teamLogos.ts
+ * @brief Provides utility functions and mappings for retrieving team logo assets.
+ *
+ * This file defines mappings between team names (including aliases and cleaned versions)
+ * and their corresponding logo image assets. It offers functions to retrieve logos
+ * with exact matching or fallback logic (case-insensitive, alias, cleaned name, partial match).
+ */
+
 //! Find more logos at: https://brandlogos.net/
 import { cleanTeamName } from "./matchUtils";
 import { TEAM_ALIASES } from "./teamAliases";
 
-// Map team names to their logo images
+/**
+ * @brief Map of official team names to their logo image assets.
+ * @details Uses `require` to include image assets directly.
+ *          Keys are the official team names as strings.
+ *          Values are the result of `require(path/to/logo.png)`.
+ */
 export const TEAM_LOGOS: { [key: string]: any } = {
   // Bundesliga
   "1. FC Heidenheim 1846": require("../assets/images/teams/bundesliga/heidenheim.png"),
@@ -151,7 +165,14 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "Vejle Boldklub": require("../assets/images/teams/superliga/vejle.png"),
 };
 
-// Expanded mapping for cleaned team names to official names
+/**
+ * @brief Mapping from cleaned team names to their official names in TEAM_LOGOS.
+ * @details This map is automatically generated based on the keys in `TEAM_LOGOS`
+ *          and the `cleanTeamName` function. It helps find the official name
+ *          when only a cleaned version (e.g., without "FC", "CF") is available.
+ *          Keys are the cleaned team names.
+ *          Values are the corresponding official team names.
+ */
 const CLEANED_NAME_MAPPING: { [key: string]: string } = {
   // Automatically generate this from your TEAM_LOGOS keys
 };
@@ -165,8 +186,11 @@ Object.keys(TEAM_LOGOS).forEach((officialName) => {
 });
 
 // Create normalized lookup maps for faster case-insensitive matching
+/** @internal Map of lowercase official team names to logo assets. */
 const NORMALIZED_LOGOS: { [key: string]: any } = {};
+/** @internal Map of lowercase team aliases to official team names. */
 const NORMALIZED_ALIASES: { [key: string]: string } = {};
+/** @internal Map of lowercase cleaned team names to official team names. */
 const NORMALIZED_CLEANED_MAPPING: { [key: string]: string } = {};
 
 // Initialize the normalized maps
@@ -182,41 +206,55 @@ Object.entries(CLEANED_NAME_MAPPING).forEach(([cleaned, official]) => {
   NORMALIZED_CLEANED_MAPPING[cleaned.toLowerCase()] = official;
 });
 
-// Helper function to get team logo by name
+/**
+ * @brief Retrieves the team logo asset using an exact, case-sensitive team name match.
+ * @param {string} teamName - The official, case-sensitive team name.
+ * @returns {any | null} The required logo asset if found, otherwise null.
+ */
 export const getTeamLogo = (teamName: string) => {
   return TEAM_LOGOS[teamName] || null;
 };
 
-// Get team logo with case-insensitive matching
+/**
+ * @brief Retrieves the team logo asset using fallback logic for matching.
+ * @details Attempts to find a logo in the following order:
+ *          1. Exact match (case-insensitive) on official name.
+ *          2. Alias match (case-insensitive).
+ *          3. Cleaned name match (case-insensitive, e.g., "Bayern München" for "FC Bayern München").
+ *          4. Official name lookup based on cleaned name match (case-insensitive).
+ *          5. Partial string match (case-insensitive) on official names.
+ * @param {string} teamName - The team name to search for (can be official, alias, cleaned, or partial).
+ * @returns {any | null} The required logo asset if found using any fallback method, otherwise null.
+ */
 export const getTeamLogoWithFallback = (teamName: string) => {
   // Normalize the input name
   const normalizedName = teamName.trim();
   const lowerCaseName = normalizedName.toLowerCase();
 
-  // Try direct match first
+  // 1. Try direct match first (case-insensitive)
   if (NORMALIZED_LOGOS[lowerCaseName]) {
     return NORMALIZED_LOGOS[lowerCaseName];
   }
 
-  // Check for aliases
+  // 2. Check for aliases (case-insensitive)
   const aliasedTeam = NORMALIZED_ALIASES[lowerCaseName];
-  if (aliasedTeam && TEAM_LOGOS[aliasedTeam]) {
+  if (aliasedTeam && TEAM_LOGOS[aliasedTeam]) { // Check against original TEAM_LOGOS for the official name
     return TEAM_LOGOS[aliasedTeam];
   }
 
-  // Check if this is a cleaned name
+  // 3. Check if the input itself is a cleaned name (case-insensitive)
   const cleanedName = cleanTeamName(normalizedName).toLowerCase();
   if (NORMALIZED_LOGOS[cleanedName]) {
     return NORMALIZED_LOGOS[cleanedName];
   }
 
-  // Check the mapping of cleaned names to official names
+  // 4. Check the mapping of cleaned names to official names (case-insensitive)
   const officialFromCleaned = NORMALIZED_CLEANED_MAPPING[cleanedName];
-  if (officialFromCleaned && TEAM_LOGOS[officialFromCleaned]) {
+  if (officialFromCleaned && TEAM_LOGOS[officialFromCleaned]) { // Check against original TEAM_LOGOS
     return TEAM_LOGOS[officialFromCleaned];
   }
 
-  // Partial match as a last resort
+  // 5. Partial match as a last resort (case-insensitive)
   for (const [lowercaseKey, logo] of Object.entries(NORMALIZED_LOGOS)) {
     if (
       lowercaseKey.includes(lowerCaseName) ||

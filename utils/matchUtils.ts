@@ -31,15 +31,37 @@ export const formatDateForAPI = (dateString?: string): string => {
 };
 
 /**
- * @brief Cleans a team name by removing common prefixes and suffixes.
+ * @brief Cleans a team name by removing common prefixes, suffixes, and extra whitespace.
  *
  * @param teamName The team name to clean.
  * @return The cleaned team name.
  */
 export const cleanTeamName = (teamName: string): string => {
+  if (!teamName) return "";
+
+  // Define common affixes (escape special regex characters like '.')
+  const prefixes = [
+    "FC", "AFC", "CF", "IF", "FF", "BK", "SCO", "OSC", "HSC", "BC", "CFC",
+    "AC", "AS", "SS", "SSC", "US", "ACF", "OGC", "VfL", "VfB", "TSG", "SC",
+    "RB", "SV", "RCD", "CA", "CD", "UD", "RC", "AJ", "1\\.\\s*FC", "1\\.\\s*FSV" // Escaped '.' and handled potential space
+  ];
+  const suffixes = [
+    "FC", "AFC", "CF", "IF", "FF", "BK", "SCO", "OSC", "HSC", "BC", "CFC",
+    "AC", "AS", "SS", "SSC", "1909", "1913", "1846", "1848", "1910", "1901", "29"
+  ];
+
+  // Match suffix preceded by one or more spaces, at the end of the string ($)
+  const suffixRegex = new RegExp(`\\s+(${suffixes.join('|')})$`, 'i');
+  // Match prefix at the start of the string (^), followed by one or more spaces
+  const prefixRegex = new RegExp(`^(${prefixes.join('|')})\\s+`, 'i');
+
   let cleaned = teamName.trim();
-  cleaned = cleaned.replace(/ FC$/i, "");
-  cleaned = cleaned.replace(/^(AFC|FC|1\. FSV|1\. FC|SS|SSC) /i, "");
+
+  // Remove suffix first, then prefix
+  cleaned = cleaned.replace(suffixRegex, "");
+  cleaned = cleaned.replace(prefixRegex, "");
+
+  // Trim again in case removing prefix/suffix left whitespace or if nothing was removed
   return cleaned.trim();
 };
 
@@ -53,37 +75,22 @@ export const convertTimeToMinutes = (timeString: string): number => {
   if (!timeString || !timeString.includes(":")) return -1;
 
   try {
-    const [hours, minutes] = timeString.split(":").map(Number);
+    const parts = timeString.split(":");
+    // Ensure split resulted in exactly two non-empty parts
+    if (parts.length !== 2 || parts[0] === "" || parts[1] === "") {
+      return -1;
+    }
+    const [hours, minutes] = parts.map(Number);
     if (isNaN(hours) || isNaN(minutes)) return -1;
+
+    // Ensure hours and minutes are within valid ranges
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return -1;
+    }
+
     return hours * 60 + minutes;
   } catch (e) {
     return -1;
-  }
-};
-
-/**
- * @brief Checks if a date is within a specified range.
- *
- * @param dateStr The date string to check (YYYY-MM-DD).
- * @param startDateStr The start date string of the range (YYYY-MM-DD).
- * @param endDateStr The end date string of the range (YYYY-MM-DD).
- * @return True if the date is within the range (inclusive), false otherwise.
- */
-export const isDateInRange = (
-  dateStr: string,
-  startDateStr: string,
-  endDateStr: string
-): boolean => {
-  if (!dateStr || !startDateStr || !endDateStr) return true;
-
-  try {
-    const date = new Date(dateStr);
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(endDateStr);
-
-    return date >= startDate && date <= endDate;
-  } catch (e) {
-    return true;
   }
 };
 
