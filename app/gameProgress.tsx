@@ -3,9 +3,7 @@ import { useLiveScores } from "../hooks/useLiveScores";
 import {
   View,
   SafeAreaView,
-  Text,
   RefreshControl,
-  StyleSheet,
   AppState,
   AppStateStatus,
 } from "react-native";
@@ -13,7 +11,6 @@ import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import styles from "./style/gameProgressStyles";
-import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
 // Import components
@@ -217,18 +214,39 @@ const GameProgressScreen = () => {
           let updatedMatch = match;
           if (typeof newTotal === "number") {
             if (team === "home") {
-              // Only play sound if the goal count actually increased
               if (newTotal > (match.homeGoals || 0)) {
                 playDongSound();
-                // Pass isLiveUpdate=true since we're using newTotal
-                setTimeout(() => showGoalToast(matchId, team, true), 10);
+                // Pass both current scores to showGoalToast
+                const currentAwayGoals = match.awayGoals || 0;
+                setTimeout(
+                  () =>
+                    showGoalToast(
+                      matchId,
+                      team,
+                      true,
+                      newTotal,
+                      currentAwayGoals
+                    ),
+                  10
+                );
               }
               updatedMatch = { ...match, homeGoals: newTotal };
             } else {
               if (newTotal > (match.awayGoals || 0)) {
                 playDongSound();
-                // Pass isLiveUpdate=true since we're using newTotal
-                setTimeout(() => showGoalToast(matchId, team, true), 10);
+                // Pass both current scores to showGoalToast
+                const currentHomeGoals = match.homeGoals || 0;
+                setTimeout(
+                  () =>
+                    showGoalToast(
+                      matchId,
+                      team,
+                      true,
+                      newTotal,
+                      currentHomeGoals
+                    ),
+                  10
+                );
               }
               updatedMatch = { ...match, awayGoals: newTotal };
             }
@@ -386,30 +404,41 @@ const GameProgressScreen = () => {
    * @brief Shows a toast notification when a goal is scored
    * @param {string} matchId - The ID of the match where a goal was scored
    * @param {'home' | 'away'} team - The team that scored the goal
-   * @param {boolean} [isLiveUpdate=false] - Whether this is from a live update (with newTotal)
+   * @param {boolean} [isLiveUpdate=false] - Whether this is from a live update
+   * @param {number} [newTotal] - The new total goal count (for live updates)
+   * @param {number} [otherTeamScore] - The score of the other team (for live updates)
    */
   const showGoalToast = (
     matchId: string,
     team: "home" | "away",
-    isLiveUpdate = false
+    isLiveUpdate = false,
+    newTotal?: number,
+    otherTeamScore?: number
   ) => {
     const match = matches.find((m) => m.id === matchId);
     if (!match) return;
 
-    // Calculate the score that will be displayed (accounting for the goal that was just scored)
-    const homeScore =
-      team === "home" && !isLiveUpdate
-        ? (match.homeGoals || 0) + 1
-        : match.homeGoals || 0;
+    // Calculate the score that will be displayed
+    let homeScore, awayScore;
 
-    const awayScore =
-      team === "away" && !isLiveUpdate
-        ? (match.awayGoals || 0) + 1
-        : match.awayGoals || 0;
+    if (isLiveUpdate && typeof newTotal === "number") {
+      if (team === "home") {
+        homeScore = newTotal;
+        awayScore = otherTeamScore ?? (match.awayGoals || 0);
+      } else {
+        homeScore = otherTeamScore ?? (match.homeGoals || 0);
+        awayScore = newTotal;
+      }
+    } else {
+      // For manual updates, add 1 to the current value
+      homeScore =
+        team === "home" ? (match.homeGoals || 0) + 1 : match.homeGoals || 0;
+      awayScore =
+        team === "away" ? (match.awayGoals || 0) + 1 : match.awayGoals || 0;
+    }
 
     const scoreTitle = `${match.homeTeam} ${homeScore}-${awayScore} ${match.awayTeam}`;
 
-    // Rest of function remains the same
     const playersToDrink = getPlayersWhoDrink(matchId);
     if (playersToDrink.length === 0) return;
 
