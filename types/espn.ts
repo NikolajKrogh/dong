@@ -9,6 +9,14 @@ export interface ESPNResponse {
     abbreviation: string;
     slug?: string;
     midsizeName?: string;
+    logos?: Array<{
+      href: string;
+      width: number;
+      height: number;
+      alt: string;
+      rel: string[];
+      lastUpdated?: string;
+    }>;
   }>;
   events: Array<ESPNEvent>;
 }
@@ -84,5 +92,12 @@ export interface ESPNCompetitor {
     id?: string;
     name?: string;
     displayName?: string;
+    logo?: string;
+    abbreviation?: string;
+    shortDisplayName?: string;
+    location?: string;
+    color?: string;
+    alternateColor?: string;
+    isActive?: boolean;
   };
 }

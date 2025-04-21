@@ -4,6 +4,7 @@ import { Match } from "../store/store";
 import { formatDateForAPI } from "../utils/matchUtils";
 import { Audio } from "expo-av";
 import { ESPNResponse } from "../types/espn"; // cspell:ignore espn
+import { cacheTeamLogo } from "../utils/teamLogos";
 
 /**
  * @brief Interface for match state with score information.
@@ -320,6 +321,15 @@ const processApiMatch = (event: any): MatchWithScore | null => {
 
     // Ensure both teams' data is found
     if (!homeTeamData || !awayTeamData) return null;
+
+    // Cache team logos if available in the API response
+    if (homeTeamData.team?.logo && homeTeamData.team?.displayName) {
+      cacheTeamLogo(homeTeamData.team.displayName, homeTeamData.team.logo);
+    }
+
+    if (awayTeamData.team?.logo && awayTeamData.team?.displayName) {
+      cacheTeamLogo(awayTeamData.team.displayName, awayTeamData.team.logo);
+    }
 
     // Safely parse scores, defaulting to 0
     const homeScore = parseInt(homeTeamData.score || "0", 10);

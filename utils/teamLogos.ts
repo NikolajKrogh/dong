@@ -10,6 +10,44 @@
 //! Find more logos at: https://brandlogos.net/
 import { cleanTeamName } from "./matchUtils";
 import { TEAM_ALIASES } from "./teamAliases";
+import { ImageSourcePropType } from "react-native";
+
+// Cache for storing logos fetched from the API
+const logoCache: Record<string, string> = {};
+
+// Cache for league logos from API
+const leagueLogoCache: Record<string, string> = {};
+
+/**
+ * Stores a team logo URL in the cache
+ * @param teamName The name of the team
+ * @param logoUrl The URL of the team's logo
+ */
+export const cacheTeamLogo = (teamName: string, logoUrl: string): void => {
+  if (teamName && logoUrl) {
+    logoCache[teamName] = logoUrl;
+  }
+};
+
+/**
+ * Stores a league logo URL in the cache
+ * @param leagueName The name of the league
+ * @param logoUrl The URL of the league's logo
+ */
+export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
+  if (leagueName && logoUrl) {
+    leagueLogoCache[leagueName] = logoUrl;
+  }
+};
+
+/**
+ * Gets a cached league logo URL if available
+ * @param leagueName The name of the league
+ * @returns The logo URL if cached, undefined otherwise
+ */
+export const getCachedLeagueLogo = (leagueName: string): string | undefined => {
+  return leagueLogoCache[leagueName];
+};
 
 /**
  * @brief Map of official team names to their logo image assets.
@@ -149,10 +187,9 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "Valencia CF": require("../assets/images/teams/la-liga/valencia.png"),
   "Villarreal CF": require("../assets/images/teams/la-liga/villarreal.png"),
 
-
   // Superliga
-  "AAB": require("../assets/images/teams/superliga/aab.png"),
-  "AGF": require("../assets/images/teams/superliga/agf.png"),
+  AAB: require("../assets/images/teams/superliga/aab.png"),
+  AGF: require("../assets/images/teams/superliga/agf.png"),
   "Brøndby IF": require("../assets/images/teams/superliga/brøndby.png"),
   "F.C. København": require("../assets/images/teams/superliga/københavn.png"),
   "Lyngby Boldklub": require("../assets/images/teams/superliga/lyngby.png"),
@@ -216,17 +253,14 @@ export const getTeamLogo = (teamName: string) => {
 };
 
 /**
- * @brief Retrieves the team logo asset using fallback logic for matching.
- * @details Attempts to find a logo in the following order:
- *          1. Exact match (case-insensitive) on official name.
- *          2. Alias match (case-insensitive).
- *          3. Cleaned name match (case-insensitive, e.g., "Bayern München" for "FC Bayern München").
- *          4. Official name lookup based on cleaned name match (case-insensitive).
- *          5. Partial string match (case-insensitive) on official names.
- * @param {string} teamName - The team name to search for (can be official, alias, cleaned, or partial).
- * @returns {any | null} The required logo asset if found using any fallback method, otherwise null.
+ * Returns a team logo as an Image source, prioritizing local assets first
+ * and falling back to API-provided logos if needed
+ * @param teamName The name of the team
+ * @returns An Image source that can be used by React Native
  */
-export const getTeamLogoWithFallback = (teamName: string) => {
+export const getTeamLogoWithFallback = (
+  teamName: string
+): ImageSourcePropType => {
   // Normalize the input name
   const normalizedName = teamName.trim();
   const lowerCaseName = normalizedName.toLowerCase();
@@ -238,7 +272,8 @@ export const getTeamLogoWithFallback = (teamName: string) => {
 
   // 2. Check for aliases (case-insensitive)
   const aliasedTeam = NORMALIZED_ALIASES[lowerCaseName];
-  if (aliasedTeam && TEAM_LOGOS[aliasedTeam]) { // Check against original TEAM_LOGOS for the official name
+  if (aliasedTeam && TEAM_LOGOS[aliasedTeam]) {
+    // Check against original TEAM_LOGOS for the official name
     return TEAM_LOGOS[aliasedTeam];
   }
 
@@ -250,7 +285,8 @@ export const getTeamLogoWithFallback = (teamName: string) => {
 
   // 4. Check the mapping of cleaned names to official names (case-insensitive)
   const officialFromCleaned = NORMALIZED_CLEANED_MAPPING[cleanedName];
-  if (officialFromCleaned && TEAM_LOGOS[officialFromCleaned]) { // Check against original TEAM_LOGOS
+  if (officialFromCleaned && TEAM_LOGOS[officialFromCleaned]) {
+    // Check against original TEAM_LOGOS
     return TEAM_LOGOS[officialFromCleaned];
   }
 
@@ -264,6 +300,11 @@ export const getTeamLogoWithFallback = (teamName: string) => {
     }
   }
 
-  // No match found
-  return null;
+  // 6. Check if we have a cached logo from the API as fallback
+  if (teamName && logoCache[teamName]) {
+    return { uri: logoCache[teamName] };
+  }
+
+  // No match found anywhere
+  return require("../assets/images/teams/default.png");
 };

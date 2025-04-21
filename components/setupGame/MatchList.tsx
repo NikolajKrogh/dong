@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Match } from "../../store/store";
 import styles from "../../app/style/setupGameStyles";
-import MatchFilter from "./Filter";
+import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow ";
 import MatchItem from "./MatchItem";
 import LeagueFilter from "./LeagueFilter";
@@ -327,7 +327,6 @@ const MatchList: FC<MatchListProps> = ({
         setSelectedDate={setSelectedDate}
         setStartTime={setStartTime}
         setEndTime={setEndTime}
-        resetAllFilters={resetAllFilters}
         handleAddAllFilteredMatches={handleAddAllFilteredMatches}
         isTimeFilterActive={isTimeFilterActive}
         isDateFilterActive={isDateFilterActive}

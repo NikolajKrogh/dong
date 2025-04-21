@@ -5,6 +5,7 @@ import {
   formatDateForAPI,
 } from "../utils/matchUtils";
 import { ESPNResponse, ESPNEvent } from "../types/espn";
+import { cacheTeamLogo, cacheLeagueLogo } from "../utils/teamLogos";
 
 /**
  * @brief Makes direct requests without proxy.
@@ -15,7 +16,6 @@ import { ESPNResponse, ESPNEvent } from "../types/espn";
 const fetchDataFromESPN = async (url: string) => {
   return fetch(url);
 };
-
 
 /**
  * @brief Custom hook for fetching match data from the ESPN API.
@@ -86,6 +86,48 @@ export function useMatchData(selectedDate?: string) {
           }
 
           const data: ESPNResponse = await response.json();
+
+          // Add this section to cache logos
+          data.events.forEach((event) => {
+            if (event.competitions) {
+              event.competitions.forEach((competition) => {
+                if (competition.competitors) {
+                  competition.competitors.forEach((competitor) => {
+                    if (competitor.team?.displayName && competitor.team?.logo) {
+                      cacheTeamLogo(
+                        competitor.team.displayName,
+                        competitor.team.logo
+                      );
+                    }
+                  });
+                }
+              });
+            }
+          });
+
+          if (data.leagues && data.leagues.length > 0) {
+            for (const league of data.leagues) {
+              // Cache league logos if available
+              if (league.logos && league.logos.length > 0) {
+                // Find the default logo (prefer the one marked as default)
+                const defaultLogo = league.logos.find(
+                  (logo) =>
+                    logo.rel.includes("default") || logo.rel.includes("full")
+                );
+
+                if (defaultLogo && defaultLogo.href) {
+                  // Map the league name or abbreviation to our app's league name convention
+                  const appLeagueName = leagueEndpoints.find(
+                    (l) => l.code === league.slug
+                  )?.name;
+
+                  if (appLeagueName) {
+                    cacheLeagueLogo(appLeagueName, defaultLogo.href);
+                  }
+                }
+              }
+            }
+          }
 
           const leagueName = leagueEndpoints[i].name;
           leagueSet.add(leagueName);
