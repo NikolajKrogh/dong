@@ -332,13 +332,13 @@ const processApiMatch = (event: any): MatchWithScore | null => {
     // Determine the display string for match time/status
     let matchTimeDisplay: string;
     const shortDetail = event.status?.type?.shortDetail; // e.g., "HT", "FT", "1st", "2nd"
-    const displayClock = event.status?.displayClock; // e.g., "45:00+", "90:00"
+    const displayClock = event.status?.displayClock; // e.g., "90'+4'", "45'+2'"
 
     if (shortDetail === "HT" || shortDetail === "FT") {
       matchTimeDisplay = shortDetail; // Use "HT" or "FT" directly
     } else if (isLive && displayClock) {
-      // Use the display clock if live and available, removing potential trailing '+' or similar
-      matchTimeDisplay = displayClock.replace(/['+]/g, "") + "'"; // Ensure apostrophe
+      // Use the display clock directly as provided by the API
+      matchTimeDisplay = displayClock;
     } else {
       // Fallback to short detail or a placeholder if not live or clock unavailable
       matchTimeDisplay = shortDetail || "?";

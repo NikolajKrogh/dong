@@ -4,9 +4,11 @@
 export interface ESPNResponse {
   leagues?: Array<{
     id: string;
-    uid: string;
+    uid?: string;
     name: string;
     abbreviation: string;
+    slug?: string;
+    midsizeName?: string;
   }>;
   events: Array<ESPNEvent>;
 }
@@ -21,6 +23,15 @@ export interface ESPNEvent {
   name?: string;
   shortName?: string;
   competitions?: Array<ESPNCompetition>;
+  status?: {
+    type?: {
+      state?: string;
+      completed?: boolean;
+      description?: string;
+      shortDetail?: string;
+    };
+    displayClock?: string;
+  };
   venue?: {
     id?: string;
     fullName?: string;
@@ -41,6 +52,25 @@ export interface ESPNCompetition {
     };
   };
   competitors?: Array<ESPNCompetitor>;
+  details?: Array<{
+    scoringPlay?: boolean;
+    team?: {
+      id: string;
+      name?: string;
+    };
+    athletesInvolved?: Array<{
+      displayName?: string;
+      shortName?: string;
+    }>;
+    clock?: {
+      displayValue?: string;
+    };
+    penaltyKick?: boolean;
+    ownGoal?: boolean;
+    type?: {
+      text?: string;
+    };
+  }>;
 }
 
 /**
