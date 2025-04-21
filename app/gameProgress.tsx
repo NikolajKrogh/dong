@@ -3,17 +3,14 @@ import { useLiveScores } from "../hooks/useLiveScores";
 import {
   View,
   SafeAreaView,
-  Text,
   RefreshControl,
-  StyleSheet,
   AppState,
   AppStateStatus,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useGameStore } from "../store/store";
+import { useGameStore, Match } from "../store/store";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import styles from "./style/gameProgressStyles";
-import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
 // Import components
@@ -24,6 +21,16 @@ import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActions
 import EndGameModal from "../components/gameProgress/EndGameModal";
 import FooterButtons from "../components/gameProgress/FooterButtons";
 import { goalToastConfig } from "../components/gameProgress/GoalToast";
+
+// Define interface for goal information
+interface LastGoalInfo {
+  matchId: string;
+  team: "home" | "away";
+  isLiveUpdate: boolean;
+  newTotal?: number; // The new score total for the scoring team (live updates)
+  otherTeamScore?: number; // The score of the other team at the time of the goal (live updates)
+  timestamp: number; // To differentiate consecutive identical goals
+}
 
 /**
  * @component GameProgressScreen
@@ -43,6 +50,8 @@ const GameProgressScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState);
   const [soundObject, setSoundObject] = useState<Audio.Sound | null>(null);
+  // State to track the last goal scored, triggering sound/toast effect
+  const [lastGoalInfo, setLastGoalInfo] = useState<LastGoalInfo | null>(null);
 
   const {
     players,
@@ -198,9 +207,8 @@ const GameProgressScreen = () => {
    * @brief Increments the goal count for a team in a match.
    *
    * Updates the goal count for the specified team in the given match. If a new total
-   * is provided, sets the count directly to that value. Otherwise, increments by 1.
-   * Plays a sound effect when a goal is scored and shows a toast notification
-   * indicating which players should drink.
+   * is provided (live update), sets the count directly. Otherwise, increments by 1 (manual).
+   * Stores goal information to trigger sound/toast effect *after* state update.
    *
    * @param {string} matchId - The ID of the match to update
    * @param {'home' | 'away'} team - Which team scored the goal
@@ -211,55 +219,72 @@ const GameProgressScreen = () => {
     team: "home" | "away",
     newTotal?: number
   ) => {
+    let goalScoredInfo: LastGoalInfo | null = null; // Temp storage for goal info
+
     setMatches((prevMatches) =>
       prevMatches.map((match) => {
         if (match.id === matchId) {
-          let updatedMatch = match;
-          if (typeof newTotal === "number") {
+          let updatedMatch = { ...match }; // Work with a mutable copy
+          let goalActuallyScored = false;
+          const isLive = typeof newTotal === "number";
+          let liveUpdateNewTotal: number | undefined = undefined;
+          let liveUpdateOtherScore: number | undefined = undefined;
+
+          if (isLive) {
+            // Live update
             if (team === "home") {
-              // Only play sound if the goal count actually increased
               if (newTotal > (match.homeGoals || 0)) {
-                playDongSound();
-                // Pass isLiveUpdate=true since we're using newTotal
-                setTimeout(() => showGoalToast(matchId, team, true), 10);
+                goalActuallyScored = true;
+                updatedMatch.homeGoals = newTotal;
+                liveUpdateNewTotal = newTotal;
+                liveUpdateOtherScore = match.awayGoals || 0;
+              } else if (newTotal !== match.homeGoals) {
+                // Update state even if score didn't increase (e.g., correction)
+                updatedMatch.homeGoals = newTotal;
               }
-              updatedMatch = { ...match, homeGoals: newTotal };
             } else {
+              // Away team
               if (newTotal > (match.awayGoals || 0)) {
-                playDongSound();
-                // Pass isLiveUpdate=true since we're using newTotal
-                setTimeout(() => showGoalToast(matchId, team, true), 10);
+                goalActuallyScored = true;
+                updatedMatch.awayGoals = newTotal;
+                liveUpdateNewTotal = newTotal;
+                liveUpdateOtherScore = match.homeGoals || 0;
+              } else if (newTotal !== match.awayGoals) {
+                updatedMatch.awayGoals = newTotal;
               }
-              updatedMatch = { ...match, awayGoals: newTotal };
             }
-          }
-          // Otherwise just increment by 1
-          else {
+          } else {
+            // Manual increment
             if (team === "home") {
-              updatedMatch = {
-                ...match,
-                homeGoals: (match.homeGoals || 0) + 1,
-              };
-              // Manual scoring - show toast immediately
-              setTimeout(() => showGoalToast(matchId, team, false), 10);
+              updatedMatch.homeGoals = (match.homeGoals || 0) + 1;
+              goalActuallyScored = true;
             } else {
-              updatedMatch = {
-                ...match,
-                awayGoals: (match.awayGoals || 0) + 1,
-              };
-              // Manual scoring - show toast immediately
-              setTimeout(() => showGoalToast(matchId, team, false), 10);
+              // Away team
+              updatedMatch.awayGoals = (match.awayGoals || 0) + 1;
+              goalActuallyScored = true;
             }
           }
 
-          return updatedMatch;
+          // If a goal was scored, prepare the info to trigger the effect
+          if (goalActuallyScored) {
+            goalScoredInfo = {
+              matchId,
+              team,
+              isLiveUpdate: isLive,
+              newTotal: liveUpdateNewTotal, // Store calculated values for live updates
+              otherTeamScore: liveUpdateOtherScore,
+              timestamp: Date.now(), // Add timestamp
+            };
+          }
+          return updatedMatch; // Return the potentially updated match
         }
-        return match;
+        return match; // Return unchanged match
       })
     );
 
-    if (typeof newTotal === "undefined") {
-      playDongSound();
+    // After setMatches is called, update the state that triggers the effect
+    if (goalScoredInfo) {
+      setLastGoalInfo(goalScoredInfo);
     }
   };
 
@@ -383,44 +408,103 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Shows a toast notification when a goal is scored
-   * @param {string} matchId - The ID of the match where a goal was scored
-   * @param {'home' | 'away'} team - The team that scored the goal
-   * @param {boolean} [isLiveUpdate=false] - Whether this is from a live update (with newTotal)
+   * @brief Calculates the home and away scores to be displayed in the goal toast.
+   * For live updates, uses the provided new total and the other team's score.
+   * For manual updates, uses the current scores from the match object (which should reflect the increment).
+   * @param {Match} match - The match object containing current scores and team names.
+   * @param {'home' | 'away'} team - The team that scored the goal.
+   * @param {boolean} isLiveUpdate - Flag indicating if the update is from live data.
+   * @param {number} [newTotal] - The new total score for the scoring team (passed for live updates).
+   * @param {number} [otherTeamScore] - The current score of the non-scoring team (passed for live updates).
+   * @returns {{ homeScore: number, awayScore: number }} An object containing the calculated home and away scores for display.
+   */
+  const calculateToastScoreDisplay = (
+    match: Match,
+    team: "home" | "away",
+    isLiveUpdate: boolean,
+    newTotal?: number,
+    otherTeamScore?: number
+  ): { homeScore: number; awayScore: number } => {
+    let homeScore, awayScore;
+
+    if (
+      isLiveUpdate &&
+      typeof newTotal === "number" &&
+      typeof otherTeamScore === "number"
+    ) {
+      // For live updates, use the provided scores directly
+      if (team === "home") {
+        homeScore = newTotal;
+        awayScore = otherTeamScore;
+      } else {
+        homeScore = otherTeamScore;
+        awayScore = newTotal;
+      }
+    } else {
+      // Manual updates: Use the current scores from the match object passed in.
+      // This match object comes from the *updated* `matches` state in the effect.
+      homeScore = match.homeGoals || 0;
+      awayScore = match.awayGoals || 0;
+    }
+    return { homeScore, awayScore };
+  };
+
+  /**
+   * @brief Formats the message indicating which players should drink.
+   * Lists player names directly if 3 or fewer players need to drink.
+   * Summarizes if more than 3 players need to drink (e.g., "Player A, Player B and 5 others should drink!").
+   * Returns an empty string if no players need to drink.
+   * @param {string[]} playersToDrink - An array of names of players who should drink.
+   * @returns {string} The formatted message string, or an empty string if the input array is empty.
+   */
+  const formatGoalToastMessage = (playersToDrink: string[]): string => {
+    if (playersToDrink.length === 0) return "";
+    if (playersToDrink.length <= 3) {
+      return `${playersToDrink.join(", ")} should drink!`;
+    } else {
+      return `${playersToDrink.slice(0, 2).join(", ")} and ${
+        playersToDrink.length - 2
+      } others should drink!`;
+    }
+  };
+
+  /**
+   * @brief Shows a toast notification when a goal is scored.
+   * Finds the match from the *current* state, calculates the score display,
+   * determines which players should drink, formats the message, and displays the toast.
+   * @param {string} matchId - The ID of the match where a goal was scored.
+   * @param {'home' | 'away'} team - The team that scored the goal.
+   * @param {boolean} [isLiveUpdate=false] - Flag indicating if the update is from live data.
+   * @param {number} [newTotal] - The new total score for the scoring team (passed for live updates).
+   * @param {number} [otherTeamScore] - The current score of the non-scoring team (passed for live updates).
    */
   const showGoalToast = (
     matchId: string,
     team: "home" | "away",
-    isLiveUpdate = false
+    isLiveUpdate = false,
+    newTotal?: number,
+    otherTeamScore?: number
   ) => {
+    // Find the match based on the *current* matches state
     const match = matches.find((m) => m.id === matchId);
-    if (!match) return;
+    if (!match) {
+      console.warn("Toast: Match not found in current state:", matchId);
+      return;
+    }
 
-    // Calculate the score that will be displayed (accounting for the goal that was just scored)
-    const homeScore =
-      team === "home" && !isLiveUpdate
-        ? (match.homeGoals || 0) + 1
-        : match.homeGoals || 0;
-
-    const awayScore =
-      team === "away" && !isLiveUpdate
-        ? (match.awayGoals || 0) + 1
-        : match.awayGoals || 0;
-
+    const { homeScore, awayScore } = calculateToastScoreDisplay(
+      match, // Pass the current match state
+      team,
+      isLiveUpdate,
+      newTotal,
+      otherTeamScore
+    );
     const scoreTitle = `${match.homeTeam} ${homeScore}-${awayScore} ${match.awayTeam}`;
 
-    // Rest of function remains the same
     const playersToDrink = getPlayersWhoDrink(matchId);
-    if (playersToDrink.length === 0) return;
+    const message = formatGoalToastMessage(playersToDrink);
 
-    let message;
-    if (playersToDrink.length <= 3) {
-      message = `${playersToDrink.join(", ")} should drink!`;
-    } else {
-      message = `${playersToDrink.slice(0, 2).join(", ")} and ${
-        playersToDrink.length - 2
-      } others should drink!`;
-    }
+    if (!message) return; // Don't show toast if no one needs to drink
 
     Toast.show({
       type: "success",
@@ -444,7 +528,7 @@ const GameProgressScreen = () => {
     fetchCurrentScores,
   } = useLiveScores(
     matches,
-    handleGoalIncrement,
+    handleGoalIncrement, // Pass the updated handler
     60000, // Poll every minute
     soundEnabled
   );
@@ -476,6 +560,23 @@ const GameProgressScreen = () => {
   useEffect(() => {
     migrateMatchData();
   }, []);
+
+  // Effect to play sound and show toast *after* state update
+  useEffect(() => {
+    if (lastGoalInfo) {
+      const { matchId, team, isLiveUpdate, newTotal, otherTeamScore } =
+        lastGoalInfo;
+
+      // Play sound
+      playDongSound();
+
+      // Show toast using the info stored when the goal was processed
+      showGoalToast(matchId, team, isLiveUpdate, newTotal, otherTeamScore);
+
+      // Reset lastGoalInfo so this effect only runs once per goal
+      setLastGoalInfo(null);
+    }
+  }, [lastGoalInfo]); // This effect runs only when lastGoalInfo changes
 
   /**
    * @brief Handles the pull-to-refresh action.
