@@ -5,7 +5,7 @@ import {
   formatDateForAPI,
 } from "../utils/matchUtils";
 import { ESPNResponse, ESPNEvent } from "../types/espn";
-import { cacheTeamLogo } from "../utils/teamLogos";
+import { cacheTeamLogo, cacheLeagueLogo } from "../utils/teamLogos";
 
 /**
  * @brief Makes direct requests without proxy.
@@ -104,6 +104,30 @@ export function useMatchData(selectedDate?: string) {
               });
             }
           });
+
+          if (data.leagues && data.leagues.length > 0) {
+            for (const league of data.leagues) {
+              // Cache league logos if available
+              if (league.logos && league.logos.length > 0) {
+                // Find the default logo (prefer the one marked as default)
+                const defaultLogo = league.logos.find(
+                  (logo) =>
+                    logo.rel.includes("default") || logo.rel.includes("full")
+                );
+
+                if (defaultLogo && defaultLogo.href) {
+                  // Map the league name or abbreviation to our app's league name convention
+                  const appLeagueName = leagueEndpoints.find(
+                    (l) => l.code === league.slug
+                  )?.name;
+
+                  if (appLeagueName) {
+                    cacheLeagueLogo(appLeagueName, defaultLogo.href);
+                  }
+                }
+              }
+            }
+          }
 
           const leagueName = leagueEndpoints[i].name;
           leagueSet.add(leagueName);

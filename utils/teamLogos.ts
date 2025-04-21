@@ -15,6 +15,9 @@ import { ImageSourcePropType } from "react-native";
 // Cache for storing logos fetched from the API
 const logoCache: Record<string, string> = {};
 
+// Cache for league logos from API
+const leagueLogoCache: Record<string, string> = {};
+
 /**
  * Stores a team logo URL in the cache
  * @param teamName The name of the team
@@ -24,6 +27,26 @@ export const cacheTeamLogo = (teamName: string, logoUrl: string): void => {
   if (teamName && logoUrl) {
     logoCache[teamName] = logoUrl;
   }
+};
+
+/**
+ * Stores a league logo URL in the cache
+ * @param leagueName The name of the league
+ * @param logoUrl The URL of the league's logo
+ */
+export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
+  if (leagueName && logoUrl) {
+    leagueLogoCache[leagueName] = logoUrl;
+  }
+};
+
+/**
+ * Gets a cached league logo URL if available
+ * @param leagueName The name of the league
+ * @returns The logo URL if cached, undefined otherwise
+ */
+export const getCachedLeagueLogo = (leagueName: string): string | undefined => {
+  return leagueLogoCache[leagueName];
 };
 
 /**
