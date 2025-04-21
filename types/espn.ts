@@ -84,5 +84,12 @@ export interface ESPNCompetitor {
     id?: string;
     name?: string;
     displayName?: string;
+    logo?: string;
+    abbreviation?: string;
+    shortDisplayName?: string;
+    location?: string;
+    color?: string;
+    alternateColor?: string;
+    isActive?: boolean;
   };
 }

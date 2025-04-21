@@ -212,8 +212,8 @@ export const TEAM_ALIASES: { [key: string]: string } = {
   "Bayern Mün.": "FC Bayern München",
   "FC Bayern": "FC Bayern München",
   "Fußball Club Bayern München": "FC Bayern München",
-  "Bayern Munich [en]": "FC Bayern München",
-  "FC Bayern Munich [en]": "FC Bayern München",
+  "Bayern Munich": "FC Bayern München",
+  "FC Bayern Munich": "FC Bayern München",
   // FC Augsburg
   Augsburg: "FC Augsburg",
   "Fußball-Club Augsburg 1907": "FC Augsburg",
@@ -578,7 +578,6 @@ export const TEAM_CODE_MAP: Record<string, string> = {
   WOL: "Wolverhampton Wanderers",
   IPS: "Ipswich Town",
 
-  // Add other leagues as needed
 };
 
 /**

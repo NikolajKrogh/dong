@@ -5,6 +5,7 @@ import {
   formatDateForAPI,
 } from "../utils/matchUtils";
 import { ESPNResponse, ESPNEvent } from "../types/espn";
+import { cacheTeamLogo } from "../utils/teamLogos";
 
 /**
  * @brief Makes direct requests without proxy.
@@ -15,7 +16,6 @@ import { ESPNResponse, ESPNEvent } from "../types/espn";
 const fetchDataFromESPN = async (url: string) => {
   return fetch(url);
 };
-
 
 /**
  * @brief Custom hook for fetching match data from the ESPN API.
@@ -86,6 +86,24 @@ export function useMatchData(selectedDate?: string) {
           }
 
           const data: ESPNResponse = await response.json();
+
+          // Add this section to cache logos
+          data.events.forEach((event) => {
+            if (event.competitions) {
+              event.competitions.forEach((competition) => {
+                if (competition.competitors) {
+                  competition.competitors.forEach((competitor) => {
+                    if (competitor.team?.displayName && competitor.team?.logo) {
+                      cacheTeamLogo(
+                        competitor.team.displayName,
+                        competitor.team.logo
+                      );
+                    }
+                  });
+                }
+              });
+            }
+          });
 
           const leagueName = leagueEndpoints[i].name;
           leagueSet.add(leagueName);
