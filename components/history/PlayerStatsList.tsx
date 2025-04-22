@@ -4,6 +4,7 @@ import { PlayerStat } from "./historyTypes";
 import { styles, colors } from "../../app/style/historyStyles";
 import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
+import PlayerComparisonModal from "./PlayerComparisonModal";
 import { useGameStore } from "../../store/store"; // To access game history
 
 /**
@@ -32,6 +33,10 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   const { history } = useGameStore(); // Get game history
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isComparisonModalVisible, setIsComparisonModalVisible] =
+    useState(false);
+  const [selectedPlayers, setSelectedPlayers] = useState<PlayerStat[]>([]);
+  const [selectionMode, setSelectionMode] = useState(false);
 
   /**
    * @brief Handles player selection and opens the details modal.
@@ -40,6 +45,33 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   const handlePlayerPress = (player: PlayerStat) => {
     setSelectedPlayer(player);
     setIsModalVisible(true);
+  };
+
+  /**
+   * @brief Handles player selection for comparison.
+   * @param player The selected player.
+   */
+  const handlePlayerSelection = (player: PlayerStat) => {
+    if (selectionMode) {
+      if (selectedPlayers.find((p) => p.name === player.name)) {
+        // Deselect if already selected
+        setSelectedPlayers(
+          selectedPlayers.filter((p) => p.name !== player.name)
+        );
+      } else if (selectedPlayers.length < 2) {
+        // Select if less than 2 players are selected
+        setSelectedPlayers([...selectedPlayers, player]);
+      }
+
+      // If 2 players are selected, show the comparison modal
+      if (selectedPlayers.length === 2) {
+        setIsComparisonModalVisible(true);
+        setSelectionMode(false);
+      }
+    } else {
+      // Normal mode - show player details
+      handlePlayerPress(player);
+    }
   };
 
   /**
@@ -66,13 +98,16 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
     const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 0);
 
+    const isSelected = selectedPlayers.find((p) => p.name === item.name);
+
     return (
       <TouchableOpacity
         activeOpacity={0.7}
-        onPress={() => handlePlayerPress(item)}
+        onPress={() => handlePlayerSelection(item)}
         style={[
           styles.enhancedPlayerCard,
           index === 0 ? styles.topPlayerCard : null,
+          isSelected ? styles.selectedPlayerCard : null,
         ]}
       >
         {/* Rank badge for top 3 players */}
@@ -129,8 +164,29 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Player Rankings</Text>
-        <Text style={styles.sectionSubtitle}>Based on total drinks</Text>
+        <View style={styles.sectionHeaderButtons}>
+          <Text style={styles.sectionSubtitle}>Based on total drinks</Text>
+          <TouchableOpacity
+            style={styles.compareButton}
+            onPress={() => {
+              setSelectionMode(!selectionMode);
+              setSelectedPlayers([]);
+            }}
+          >
+            <Ionicons name="git-compare" size={18} color={colors.primary} />
+            <Text style={styles.compareButtonText}>
+              {selectionMode ? "Cancel" : "Compare"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Add selection instructions if in selection mode */}
+      {selectionMode && (
+        <Text style={styles.selectionInstructions}>
+          Select two players to compare ({selectedPlayers.length}/2)
+        </Text>
+      )}
 
       <FlatList
         data={playerStats}
@@ -145,6 +201,18 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
         visible={isModalVisible}
         onClose={closeModal}
         player={selectedPlayer}
+        gameHistory={history}
+      />
+
+      {/* Player Comparison Modal */}
+      <PlayerComparisonModal
+        visible={isComparisonModalVisible}
+        onClose={() => {
+          setIsComparisonModalVisible(false);
+          setSelectedPlayers([]);
+        }}
+        player1={selectedPlayers[0]}
+        player2={selectedPlayers[1]}
         gameHistory={history}
       />
     </View>

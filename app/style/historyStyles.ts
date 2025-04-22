@@ -533,9 +533,9 @@ export const styles = StyleSheet.create({
     // Text inside rank badge
     ...baseText,
     color: colors.white,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   } as TextStyle,
   commonBadgeText: {
     // Text inside common match badge
@@ -641,17 +641,17 @@ export const styles = StyleSheet.create({
   rankBadge: {
     // Base for rank badges (1, 2, 3)
     ...baseBadge,
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     right: 10,
     width: 28, // Ensure width and height are the same for a circle
     height: 28,
     borderRadius: 14, // Half of width/height for a circle
-    justifyContent: 'center', // Center content vertically
-    alignItems: 'center', // Center content horizontally
+    justifyContent: "center", // Center content vertically
+    alignItems: "center", // Center content horizontally
     zIndex: 10,
     elevation: 3, // Add shadow for Android
-    shadowColor: '#000', // Add shadow for iOS
+    shadowColor: "#000", // Add shadow for iOS
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,
@@ -904,6 +904,158 @@ export const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  // Player Comparison Styles
+  sectionHeaderButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  compareButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: colors.primaryLight,
+    borderRadius: 16,
+  },
+  compareButtonText: {
+    ...baseText,
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "500",
+    marginLeft: 4,
+  },
+  selectionInstructions: {
+    ...baseText,
+    fontSize: 14,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginVertical: 8,
+  },
+  comparisonHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  comparisonHeaderItem: {
+    flex: 2,
+    alignItems: "center",
+  },
+  comparisonVs: {
+    flex: 1,
+    alignItems: "center",
+  },
+  comparisonVsText: {
+    ...textTitle,
+    fontSize: 18,
+    color: colors.textMuted,
+  },
+  comparisonPlayerName: {
+    ...textTitle,
+    fontSize: 16,
+    marginTop: 6,
+  },
+  comparisonSection: {
+    marginBottom: 24,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  comparisonSectionTitle: {
+    ...textTitle,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  comparisonStats: {
+    marginTop: 8,
+  },
+  comparisonStatItem: {
+    marginBottom: 16,
+  },
+  comparisonStatHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  comparisonStatLabel: {
+    ...baseText,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginLeft: 6,
+  },
+  tooltipIcon: {
+    marginLeft: 4,
+  },
+  comparisonValues: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+  },
+  comparisonValue: {
+    ...textValue,
+    fontSize: 18,
+  },
+  comparisonDivider: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginHorizontal: 10,
+  },
+  headToHeadRecord: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  recordItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  recordValue: {
+    ...textValue,
+    fontSize: 22,
+  },
+  recordLabel: {
+    ...textLabel,
+    fontSize: 12,
+  },
+  performanceStats: {
+    marginTop: 8,
+  },
+  influenceStats: {
+    marginTop: 8,
+  },
+  influenceItem: {
+    marginBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.lightGray,
+    borderRadius: 8,
+  },
+  influenceLabel: {
+    ...baseText,
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  influenceValues: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  influenceValue: {
+    ...textValue,
+    fontSize: 14,
+  },
+  selectedPlayerCard: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLighter,
   },
 });
 
