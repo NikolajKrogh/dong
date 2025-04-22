@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import { Match } from "../store/store";
 import { formatDateForAPI } from "../utils/matchUtils";
 import { Audio } from "expo-av";
-import { ESPNResponse } from "../types/espn"; // cspell:ignore espn
+import { ESPNResponse } from "../types/espn";
 import { cacheTeamLogo } from "../utils/teamLogos";
 
 /**
@@ -17,6 +17,8 @@ export interface MatchWithScore {
   minutesPlayed?: string;
   homeTeam: string;
   awayTeam: string;
+  homeTeamId: string;
+  awayTeamId: string;
   status: string;
   goalScorers?: GoalScorer[];
 }
@@ -387,6 +389,8 @@ const processApiMatch = (event: any): MatchWithScore | null => {
       id,
       homeTeam: homeTeamData.team?.displayName || "Unknown Home", // Provide fallback
       awayTeam: awayTeamData.team?.displayName || "Unknown Away", // Provide fallback
+      homeTeamId: homeTeamData.team?.id || "Unknown Home ID",
+      awayTeamId: awayTeamData.team?.id || "Unknown Away ID",
       homeScore,
       awayScore,
       status: event.status?.type?.description || "Scheduled", // Provide fallback status description
