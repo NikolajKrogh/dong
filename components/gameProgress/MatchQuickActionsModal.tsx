@@ -102,29 +102,27 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
   /**
    * @brief Memoized calculation to extract goal scorers for the home team from live match data.
-   * Filters the `goalScorers` array from `liveMatchData` based on the home team's ID derived from the `match` object.
-   * Returns an array of `GoalScorer` objects for the home team, or an empty array if none are found or data is unavailable.
+   * Uses the explicit homeTeamId from the live match data to filter goal scorers.
    */
   const homeTeamScorers = useMemo(() => {
     return (
       liveMatchData?.goalScorers?.filter(
-        (scorer) => scorer.teamId === match?.id.split(":")[0] // Assuming team IDs match
+        (scorer) => scorer.teamId === liveMatchData.homeTeamId
       ) || []
     );
-  }, [liveMatchData, match]);
+  }, [liveMatchData]);
 
   /**
    * @brief Memoized calculation to extract goal scorers for the away team from live match data.
-   * Filters the `goalScorers` array from `liveMatchData` based on the away team's ID (assumed to be different from the home team ID derived from the `match` object).
-   * Returns an array of `GoalScorer` objects for the away team, or an empty array if none are found or data is unavailable.
+   * Uses the explicit awayTeamId from the live match data to filter goal scorers.
    */
   const awayTeamScorers = useMemo(() => {
     return (
       liveMatchData?.goalScorers?.filter(
-        (scorer) => scorer.teamId !== match?.id.split(":")[0]
+        (scorer) => scorer.teamId === liveMatchData.awayTeamId
       ) || []
     );
-  }, [liveMatchData, match]);
+  }, [liveMatchData]);
 
   // References to store previous goal values for animation triggering
   const prevGoalsHomeRef = useRef(match?.homeGoals ?? 0);
@@ -191,7 +189,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
    * @brief Effect to animate the home goal value when it changes (scale up then back down).
    * Compares the current home goal count with the previously stored value.
    */
-  useEffect(() => {    // Get the current score (prioritize live data if available)
+  useEffect(() => {
+    // Get the current score (prioritize live data if available)
     const currentScore = isApiControlledMatch
       ? liveMatchData?.homeScore ?? 0
       : match?.homeGoals ?? 0;
