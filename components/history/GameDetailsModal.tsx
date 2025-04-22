@@ -219,6 +219,13 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                       </Text>
                     </View>
                   </View>
+
+                  {/* Common Match Badge */}
+                  {game.commonMatchId === match.id && (
+                    <View style={styles.commonBadge}>
+                      <Text style={styles.commonBadgeText}>Common</Text>
+                    </View>
+                  )}
                 </View>
               ))}
             </View>

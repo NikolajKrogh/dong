@@ -541,8 +541,8 @@ export const styles = StyleSheet.create({
     // Text inside common match badge
     ...baseText,
     color: colors.white,
-    fontSize: 10,
-    fontWeight: "bold",
+    fontSize: 9,
+    fontWeight: "600",
   } as TextStyle,
 
   // --- Game History Item Specific ---
@@ -666,10 +666,11 @@ export const styles = StyleSheet.create({
     top: 0,
     right: 0,
     backgroundColor: colors.success,
-    borderTopRightRadius: 8, // Match card radius
-    borderBottomLeftRadius: 8,
-    paddingVertical: 2, // Smaller padding
     paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderBottomLeftRadius: 6,
+    borderTopRightRadius: 7,
+    zIndex: 10,
   } as ViewStyle,
   modalDrinkBadge: {
     // Drinks badge in modal player list
