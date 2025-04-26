@@ -7,6 +7,7 @@ import {
   Modal,
   Image,
   ScrollView,
+  Animated, 
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
@@ -57,10 +58,18 @@ const HomeScreen = () => {
   const hasTriggeredVideoRef = useRef(false);
   const videoRef = useRef(null);
   const insets = useSafeAreaInsets();
+  const [fadeAnim] = useState(new Animated.Value(1)); // Initialize fade animation
 
   useEffect(() => {
-    // Automatically hide splash screen after animation completes
-    const timeout = setTimeout(() => setIsSplashVisible(false), 3000); 
+    // Automatically hide splash screen after animation completes with fade-out
+    const timeout = setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 500, // Adjust duration for fade-out
+        useNativeDriver: true,
+      }).start(() => setIsSplashVisible(false));
+    }, 3000); // Adjust duration as needed
+
     return () => clearTimeout(timeout);
   }, []);
 
@@ -147,7 +156,7 @@ const HomeScreen = () => {
 
   if (isSplashVisible) {
     return (
-      <View style={styles.splashContainer}>
+      <Animated.View style={[styles.splashContainer, { opacity: fadeAnim }]}>
         <LottieView
           ref={splashAnimation}
           source={require("../assets/lottie/dong_logo_animation.json")}
@@ -155,7 +164,7 @@ const HomeScreen = () => {
           loop={false}
           style={styles.splashAnimation}
         />
-      </View>
+      </Animated.View>
     );
   }
 
