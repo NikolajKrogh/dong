@@ -13,11 +13,11 @@ import { useGameStore } from "../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";
-import { Video, ResizeMode } from "expo-av";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import LottieView from "lottie-react-native"; // Import LottieView
 
 interface Player {
   name: string;
@@ -51,10 +51,18 @@ const HomeScreen = () => {
     setHasVideoPlayed,
   } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [isSplashVisible, setIsSplashVisible] = useState(true); // Splash screen state
+  const splashAnimation = useRef<LottieView>(null);
   const [isVideoVisible, setIsVideoVisible] = useState(false);
   const hasTriggeredVideoRef = useRef(false);
   const videoRef = useRef(null);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    // Automatically hide splash screen after animation completes
+    const timeout = setTimeout(() => setIsSplashVisible(false), 3000); 
+    return () => clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     // Only show video if it hasn't played globally AND hasn't been triggered in this session
@@ -136,6 +144,20 @@ const HomeScreen = () => {
   };
 
   const topDrinkerInfo = getTopDrinker(history);
+
+  if (isSplashVisible) {
+    return (
+      <View style={styles.splashContainer}>
+        <LottieView
+          ref={splashAnimation}
+          source={require("../assets/lottie/dong_logo_animation.json")}
+          autoPlay
+          loop={false}
+          style={styles.splashAnimation}
+        />
+      </View>
+    );
+  }
 
   return (
     <>
@@ -294,25 +316,6 @@ const HomeScreen = () => {
               </View>
             </View>
           </View>
-        </Modal>
-
-        <Modal
-          animationType="fade"
-          transparent={false}
-          visible={isVideoVisible}
-        >
-          <Video
-            ref={videoRef}
-            source={require("../assets/videos/dong_animation.mp4")}
-            style={StyleSheet.absoluteFill}
-            resizeMode={ResizeMode.CONTAIN}
-            shouldPlay
-            onPlaybackStatusUpdate={(status) => {
-              if (status.isLoaded && status.didJustFinish) {
-                handleVideoEnd();
-              }
-            }}
-          />
         </Modal>
       </SafeAreaView>
     </>

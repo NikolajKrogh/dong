@@ -319,6 +319,16 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginBottom: -1,
   },
+  splashContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff", 
+  },
+  splashAnimation: {
+    width: 400,
+    height: 400,
+  },
 });
 
 export default styles;
