@@ -18,10 +18,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
+    googleServicesFile: "./google-services.json",
     adaptiveIcon: {
       foregroundImage: "./assets/icons/android.png",
       monochromeImage: "./assets/icons/android.png",
-      backgroundColor: "#0275d8",
+      backgroundColor: "#FCE38A",
     },
     package:
       process.env.NODE_ENV === "development"
@@ -57,7 +58,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       origin: false,
     },
     eas: {
-      projectId: "4b18ea94-9748-4ec0-88f9-87b386034ecf",
+      projectId: "2a98aee4-0b06-44a8-a102-1eeaa14e6f85",
     },
   },
+   "owner": "olivervn1"
 });

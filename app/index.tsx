@@ -16,9 +16,10 @@ import styles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";
 import {
   SafeAreaView,
-  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native"; // Import LottieView
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import OnboardingScreen from "../components/OnboardingScreen";
 
 interface Player {
   name: string;
@@ -42,22 +43,18 @@ interface GameSession {
  * @return {React.ReactElement} The rendered home screen UI.
  */
 const HomeScreen = () => {
+  AsyncStorage.clear()
   const router = useRouter();
   const {
     players,
     matches,
     history,
     resetState,
-    hasVideoPlayed,
-    setHasVideoPlayed,
   } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(true); // Splash screen state
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
   const splashAnimation = useRef<LottieView>(null);
-  const [isVideoVisible, setIsVideoVisible] = useState(false);
-  const hasTriggeredVideoRef = useRef(false);
-  const videoRef = useRef(null);
-  const insets = useSafeAreaInsets();
   const [fadeAnim] = useState(new Animated.Value(1)); // Initialize fade animation
 
   useEffect(() => {
@@ -65,7 +62,7 @@ const HomeScreen = () => {
     const timeout = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 500, // Adjust duration for fade-out
+        duration: 1000, // Adjust duration for fade-out
         useNativeDriver: true,
       }).start(() => setIsSplashVisible(false));
     }, 3000); // Adjust duration as needed
@@ -74,12 +71,33 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
-    // Only show video if it hasn't played globally AND hasn't been triggered in this session
-    if (!hasVideoPlayed && !hasTriggeredVideoRef.current) {
-      hasTriggeredVideoRef.current = true;
-      setIsVideoVisible(true);
-    }
-  }, []); // Remove hasVideoPlayed from dependencies to prevent re-triggering
+    const checkFirstLaunch = async () => {
+      const hasLaunched = await AsyncStorage.getItem("hasLaunched");
+      if (!hasLaunched) {
+        await AsyncStorage.setItem("hasLaunched", "true");
+        setIsFirstLaunch(true);
+      }
+    };
+    checkFirstLaunch();
+  }, []);
+
+  if (isSplashVisible) {
+    return (
+      <Animated.View style={[styles.splashContainer, { opacity: fadeAnim }]}>
+        <LottieView
+          ref={splashAnimation}
+          source={require("../assets/lottie/dong_logo_animation.json")}
+          autoPlay
+          loop={false}
+          style={styles.splashAnimation}
+        />
+      </Animated.View>
+    );
+  }
+
+  if (isFirstLaunch) {
+    return <OnboardingScreen onFinish={() => setIsFirstLaunch(false)} />;
+  }
 
   const hasGameInProgress = players.length > 0 && matches.length > 0;
 
@@ -93,18 +111,6 @@ const HomeScreen = () => {
   const handleCancelGame = () => {
     resetState();
     setIsConfirmModalVisible(false);
-  };
-
-  /**
-   * @brief Handles the completion of the introductory video playback.
-   * - Hides the video modal.
-   * - Sets the global flag indicating the video has played for this session.
-   * @params None
-   * @return None
-   */
-  const handleVideoEnd = () => {
-    setIsVideoVisible(false);
-    setHasVideoPlayed(true);
   };
 
   /**
@@ -153,20 +159,6 @@ const HomeScreen = () => {
   };
 
   const topDrinkerInfo = getTopDrinker(history);
-
-  if (isSplashVisible) {
-    return (
-      <Animated.View style={[styles.splashContainer, { opacity: fadeAnim }]}>
-        <LottieView
-          ref={splashAnimation}
-          source={require("../assets/lottie/dong_logo_animation.json")}
-          autoPlay
-          loop={false}
-          style={styles.splashAnimation}
-        />
-      </Animated.View>
-    );
-  }
 
   return (
     <>
