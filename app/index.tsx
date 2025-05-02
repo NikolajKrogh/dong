@@ -43,7 +43,6 @@ interface GameSession {
  * @return {React.ReactElement} The rendered home screen UI.
  */
 const HomeScreen = () => {
-  AsyncStorage.clear()
   const router = useRouter();
   const {
     players,
@@ -58,16 +57,23 @@ const HomeScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(1)); // Initialize fade animation
 
   useEffect(() => {
-    // Automatically hide splash screen after animation completes with fade-out
-    const timeout = setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 1000, // Adjust duration for fade-out
-        useNativeDriver: true,
-      }).start(() => setIsSplashVisible(false));
-    }, 3000); // Adjust duration as needed
-
-    return () => clearTimeout(timeout);
+    const checkSplashStatus = async () => {
+      const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
+      if (hasSeenSplash) {
+        setIsSplashVisible(false);
+      } else {
+        const timeout = setTimeout(() => {
+          Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 1000,
+            useNativeDriver: true,
+          }).start(() => setIsSplashVisible(false));
+        }, 3000);
+        await AsyncStorage.setItem("hasSeenSplash", "true");
+        return () => clearTimeout(timeout);
+      }
+    };
+    checkSplashStatus();
   }, []);
 
   useEffect(() => {

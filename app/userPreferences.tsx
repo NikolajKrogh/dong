@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,15 +12,21 @@ import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import OnboardingScreen from "../components/OnboardingScreen";
 
 const UserPreferencesScreen = () => {
   const router = useRouter();
   const { soundEnabled, setSoundEnabled } = useGameStore();
   const insets = useSafeAreaInsets();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const goBack = () => {
     router.push("../");
   };
+
+  if (showOnboarding) {
+    return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -58,35 +64,19 @@ const UserPreferencesScreen = () => {
                 ios_backgroundColor="#d1d1d1"
               />
             </View>
-
-            {/* You can add more sound-related preferences here */}
           </View>
         </View>
 
-        {/* App Settings Section - For future expansion */}
-        {/* 
+        {/* Button to display OnboardingScreen */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-          
-          <View style={styles.card}>
-            <View style={styles.preferenceRow}>
-              <View style={styles.labelContainer}>
-                <Ionicons name="color-palette-outline" size={22} color="#555" style={styles.prefIcon} />
-                <Text style={styles.preferenceLabel}>Dark Mode</Text>
-              </View>
-              <Switch
-                disabled={true}
-                value={false}
-                trackColor={{ false: "#d1d1d1", true: "#a3c9f0" }}
-                thumbColor={"#f4f3f4"}
-                ios_backgroundColor="#d1d1d1"
-              />
-            </View>
-          </View>
+          <TouchableOpacity
+            style={styles.onboardingButton}
+            onPress={() => setShowOnboarding(true)}
+          >
+            <Ionicons name="help-circle-outline" size={22} color="#fff" />
+            <Text style={styles.onboardingButtonText}>View Onboarding</Text>
+          </TouchableOpacity>
         </View>
-        */}
-
-        {/* Version Info Section */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -174,6 +164,22 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: "#adb5bd",
+  },
+  onboardingButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0275d8",
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  onboardingButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
   },
 });
 

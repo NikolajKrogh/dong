@@ -2,24 +2,27 @@ import React, { useState } from "react";
 import { View, Text, SafeAreaView, Pressable, StyleSheet, Image } from "react-native";
 import { GestureDetector, Gesture, Directions } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutLeft } from "react-native-reanimated";
-import logo from "../assets/icons/logo_png/dong_logo.png";
 
 const onboardingSteps = [
   {
     title: "Welcome to DONG",
-    description: "A fun and interactive drinking game experience.",
+    description: "DONG is a Danish football drinking game where goals mean beers. Pick matches, follow the action, and drink up when your teams score!",
+    image: require("../assets/onboarding/screen1.png"),
   },
   {
     title: "Add Players",
-    description: "Easily add players to your game with a few taps.",
+    description: "Start by adding your friends. Each player picks matches and competes to see who ends up with the most goals—and beers!",
+    image:  require("../assets/onboarding/screen2.png"), 
   },
   {
-    title: "Setup Your Game",
-    description: "Select leagues, apply filters, and customize your game.",
+    title: "Set Up Your Game",
+    description: "Choose multiple leagues, and select a number of matches. Everyone also drinks to the shared match — Which is chosen by everyone.",
+    image: require("../assets/onboarding/screen3.png"), 
   },
   {
     title: "Track Stats",
-    description: "View game history and player stats in one place.",
+    description: "Keep track of goals, beers consumed, and who’s winning. Check past games to see which of your friends is the reigning DONG champion!",
+    image: require("../assets/onboarding/screen4.png"), 
   },
 ];
 
@@ -60,7 +63,7 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     <SafeAreaView style={styles.container}>
       <GestureDetector gesture={swipes}>
         <View style={styles.content}>
-          {screenIndex === 0 && <Image source={logo} style={styles.logo} />}
+          {data.image && <Image source={data.image} style={styles.logo} />}
           <Animated.View entering={FadeIn} exiting={FadeOut}>
             <Text style={styles.title}>{data.title}</Text>
           </Animated.View>
@@ -77,6 +80,17 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
           </View>
         </View>
       </GestureDetector>
+      <View style={styles.progressBarContainer}>
+        {onboardingSteps.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.progressDot,
+              index === screenIndex ? styles.activeDot : styles.inactiveDot,
+            ]}
+          />
+        ))}
+      </View>
     </SafeAreaView>
   );
 };
@@ -92,11 +106,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logo: {
-    width: "60%", // Adjusted to be responsive
+    width: "100%", // Adjusted to fit within the screen
     height: undefined, // Maintain aspect ratio
-    aspectRatio: 1, // Ensures the logo is a square
+    aspectRatio: 1, // Ensures the logo maintains its proportions
+    resizeMode: "contain", // Ensures the image fits within the bounds
     marginBottom: 20,
-    resizeMode: "contain", // Ensures the logo fits within its bounds
   },
   title: {
     fontSize: 26,
@@ -134,6 +148,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "600",
+  },
+  progressBarContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 16,
+    backgroundColor: "#FFFFFF", // Changed to white
+  },
+  progressDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  activeDot: {
+    backgroundColor: "#0275d8", // Blue for the current screen
+  },
+  inactiveDot: {
+    backgroundColor: "#d6d6d6", // Gray for other screens
   },
 });
 
