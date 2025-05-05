@@ -9,10 +9,10 @@ export { default as MatchItem } from "./setupGame/MatchItem";
 export { default as TeamSelectionRow } from "./setupGame/TeamSelectionRow ";
 export { default as MatchFilter } from "./setupGame/MatchFilter";
 export { default as LeagueFilter } from "./setupGame/LeagueFilter";
-
 // GameProgress
 export { default as EndGameModal } from "./gameProgress/EndGameModal";
 export { default as FooterButtons } from "./gameProgress/FooterButtons";
 export { default as MatchesGrid } from "./gameProgress/MatchesGrid";
 export { default as MatchQuickActionsModal } from "./gameProgress/MatchQuickActionsModal";
 export { default as PlayerList } from "./gameProgress/PlayersList";
+export { default as OnboardingScreen } from "./OnboardingScreen";
