@@ -58,20 +58,14 @@ const HomeScreen = () => {
 
   useEffect(() => {
     const checkSplashStatus = async () => {
-      const hasSeenSplash = await AsyncStorage.getItem("hasSeenSplash");
-      if (hasSeenSplash) {
-        setIsSplashVisible(false);
-      } else {
-        const timeout = setTimeout(() => {
-          Animated.timing(fadeAnim, {
-            toValue: 0,
-            duration: 1000,
-            useNativeDriver: true,
-          }).start(() => setIsSplashVisible(false));
-        }, 3000);
-        await AsyncStorage.setItem("hasSeenSplash", "true");
-        return () => clearTimeout(timeout);
-      }
+      const timeout = setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }).start(() => setIsSplashVisible(false));
+      }, 3000);
+      return () => clearTimeout(timeout);
     };
     checkSplashStatus();
   }, []);
