@@ -92,7 +92,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     index: number;
   }) => {
     const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
-    const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 0);
+    const widthPercentage = maxDrinks === 0 ? 0 : Math.max((item.totalDrinks / maxDrinks) * 100, 0);
     const isSelected = selectedPlayers.find((p) => p.name === item.name);
 
     return (

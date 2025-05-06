@@ -4,8 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
 import { styles, colors } from "../../app/style/historyStyles";
 import { getPlayerHeadToHeadStats } from "./historyUtils";
-import { Ionicons as IoniconsType } from "@expo/vector-icons/build/Icons";
 import TooltipModal from "./TooltipModal";
+
+type IoniconName = keyof typeof Ionicons.glyphMap;
 
 interface PlayerComparisonModalProps {
   visible: boolean;
@@ -19,7 +20,7 @@ interface ComparisonStatItemProps {
   label: string;
   value1: string | number;
   value2: string | number;
-  icon: keyof typeof IoniconsType.glyphMap;
+  icon: IoniconName;
   tooltip?: string;
 }
 
