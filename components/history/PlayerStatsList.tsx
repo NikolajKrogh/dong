@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, FlatList, TouchableOpacity } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import { PlayerStat } from "./historyTypes";
 import { styles, colors } from "../../app/style/historyStyles";
 import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import PlayerComparisonModal from "./PlayerComparisonModal";
-import { useGameStore } from "../../store/store"; // To access game history
+import { useGameStore } from "../../store/store";
 
 /**
  * @interface PlayerStatsListProps
@@ -30,7 +30,7 @@ interface PlayerStatsListProps {
  * @returns {React.ReactElement} The rendered PlayerStatsList component.
  */
 const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
-  const { history } = useGameStore(); // Get game history
+  const { history } = useGameStore();
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isComparisonModalVisible, setIsComparisonModalVisible] =
@@ -54,22 +54,19 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   const handlePlayerSelection = (player: PlayerStat) => {
     if (selectionMode) {
       if (selectedPlayers.find((p) => p.name === player.name)) {
-        // Deselect if already selected
         setSelectedPlayers(
           selectedPlayers.filter((p) => p.name !== player.name)
         );
-      } else if (selectedPlayers.length < 2) {
-        // Select if less than 2 players are selected
-        setSelectedPlayers([...selectedPlayers, player]);
-      }
+      } else {
+        const newSelectedPlayers = [...selectedPlayers, player];
+        setSelectedPlayers(newSelectedPlayers);
 
-      // If 2 players are selected, show the comparison modal
-      if (selectedPlayers.length === 2) {
-        setIsComparisonModalVisible(true);
-        setSelectionMode(false);
+        if (newSelectedPlayers.length === 2) {
+          setIsComparisonModalVisible(true);
+          setSelectionMode(false);
+        }
       }
     } else {
-      // Normal mode - show player details
       handlePlayerPress(player);
     }
   };
@@ -94,10 +91,8 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     item: PlayerStat;
     index: number;
   }) => {
-    // Calculate percentage width for drink visualization
     const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
     const widthPercentage = Math.max((item.totalDrinks / maxDrinks) * 100, 0);
-
     const isSelected = selectedPlayers.find((p) => p.name === item.name);
 
     return (
@@ -160,6 +155,35 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     );
   };
 
+  /**
+   * @brief Toggles the selection mode for player comparison.
+   */
+  const toggleSelectionMode = () => {
+    if (playerStats.length < 2) {
+      Alert.alert(
+        "Cannot Compare",
+        "You need at least two players to use the comparison feature."
+      );
+      return;
+    }
+
+    if (selectionMode) {
+      setSelectionMode(false);
+      setSelectedPlayers([]);
+    } else {
+      setSelectionMode(true);
+      setSelectedPlayers([]);
+    }
+  };
+
+  /**
+   * @brief Closes the comparison modal and resets selection.
+   */
+  const closeComparisonModal = () => {
+    setIsComparisonModalVisible(false);
+    setSelectedPlayers([]);
+  };
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -168,13 +192,19 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
           <Text style={styles.sectionSubtitle}>Based on total drinks</Text>
           <TouchableOpacity
             style={styles.compareButton}
-            onPress={() => {
-              setSelectionMode(!selectionMode);
-              setSelectedPlayers([]);
-            }}
+            onPress={toggleSelectionMode}
           >
-            <Ionicons name="git-compare" size={18} color={colors.primary} />
-            <Text style={styles.compareButtonText}>
+            <Ionicons
+              name={selectionMode ? "close-circle" : "git-compare"}
+              size={18}
+              color={selectionMode ? colors.error : colors.primary}
+            />
+            <Text
+              style={[
+                styles.compareButtonText,
+                selectionMode && { color: colors.error },
+              ]}
+            >
               {selectionMode ? "Cancel" : "Compare"}
             </Text>
           </TouchableOpacity>
@@ -205,16 +235,15 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
       />
 
       {/* Player Comparison Modal */}
-      <PlayerComparisonModal
-        visible={isComparisonModalVisible}
-        onClose={() => {
-          setIsComparisonModalVisible(false);
-          setSelectedPlayers([]);
-        }}
-        player1={selectedPlayers[0]}
-        player2={selectedPlayers[1]}
-        gameHistory={history}
-      />
+      {selectedPlayers.length === 2 && (
+        <PlayerComparisonModal
+          visible={isComparisonModalVisible}
+          onClose={closeComparisonModal}
+          player1={selectedPlayers[0]}
+          player2={selectedPlayers[1]}
+          gameHistory={history}
+        />
+      )}
     </View>
   );
 };

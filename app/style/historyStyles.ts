@@ -8,7 +8,7 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// --- Color Palette (Optional but recommended) ---
+// --- Color Palette ---
 export const colors = {
   primary: "#0275d8",
   primaryLight: "#e3f2fd",
@@ -26,9 +26,9 @@ export const colors = {
   silver: "#adb5bd",
   bronze: "#cd7f32",
   success: "#4caf50",
-  danger: "#dc3545", // Example
-  warning: "#ffc107", // Example
-  info: "#17a2b8", // Example
+  error: '#dc3545', 
+  warning: "#ffc107", 
+  info: "#17a2b8", 
   background: "#f8f9fa",
 };
 
@@ -1056,6 +1056,43 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
     backgroundColor: colors.primaryLighter,
+  },
+  tooltipOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tooltipContainer: {
+    width: '80%',
+    maxWidth: 300,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  tooltipContent: {
+    padding: 16,
+  },
+  tooltipHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  tooltipTitle: {
+    ...textTitle,
+    fontSize: 16,
+  },
+  tooltipDescription: {
+    ...baseText,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
   },
 });
 

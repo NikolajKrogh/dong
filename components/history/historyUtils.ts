@@ -46,17 +46,14 @@ export const findTopDrinker = (players: Player[]): Player | null => {
  * @brief Formats a date string into a readable format for history items.
  * Creates a concise date representation for display in history list items.
  * @param dateString The date string to format.
- * @return The formatted date string with short weekday, month, day, year, and time.
+ * @return The formatted date string with short month, day, and year.
  */
 export const formatHistoryDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString(undefined, {
-    weekday: "short",
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 };
 

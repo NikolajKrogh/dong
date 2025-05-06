@@ -76,6 +76,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 
       {/* Game Summary Stats - Inlined */}
       <View style={styles.gameSummary}>
+        
         {/* Players Stat */}
         <View style={styles.summaryItem}>
           <Ionicons
