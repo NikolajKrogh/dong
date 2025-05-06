@@ -42,5 +42,5 @@ android
 # misc
 *.apk
 
-#config
-/app.config.ts
+# #config
+# /app.config.ts
