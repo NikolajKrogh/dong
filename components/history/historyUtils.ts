@@ -1,4 +1,10 @@
-import { GameSession, Match, Player, PlayerStat } from "./historyTypes";
+import {
+  GameSession,
+  Match,
+  Player,
+  PlayerStat,
+  HeadToHeadStats,
+} from "./historyTypes";
 
 /**
  * @brief Calculates the total goals (home + away) for a list of matches.
@@ -40,17 +46,14 @@ export const findTopDrinker = (players: Player[]): Player | null => {
  * @brief Formats a date string into a readable format for history items.
  * Creates a concise date representation for display in history list items.
  * @param dateString The date string to format.
- * @return The formatted date string with short weekday, month, day, year, and time.
+ * @return The formatted date string with short month, day, and year.
  */
 export const formatHistoryDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString(undefined, {
-    weekday: "short",
     year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
   });
 };
 
@@ -117,4 +120,246 @@ export const calculateLifetimePlayerStats = (
 
   statsArray.sort((a, b) => b.totalDrinks - a.totalDrinks);
   return statsArray;
+};
+
+/**
+ * @brief Calculates comprehensive head-to-head statistics for two players.
+ * @param history An array of GameSession objects.
+ * @param player1Name Name of the first player.
+ * @param player2Name Name of the second player.
+ * @return A HeadToHeadStats object with comparison metrics.
+ */
+export const getPlayerHeadToHeadStats = (
+  history: GameSession[],
+  player1Name: string,
+  player2Name: string
+): HeadToHeadStats => {
+  // Initialize the stats object with default values
+  const stats: HeadToHeadStats = {
+    player1: {
+      name: player1Name,
+      gamesPlayed: 0,
+      totalDrinks: 0,
+      averagePerGame: 0,
+    },
+    player2: {
+      name: player2Name,
+      gamesPlayed: 0,
+      totalDrinks: 0,
+      averagePerGame: 0,
+    },
+    gamesPlayedTogether: 0,
+    player1WinsCount: 0,
+    player2WinsCount: 0,
+    tiedGamesCount: 0,
+    player1MaxInAGame: 0,
+    player2MaxInAGame: 0,
+    player1CommonMatchCount: 0,
+    player2CommonMatchCount: 0,
+    player1Efficiency: 0,
+    player2Efficiency: 0,
+    player1TopDrinkerCount: 0,
+    player2TopDrinkerCount: 0,
+    player1AvgWithPlayer2: 0,
+    player1AvgWithoutPlayer2: 0,
+    player2AvgWithPlayer1: 0,
+    player2AvgWithoutPlayer1: 0,
+    timelineData: [],
+  };
+
+  // Games where each player participated
+  const player1Games = history.filter((game) =>
+    game.players.some((p) => p.name === player1Name)
+  );
+
+  const player2Games = history.filter((game) =>
+    game.players.some((p) => p.name === player2Name)
+  );
+
+  // Games where both players participated
+  const gamesPlayedTogether = history.filter(
+    (game) =>
+      game.players.some((p) => p.name === player1Name) &&
+      game.players.some((p) => p.name === player2Name)
+  );
+
+  // Basic stats
+  stats.player1.gamesPlayed = player1Games.length;
+  stats.player2.gamesPlayed = player2Games.length;
+  stats.gamesPlayedTogether = gamesPlayedTogether.length;
+
+  // Calculate total drinks
+  stats.player1.totalDrinks = player1Games.reduce((total, game) => {
+    const player = game.players.find((p) => p.name === player1Name);
+    return total + (player?.drinksTaken || 0);
+  }, 0);
+
+  stats.player2.totalDrinks = player2Games.reduce((total, game) => {
+    const player = game.players.find((p) => p.name === player2Name);
+    return total + (player?.drinksTaken || 0);
+  }, 0);
+
+  // Calculate averages
+  stats.player1.averagePerGame =
+    stats.player1.gamesPlayed > 0
+      ? stats.player1.totalDrinks / stats.player1.gamesPlayed
+      : 0;
+
+  stats.player2.averagePerGame =
+    stats.player2.gamesPlayed > 0
+      ? stats.player2.totalDrinks / stats.player2.gamesPlayed
+      : 0;
+
+  // Head-to-head analysis in games played together
+  gamesPlayedTogether.forEach((game) => {
+    const player1 = game.players.find((p) => p.name === player1Name);
+    const player2 = game.players.find((p) => p.name === player2Name);
+
+    const player1Drinks = player1?.drinksTaken || 0;
+    const player2Drinks = player2?.drinksTaken || 0;
+
+    // Update max drinks in a game
+    stats.player1MaxInAGame = Math.max(stats.player1MaxInAGame, player1Drinks);
+    stats.player2MaxInAGame = Math.max(stats.player2MaxInAGame, player2Drinks);
+
+    // Track who drank more in each game
+    if (player1Drinks > player2Drinks) {
+      stats.player1WinsCount++;
+    } else if (player2Drinks > player1Drinks) {
+      stats.player2WinsCount++;
+    } else {
+      stats.tiedGamesCount++;
+    }
+
+    // Add timeline data for trend visualization
+    stats.timelineData.push({
+      date: game.date,
+      player1Drinks: player1Drinks,
+      player2Drinks: player2Drinks,
+    });
+  });
+
+  // Sort timeline data by date
+  stats.timelineData.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Common match participation
+  player1Games.forEach((game) => {
+    if (
+      game.players.some((p) => p.name === player1Name) &&
+      game.matches.some((m) => m.id === game.commonMatchId)
+    ) {
+      stats.player1CommonMatchCount++;
+    }
+  });
+
+  player2Games.forEach((game) => {
+    if (
+      game.players.some((p) => p.name === player2Name) &&
+      game.matches.some((m) => m.id === game.commonMatchId)
+    ) {
+      stats.player2CommonMatchCount++;
+    }
+  });
+
+  // Calculate efficiency (drinks per match)
+  const player1TotalMatches = player1Games.reduce(
+    (total, game) => total + game.matches.length,
+    0
+  );
+
+  const player2TotalMatches = player2Games.reduce(
+    (total, game) => total + game.matches.length,
+    0
+  );
+
+  stats.player1Efficiency =
+    player1TotalMatches > 0
+      ? stats.player1.totalDrinks / player1TotalMatches
+      : 0;
+
+  stats.player2Efficiency =
+    player2TotalMatches > 0
+      ? stats.player2.totalDrinks / player2TotalMatches
+      : 0;
+
+  // Top drinker frequency
+  player1Games.forEach((game) => {
+    const topDrinker = findTopDrinker(game.players);
+    if (topDrinker && topDrinker.name === player1Name) {
+      stats.player1TopDrinkerCount++;
+    }
+  });
+
+  player2Games.forEach((game) => {
+    const topDrinker = findTopDrinker(game.players);
+    if (topDrinker && topDrinker.name === player2Name) {
+      stats.player2TopDrinkerCount++;
+    }
+  });
+
+  // Calculate drinking influence - player1 with vs without player2
+  if (stats.gamesPlayedTogether > 0) {
+    const player1DrinksWithPlayer2 = gamesPlayedTogether.reduce(
+      (total, game) => {
+        const player = game.players.find((p) => p.name === player1Name);
+        return total + (player?.drinksTaken || 0);
+      },
+      0
+    );
+
+    stats.player1AvgWithPlayer2 =
+      player1DrinksWithPlayer2 / stats.gamesPlayedTogether;
+  }
+
+  const player1GamesWithoutPlayer2 = player1Games.filter(
+    (game) => !game.players.some((p) => p.name === player2Name)
+  );
+
+  if (player1GamesWithoutPlayer2.length > 0) {
+    const player1DrinksWithoutPlayer2 = player1GamesWithoutPlayer2.reduce(
+      (total, game) => {
+        const player = game.players.find((p) => p.name === player1Name);
+        return total + (player?.drinksTaken || 0);
+      },
+      0
+    );
+
+    stats.player1AvgWithoutPlayer2 =
+      player1DrinksWithoutPlayer2 / player1GamesWithoutPlayer2.length;
+  }
+
+  // Calculate drinking influence - player2 with vs without player1
+  if (stats.gamesPlayedTogether > 0) {
+    const player2DrinksWithPlayer1 = gamesPlayedTogether.reduce(
+      (total, game) => {
+        const player = game.players.find((p) => p.name === player2Name);
+        return total + (player?.drinksTaken || 0);
+      },
+      0
+    );
+
+    stats.player2AvgWithPlayer1 =
+      player2DrinksWithPlayer1 / stats.gamesPlayedTogether;
+  }
+
+  const player2GamesWithoutPlayer1 = player2Games.filter(
+    (game) => !game.players.some((p) => p.name === player1Name)
+  );
+
+  if (player2GamesWithoutPlayer1.length > 0) {
+    const player2DrinksWithoutPlayer1 = player2GamesWithoutPlayer1.reduce(
+      (total, game) => {
+        const player = game.players.find((p) => p.name === player2Name);
+        return total + (player?.drinksTaken || 0);
+      },
+      0
+    );
+
+    stats.player2AvgWithoutPlayer1 =
+      player2DrinksWithoutPlayer1 / player2GamesWithoutPlayer1.length;
+  }
+
+  return stats;
 };
