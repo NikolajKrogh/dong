@@ -41,6 +41,3 @@ android
 
 # misc
 *.apk
-
-#config
-/app.config.ts

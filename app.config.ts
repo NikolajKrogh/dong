@@ -21,7 +21,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     adaptiveIcon: {
       foregroundImage: "./assets/icons/android.png",
       monochromeImage: "./assets/icons/android.png",
-      backgroundColor: "#0275d8",
+      backgroundColor: "#ffffff",
     },
     package:
       process.env.NODE_ENV === "development"
