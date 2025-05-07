@@ -7,19 +7,21 @@ import {
   Modal,
   Image,
   ScrollView,
-  Animated, 
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";
-import {
-  SafeAreaView,
-} from "react-native-safe-area-context";
-import LottieView from "lottie-react-native"; // Import LottieView
+import { SafeAreaView } from "react-native-safe-area-context";
+import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OnboardingScreen from "../components/OnboardingScreen";
+
+// Create a global variable to track if splash has already been shown
+// This will be reset when app is closed and reopened
+let hasSplashBeenShown = false;
 
 interface Player {
   name: string;
@@ -44,20 +46,20 @@ interface GameSession {
  */
 const HomeScreen = () => {
   const router = useRouter();
-  const {
-    players,
-    matches,
-    history,
-    resetState,
-  } = useGameStore();
+  const { players, matches, history, resetState } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
-  const [isSplashVisible, setIsSplashVisible] = useState(true); // Splash screen state
+  // Initialize splash visibility based on if it's already been shown in this session
+  const [isSplashVisible, setIsSplashVisible] = useState(!hasSplashBeenShown); // Splash screen state
   const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
   const splashAnimation = useRef<LottieView>(null);
   const [fadeAnim] = useState(new Animated.Value(1)); // Initialize fade animation
 
+  // Handle splash animation and timing
   useEffect(() => {
-    const checkSplashStatus = async () => {
+    if (isSplashVisible) {
+      // Mark that we've shown the splash for this session
+      hasSplashBeenShown = true;
+
       const timeout = setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -66,9 +68,8 @@ const HomeScreen = () => {
         }).start(() => setIsSplashVisible(false));
       }, 3000);
       return () => clearTimeout(timeout);
-    };
-    checkSplashStatus();
-  }, []);
+    }
+  }, [isSplashVisible]);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
