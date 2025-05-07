@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 /**
  * @brief Interface representing a player in the game.
@@ -81,6 +81,8 @@ interface GameState {
   hasVideoPlayed: boolean;
   /** @brief Flag indicating if sound effects are enabled. */
   soundEnabled: boolean;
+  /** @brief Flag indicating if notifications for common match are enabled. */
+  commonMatchNotificationsEnabled: boolean;
 
   // Game history
   /** @brief Array containing past completed game sessions. */
@@ -110,7 +112,11 @@ interface GameState {
    * @param playerAssignments - Either a PlayerAssignments object or a function that receives the previous state and returns the new object.
    * @return void
    */
-  setPlayerAssignments: (playerAssignments: PlayerAssignments | ((prev: PlayerAssignments) => PlayerAssignments)) => void;
+  setPlayerAssignments: (
+    playerAssignments:
+      | PlayerAssignments
+      | ((prev: PlayerAssignments) => PlayerAssignments)
+  ) => void;
   /**
    * @brief Sets the number of matches assigned per player for the current game setup.
    * @param count - The number of matches per player.
@@ -129,6 +135,12 @@ interface GameState {
    * @return void
    */
   setSoundEnabled: (enabled: boolean) => void;
+  /**
+   * @brief Sets the flag indicating whether notifications for common match are enabled.
+   * @param enabled - Boolean value, true if common match notifications are enabled, false otherwise.
+   * @return void
+   */
+  setCommonMatchNotificationsEnabled: (enabled: boolean) => void;
 
   // Actions for game history
   /**
@@ -162,50 +174,63 @@ export const useGameStore = create<GameState>()(
       matchesPerPlayer: 1,
       hasVideoPlayed: false,
       soundEnabled: true,
+      commonMatchNotificationsEnabled: true,
       history: [],
 
       // --- Actions ---
-      setPlayers: (players) => set((state) => ({
-        players: typeof players === 'function' ? players(state.players) : players
-      })),
-      setMatches: (matches) => set((state) => ({
-        matches: typeof matches === 'function' ? matches(state.matches) : matches
-      })),
+      setPlayers: (players) =>
+        set((state) => ({
+          players:
+            typeof players === "function" ? players(state.players) : players,
+        })),
+      setMatches: (matches) =>
+        set((state) => ({
+          matches:
+            typeof matches === "function" ? matches(state.matches) : matches,
+        })),
       setCommonMatchId: (commonMatchId) => set({ commonMatchId }),
-      setPlayerAssignments: (playerAssignments) => set((state) => ({
-        playerAssignments: typeof playerAssignments === 'function' ? playerAssignments(state.playerAssignments) : playerAssignments
-      })),
+      setPlayerAssignments: (playerAssignments) =>
+        set((state) => ({
+          playerAssignments:
+            typeof playerAssignments === "function"
+              ? playerAssignments(state.playerAssignments)
+              : playerAssignments,
+        })),
       setMatchesPerPlayer: (count) => set({ matchesPerPlayer: count }),
       setHasVideoPlayed: (value) => set({ hasVideoPlayed: value }),
       setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
+      setCommonMatchNotificationsEnabled: (enabled) =>
+        set({ commonMatchNotificationsEnabled: enabled }),
 
-      saveGameToHistory: () => set((state) => {
-        const newGameSession: GameSession = {
-          id: Date.now().toString(),
-          date: new Date().toISOString(),
-          players: state.players,
-          matches: state.matches,
-          commonMatchId: state.commonMatchId,
-          playerAssignments: state.playerAssignments,
-          matchesPerPlayer: state.matchesPerPlayer
-        };
-        return {
-          history: [...state.history, newGameSession]
-        };
-      }),
+      saveGameToHistory: () =>
+        set((state) => {
+          const newGameSession: GameSession = {
+            id: Date.now().toString(),
+            date: new Date().toISOString(),
+            players: state.players,
+            matches: state.matches,
+            commonMatchId: state.commonMatchId,
+            playerAssignments: state.playerAssignments,
+            matchesPerPlayer: state.matchesPerPlayer,
+          };
+          return {
+            history: [...state.history, newGameSession],
+          };
+        }),
 
-      resetState: () => set({
-        players: [],
-        matches: [],
-        commonMatchId: null,
-        playerAssignments: {},
-        matchesPerPlayer: 1,
-        // Note: hasVideoPlayed and soundEnabled are intentionally not reset here
-      }),
+      resetState: () =>
+        set({
+          players: [],
+          matches: [],
+          commonMatchId: null,
+          playerAssignments: {},
+          matchesPerPlayer: 1,
+          // Note: hasVideoPlayed and soundEnabled are intentionally not reset here
+        }),
     }),
     {
       // --- Persistence Configuration ---
-      name: 'dong-storage', // Name for the persisted storage item
+      name: "dong-storage", // Name for the persisted storage item
       storage: createJSONStorage(() => AsyncStorage), // Storage mechanism
       partialize: (state) => ({
         // Selectively persist parts of the state
@@ -216,7 +241,7 @@ export const useGameStore = create<GameState>()(
         matchesPerPlayer: state.matchesPerPlayer,
         history: state.history,
         soundEnabled: state.soundEnabled,
-        // Exclude hasVideoPlayed from being persisted
+        commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
       }),
     }
   )
