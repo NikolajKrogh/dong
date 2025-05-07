@@ -63,6 +63,7 @@ const GameProgressScreen = () => {
     saveGameToHistory,
     resetState,
     soundEnabled,
+    commonMatchNotificationsEnabled,
   } = useGameStore();
 
   // State to track if the sound is currently playing
@@ -472,7 +473,7 @@ const GameProgressScreen = () => {
    * @brief Shows a toast notification when a goal is scored.
    * Finds the match from the *current* state, calculates the score display,
    * determines which players should drink, formats the message, and displays the toast.
-   * @param {string} matchId - The ID of the match where a goal was scored.
+   * Respects user preference for common match notifications.param {string} matchId - The ID of the match where a goal was scored.
    * @param {'home' | 'away'} team - The team that scored the goal.
    * @param {boolean} [isLiveUpdate=false] - Flag indicating if the update is from live data.
    * @param {number} [newTotal] - The new total score for the scoring team (passed for live updates).
@@ -485,6 +486,11 @@ const GameProgressScreen = () => {
     newTotal?: number,
     otherTeamScore?: number
   ) => {
+    // Skip notifications for common match if disabled in preferences
+    if (matchId === commonMatchId && !commonMatchNotificationsEnabled) {
+      return;
+    }
+
     // Find the match based on the *current* matches state
     const match = matches.find((m) => m.id === matchId);
     if (!match) {
@@ -566,6 +572,13 @@ const GameProgressScreen = () => {
     if (lastGoalInfo) {
       const { matchId, team, isLiveUpdate, newTotal, otherTeamScore } =
         lastGoalInfo;
+
+      // Skip notifications for common match if disabled in preferences
+      if (matchId === commonMatchId && !commonMatchNotificationsEnabled) {
+        // Reset lastGoalInfo without playing sound or showing toast
+        setLastGoalInfo(null);
+        return;
+      }
 
       // Play sound
       playDongSound();
@@ -671,7 +684,7 @@ const GameProgressScreen = () => {
         onConfirm={confirmEndGame}
       />
 
-      {/* Add this line to include Toast */}
+      {/* Toast */}
       <Toast config={goalToastConfig} />
     </SafeAreaView>
   );

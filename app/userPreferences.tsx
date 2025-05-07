@@ -16,7 +16,12 @@ import OnboardingScreen from "../components/OnboardingScreen";
 
 const UserPreferencesScreen = () => {
   const router = useRouter();
-  const { soundEnabled, setSoundEnabled } = useGameStore();
+  const {
+    soundEnabled,
+    setSoundEnabled,
+    commonMatchNotificationsEnabled,
+    setCommonMatchNotificationsEnabled,
+  } = useGameStore();
   const insets = useSafeAreaInsets();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -61,6 +66,31 @@ const UserPreferencesScreen = () => {
                 onValueChange={(value) => setSoundEnabled(value)}
                 trackColor={{ false: "#d1d1d1", true: "#a3c9f0" }}
                 thumbColor={soundEnabled ? "#0275d8" : "#f4f3f4"}
+                ios_backgroundColor="#d1d1d1"
+              />
+            </View>
+
+            <View style={styles.preferenceRow}>
+              <View style={styles.labelContainer}>
+                <Ionicons
+                  name="football-outline"
+                  size={22}
+                  color="#555"
+                  style={styles.prefIcon}
+                />
+                <Text style={styles.preferenceLabel}>
+                  Common Match Notifications
+                </Text>
+              </View>
+              <Switch
+                value={commonMatchNotificationsEnabled}
+                onValueChange={(value) =>
+                  setCommonMatchNotificationsEnabled(value)
+                }
+                trackColor={{ false: "#d1d1d1", true: "#a3c9f0" }}
+                thumbColor={
+                  commonMatchNotificationsEnabled ? "#0275d8" : "#f4f3f4"
+                }
                 ios_backgroundColor="#d1d1d1"
               />
             </View>
