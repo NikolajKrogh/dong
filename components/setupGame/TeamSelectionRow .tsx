@@ -8,7 +8,8 @@ import {
   Modal,
   SafeAreaView,
 } from "react-native";
-import styles from "../../app/style/setupGameStyles";
+import styles, { colors } from "../../app/style/setupGameStyles";
+import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
 
 /**
  * @brief Interface for a team option with its league information.
@@ -150,34 +151,51 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   return (
     <View>
       <View style={styles.inputRow}>
-        {/* Home Team Selection */}
-        <View style={styles.dropdownContainer}>
+        {/* Home Team Selection - Improved UI */}
+        <View style={styles.teamInputWrapper}>
           <TouchableOpacity
-            style={styles.searchInputContainer}
+            style={[
+              styles.teamSearchField,
+              homeTeam ? styles.teamSearchFieldSelected : null,
+            ]}
             onPress={() => {
               setShowHomeDropdown(true);
               setShowAwayDropdown(false);
             }}
             activeOpacity={0.7}
           >
+            <Ionicons
+              name="search-outline"
+              size={20}
+              color={homeTeam ? colors.primary : colors.textMuted}
+              style={styles.teamSearchIcon}
+            />
             <Text
               style={[
-                styles.searchInput,
-                { color: homeTeam ? "#000" : "#999" },
+                styles.teamSearchText,
+                homeTeam
+                  ? styles.teamSearchTextSelected
+                  : styles.teamSearchTextPlaceholder,
               ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
-              {homeTeam || "Search home team..."}
+              {homeTeam || "Home Team"}
             </Text>
             {homeTeam && (
               <TouchableOpacity
-                style={styles.clearButton}
+                style={styles.teamClearButton}
                 onPress={(e) => {
-                  e.stopPropagation(); // Prevent opening dropdown when clearing
+                  e.stopPropagation();
                   setHomeTeam("");
                   setHomeSearchTerm("");
                 }}
               >
-                <Text style={styles.clearButtonText}>✕</Text>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.textMuted}
+                />
               </TouchableOpacity>
             )}
           </TouchableOpacity>
@@ -185,48 +203,70 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
 
         <Text style={styles.vsText}>vs</Text>
 
-        {/* Away Team Selection */}
-        <View style={styles.dropdownContainer}>
+        {/* Away Team Selection - Improved UI */}
+        <View style={styles.teamInputWrapper}>
           <TouchableOpacity
-            style={styles.searchInputContainer}
+            style={[
+              styles.teamSearchField,
+              awayTeam ? styles.teamSearchFieldSelected : null,
+            ]}
             onPress={() => {
               setShowAwayDropdown(true);
               setShowHomeDropdown(false);
             }}
             activeOpacity={0.7}
           >
+            <Ionicons
+              name="search-outline"
+              size={20}
+              color={awayTeam ? colors.primary : colors.textMuted}
+              style={styles.teamSearchIcon}
+            />
             <Text
               style={[
-                styles.searchInput,
-                { color: awayTeam ? "#000" : "#999" },
+                styles.teamSearchText,
+                awayTeam
+                  ? styles.teamSearchTextSelected
+                  : styles.teamSearchTextPlaceholder,
               ]}
+              numberOfLines={1}
+              ellipsizeMode="tail"
             >
-              {awayTeam || "Search away team..."}
+              {awayTeam || "Away Team"}
             </Text>
             {awayTeam && (
               <TouchableOpacity
-                style={styles.clearButton}
+                style={styles.teamClearButton}
                 onPress={(e) => {
-                  e.stopPropagation(); // Prevent opening dropdown when clearing
+                  e.stopPropagation();
                   setAwayTeam("");
                   setAwaySearchTerm("");
                 }}
               >
-                <Text style={styles.clearButtonText}>✕</Text>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.textMuted}
+                />
               </TouchableOpacity>
             )}
           </TouchableOpacity>
         </View>
 
+        {/* Improved Add Button */}
         <TouchableOpacity
           style={[
-            styles.addButton,
-            isAddButtonDisabled && styles.disabledButton,
+            styles.matchAddButton, // New style for the add button
+            isAddButtonDisabled && styles.matchAddButtonDisabled, // New disabled style
           ]}
           onPress={handleAddMatchAndClear}
           disabled={isAddButtonDisabled}
         >
-          <Text style={styles.addButtonText}>Add</Text>
+          <Ionicons
+            name="add-circle-outline"
+            size={28}
+            color={colors.textLight}
+          />
         </TouchableOpacity>
       </View>
 
@@ -242,7 +282,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
             <View style={styles.modalHeader}>
               <TextInput
                 style={styles.modalSearchInput}
-                placeholder="Search home team..."
+                placeholder="Search home"
                 value={homeSearchTerm}
                 onChangeText={setHomeSearchTerm}
                 autoFocus
@@ -311,7 +351,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
             <View style={styles.modalHeader}>
               <TextInput
                 style={styles.modalSearchInput}
-                placeholder="Search away team..."
+                placeholder="Search away"
                 value={awaySearchTerm}
                 onChangeText={setAwaySearchTerm}
                 autoFocus
