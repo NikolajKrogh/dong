@@ -1,42 +1,116 @@
-import { StyleSheet, Platform, StatusBar } from "react-native";
+import {
+  StyleSheet,
+  Platform,
+  StatusBar,
+  ViewStyle,
+  TextStyle,
+  ImageStyle,
+} from "react-native";
+
+// --- Color Palette ---
+const colors = {
+  primary: "#0275d8",
+  primaryDark: "#025aa5", // For hover or darker shades
+  secondary: "#6c757d",
+  success: "#28a745",
+  danger: "#dc3545",
+
+  background: "#f5f5f5",
+  surface: "#fff", // For cards, modals
+  backgroundModalOverlay: "rgba(0, 0, 0, 0.5)",
+
+  textPrimary: "#212529", // For darkest text, can also be used for shadows
+  textSecondary: "#333",
+  textMuted: "#6c757d", // Also used for subtitle, some info text
+  textLight: "#fff", // Text on dark backgrounds
+  textPlaceholder: "#999", // For footer or less important text
+  textLink: "#0275d8", // Same as primary
+
+  border: "#ddd", // A general border color if needed
+  borderLight: "#e0e0e0",
+  borderLighter: "#eee",
+};
+
+// --- Base Styles ---
+const baseButton: ViewStyle = {
+  borderRadius: 8,
+  paddingVertical: 14,
+  alignItems: "center",
+  flexDirection: "row",
+  justifyContent: "center",
+};
+
+const baseButtonText: TextStyle = {
+  color: colors.textLight,
+  fontSize: 18,
+  fontWeight: "bold",
+  marginLeft: 10,
+};
+
+const baseCard: ViewStyle = {
+  backgroundColor: colors.surface,
+  borderRadius: 8,
+  padding: 20,
+  marginHorizontal: 16, // Common margin
+  elevation: 2,
+  shadowColor: colors.textPrimary, // Using textPrimary for shadow
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.2,
+  shadowRadius: 1.5,
+};
+
+const baseTitle: TextStyle = {
+  fontSize: 20,
+  fontWeight: "bold",
+  color: colors.textSecondary,
+};
+
+const baseModalView: ViewStyle = {
+  margin: 20,
+  backgroundColor: colors.surface,
+  borderRadius: 20,
+  padding: 35,
+  alignItems: "center",
+  shadowColor: colors.textPrimary,
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 5,
+};
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background,
   },
   headerContainer: {
     alignItems: "center",
     paddingVertical: 12,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background,
     marginBottom: 12,
   },
   title: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: "#0275d8",
+    ...baseTitle,
+    fontSize: 40, // Override base
+    color: colors.primary,
   },
   subtitle: {
     fontSize: 12,
-    color: "#6c757d",
+    color: colors.textMuted,
     marginTop: 4,
   },
   sessionContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 20,
-    margin: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    ...baseCard,
+    // margin: 16, // Already in baseCard via marginHorizontal, adjust if vertical needed
+    marginTop: 16,
+    marginBottom: 16,
   },
   sessionTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    ...baseTitle,
     marginBottom: 12,
-    color: "#333",
   },
   sessionInfoRow: {
     flexDirection: "row",
@@ -49,31 +123,21 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: "#666",
+    color: colors.textMuted, // Was #666
     marginLeft: 8,
   },
   continueButton: {
-    backgroundColor: "#28a745",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
+    ...baseButton,
+    backgroundColor: colors.success,
   },
   startButton: {
-    backgroundColor: "#28a745",
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: "center",
+    ...baseButton,
+    backgroundColor: colors.success,
+    paddingVertical: 16, // Override base
     marginHorizontal: 16,
-    flexDirection: "row",
-    justifyContent: "center",
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginLeft: 10,
+    ...baseButtonText,
   },
   buttonRow: {
     flexDirection: "row",
@@ -83,23 +147,20 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   setupButton: {
+    ...baseButton,
     flex: 1,
-    backgroundColor: "#0275d8",
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
+    backgroundColor: colors.primary,
+    padding: 14, // Keep specific padding if different from base
   },
   historyButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#0275d8", // Primary blue color
-    borderRadius: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 12, // Softer radius
     marginHorizontal: 16,
     marginTop: 16,
-    shadowColor: "#000",
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -110,14 +171,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 14,
   },
-
   historyButtonText: {
-    color: "#fff",
+    color: colors.textLight,
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 10,
   },
-
   historyButtonArrow: {
     paddingRight: 14,
   },
@@ -125,49 +184,43 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#fff", // White background
+    backgroundColor: colors.surface,
     borderRadius: 12,
-    marginHorizontal: 16, // Keep consistent margins
+    marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 8,
-    borderWidth: 1, // Add a light border
-    borderColor: "#e0e0e0", // Light grey border color
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 }, // Lighter shadow
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
     shadowRadius: 2,
-    elevation: 2, // Lower elevation
+    elevation: 2,
   },
-
   subtleHistoryButtonText: {
-    color: "#0275d8", // Blue text color
+    color: colors.primary, // Or textLink
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 10,
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 30, // Add some padding at the bottom for comfortable scrolling
+    paddingBottom: 30,
   },
   smallButtonText: {
-    color: "#fff",
+    color: colors.textLight,
     fontWeight: "600",
     fontSize: 16,
     marginLeft: 8,
   },
   statsContainer: {
-    margin: 16,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
+    ...baseCard,
+    borderRadius: 12, // Override base
+    padding: 16, // Override base
     marginTop: 24,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 16, // Specific margin
+    shadowOpacity: 0.1, // Override base
+    shadowRadius: 3, // Override base
   },
   statsHeader: {
     flexDirection: "row",
@@ -175,22 +228,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-
   viewMoreIndicator: {
     flexDirection: "row",
     alignItems: "center",
   },
-
   viewMoreText: {
     fontSize: 14,
-    color: "#0275d8",
+    color: colors.primary, // Or textLink
     marginRight: 4,
   },
   statsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 0, // Remove existing margin that might affect alignment
+    ...baseTitle,
+    marginBottom: 0,
   },
   statsContent: {
     padding: 8,
@@ -201,67 +250,51 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: colors.borderLighter,
   },
   statTextContainer: {
     marginLeft: 12,
   },
   statLabel: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textMuted, // Was #666
   },
   statValue: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#333",
+    color: colors.textSecondary,
   },
   footer: {
     textAlign: "center",
-    color: "#999",
+    color: colors.textPlaceholder, // Was #999
     fontSize: 12,
     position: "absolute",
     bottom: 16,
     alignSelf: "center",
   },
   cancelButton: {
-    backgroundColor: "#dc3545",
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
+    ...baseButton,
+    backgroundColor: colors.danger,
     marginTop: 12,
   },
   centeredView: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: colors.backgroundModalOverlay,
   },
   modalView: {
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 35,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    ...baseModalView,
   },
   modalTitle: {
+    ...baseTitle,
     marginBottom: 15,
     textAlign: "center",
-    fontSize: 20,
-    fontWeight: "bold",
   },
   modalText: {
     marginBottom: 15,
     textAlign: "center",
+    color: colors.textSecondary, // Added a default color
   },
   modalButtons: {
     flexDirection: "row",
@@ -269,20 +302,22 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   modalButton: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2,
+    ...baseButton, // Apply base button style
+    padding: 10, // Override base
     marginHorizontal: 5,
     minWidth: 120,
   },
   buttonConfirm: {
-    backgroundColor: "#dc3545",
+    // Specific modal button style
+    backgroundColor: colors.danger, // This is for the 'confirm delete' case
   },
   buttonCancel: {
-    backgroundColor: "#6c757d",
+    // Specific modal button style
+    backgroundColor: colors.secondary,
   },
   textStyle: {
-    color: "white",
+    // For modal button text
+    color: colors.textLight,
     fontWeight: "bold",
     textAlign: "center",
   },
@@ -291,44 +326,44 @@ const styles = StyleSheet.create({
   },
   userPreferencesButton: {
     position: "absolute",
-    bottom: 16, // Position at the bottom
-    right: 16, // Position at the right
+    bottom: 16,
+    right: 16,
     padding: 12,
-    borderRadius: 30,
-    backgroundColor: "#0275d8",
-    shadowColor: "#000",
+    borderRadius: 30, // Circular
+    backgroundColor: colors.primary,
+    shadowColor: colors.textPrimary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     zIndex: 10,
   },
   userPreferencesButtonHover: {
-    backgroundColor: "#025aa5", // Darker shade for hover effect
+    backgroundColor: colors.primaryDark,
   },
   logo: {
     width: 512,
     height: 120,
     resizeMode: "contain",
     marginBottom: 8,
-  },
+  } as ImageStyle,
   titleWithIcon: {
     flexDirection: "row",
     alignItems: "center",
   },
   titleChevron: {
     marginLeft: 6,
-    marginBottom: -1,
+    marginBottom: -1, // Fine-tuning position
   },
   splashContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff", 
+    backgroundColor: colors.surface,
   },
   splashAnimation: {
     width: 400,
     height: 400,
-  },
+  } as ViewStyle,
 });
 
 export default styles;
