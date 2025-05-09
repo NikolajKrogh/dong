@@ -1,10 +1,11 @@
-import React, { useState, FC, useEffect } from "react";
+import React, { useState, FC, useEffect, useRef } from "react";
 import {
   View,
   Text,
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Match } from "../../store/store";
@@ -500,7 +501,66 @@ const MatchList: FC<MatchListProps> = ({
       alert("No matches to clear.");
       return;
     }
-    setGlobalMatches && setGlobalMatches([]);
+
+    const animations = Object.values(fadeAnims.current).map((anim) =>
+      Animated.timing(anim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      })
+    );
+
+    if (animations.length === 0) {
+      // If no animations exist, clear immediately
+      setGlobalMatches && setGlobalMatches([]);
+      return;
+    }
+
+    Animated.parallel(animations).start(() => {
+      setGlobalMatches && setGlobalMatches([]);
+      fadeAnims.current = {};
+    });
+  };
+
+  /**
+   * @brief Animated values for each match to enable fade-out animations.
+   */
+  const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
+
+  /**
+   * @brief Updates the animation references when matches change.
+   */
+  useEffect(() => {
+    matches.forEach((match) => {
+      if (!fadeAnims.current[match.id]) {
+        fadeAnims.current[match.id] = new Animated.Value(1);
+      }
+    });
+  }, [matches]);
+
+  /**
+   * @brief Removes a match with a fade-out animation.
+   *
+   * Animates the match fading out before removing it from the list.
+   *
+   * @param matchId The ID of the match to remove.
+   */
+  const handleRemoveWithAnimation = (matchId: string) => {
+    const anim = fadeAnims.current[matchId];
+    if (!anim) {
+      // If no animation exists, remove immediately
+      handleRemoveMatch(matchId);
+      return;
+    }
+
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      handleRemoveMatch(matchId);
+      delete fadeAnims.current[matchId];
+    });
   };
 
   /**
@@ -586,14 +646,26 @@ const MatchList: FC<MatchListProps> = ({
       <FlatList
         data={matches}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MatchItem
-            match={item}
-            selectedCommonMatch={selectedCommonMatch}
-            handleSelectCommonMatch={handleSelectCommonMatch}
-            handleRemoveMatch={handleRemoveMatch}
-          />
-        )}
+        renderItem={({ item }) => {
+          const fadeAnim = fadeAnims.current[item.id] || new Animated.Value(1);
+          fadeAnims.current[item.id] = fadeAnim;
+
+          return (
+            <Animated.View
+              style={{
+                opacity: fadeAnim,
+                transform: [{ scale: fadeAnim }],
+              }}
+            >
+              <MatchItem
+                match={item}
+                selectedCommonMatch={selectedCommonMatch}
+                handleSelectCommonMatch={handleSelectCommonMatch}
+                handleRemoveMatch={handleRemoveWithAnimation}
+              />
+            </Animated.View>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.matchEmptyListContainer}>
             <Ionicons name="football-outline" size={48} color="#ccc" />
@@ -613,6 +685,12 @@ const MatchList: FC<MatchListProps> = ({
           style={styles.clearAllButton}
           onPress={handleClearAllMatches}
         >
+          <Ionicons
+            name="trash-outline"
+            size={16}
+            color="#fff"
+            style={{ marginRight: 5 }}
+          />
           <Text style={styles.clearAllButtonText}>Clear All Matches</Text>
         </TouchableOpacity>
       )}
