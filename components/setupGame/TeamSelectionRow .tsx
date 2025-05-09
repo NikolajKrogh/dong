@@ -9,19 +9,35 @@ import {
   SafeAreaView,
 } from "react-native";
 import styles, { colors } from "../../app/style/setupGameStyles";
-import { Ionicons } from "@expo/vector-icons"; // Import Ionicons
+import { Ionicons } from "@expo/vector-icons";
 
 /**
  * @brief Interface for a team option with its league information.
+ * 
+ * @property key Unique identifier for the team option.
+ * @property value Original full team name.
+ * @property league Optional league the team belongs to.
+ * @property displayName Optional normalized team name for display without prefixes/suffixes.
  */
 interface TeamOptionWithLeague {
   key: string;
   value: string;
   league?: string;
+  displayName?: string;
 }
 
 /**
  * @brief Interface for the props of the TeamSelectionRow component.
+ * 
+ * @property homeTeam Currently selected home team name.
+ * @property awayTeam Currently selected away team name.
+ * @property setHomeTeam Function to update the home team selection.
+ * @property setAwayTeam Function to update the away team selection.
+ * @property homeTeamOptions Array of team options for home team selection.
+ * @property awayTeamOptions Array of team options for away team selection.
+ * @property handleAddMatchAndClear Function to add the selected match and clear the form.
+ * @property addNewHomeTeam Function to add a new home team to the available options.
+ * @property addNewAwayTeam Function to add a new away team to the available options.
  */
 interface TeamSelectionRowProps {
   homeTeam: string;
@@ -35,13 +51,18 @@ interface TeamSelectionRowProps {
   addNewAwayTeam: (team: string) => void;
 }
 
-/*
+/**
  * @brief Component for selecting home and away teams.
  *
  * This component renders a row of input fields for selecting the home and away teams.
- * It provides dropdowns with team options and allows adding new teams.
+ * It provides modal dropdowns with searchable team options and allows adding new teams.
+ * The component supports:
+ * - Displaying team options with normalized names (without prefixes/suffixes)
+ * - Searching for teams by name
+ * - Adding new custom teams when no matches are found
+ * - Visual feedback for selected teams
  *
- * @param props - The props for the component.
+ * @param props The props for the component.
  * @returns A React functional component.
  */
 const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
@@ -55,21 +76,50 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   addNewHomeTeam,
   addNewAwayTeam,
 }) => {
+  /**
+   * @brief Current search term for filtering home teams.
+   */
   const [homeSearchTerm, setHomeSearchTerm] = useState("");
+  
+  /**
+   * @brief Current search term for filtering away teams.
+   */
   const [awaySearchTerm, setAwaySearchTerm] = useState("");
+  
+  /**
+   * @brief Flag to control visibility of the home team selection modal.
+   */
   const [showHomeDropdown, setShowHomeDropdown] = useState(false);
+  
+  /**
+   * @brief Flag to control visibility of the away team selection modal.
+   */
   const [showAwayDropdown, setShowAwayDropdown] = useState(false);
+  
+  /**
+   * @brief Filtered list of home team options based on search term.
+   */
   const [filteredHomeOptions, setFilteredHomeOptions] =
     useState(homeTeamOptions);
+  
+  /**
+   * @brief Filtered list of away team options based on search term.
+   */
   const [filteredAwayOptions, setFilteredAwayOptions] =
     useState(awayTeamOptions);
 
+  /**
+   * @brief Flag indicating whether the add button should be disabled.
+   * 
+   * The button is disabled when either home team or away team is not selected.
+   */
   const isAddButtonDisabled = !homeTeam || !awayTeam;
 
   /**
    * @brief Filters home team options when the search term changes.
    *
    * This useEffect hook filters the home team options based on the current search term.
+   * It updates the filteredHomeOptions state with the matching teams.
    */
   useEffect(() => {
     if (homeSearchTerm) {
@@ -86,6 +136,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    * @brief Filters away team options when the search term changes.
    *
    * This useEffect hook filters the away team options based on the current search term.
+   * It updates the filteredAwayOptions state with the matching teams.
    */
   useEffect(() => {
     if (awaySearchTerm) {
@@ -103,7 +154,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    *
    * This function sets the selected home team, clears the search term, and closes the dropdown.
    *
-   * @param team - The name of the home team to select.
+   * @param team The name of the home team to select.
    */
   const selectHomeTeam = (team: string) => {
     setHomeTeam(team);
@@ -116,7 +167,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    *
    * This function sets the selected away team, clears the search term, and closes the dropdown.
    *
-   * @param team - The name of the away team to select.
+   * @param team The name of the away team to select.
    */
   const selectAwayTeam = (team: string) => {
     setAwayTeam(team);
@@ -128,6 +179,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    * @brief Adds and selects a new home team.
    *
    * This function adds a new home team to the list of available teams and selects it.
+   * It validates that the search term is not empty before adding.
    */
   const handleAddHomeTeam = () => {
     if (homeSearchTerm.trim()) {
@@ -140,6 +192,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    * @brief Adds and selects a new away team.
    *
    * This function adds a new away team to the list of available teams and selects it.
+   * It validates that the search term is not empty before adding.
    */
   const handleAddAwayTeam = () => {
     if (awaySearchTerm.trim()) {
@@ -150,8 +203,9 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
 
   return (
     <View>
+      {/* Team Selection Input Row */}
       <View style={styles.inputRow}>
-        {/* Home Team Selection - Improved UI */}
+        {/* Home Team Selection Field */}
         <View style={styles.teamInputWrapper}>
           <TouchableOpacity
             style={[
@@ -201,9 +255,10 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
           </TouchableOpacity>
         </View>
 
+        {/* VS Text Separator */}
         <Text style={styles.vsText}>vs</Text>
 
-        {/* Away Team Selection - Improved UI */}
+        {/* Away Team Selection Field */}
         <View style={styles.teamInputWrapper}>
           <TouchableOpacity
             style={[
@@ -253,11 +308,11 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Improved Add Button */}
+        {/* Add Match Button */}
         <TouchableOpacity
           style={[
-            styles.matchAddButton, // New style for the add button
-            isAddButtonDisabled && styles.matchAddButtonDisabled, // New disabled style
+            styles.matchAddButton,
+            isAddButtonDisabled && styles.matchAddButtonDisabled,
           ]}
           onPress={handleAddMatchAndClear}
           disabled={isAddButtonDisabled}
@@ -270,7 +325,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Home Team Modal Dropdown */}
+      {/* Home Team Selection Modal */}
       <Modal
         visible={showHomeDropdown}
         transparent={true}
@@ -303,8 +358,9 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
                   style={styles.modalItem}
                   onPress={() => selectHomeTeam(item.value)}
                 >
-                  <Text style={styles.modalItemText}>{item.value}</Text>
-                  {/* Removed league display */}
+                  <Text style={styles.modalItemText}>
+                    {item.displayName || item.value}
+                  </Text>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={
@@ -339,7 +395,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         </SafeAreaView>
       </Modal>
 
-      {/* Away Team Modal Dropdown */}
+      {/* Away Team Selection Modal */}
       <Modal
         visible={showAwayDropdown}
         transparent={true}
@@ -372,8 +428,9 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
                   style={styles.modalItem}
                   onPress={() => selectAwayTeam(item.value)}
                 >
-                  <Text style={styles.modalItemText}>{item.value}</Text>
-                  {/* Removed league display */}
+                  <Text style={styles.modalItemText}>
+                    {item.displayName || item.value}
+                  </Text>
                 </TouchableOpacity>
               )}
               ListEmptyComponent={

@@ -14,6 +14,7 @@ import TeamSelectionRow from "./TeamSelectionRow ";
 import MatchItem from "./MatchItem";
 import LeagueFilter from "./LeagueFilter";
 import { useMatchData } from "../../hooks/useMatchData";
+import { useTeamData } from "../../hooks/useTeamData";
 import {
   useTeamFiltering,
   filterMatchesByDateAndTime,
@@ -22,9 +23,11 @@ import { useMatchProcessing } from "../../hooks/useMatchProcessing";
 import { MatchData, TeamWithLeague } from "../../utils/matchUtils";
 import { Ionicons } from "@expo/vector-icons";
 
-
 /**
  * @brief Helper function to get today's date in YYYY-MM-DD format.
+ *
+ * Creates a new Date object for the current date and converts it to
+ * the ISO string format, then extracts just the date portion.
  *
  * @return A string representing today's date in YYYY-MM-DD format.
  */
@@ -35,6 +38,17 @@ const getTodayDate = (): string => {
 
 /**
  * @brief Interface for the props of the MatchList component.
+ *
+ * @property matches List of current match objects.
+ * @property homeTeam Currently selected home team name.
+ * @property awayTeam Currently selected away team name.
+ * @property setHomeTeam Function to update the home team selection.
+ * @property setAwayTeam Function to update the away team selection.
+ * @property handleAddMatch Function to add a new match.
+ * @property handleRemoveMatch Function to remove a match by ID.
+ * @property selectedCommonMatch Currently selected common match ID.
+ * @property handleSelectCommonMatch Function to select a common match.
+ * @property setGlobalMatches Optional function to update global matches state.
  */
 interface MatchListProps {
   matches: Match[];
@@ -52,21 +66,21 @@ interface MatchListProps {
 /**
  * @brief Functional component that renders a list of matches with filtering and team selection.
  *
- * This component fetches match data from an API, allows users to filter matches by league, date, and time,
- * and provides team selection rows for adding matches.
+ * This component fetches match data from an API and team data from league JSON files.
+ * It provides:
+ * - League filtering to narrow down matches and teams
+ * - Date and time filtering for matches
+ * - Team selection dropdowns with normalized display names
+ * - Match list with add/remove functionality
  *
- * @param matches Array of Match objects to display.
- * @param homeTeam The name of the home team.
- * @param awayTeam The name of the away team.
- * @param setHomeTeam Function to set the home team.
- * @param setAwayTeam Function to set the away team.
- * @param handleAddMatch Function to handle adding a match.
- * @param handleRemoveMatch Function to handle removing a match.
- * @param selectedCommonMatch The ID of the selected common match.
- * @param handleSelectCommonMatch Function to handle selecting a common match.
- * @param setGlobalMatches Function to set the global matches state.
+ * The component uses several custom hooks for data fetching and processing:
+ * - useMatchData: Fetches match data for a given date
+ * - useTeamData: Fetches team data from league JSON files
+ * - useTeamFiltering: Filters teams based on selected leagues
+ * - useMatchProcessing: Handles batch processing of matches
  *
- * @return A React element, representing the match list.
+ * @param props The props for the MatchList component.
+ * @return A React functional component.
  */
 const MatchList: FC<MatchListProps> = ({
   matches,
@@ -80,37 +94,149 @@ const MatchList: FC<MatchListProps> = ({
   handleSelectCommonMatch,
   setGlobalMatches,
 }) => {
+  /**
+   * @brief State for the selected date for match filtering.
+   */
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
+
+  /**
+   * @brief State for the currently selected match data.
+   */
   const [selectedMatchData, setSelectedMatchData] = useState<MatchData | null>(
     null
   );
 
+  /**
+   * @brief Custom hook for fetching and managing match data.
+   *
+   * Provides loading states, error states, team data extracted from matches,
+   * raw API data, and available leagues.
+   */
   const {
-    isLoading,
-    isError,
-    errorMessage,
-    teamsData,
+    isLoading: isMatchLoading,
+    isError: isMatchError,
+    errorMessage: matchErrorMessage,
+    teamsData: matchTeamsData,
     apiData,
     availableLeagues,
   } = useMatchData(selectedDate);
 
+  /**
+   * @brief Custom hook for fetching and managing team data.
+   *
+   * Provides loading states, error states, and team data from league JSON files.
+   */
+  const {
+    isLoading: isTeamLoading,
+    isError: isTeamError,
+    errorMessage: teamErrorMessage,
+    teamsData: allTeamsData,
+  } = useTeamData();
+
+  /**
+   * @brief State for the currently selected leagues for filtering.
+   */
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>([
     "Premier League",
     "Championship",
   ]);
+  /**
+   * @brief State for filtered matches based on league, date, and time criteria.
+   */
   const [filteredMatches, setFilteredMatches] = useState<MatchData[]>([]);
+
+  /**
+   * @brief State for the start time used in time filtering.
+   */
   const [startTime, setStartTime] = useState("15:00");
+
+  /**
+   * @brief State for the end time used in time filtering.
+   */
   const [endTime, setEndTime] = useState("16:00");
+
+  /**
+   * @brief State indicating whether time filtering is currently active.
+   */
   const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
+
+  /**
+   * @brief State indicating whether date filtering is currently active.
+   */
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
 
-  const {
-    filteredTeamsData,
-    setFilteredTeamsData,
-    homeTeamOptions,
-    awayTeamOptions,
-  } = useTeamFiltering(teamsData, selectedLeagues, matches, homeTeam, awayTeam);
+  /**
+   * @brief Custom hook for filtering teams based on selected leagues.
+   *
+   * Provides filtered team data and a function to update it.
+   */
+  const { filteredTeamsData, setFilteredTeamsData } = useTeamFiltering(
+    matchTeamsData,
+    selectedLeagues,
+    matches,
+    homeTeam,
+    awayTeam
+  );
 
+  /**
+   * @brief Prepares home team options with normalized display names.
+   *
+   * Maps team data to include:
+   * - Unique key for React rendering
+   * - Original team value for data storage
+   * - Normalized display name without prefixes/suffixes
+   * - League information for filtering
+   */
+  const homeTeamOptions = allTeamsData.map((team) => {
+    // Generate a normalized display name without prefixes and suffixes
+    const displayName = team.value
+      .replace(/\s+fc$/i, "")
+      .replace(
+        /^(fc|afc|1\.\s*fc|1\.\s*fsv|as|ss|ssc|rc|cd|ogc|vfl|vfb|tsg|sc)\s+/i,
+        ""
+      )
+      .trim();
+
+    return {
+      key:
+        team.key ||
+        `home-${String(team.value).toLowerCase().replace(/\s+/g, "-")}`,
+      value: team.value, // Keep original value for data
+      displayName: displayName, // Use normalized name for display
+      league: team.league,
+    };
+  });
+
+  /**
+   * @brief Prepares away team options with normalized display names.
+   *
+   * Similar to homeTeamOptions but with unique keys for away teams.
+   */
+  const awayTeamOptions = allTeamsData.map((team) => {
+    // Generate a normalized display name without prefixes and suffixes
+    const displayName = team.value
+      .replace(/\s+fc$/i, "")
+      .replace(
+        /^(fc|afc|1\.\s*fc|1\.\s*fsv|as|ss|ssc|rc|cd|ogc|vfl|vfb|tsg|sc)\s+/i,
+        ""
+      )
+      .trim();
+
+    return {
+      key:
+        team.key ||
+        `away-${String(team.value).toLowerCase().replace(/\s+/g, "-")}`,
+      value: team.value, // Keep original value for data
+      displayName: displayName, // Use normalized name for display
+      league: team.league,
+    };
+  });
+
+  /**
+   * @brief Custom hook for batch processing of matches.
+   *
+   * Provides a function to start processing and state about the processing.
+   */
   const { startProcessing, processingState } = useMatchProcessing(
     matches,
     setHomeTeam,
@@ -119,6 +245,18 @@ const MatchList: FC<MatchListProps> = ({
     setGlobalMatches
   );
 
+  /**
+   * @brief Effect hook to filter matches based on date, time, and league criteria.
+   *
+   * This complex effect:
+   * 1. Extracts all matches from API data
+   * 2. Filters matches by date and time
+   * 3. Filters matches by leagues
+   * 4. Updates filter states
+   * 5. Updates filtered teams data
+   *
+   * Dependencies are updated whenever filtering criteria change.
+   */
   useEffect(() => {
     if (!apiData || apiData.length === 0) {
       setFilteredMatches([]);
@@ -140,7 +278,7 @@ const MatchList: FC<MatchListProps> = ({
     );
 
     const selectedLeagueSet = new Set(selectedLeagues);
-    const teamsInSelectedLeagues = teamsData
+    const teamsInSelectedLeagues = matchTeamsData
       .filter((team) => selectedLeagueSet.has(team.league))
       .map((team) => ({
         normalizedName: normalizeTeamName(team.value),
@@ -175,7 +313,7 @@ const MatchList: FC<MatchListProps> = ({
       if (match.team2) matchingTeams.add(match.team2);
     });
 
-    const filteredTeams = teamsData.filter(
+    const filteredTeams = matchTeamsData.filter(
       (team) =>
         matchingTeams.has(team.value) ||
         matchingTeams.has(normalizeTeamName(team.value))
@@ -184,7 +322,7 @@ const MatchList: FC<MatchListProps> = ({
     if (selectedLeagues.length > 0) {
       setFilteredTeamsData(filteredTeams);
     } else {
-      setFilteredTeamsData(teamsData);
+      setFilteredTeamsData(matchTeamsData);
     }
   }, [
     apiData,
@@ -192,35 +330,37 @@ const MatchList: FC<MatchListProps> = ({
     startTime,
     endTime,
     selectedLeagues,
-    teamsData,
+    matchTeamsData,
     setFilteredTeamsData,
   ]);
 
+  /**
+   * @brief Handles toggling a league in the selection.
+   *
+   * If the league is already selected, it's removed.
+   * If not, it's added to the selection.
+   *
+   * @param league The league to toggle in the selection.
+   */
   const handleLeagueChange = (league: string) => {
     setSelectedLeagues((prev) => {
       const newSelection = prev.includes(league)
         ? prev.filter((l) => l !== league)
         : [...prev, league];
 
-      if (newSelection.length === 0) {
-        setFilteredTeamsData(teamsData);
-      }
       return newSelection;
     });
   };
 
-  const resetAllFilters = () => {
-    const today = getTodayDate();
-    setStartTime("15:00");
-    setEndTime("16:00");
-    setSelectedDate(today);
-    setSelectedLeagues(["Premier League", "Championship"]);
-    setFilteredTeamsData(teamsData);
-    setIsTimeFilterActive(false);
-    setIsDateFilterActive(true);
-    setFilteredMatches([]);
-  };
-
+  /**
+   * @brief Handles adding all currently filtered matches.
+   *
+   * Validates that:
+   * 1. There are matches to add
+   * 2. At least one filter is active
+   *
+   * Then starts batch processing of the filtered matches.
+   */
   const handleAddAllFilteredMatches = () => {
     if (filteredMatches.length === 0) {
       alert("No matches found with current filters to add.");
@@ -237,6 +377,13 @@ const MatchList: FC<MatchListProps> = ({
 
   /**
    * @brief Normalizes team names for comparison by removing common suffixes, prefixes, and special characters.
+   *
+   * Transformations include:
+   * - Converting to lowercase
+   * - Removing FC suffix
+   * - Removing common prefixes (FC, AFC, etc.)
+   * - Removing special characters and spaces
+   * - Normalizing accented characters
    *
    * @param name The team name to normalize.
    * @return The normalized team name.
@@ -260,18 +407,57 @@ const MatchList: FC<MatchListProps> = ({
       .trim();
   };
 
+  /**
+   * @brief Adds a new home team to the filtered teams data.
+   *
+   * Creates a new team object with:
+   * - Unique key
+   * - Team name
+   * - League based on current selection or "Custom"
+   *
+   * @param newTeamName The name of the new home team to add.
+   */
   const addNewHomeTeam = (newTeamName: string) => {
     const league = selectedLeagues.length > 0 ? selectedLeagues[0] : "Custom";
-    const newTeam = { key: String(Date.now()), value: newTeamName, league };
+    const newTeam = {
+      key: `home-${String(newTeamName)
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${Date.now()}`,
+      value: newTeamName,
+      league,
+    };
     setFilteredTeamsData([...filteredTeamsData, newTeam]);
   };
 
+  /**
+   * @brief Adds a new away team to the filtered teams data.
+   *
+   * Similar to addNewHomeTeam but for away teams.
+   *
+   * @param newTeamName The name of the new away team to add.
+   */
   const addNewAwayTeam = (newTeamName: string) => {
     const league = selectedLeagues.length > 0 ? selectedLeagues[0] : "Custom";
-    const newTeam = { key: String(Date.now()), value: newTeamName, league };
+    const newTeam = {
+      key: `away-${String(newTeamName)
+        .toLowerCase()
+        .replace(/\s+/g, "-")}-${Date.now()}`,
+      value: newTeamName,
+      league,
+    };
     setFilteredTeamsData([...filteredTeamsData, newTeam]);
   };
 
+  /**
+   * @brief Adds the currently selected home and away teams as a new match.
+   *
+   * Creates a new match object with:
+   * - ID from selected match data or current timestamp
+   * - Home and away team names
+   * - Initial score of 0-0
+   *
+   * Then adds it to the global matches list.
+   */
   const handleAddMatchLocally = () => {
     if (homeTeam.trim() && awayTeam.trim()) {
       const newMatch: Match = {
@@ -292,6 +478,11 @@ const MatchList: FC<MatchListProps> = ({
     }
   };
 
+  /**
+   * @brief Clears all matches from the global matches list.
+   *
+   * Validates that there are matches to clear first.
+   */
   const handleAddMatchAndClear = () => {
     handleAddMatchLocally();
     setHomeTeam("");
@@ -299,6 +490,11 @@ const MatchList: FC<MatchListProps> = ({
     setSelectedMatchData(null);
   };
 
+  /**
+   * @brief Selects a match from the dropdown and fills in home and away teams.
+   *
+   * @param match The match data to select.
+   */
   const handleClearAllMatches = () => {
     if (matches.length === 0) {
       alert("No matches to clear.");
@@ -307,11 +503,20 @@ const MatchList: FC<MatchListProps> = ({
     setGlobalMatches && setGlobalMatches([]);
   };
 
-  const selectMatchFromDropdown = (match: MatchData) => {
-    setHomeTeam(match.team1);
-    setAwayTeam(match.team2);
-    setSelectedMatchData(match);
-  };
+  /**
+   * @brief Combined loading state from match and team data loading.
+   */
+  const isLoading = isMatchLoading || isTeamLoading;
+
+  /**
+   * @brief Combined error state from match and team data errors.
+   */
+  const isError = isMatchError || isTeamError;
+
+  /**
+   * @brief Combined error message from match and team data errors.
+   */
+  const errorMessage = matchErrorMessage || teamErrorMessage;
 
   return (
     <View style={styles.tabContent}>
@@ -346,12 +551,12 @@ const MatchList: FC<MatchListProps> = ({
             loop
             style={styles.lottieAnimation}
           />
-          <Text style={styles.loadingText}>Loading matches...</Text>
+          <Text style={styles.loadingText}>Loading matches and teams...</Text>
         </View>
       ) : isError ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>
-            {errorMessage || "Error loading matches. Using fallback data."}
+            {errorMessage || "Error loading data."}
           </Text>
         </View>
       ) : (
@@ -392,11 +597,10 @@ const MatchList: FC<MatchListProps> = ({
         ListEmptyComponent={
           <View style={styles.matchEmptyListContainer}>
             <Ionicons name="football-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyListTitleText}>
-              No matches added yet!
-            </Text>
+            <Text style={styles.emptyListTitleText}>No matches added yet!</Text>
             <Text style={styles.emptyListSubtitleText}>
-              Use the two dropdowns to automatically find matches, or the team selectors above to add your first match.
+              Use the two dropdowns to automatically find matches, or the team
+              selectors above to add your first match.
             </Text>
           </View>
         }
