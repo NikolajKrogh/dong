@@ -50,6 +50,7 @@ export const useTeamData = () => {
       const leagueNames = [
         "Premier League",
         "Championship",
+        "EFL League One",
         "Bundesliga",
         "La Liga",
         "Serie A",

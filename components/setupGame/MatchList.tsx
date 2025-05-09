@@ -11,7 +11,7 @@ import LottieView from "lottie-react-native";
 import { Match } from "../../store/store";
 import styles, { colors } from "../../app/style/setupGameStyles";
 import MatchFilter from "./MatchFilter";
-import TeamSelectionRow from "./TeamSelectionRow ";
+import TeamSelectionRow from "./TeamSelectionRow";
 import MatchItem from "./MatchItem";
 import LeagueFilter from "./LeagueFilter";
 import { useMatchData } from "../../hooks/useMatchData";
