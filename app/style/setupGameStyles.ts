@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { StyleSheet, ViewStyle } from "react-native";
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -1432,6 +1432,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
+  lottieAnimation: {
+    width: 75,
+    height: 75,
+    alignSelf: "center",
+  } as ViewStyle,
 });
 
 export default styles;

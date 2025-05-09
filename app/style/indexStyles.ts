@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   splashAnimation: {
     width: 400,
     height: 400,
-  } as ImageStyle, // Assuming it's for Lottie or similar
+  } as ViewStyle,
 });
 
 export default styles;

@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
+import LottieView from "lottie-react-native"; 
 import { Match } from "../../store/store";
 import styles from "../../app/style/setupGameStyles";
 import MatchFilter from "./MatchFilter";
@@ -337,13 +338,18 @@ const MatchList: FC<MatchListProps> = ({
 
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007bff" />
-          <Text style={styles.loadingText}>Loading teams...</Text>
+          <LottieView
+            source={require("../../assets/lottie/football_loading.json")}
+            autoPlay
+            loop
+            style={styles.lottieAnimation}
+          />
+          <Text style={styles.loadingText}>Loading matches...</Text>
         </View>
       ) : isError ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>
-            {errorMessage || "Error loading teams. Using fallback data."}
+            {errorMessage || "Error loading matches. Using fallback data."}
           </Text>
         </View>
       ) : (
