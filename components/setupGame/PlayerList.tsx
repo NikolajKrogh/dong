@@ -190,8 +190,11 @@ const PlayerList: React.FC<PlayerListProps> = ({
         ListEmptyComponent={() => (
           <View style={styles.playerEmptyListContainer}>
             <Ionicons name="people-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyListText}>
-              No players added yet. Add some to get started!
+            <Text style={styles.emptyListTitleText}>
+              No players added yet!
+            </Text>
+            <Text style={styles.emptyListSubtitleText}>
+              Add players by typing their name in the input above.
             </Text>
           </View>
         )}

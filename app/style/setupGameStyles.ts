@@ -691,11 +691,25 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
   },
+  emptyListTitleText: { 
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
+    marginTop: 12,
+    marginBottom: 8,
+  },
   emptyListText: {
     color: colors.textMuted,
     marginBottom: 10,
     textAlign: 'center', 
     paddingHorizontal: 20, 
+  },
+  emptyListSubtitleText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 10,
   },
   addNewButton: {
     ...baseButton,

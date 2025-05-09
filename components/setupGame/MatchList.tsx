@@ -392,8 +392,11 @@ const MatchList: FC<MatchListProps> = ({
         ListEmptyComponent={
           <View style={styles.matchEmptyListContainer}>
             <Ionicons name="football-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyListText}>
+            <Text style={styles.emptyListTitleText}>
               No matches added yet!
+            </Text>
+            <Text style={styles.emptyListSubtitleText}>
+              Use the two dropdowns to automatically find matches, or the team selectors above to add your first match.
             </Text>
           </View>
         }
