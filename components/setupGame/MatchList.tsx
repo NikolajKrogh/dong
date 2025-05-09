@@ -6,9 +6,9 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
-import LottieView from "lottie-react-native"; 
+import LottieView from "lottie-react-native";
 import { Match } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
+import styles, { colors } from "../../app/style/setupGameStyles";
 import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow ";
 import MatchItem from "./MatchItem";
@@ -20,6 +20,8 @@ import {
 } from "../../hooks/useTeamFiltering";
 import { useMatchProcessing } from "../../hooks/useMatchProcessing";
 import { MatchData, TeamWithLeague } from "../../utils/matchUtils";
+import { Ionicons } from "@expo/vector-icons";
+
 
 /**
  * @brief Helper function to get today's date in YYYY-MM-DD format.
@@ -388,7 +390,12 @@ const MatchList: FC<MatchListProps> = ({
           />
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyListText}>No matches added yet</Text>
+          <View style={styles.matchEmptyListContainer}>
+            <Ionicons name="football-outline" size={48} color="#ccc" />
+            <Text style={styles.emptyListText}>
+              No matches added yet!
+            </Text>
+          </View>
         }
         scrollEnabled={false}
         contentContainerStyle={styles.matchesGridContainer}

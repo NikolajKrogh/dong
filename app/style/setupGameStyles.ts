@@ -692,8 +692,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   emptyListText: {
-    color: colors.textMuted, // Or textPlaceholder
+    color: colors.textMuted,
     marginBottom: 10,
+    textAlign: 'center', 
+    paddingHorizontal: 20, 
   },
   addNewButton: {
     ...baseButton,
@@ -1027,6 +1029,35 @@ const styles = StyleSheet.create({
   matchDeleteButton: {
     // Subtle delete
     padding: 4,
+  },
+  matchAddButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  matchAddButtonDisabled: {
+    backgroundColor: colors.textDisabled,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  matchEmptyListContainer: { 
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+    backgroundColor: colors.backgroundLight,
+    borderRadius: 12,
+    padding: 20, 
+    marginTop: 20,
+    marginHorizontal: 8, 
   },
   gridContainer: {
     // For 2 or 3 column grids
@@ -1491,7 +1522,7 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
     backgroundColor: colors.backgroundLight,
     borderRadius: 12,
-    padding: 30, // Generous padding
+    padding: 30,
     marginTop: 20,
   },
   playerClearAllButton: {
@@ -1536,11 +1567,6 @@ const styles = StyleSheet.create({
   teamSearchFieldSelected: {
     borderColor: colors.primaryFocus,
     backgroundColor: colors.surface,
-    // shadowColor: colors.primary,
-    // shadowOffset: { width: 0, height: 0 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 3,
-    // elevation: 2,
   },
   teamSearchIcon: {
     marginRight: 8,
@@ -1567,25 +1593,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: colors.textSecondary,
   },
-  matchAddButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25, // Fully round like PlayerList add button
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  matchAddButtonDisabled: {
-    backgroundColor: colors.textDisabled,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
+  
 });
 
 export default styles;
