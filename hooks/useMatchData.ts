@@ -60,6 +60,14 @@ export function useMatchData(selectedDate?: string) {
           { code: "ita.1", name: "Serie A" },
           { code: "fra.1", name: "Ligue 1" },
           { code: "den.1", name: "Superliga" },
+          { code: "ned.1", name: "Eredivisie" },
+          { code: "por.1", name: "Portuguese Primeira Liga" },
+          { code: "tur.1", name: "Turkish \n Süper Lig" },
+          { code: "usa.1", name: "Major League Soccer" },
+          { code: "sco.1", name: "Scottish Premiership" },
+          { code: "bel.1", name: "Belgium Pro League" },
+          { code: "rus.1", name: "Russian Premier Liga" },
+          { code: "gre.1", name: "Greek Super League" },
         ];
 
         const responses = await Promise.all(
