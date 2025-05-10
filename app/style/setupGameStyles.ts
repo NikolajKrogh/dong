@@ -1607,7 +1607,21 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: colors.textSecondary,
   },
-  
+  matchTimeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  matchTimeText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
 });
 
 export default styles;

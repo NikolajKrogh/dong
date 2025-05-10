@@ -467,6 +467,7 @@ const MatchList: FC<MatchListProps> = ({
         awayTeam: awayTeam.trim(),
         homeGoals: 0,
         awayGoals: 0,
+        startTime: selectedMatchData?.time,
       };
 
       if (setGlobalMatches) {

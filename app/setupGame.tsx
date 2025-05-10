@@ -11,6 +11,13 @@ import {
 } from "../components"; // Import components
 import { Player, Match } from "../store/store";
 
+interface SelectedMatchData {
+  id: string;
+  team1: string;
+  team2: string;
+  time?: string;
+}
+
 /**
  * @brief SetupGameScreen component for configuring the game.
  *
@@ -27,6 +34,8 @@ const SetupGameScreen = () => {
   const [selectedCommonMatch, setSelectedCommonMatch] = useState<string | null>(
     null
   );
+  const [selectedMatchData, setSelectedMatchData] =
+    useState<SelectedMatchData | null>(null);
 
   const {
     players,
@@ -145,10 +154,12 @@ const SetupGameScreen = () => {
         awayTeam: awayTeam.trim(),
         homeGoals: 0,
         awayGoals: 0,
+        startTime: selectedMatchData?.time || undefined,
       };
       setGlobalMatches([...matches, newMatch]);
       setHomeTeam("");
       setAwayTeam("");
+      setSelectedMatchData(null);
     }
   };
 

@@ -32,6 +32,7 @@ export interface Match {
   awayGoals: number;
   /** @brief Optional total number of goals in the match (calculated). */
   goals?: number;
+  startTime?: string;
 }
 
 /**
