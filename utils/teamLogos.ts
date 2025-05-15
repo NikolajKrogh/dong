@@ -11,6 +11,7 @@
 import { cleanTeamName } from "./matchUtils";
 import { TEAM_ALIASES } from "./teamAliases";
 import { ImageSourcePropType } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Cache for storing logos fetched from the API
 const logoCache: Record<string, string> = {};
@@ -41,12 +42,47 @@ export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
 };
 
 /**
- * Gets a cached league logo URL if available
- * @param leagueName The name of the league
- * @returns The logo URL if cached, undefined otherwise
+ * Retrieves the cached logo for a given league from memory cache.
+ *
+ * @param leagueName - The name of the league whose logo is being retrieved.
+ * @returns The cached logo as a string if found in memory cache, or `null` if not found.
+ * 
+ * @remarks
+ * If the logo is not found in the memory cache, this function returns `null`.
+ * Any errors encountered during the retrieval process are logged to the console.
  */
-export const getCachedLeagueLogo = (leagueName: string): string | undefined => {
-  return leagueLogoCache[leagueName];
+export const getCachedLeagueLogo = (leagueName: string): string | null => {
+  try {
+    // Check if we have the logo in memory cache first
+    const key = `league_logo_${leagueName}`;
+    const inMemoryCache = logoCache[key];
+    if (inMemoryCache) {
+      return inMemoryCache;
+    }
+    
+    // Otherwise we'll return null and let the AsyncStorage check happen in the hook
+    return null;
+  } catch (error) {
+    console.error(`Error getting cached logo for ${leagueName}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Get a cached league logo by name
+ * @param leagueName The name of the league
+ * @returns Promise resolving to the logo URI or null if not found
+ */
+export const getLeagueLogo = async (
+  leagueName: string
+): Promise<string | null> => {
+  try {
+    const key = `league_logo_${leagueName}`;
+    return await AsyncStorage.getItem(key);
+  } catch (error) {
+    console.error(`Error getting cached logo for ${leagueName}:`, error);
+    return null;
+  }
 };
 
 /**

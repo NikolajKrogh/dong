@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Alert } from "react-native";
-import { Match } from "../store/store";
+import { Match, useGameStore } from "../store/store";
 import { formatDateForAPI } from "../utils/matchUtils";
 import { Audio } from "expo-av";
 import { ESPNResponse } from "../types/espn";
@@ -63,6 +62,7 @@ export function useLiveScores(
   const [isSoundPlaying, setIsSoundPlaying] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScoresRef = useRef<Record<string, number>>({});
+  const configuredLeagues = useGameStore((state) => state.configuredLeagues);
 
   /**
    * @brief Plays the goal sound effect ('dong.mp3').
@@ -124,17 +124,8 @@ export function useLiveScores(
       const matchIdsToTrack = new Set(matches.map((m) => m.id));
       if (matchIdsToTrack.size === 0) return; // Don't fetch if no matches are tracked
 
-      // Fetch data from these leagues
-      const leagueEndpoints = [
-        { code: "eng.1", name: "Premier League" },
-        { code: "eng.2", name: "Championship" },
-        { code: "ger.1", name: "Bundesliga" },
-        { code: "esp.1", name: "La Liga" },
-        { code: "ita.1", name: "Serie A" },
-        { code: "fra.1", name: "Ligue 1" },
-        { code: "den.1", name: "Superliga" },
-        // Add more leagues if needed
-      ];
+      // Use the user-configured leagues
+      const leagueEndpoints = configuredLeagues;
 
       // Fetch all leagues in parallel
       const responses = await Promise.all(
@@ -234,7 +225,13 @@ export function useLiveScores(
       console.error("Error fetching or processing scores:", error);
       // Silently fail for the user - we'll try again next polling interval
     }
-  }, [matches, updateCallback, autoPlaySound, playGoalSound]); // Added playGoalSound dependency
+  }, [
+    matches,
+    updateCallback,
+    autoPlaySound,
+    playGoalSound,
+    configuredLeagues,
+  ]); // Added configuredLeagues dependency
 
   /**
    * @brief Starts polling the API for score updates at the specified interval.

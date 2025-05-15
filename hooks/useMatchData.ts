@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   TeamWithLeague,
   cleanTeamName,
@@ -6,6 +6,7 @@ import {
 } from "../utils/matchUtils";
 import { ESPNResponse, ESPNEvent } from "../types/espn";
 import { cacheTeamLogo, cacheLeagueLogo } from "../utils/teamLogos";
+import { useGameStore } from "../store/store";
 
 /**
  * @brief Makes direct requests without proxy.
@@ -42,216 +43,204 @@ export function useMatchData(selectedDate?: string) {
   const [apiData, setApiData] = useState<any[]>([]);
   const [availableLeagues, setAvailableLeagues] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchTeams = async () => {
-      setIsLoading(true);
-      setIsError(false);
-      setErrorMessage("");
+  // Get configured leagues from the store
+  const configuredLeagues = useGameStore((state) => state.configuredLeagues);
 
-      try {
-        // Use the imported formatDateForAPI function
-        const dateParam = formatDateForAPI(selectedDate);
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setIsError(false);
+    setErrorMessage("");
 
-        const leagueEndpoints = [
-          { code: "eng.1", name: "Premier League" },
-          { code: "eng.2", name: "Championship" },
-          { code: "ger.1", name: "Bundesliga" },
-          { code: "esp.1", name: "La Liga" },
-          { code: "ita.1", name: "Serie A" },
-          { code: "fra.1", name: "Ligue 1" },
-          { code: "den.1", name: "Superliga" },
-          { code: "ned.1", name: "Eredivisie" },
-          { code: "por.1", name: "Portuguese Primeira Liga" },
-          { code: "tur.1", name: "Turkish \n Süper Lig" },
-          { code: "usa.1", name: "Major League Soccer" },
-          { code: "sco.1", name: "Scottish Premiership" },
-          { code: "bel.1", name: "Belgium Pro League" },
-          { code: "rus.1", name: "Russian Premier Liga" },
-          { code: "gre.1", name: "Greek Super League" },
-        ];
+    try {
+      // Use the imported formatDateForAPI function
+      const dateParam = formatDateForAPI(selectedDate);
 
-        const responses = await Promise.all(
-          leagueEndpoints.map((league) =>
-            fetchDataFromESPN(
-              `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`
-            )
+      // Use the configuredLeagues from store
+      const leagueEndpoints = configuredLeagues;
+
+      const responses = await Promise.all(
+        leagueEndpoints.map((league) =>
+          fetchDataFromESPN(
+            `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`
           )
-        );
+        )
+      );
 
-        const allData: any[] = [];
-        const allTeams: TeamWithLeague[] = [];
-        const leagueSet = new Set<string>();
-        const processedTeams = new Set<string>();
+      const allData: any[] = [];
+      const allTeams: TeamWithLeague[] = [];
+      const leagueSet = new Set<string>();
+      const processedTeams = new Set<string>();
 
-        for (let i = 0; i < responses.length; i++) {
-          const response = responses[i];
+      for (let i = 0; i < responses.length; i++) {
+        const response = responses[i];
 
-          if (!response.ok) {
-            console.warn(
-              `API for ${leagueEndpoints[i].name} responded with status: ${response.status}`
-            );
-            continue;
-          }
-
-          const data: ESPNResponse = await response.json();
-
-          // Add this section to cache logos
-          data.events.forEach((event) => {
-            if (event.competitions) {
-              event.competitions.forEach((competition) => {
-                if (competition.competitors) {
-                  competition.competitors.forEach((competitor) => {
-                    if (competitor.team?.displayName && competitor.team?.logo) {
-                      cacheTeamLogo(
-                        competitor.team.displayName,
-                        competitor.team.logo
-                      );
-                    }
-                  });
-                }
-              });
-            }
-          });
-
-          if (data.leagues && data.leagues.length > 0) {
-            for (const league of data.leagues) {
-              // Cache league logos if available
-              if (league.logos && league.logos.length > 0) {
-                // Find the default logo (prefer the one marked as default)
-                const defaultLogo = league.logos.find(
-                  (logo) =>
-                    logo.rel.includes("default") || logo.rel.includes("full")
-                );
-
-                if (defaultLogo && defaultLogo.href) {
-                  // Map the league name or abbreviation to our app's league name convention
-                  const appLeagueName = leagueEndpoints.find(
-                    (l) => l.code === league.slug
-                  )?.name;
-
-                  if (appLeagueName) {
-                    cacheLeagueLogo(appLeagueName, defaultLogo.href);
-                  }
-                }
-              }
-            }
-          }
-
-          const leagueName = leagueEndpoints[i].name;
-          leagueSet.add(leagueName);
-
-          const matches = data.events.map((event) => {
-            let homeTeam = "";
-            let awayTeam = "";
-
-            if (event.name && event.name.includes(" at ")) {
-              const parts = event.name.split(" at ");
-              awayTeam = parts[0].trim();
-              homeTeam = parts[1].trim();
-            } else if (event.shortName && event.shortName.includes(" @ ")) {
-              const parts = event.shortName.split(" @ ");
-              if (parts.length === 2) {
-                awayTeam = parts[0].trim();
-                homeTeam = parts[1].trim();
-              }
-            }
-
-            let time = "";
-            if (event.date) {
-              const dateObj = new Date(event.date);
-              time = dateObj.toTimeString().substring(0, 5);
-            }
-
-            return {
-              id: event.id,
-              team1: homeTeam,
-              team2: awayTeam,
-              date: event.date?.split("T")[0] || "",
-              time: time,
-              venue: event.venue?.displayName || "",
-            };
-          });
-
-          allData.push({
-            name: leagueName,
-            matches: matches,
-          });
-
-          matches.forEach((match) => {
-            if (match.team1 && !processedTeams.has(match.team1)) {
-              processedTeams.add(match.team1);
-              allTeams.push({
-                key: `${match.team1}-${leagueName}`,
-                value: match.team1,
-                league: leagueName,
-              });
-            }
-
-            if (match.team2 && !processedTeams.has(match.team2)) {
-              processedTeams.add(match.team2);
-              allTeams.push({
-                key: `${match.team2}-${leagueName}`,
-                value: match.team2,
-                league: leagueName,
-              });
-            }
-          });
+        if (!response.ok) {
+          console.warn(
+            `API for ${leagueEndpoints[i].name} responded with status: ${response.status}`
+          );
+          continue;
         }
 
-        setApiData(allData);
-        setAvailableLeagues(Array.from(leagueSet));
+        const data: ESPNResponse = await response.json();
 
-        const sortedTeams = allTeams.sort((a, b) =>
-          a.value.localeCompare(b.value)
-        );
+        // Add this section to cache logos
+        data.events.forEach((event) => {
+          if (event.competitions) {
+            event.competitions.forEach((competition) => {
+              if (competition.competitors) {
+                competition.competitors.forEach((competitor) => {
+                  if (competitor.team?.displayName && competitor.team?.logo) {
+                    cacheTeamLogo(
+                      competitor.team.displayName,
+                      competitor.team.logo
+                    );
+                  }
+                });
+              }
+            });
+          }
+        });
 
-        setTeamsData(sortedTeams);
-      } catch (error) {
-        console.error(
-          "Error fetching teams:",
-          error instanceof Error ? error.message : String(error)
-        );
-        setIsError(true);
-        setErrorMessage(
-          error instanceof Error ? error.message : "Failed to load teams"
-        );
+        if (data.leagues && data.leagues.length > 0) {
+          for (const league of data.leagues) {
+            // Cache league logos if available
+            if (league.logos && league.logos.length > 0) {
+              // Find the default logo (prefer the one marked as default)
+              const defaultLogo = league.logos.find(
+                (logo) =>
+                  logo.rel.includes("default") || logo.rel.includes("full")
+              );
 
-        const fallbackTeams = [
-          "Arsenal",
-          "Aston Villa",
-          "Bournemouth",
-          "Brentford",
-          "Brighton & Hove Albion",
-          "Chelsea",
-          "Crystal Palace",
-          "Everton",
-          "Fulham",
-          "Leicester City",
-          "Liverpool",
-          "Manchester City",
-          "Manchester United",
-          "Newcastle United",
-          "Nottingham Forest",
-          "Southampton",
-          "Tottenham Hotspur",
-          "West Ham United",
-          "Wolverhampton Wanderers",
-          "Ipswich Town",
-        ].map((team) => ({
-          key: team,
-          value: cleanTeamName(team),
-          league: "Premier League",
-        }));
+              if (defaultLogo && defaultLogo.href) {
+                // Map the league name or abbreviation to our app's league name convention
+                const appLeagueName = leagueEndpoints.find(
+                  (l) => l.code === league.slug
+                )?.name;
 
-        setTeamsData(fallbackTeams);
-        setAvailableLeagues(["Premier League"]);
-      } finally {
-        setIsLoading(false);
+                if (appLeagueName) {
+                  cacheLeagueLogo(appLeagueName, defaultLogo.href);
+                }
+              }
+            }
+          }
+        }
+
+        const leagueName = leagueEndpoints[i].name;
+        leagueSet.add(leagueName);
+
+        const matches = data.events.map((event) => {
+          let homeTeam = "";
+          let awayTeam = "";
+
+          if (event.name && event.name.includes(" at ")) {
+            const parts = event.name.split(" at ");
+            awayTeam = parts[0].trim();
+            homeTeam = parts[1].trim();
+          } else if (event.shortName && event.shortName.includes(" @ ")) {
+            const parts = event.shortName.split(" @ ");
+            if (parts.length === 2) {
+              awayTeam = parts[0].trim();
+              homeTeam = parts[1].trim();
+            }
+          }
+
+          let time = "";
+          if (event.date) {
+            const dateObj = new Date(event.date);
+            time = dateObj.toTimeString().substring(0, 5);
+          }
+
+          return {
+            id: event.id,
+            team1: homeTeam,
+            team2: awayTeam,
+            date: event.date?.split("T")[0] || "",
+            time: time,
+            venue: event.venue?.displayName || "",
+          };
+        });
+
+        allData.push({
+          name: leagueName,
+          matches: matches,
+        });
+
+        matches.forEach((match) => {
+          if (match.team1 && !processedTeams.has(match.team1)) {
+            processedTeams.add(match.team1);
+            allTeams.push({
+              key: `${match.team1}-${leagueName}`,
+              value: match.team1,
+              league: leagueName,
+            });
+          }
+
+          if (match.team2 && !processedTeams.has(match.team2)) {
+            processedTeams.add(match.team2);
+            allTeams.push({
+              key: `${match.team2}-${leagueName}`,
+              value: match.team2,
+              league: leagueName,
+            });
+          }
+        });
       }
-    };
 
-    fetchTeams();
-  }, [selectedDate]);
+      setApiData(allData);
+      setAvailableLeagues(Array.from(leagueSet));
+
+      const sortedTeams = allTeams.sort((a, b) =>
+        a.value.localeCompare(b.value)
+      );
+
+      setTeamsData(sortedTeams);
+    } catch (error) {
+      console.error(
+        "Error fetching teams:",
+        error instanceof Error ? error.message : String(error)
+      );
+      setIsError(true);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Failed to load teams"
+      );
+
+      const fallbackTeams = [
+        "Arsenal",
+        "Aston Villa",
+        "Bournemouth",
+        "Brentford",
+        "Brighton & Hove Albion",
+        "Chelsea",
+        "Crystal Palace",
+        "Everton",
+        "Fulham",
+        "Leicester City",
+        "Liverpool",
+        "Manchester City",
+        "Manchester United",
+        "Newcastle United",
+        "Nottingham Forest",
+        "Southampton",
+        "Tottenham Hotspur",
+        "West Ham United",
+        "Wolverhampton Wanderers",
+        "Ipswich Town",
+      ].map((team) => ({
+        key: team,
+        value: cleanTeamName(team),
+        league: "Premier League",
+      }));
+
+      setTeamsData(fallbackTeams);
+      setAvailableLeagues(["Premier League"]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [selectedDate, configuredLeagues]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   return {
     isLoading,

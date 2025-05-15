@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
 
 /**
  * @brief Interface representing a player in the game.
@@ -84,6 +85,8 @@ interface GameState {
   soundEnabled: boolean;
   /** @brief Flag indicating if notifications for common match are enabled. */
   commonMatchNotificationsEnabled: boolean;
+  /** @brief Leagues configured by the user for fetching match data */
+  configuredLeagues: LeagueEndpoint[];
 
   // Game history
   /** @brief Array containing past completed game sessions. */
@@ -142,6 +145,26 @@ interface GameState {
    * @return void
    */
   setCommonMatchNotificationsEnabled: (enabled: boolean) => void;
+  /**
+   * @brief Sets the list of configured leagues
+   * @param leagues - Array of league endpoints
+   */
+  setConfiguredLeagues: (leagues: LeagueEndpoint[]) => void;
+  /**
+   * @brief Adds a league to the configured leagues
+   * @param league - The league endpoint to add
+   */
+  addLeague: (league: LeagueEndpoint) => void;
+  /**
+   * @brief Removes a league from the configured leagues
+   * @param code - The league code to remove
+   * @return void
+   */
+  removeLeague: (code: string) => void;
+  /**
+   * @brief Reset leagues to defaults
+   */
+  resetLeaguesToDefaults: () => void;
 
   // Actions for game history
   /**
@@ -176,6 +199,7 @@ export const useGameStore = create<GameState>()(
       hasVideoPlayed: false,
       soundEnabled: true,
       commonMatchNotificationsEnabled: true,
+      configuredLeagues: LEAGUE_ENDPOINTS, // Initialize with defaults
       history: [],
 
       // --- Actions ---
@@ -202,6 +226,22 @@ export const useGameStore = create<GameState>()(
       setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
       setCommonMatchNotificationsEnabled: (enabled) =>
         set({ commonMatchNotificationsEnabled: enabled }),
+      setConfiguredLeagues: (leagues) => set({ configuredLeagues: leagues }),
+      addLeague: (league) =>
+        set((state) => ({
+          configuredLeagues: [
+            ...state.configuredLeagues.filter((l) => l.code !== league.code),
+            league,
+          ],
+        })),
+      removeLeague: (code) =>
+        set((state) => ({
+          configuredLeagues: state.configuredLeagues.filter(
+            (l) => l.code !== code
+          ),
+        })),
+      resetLeaguesToDefaults: () =>
+        set({ configuredLeagues: LEAGUE_ENDPOINTS }),
 
       saveGameToHistory: () =>
         set((state) => {
@@ -243,6 +283,7 @@ export const useGameStore = create<GameState>()(
         history: state.history,
         soundEnabled: state.soundEnabled,
         commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
+        configuredLeagues: state.configuredLeagues,
       }),
     }
   )
