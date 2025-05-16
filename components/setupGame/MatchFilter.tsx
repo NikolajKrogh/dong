@@ -4,6 +4,7 @@ import DatePicker from "react-native-date-picker";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../../app/style/setupGameStyles";
 import { TeamWithLeague } from "../../utils/matchUtils";
+import { LeagueEndpoint } from "../../constants/leagues";
 
 /**
  * @brief Interface for the props of the MatchFilter component.
@@ -21,6 +22,9 @@ interface MatchFilterProps {
   filteredMatches: any[];
   filteredTeamsData: TeamWithLeague[];
   isLoading?: boolean;
+  availableLeagues: LeagueEndpoint[];
+  selectedLeagues: LeagueEndpoint[];
+  handleLeagueChange: (league: LeagueEndpoint) => void;
 }
 
 /**

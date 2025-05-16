@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Alert, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
@@ -8,26 +8,80 @@ import {
   MatchList,
   AssignmentSection,
   SetupWizard,
-} from "../components"; // Import components
+} from "../components";
 import { Player, Match } from "../store/store";
+import { LeagueEndpoint } from "../constants/leagues";
+import { useMatchData } from "../hooks/useMatchData";
+
+interface SelectedMatchData {
+  id: string;
+  team1: string;
+  team2: string;
+  time?: string;
+}
 
 /**
  * @brief SetupGameScreen component for configuring the game.
  *
- * This component allows users to add players, define matches,
- * assign matches to players, and select a common match.
- * It uses the `useGameStore` hook to manage the game state.
+ * This component orchestrates the entire game setup process. It manages
+ * state for player creation, match selection (including fetching and filtering),
+ * assignment of matches to players, and selection of a common match.
+ * It utilizes various child components for each step of the setup wizard
+ * and leverages `useGameStore` for global state management and `useMatchData`
+ * for fetching match-related information.
  */
 const SetupGameScreen = () => {
+  /**
+   * @brief Expo Router instance for navigation.
+   */
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("players");
+  /**
+   * @brief State for the name of a new player being added.
+   */
   const [newPlayerName, setNewPlayerName] = useState("");
+  /**
+   * @brief State for the selected home team name for a new match.
+   */
   const [homeTeam, setHomeTeam] = useState("");
+  /**
+   * @brief State for the selected away team name for a new match.
+   */
   const [awayTeam, setAwayTeam] = useState("");
+  /**
+   * @brief State for the ID of the currently selected common match.
+   */
   const [selectedCommonMatch, setSelectedCommonMatch] = useState<string | null>(
     null
   );
+  /**
+   * @brief State for data of a match selected from a dropdown or list, used to pre-fill team names.
+   */
+  const [selectedMatchData, setSelectedMatchData] =
+    useState<SelectedMatchData | null>(null);
+  /**
+   * @brief State for the list of leagues available for filtering, typically fetched from an API.
+   */
+  const [availableLeagues, setAvailableLeagues] = useState<LeagueEndpoint[]>(
+    []
+  );
+  /**
+   * @brief State for the date selected by the user to filter matches.
+   */
+  const [selectedDate, setSelectedDate] = useState("");
 
+  /**
+   * @brief Destructured state and setters from `useGameStore` for global game management.
+   * @property players - Array of current players.
+   * @property matches - Array of current matches.
+   * @property commonMatchId - ID of the common match.
+   * @property playerAssignments - Object mapping player IDs to their assigned match IDs.
+   * @property matchesPerPlayer - Number of matches assigned per player.
+   * @property setGlobalPlayers - Function to update the global players list.
+   * @property setGlobalMatches - Function to update the global matches list.
+   * @property setGlobalCommonMatchId - Function to update the global common match ID.
+   * @property setGlobalPlayerAssignments - Function to update global player assignments.
+   * @property setMatchesPerPlayer - Function to update the number of matches per player.
+   */
   const {
     players,
     matches,
@@ -41,8 +95,41 @@ const SetupGameScreen = () => {
     setMatchesPerPlayer,
   } = useGameStore();
 
+  /**
+   * @brief Destructured data from `useMatchData` hook.
+   * @property apiLeagues - Leagues fetched from the API, aliased from `availableLeagues` in the hook.
+   * @property teamsData - Team data fetched from the API.
+   * @property isLoading - Boolean indicating if match data is currently loading.
+   */
+  const {
+    availableLeagues: apiLeagues,
+    teamsData,
+    isLoading,
+  } = useMatchData(selectedDate);
+
+  /**
+   * @brief Effect hook to update the local `availableLeagues` state when `apiLeagues` from `useMatchData` changes.
+   */
+  useEffect(() => {
+    if (apiLeagues && apiLeagues.length > 0) {
+      setAvailableLeagues(apiLeagues);
+    }
+  }, [apiLeagues]);
+
+  /**
+   * @brief Boolean flag indicating if the user can advance to the matches setup step.
+   * True if at least one player has been added.
+   */
   const canAdvanceToMatches = players.length > 0;
+  /**
+   * @brief Boolean flag indicating if the user can advance to the assignment setup step.
+   * True if at least one match has been added and a common match has been selected.
+   */
   const canAdvanceToAssign = matches.length > 0 && commonMatchId !== null;
+  /**
+   * @brief Boolean flag indicating if the user can start the game.
+   * True if player assignments have been made and at least one player has at least one match assigned.
+   */
   const canStartGame =
     Object.keys(playerAssignments).length > 0 &&
     Object.values(playerAssignments).some((matches) => matches.length > 0);
@@ -145,10 +232,12 @@ const SetupGameScreen = () => {
         awayTeam: awayTeam.trim(),
         homeGoals: 0,
         awayGoals: 0,
+        startTime: selectedMatchData?.time || undefined,
       };
       setGlobalMatches([...matches, newMatch]);
       setHomeTeam("");
       setAwayTeam("");
+      setSelectedMatchData(null);
     }
   };
 

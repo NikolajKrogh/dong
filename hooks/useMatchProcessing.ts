@@ -90,13 +90,16 @@ export function useMatchProcessing(
       if (uniqueMatches.length === 0) return;
 
       // Convert MatchData to Match format
-      const newMatches = uniqueMatches.map((match) => ({
-        id: match.id,
-        homeTeam: match.team1,
-        awayTeam: match.team2,
-        homeGoals: 0,
-        awayGoals: 0,
-      }));
+      const newMatches = uniqueMatches.map((match) => {
+        return {
+          id: match.id,
+          homeTeam: match.team1,
+          awayTeam: match.team2,
+          homeGoals: 0,
+          awayGoals: 0,
+          startTime: match.time,
+        };
+      });
 
       // Update state directly with all new matches
       setGlobalMatches([...matchesRef.current, ...newMatches]);
@@ -290,12 +293,14 @@ export function useMatchProcessing(
       }
 
       // Otherwise use the sequential method
-      setMatchesToProcess(uniqueMatches);
-      totalMatchesRef.current = uniqueMatches.length;
+      const newMatchesToProcess = uniqueMatches; // Just use the filtered matches directly
+
+      setMatchesToProcess(newMatchesToProcess);
+      totalMatchesRef.current = newMatchesToProcess.length;
       setProcessingStats({
         added: 0,
         skipped: 0,
-        total: uniqueMatches.length,
+        total: newMatchesToProcess.length,
       });
 
       // Start processing at the first match

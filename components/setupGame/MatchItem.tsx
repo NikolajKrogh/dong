@@ -22,6 +22,53 @@ const MatchItem: React.FC<MatchItemProps> = ({
   const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
   const isSelected = selectedCommonMatch === match.id;
 
+  // Format match start time with better error handling
+  const formatMatchTime = () => {
+    if (!match.startTime) return null;
+
+    // Try multiple approaches to display the time
+    try {
+      // 1. First try: Direct parsing as Date object
+      const date = new Date(match.startTime);
+
+      // Check if date is valid
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+
+      // 2. Second try: Check if it's just a time string (HH:MM)
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(match.startTime)) {
+        return match.startTime;
+      }
+
+      // 3. Third try: Check if we can extract time from ESPN format
+      const espnMatch = match.startTime.match(/T(\d{2}:\d{2})Z/);
+      if (espnMatch && espnMatch[1]) {
+        // Convert from UTC to local time
+        const [hours, minutes] = espnMatch[1].split(":").map(Number);
+        const localDate = new Date();
+        localDate.setUTCHours(hours, minutes);
+
+        return localDate.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+      }
+
+      // 4. Fallback: Just show the raw string
+      return match.startTime;
+    } catch (e) {
+      console.log("Time formatting error:", e, "for time:", match.startTime);
+      // If any error in parsing, just return the raw string
+      return match.startTime;
+    }
+  };
+
   return (
     <View style={styles.matchItemWrapper}>
       <TouchableOpacity
@@ -66,6 +113,14 @@ const MatchItem: React.FC<MatchItemProps> = ({
               {match.awayTeam}
             </Text>
           </View>
+
+          {/* Match start time - new addition */}
+          {match.startTime && (
+            <View style={styles.matchTimeContainer}>
+              <Ionicons name="time-outline" size={14} color="#666" />
+              <Text style={styles.matchTimeText}>{formatMatchTime()}</Text>
+            </View>
+          )}
         </View>
 
         {/* Actions section */}
