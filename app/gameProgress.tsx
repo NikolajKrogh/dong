@@ -535,8 +535,7 @@ const GameProgressScreen = () => {
   } = useLiveScores(
     matches,
     handleGoalIncrement, // Pass the updated handler
-    60000, // Poll every minute
-    soundEnabled
+    60000 // Poll every minute
   );
 
   // Start polling as soon as the component mounts
