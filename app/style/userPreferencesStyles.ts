@@ -46,7 +46,6 @@ export const colors = {
   thumbOff: "#f4f3f4",
 };
 
-// --- Base Styles ---
 const baseContainer: ViewStyle = {
   flex: 1,
   backgroundColor: colors.background,
@@ -466,7 +465,7 @@ export const manageLeaguesModalStyles = StyleSheet.create({
     paddingVertical: 16,
   },
   leagueCountText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "500",
     color: colors.textSecondary,
   },
@@ -667,5 +666,149 @@ export const manageLeaguesModalStyles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 10,
     marginLeft: 6,
+  },
+});
+
+export const selectDefaultLeaguesModalStyles = StyleSheet.create({
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: colors.backgroundLight,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+    elevation: 2,
+  },
+  backButton: {
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    textAlign: "center",
+    flex: 1,
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    backgroundColor: colors.backgroundLight,
+  },
+  leagueHeaderRow: {
+    marginBottom: 8,
+    paddingHorizontal: 0,
+  },
+  leagueCountText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  selectionInfoText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  leagueListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  availableLeagueItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  selectedLeagueItem: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLighter,
+    borderWidth: 1,
+  },
+  leagueLogoContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 6,
+    marginRight: 12,
+    backgroundColor: colors.backgroundSubtle,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  leagueLogo: {
+    width: "100%",
+    height: "100%",
+  },
+  leagueLogoPlaceholder: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leagueItemContent: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  availableLeagueName: {
+    fontSize: 15,
+    color: colors.textPrimary,
+    fontWeight: "500",
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  emptyStateIcon: {
+    marginBottom: 16,
+    padding: 12,
+    backgroundColor: colors.primaryLighter,
+    borderRadius: 50,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyStateMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  saveButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    marginHorizontal: 16,
+    marginBottom: 16,
+    marginTop: 10,
+  },
+  saveButtonText: {
+    color: colors.textLight,
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

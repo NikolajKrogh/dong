@@ -9,11 +9,11 @@ import { commonStyles } from "./style/userPreferencesStyles";
 
 import Header from "../components/preferences/Header";
 import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
-import DataSourcesSettings from "../components/preferences/LeagueSettings";
+import LeagueSettings from "../components/preferences/LeagueSettings";
 import OnboardingButton from "../components/preferences/OnboardingButton";
 import AddLeagueModal from "../components/preferences/AddLeagueModal";
 import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
-import LeagueSettings from "../components/preferences/LeagueSettings";
+import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
 
 /**
  * @brief UserPreferencesScreen component.
@@ -35,14 +35,23 @@ const UserPreferencesScreen = () => {
     addLeague,
     removeLeague,
     resetLeaguesToDefaults,
+    defaultSelectedLeagues,
+    setDefaultSelectedLeagues,
   } = useGameStore();
 
   const insets = useSafeAreaInsets();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAddLeagueModal, setShowAddLeagueModal] = useState(false);
   const [showManageLeaguesModal, setShowManageLeaguesModal] = useState(false);
-  const [selectedLeagues, setSelectedLeagues] = useState<LeagueEndpoint[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [showSelectDefaultLeaguesModal, setShowSelectDefaultLeaguesModal] =
+    useState(false); // State for the new modal
+
+  // State for AddLeagueModal specifically
+  const [leaguesForAddingModal, setLeaguesForAddingModal] = useState<
+    LeagueEndpoint[]
+  >([]);
+  const [searchQueryForAddingModal, setSearchQueryForAddingModal] =
+    useState("");
 
   /**
    * @brief Navigates back to the previous screen.
@@ -52,31 +61,32 @@ const UserPreferencesScreen = () => {
   };
 
   /**
-   * @brief Toggles the selection state of a league.
-   *
-   * If the league is already selected, it is removed from the selection.
-   * Otherwise, it is added to the selection.
-   *
-   * @param {LeagueEndpoint} league The league to toggle.
+   * @brief Toggles the selection state of a league for the AddLeagueModal.
    */
-  const toggleLeagueSelection = (league: LeagueEndpoint) => {
-    if (selectedLeagues.some((l) => l.code === league.code)) {
-      setSelectedLeagues(selectedLeagues.filter((l) => l.code !== league.code));
-    } else {
-      setSelectedLeagues([...selectedLeagues, league]);
-    }
+  const toggleLeagueSelectionForAdding = (league: LeagueEndpoint) => {
+    setLeaguesForAddingModal((prevSelected) =>
+      prevSelected.some((l) => l.code === league.code)
+        ? prevSelected.filter((l) => l.code !== league.code)
+        : [...prevSelected, league]
+    );
   };
 
   /**
-   * @brief Handles the addition of selected leagues.
-   *
-   * Adds all selected leagues to the configured leagues, clears the selection,
-   * and closes the "Add League" modal.
+   * @brief Handles the addition of selected leagues from the AddLeagueModal.
    */
-  const handleAddSelectedLeagues = () => {
-    selectedLeagues.forEach((league) => addLeague(league));
-    setSelectedLeagues([]);
+  const handleAddSelectedLeaguesFromModal = () => {
+    leaguesForAddingModal.forEach((leagueToAdd) => addLeague(leagueToAdd)); // Use addLeague from store
+    setLeaguesForAddingModal([]);
+    setSearchQueryForAddingModal(""); // Reset search query
     setShowAddLeagueModal(false);
+  };
+
+  /**
+   * @brief Handles saving the selected default leagues.
+   */
+  const handleSaveDefaultLeagues = (newDefaults: LeagueEndpoint[]) => {
+    setDefaultSelectedLeagues(newDefaults);
+    setShowSelectDefaultLeaguesModal(false);
   };
 
   if (showOnboarding) {
@@ -102,10 +112,15 @@ const UserPreferencesScreen = () => {
 
         <LeagueSettings
           configuredLeagues={configuredLeagues}
-          removeLeague={removeLeague}
-          resetLeaguesToDefaults={resetLeaguesToDefaults}
-          addLeagues={(leagues) =>
-            leagues.forEach((league) => addLeague(league))
+          onManageLeaguesPress={() => setShowManageLeaguesModal(true)}
+          onAddLeaguesPress={() => {
+            setLeaguesForAddingModal([]); // Reset for AddLeagueModal
+            setSearchQueryForAddingModal(""); // Reset for AddLeagueModal
+            setShowAddLeagueModal(true);
+          }}
+          defaultSelectedLeagues={defaultSelectedLeagues}
+          onSetDefaultLeaguesPress={() =>
+            setShowSelectDefaultLeaguesModal(true)
           }
         />
 
@@ -114,22 +129,33 @@ const UserPreferencesScreen = () => {
 
       <AddLeagueModal
         visible={showAddLeagueModal}
-        onClose={() => setShowAddLeagueModal(false)}
+        onClose={() => {
+          setShowAddLeagueModal(false);
+          setSearchQueryForAddingModal(""); // Reset search on close
+        }}
         configuredLeagues={configuredLeagues}
-        selectedLeagues={selectedLeagues}
-        setSelectedLeagues={setSelectedLeagues}
-        toggleLeagueSelection={toggleLeagueSelection}
-        handleAddSelectedLeagues={handleAddSelectedLeagues}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        selectedLeagues={leaguesForAddingModal}
+        setSelectedLeagues={setLeaguesForAddingModal}
+        toggleLeagueSelection={toggleLeagueSelectionForAdding}
+        handleAddSelectedLeagues={handleAddSelectedLeaguesFromModal}
+        searchQuery={searchQueryForAddingModal}
+        setSearchQuery={setSearchQueryForAddingModal}
       />
 
       <ManageLeaguesModal
         visible={showManageLeaguesModal}
         onClose={() => setShowManageLeaguesModal(false)}
         configuredLeagues={configuredLeagues}
-        removeLeague={removeLeague}
-        resetLeaguesToDefaults={resetLeaguesToDefaults}
+        removeLeague={removeLeague} // removeLeague from store is passed here
+        resetLeaguesToDefaults={resetLeaguesToDefaults} // resetLeaguesToDefaults from store
+      />
+
+      <SelectDefaultLeaguesModal
+        visible={showSelectDefaultLeaguesModal}
+        onClose={() => setShowSelectDefaultLeaguesModal(false)}
+        configuredLeagues={configuredLeagues}
+        currentDefaultLeagues={defaultSelectedLeagues}
+        onSave={handleSaveDefaultLeagues}
       />
     </SafeAreaView>
   );

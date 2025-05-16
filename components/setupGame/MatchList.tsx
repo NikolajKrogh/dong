@@ -24,6 +24,7 @@ import { useMatchProcessing } from "../../hooks/useMatchProcessing";
 import { MatchData, TeamWithLeague } from "../../utils/matchUtils";
 import { Ionicons } from "@expo/vector-icons";
 import { LeagueEndpoint } from "../../constants/leagues";
+import { useGameStore } from "../../store/store";
 
 /**
  * @brief Helper function to get today's date in YYYY-MM-DD format.
@@ -97,6 +98,7 @@ const MatchList: FC<MatchListProps> = ({
   handleSelectCommonMatch,
   setGlobalMatches,
 }) => {
+  const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore(); // Get from store
   /**
    * @brief State for the selected date for match filtering. Initializes to today's date.
    * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
@@ -138,15 +140,27 @@ const MatchList: FC<MatchListProps> = ({
 
   /**
    * @brief State for the currently selected leagues for filtering.
-   * Initializes with "Premier League" and "Championship" as default selections.
+   * Initializes with user's default selected leagues from store, or hardcoded defaults.
    * This state is updated by user interactions in the `LeagueFilter` component
    * and synchronized with `availableLeagues` from the API to ensure correct league codes.
    * @type {[LeagueEndpoint[], React.Dispatch<React.SetStateAction<LeagueEndpoint[]>>]}
    */
-  const [selectedLeagues, setSelectedLeagues] = useState<LeagueEndpoint[]>([
-    { name: "Premier League", code: "eng.1" },
-    { name: "Championship", code: "eng.2" },
-  ]);
+  const [selectedLeagues, setSelectedLeagues] = useState<LeagueEndpoint[]>(
+    () => {
+      // Ensure storedDefaultLeagues is an array and has items before using it.
+      if (
+        Array.isArray(storedDefaultLeagues) &&
+        storedDefaultLeagues.length > 0
+      ) {
+        return storedDefaultLeagues;
+      }
+      // Fallback if no defaults are stored or they are empty
+      return [
+        { name: "Premier League", code: "eng.1" }, // Default initial selection
+        { name: "Championship", code: "eng.2" },
+      ];
+    }
+  );
 
   /**
    * @brief State for filtered matches based on league, date, and time criteria.

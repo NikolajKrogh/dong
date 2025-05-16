@@ -375,8 +375,6 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                     />
                   );
                 }}
-                // Optionally, if FlatList content is short, ensure it can expand:
-                // style={{ flex: 1 }}
               />
             ) : (
               <View style={manageLeaguesModalStyles.emptyState}>

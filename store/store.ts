@@ -87,6 +87,8 @@ interface GameState {
   commonMatchNotificationsEnabled: boolean;
   /** @brief Leagues configured by the user for fetching match data */
   configuredLeagues: LeagueEndpoint[];
+  /** @brief Default leagues selected by the user to be active when opening the match list. */
+  defaultSelectedLeagues: LeagueEndpoint[];
 
   // Game history
   /** @brief Array containing past completed game sessions. */
@@ -165,6 +167,11 @@ interface GameState {
    * @brief Reset leagues to defaults
    */
   resetLeaguesToDefaults: () => void;
+  /**
+   * @brief Sets the default selected leagues.
+   * @param leagues - Array of league endpoints to set as default.
+   */
+  setDefaultSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
 
   // Actions for game history
   /**
@@ -199,7 +206,11 @@ export const useGameStore = create<GameState>()(
       hasVideoPlayed: false,
       soundEnabled: true,
       commonMatchNotificationsEnabled: true,
-      configuredLeagues: LEAGUE_ENDPOINTS, // Initialize with defaults
+      configuredLeagues: LEAGUE_ENDPOINTS, // Initialize with all available as "configured"
+      defaultSelectedLeagues: [
+        { name: "Premier League", code: "eng.1", category: "Europe" },
+        { name: "Championship", code: "eng.2", category: "Europe" },
+      ],
       history: [],
 
       // --- Actions ---
@@ -241,7 +252,15 @@ export const useGameStore = create<GameState>()(
           ),
         })),
       resetLeaguesToDefaults: () =>
-        set({ configuredLeagues: LEAGUE_ENDPOINTS }),
+        set({
+          configuredLeagues: LEAGUE_ENDPOINTS,
+          defaultSelectedLeagues: [
+            { name: "Premier League", code: "eng.1", category: "Europe" },
+            { name: "Championship", code: "eng.2", category: "Europe" },
+          ],
+        }),
+      setDefaultSelectedLeagues: (leagues) =>
+        set({ defaultSelectedLeagues: leagues }),
 
       saveGameToHistory: () =>
         set((state) => {
@@ -284,6 +303,7 @@ export const useGameStore = create<GameState>()(
         soundEnabled: state.soundEnabled,
         commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
         configuredLeagues: state.configuredLeagues,
+        defaultSelectedLeagues: state.defaultSelectedLeagues, 
       }),
     }
   )
