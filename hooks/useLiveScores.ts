@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Match, useGameStore } from "../store/store";
 import { formatDateForAPI } from "../utils/matchUtils";
-import { Audio } from "expo-av";
 import { ESPNResponse } from "../types/espn";
 import { cacheTeamLogo } from "../utils/teamLogos";
 
@@ -37,7 +36,6 @@ export interface GoalScorer {
  * @param {Match[]} matches Array of matches to monitor for score updates.
  * @param {(matchId: string, team: "home" | "away", newGoals: number) => void} updateCallback Callback function to call when a score is updated.
  * @param {number} [intervalMs=60000] Polling interval in milliseconds.
- * @param {boolean} [autoPlaySound=true] Whether to automatically play the goal sound on updates.
  * @return An object containing:
  *  - liveMatches: Array of matches with live score information.
  *  - isPolling: Boolean indicating if the API is currently being polled.
@@ -53,50 +51,20 @@ export function useLiveScores(
     team: "home" | "away",
     newGoals: number
   ) => void, // Updated signature
-  intervalMs = 60000, // Poll every minute by default
-  autoPlaySound = false // Default to not auto-playing sound
+  intervalMs = 60000 // Poll every minute by default
 ) {
   const [liveMatches, setLiveMatches] = useState<MatchWithScore[]>([]);
   const [isPolling, setIsPolling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isSoundPlaying, setIsSoundPlaying] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScoresRef = useRef<Record<string, number>>({});
   const configuredLeagues = useGameStore((state) => state.configuredLeagues);
 
   /**
-   * @brief Plays the goal sound effect ('dong.mp3').
-   * Plays the sound if `autoPlaySound` is true and no sound is currently playing.
-   * Includes a cooldown to prevent rapid overlapping sounds.
-   * @async
-   */
-  const playGoalSound = async () => {
-    if (isSoundPlaying || !autoPlaySound) return;
-
-    setIsSoundPlaying(true);
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require("../assets/sounds/dong.mp3")
-      );
-      await sound.playAsync();
-
-      // Allow sound to play again after 3 seconds
-      setTimeout(() => {
-        setIsSoundPlaying(false);
-        // Consider unloading the sound here if not needed immediately again
-        // sound.unloadAsync();
-      }, 3000);
-    } catch (error) {
-      console.error("Error playing goal sound:", error); // Log error
-      setIsSoundPlaying(false);
-    }
-  };
-
-  /**
    * @brief Fetches current scores from the ESPN API for the tracked matches.
    * Checks network connectivity, fetches data from multiple league endpoints,
    * processes the responses, updates the live match state, and triggers the
-   * update callback and goal sound for new goals detected.
+   * update callback for new goals detected.
    * @async
    */
   const fetchCurrentScores = useCallback(async () => {
@@ -200,9 +168,6 @@ export function useLiveScores(
       // Process any matches marked with new goals
       const matchIdsWithNewGoals = Object.keys(newGoals);
       if (matchIdsWithNewGoals.length > 0) {
-        // Play sound once if any goal updates occurred
-        playGoalSound();
-
         // Update goals for each affected match via the callback
         matchIdsWithNewGoals.forEach((matchId) => {
           // Find the latest processed data and the app's current state for this match
@@ -225,13 +190,7 @@ export function useLiveScores(
       console.error("Error fetching or processing scores:", error);
       // Silently fail for the user - we'll try again next polling interval
     }
-  }, [
-    matches,
-    updateCallback,
-    autoPlaySound,
-    playGoalSound,
-    configuredLeagues,
-  ]); // Added configuredLeagues dependency
+  }, [matches, updateCallback, configuredLeagues]);
 
   /**
    * @brief Starts polling the API for score updates at the specified interval.
