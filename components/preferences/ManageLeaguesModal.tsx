@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   Modal,
-  ScrollView,
+  FlatList,
   Alert,
   SafeAreaView,
   Image,
@@ -53,86 +53,53 @@ interface LeagueCardProps {
  * @param {LeagueCardProps} props - The props for the component.
  * @returns {React.ReactElement} The LeagueCard component.
  */
-const LeagueCard: React.FC<LeagueCardProps> = ({
-  league,
-  removeLeague,
-}) => {
+const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
   // Pass both league name AND code
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
 
   return (
-    <View key={league.code} style={manageLeaguesModalStyles.ultraCompactCard}>
-      <View style={manageLeaguesModalStyles.logoContainer}>
-        {isLoading ? (
-          <View
-            style={[
-              manageLeaguesModalStyles.leagueLogo,
-              {
-                backgroundColor: colors.backgroundSubtle,
-                alignItems: "center",
-                justifyContent: "center",
-              },
-            ]}
-          >
-            <Ionicons
-              name="hourglass-outline"
-              size={18}
-              color={colors.textMuted}
+    <View style={manageLeaguesModalStyles.leagueCard}>
+      <View style={manageLeaguesModalStyles.leagueCardContent}>
+        <View style={manageLeaguesModalStyles.logoContainer}>
+          {isLoading ? (
+            <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
+              <Ionicons
+                name="hourglass-outline"
+                size={18}
+                color={colors.textMuted}
+              />
+            </View>
+          ) : logoSource ? (
+            <Image
+              source={logoSource}
+              style={manageLeaguesModalStyles.leagueLogo}
+              resizeMode="contain"
             />
-          </View>
-        ) : logoSource ? (
-          <Image
-            source={logoSource}
-            style={manageLeaguesModalStyles.leagueLogo}
-            resizeMode="contain"
-          />
-        ) : (
-          <View
-            style={[
-              manageLeaguesModalStyles.leagueLogo,
-              {
-                backgroundColor: colors.backgroundSubtle,
-                alignItems: "center",
-                justifyContent: "center",
-              },
-            ]}
-          >
-            <Ionicons
-              name="football-outline"
-              size={18}
-              color={colors.textMuted}
-            />
-          </View>
-        )}
-      </View>
+          ) : (
+            <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
+              <Ionicons
+                name="football-outline"
+                size={18}
+                color={colors.textMuted}
+              />
+            </View>
+          )}
+        </View>
 
-      <View style={manageLeaguesModalStyles.ultraCompactInfo}>
-        <Text
-          numberOfLines={1}
-          style={manageLeaguesModalStyles.ultraCompactName}
-        >
-          {league.name}
-        </Text>
-        <View style={manageLeaguesModalStyles.ultraCompactDetailsContainer}>
-          <View style={manageLeaguesModalStyles.ultraCompactCodeContainer}>
-            <Text style={manageLeaguesModalStyles.ultraCompactCode}>
-              {league.code}
-            </Text>
-            {league.category && (
-              <Text style={manageLeaguesModalStyles.ultraCompactCategory}>
-                {league.category}
-              </Text>
-            )}
-          </View>
-          <TouchableOpacity
-            onPress={() => removeLeague(league.code)}
-            style={manageLeaguesModalStyles.ultraCompactRemove}
-            accessibilityLabel={`Remove ${league.name}`}
-          >
-            <Ionicons name="close-circle" size={16} color={colors.danger} />
-          </TouchableOpacity>
+        <View style={manageLeaguesModalStyles.leagueInfo}>
+          <Text numberOfLines={1} style={manageLeaguesModalStyles.leagueName}>
+            {league.name}
+          </Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        onPress={() => removeLeague(league.code)}
+        style={manageLeaguesModalStyles.removeButton}
+        accessibilityLabel={`Remove ${league.name}`}
+      >
+        <Ionicons name="close-circle" size={16} color={colors.danger} />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -160,64 +127,17 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
       onRequestClose={onClose}
     >
       <SafeAreaView style={manageLeaguesModalStyles.modalSafeArea}>
-        <View style={manageLeaguesModalStyles.modalHeaderCompact}>
-          <Text style={manageLeaguesModalStyles.modalTitleCompact}>
+        <View style={manageLeaguesModalStyles.header}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={manageLeaguesModalStyles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={manageLeaguesModalStyles.headerTitle}>
             Manage Leagues
           </Text>
           <TouchableOpacity
-            onPress={onClose}
-            style={manageLeaguesModalStyles.closeButton}
-          >
-            <Ionicons name="close" size={24} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-
-        {configuredLeagues.length > 0 ? (
-          <ScrollView
-            style={manageLeaguesModalStyles.leagueListContainer}
-            contentContainerStyle={manageLeaguesModalStyles.leagueListContent}
-          >
-            <View style={manageLeaguesModalStyles.leaguesGrid}>
-              {configuredLeagues.map((league) => (
-                <LeagueCard
-                  key={league.code}
-                  league={league}
-                  removeLeague={removeLeague}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        ) : (
-          <View style={manageLeaguesModalStyles.emptyStateCompact}>
-            <Ionicons name="football-outline" size={40} color="#ccc" />
-            <Text style={manageLeaguesModalStyles.emptyStateText}>
-              No leagues configured
-            </Text>
-            <Text style={manageLeaguesModalStyles.emptyStateSubtext}>
-              Add leagues to get match data and live scores
-            </Text>
-          </View>
-        )}
-
-        <View style={manageLeaguesModalStyles.ultraCompactFooter}>
-          <TouchableOpacity
-            style={manageLeaguesModalStyles.ultraCompactButton}
-            onPress={() => {
-              onClose(); // Close current modal before opening another
-              onAddLeague();
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={16} color="#fff" />
-            <Text style={manageLeaguesModalStyles.ultraCompactButtonText}>
-              Add League
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              manageLeaguesModalStyles.ultraCompactButton,
-              manageLeaguesModalStyles.ultraCompactReset,
-            ]}
             onPress={() => {
               Alert.alert(
                 "Reset Leagues",
@@ -232,10 +152,60 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
                 ]
               );
             }}
+            style={manageLeaguesModalStyles.resetButton}
           >
-            <Ionicons name="refresh-outline" size={15} color="#fff" />
-            <Text style={manageLeaguesModalStyles.ultraCompactButtonText}>
-              Reset
+            <Ionicons name="refresh-outline" size={22} color={colors.danger} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={manageLeaguesModalStyles.contentContainer}>
+          <View style={manageLeaguesModalStyles.leagueHeaderRow}>
+            <Text style={manageLeaguesModalStyles.leagueCountText}>
+              {configuredLeagues.length}{" "}
+              {configuredLeagues.length === 1 ? "league" : "leagues"} configured
+            </Text>
+          </View>
+
+          {configuredLeagues.length > 0 ? (
+            <FlatList
+              data={configuredLeagues}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <LeagueCard league={item} removeLeague={removeLeague} />
+              )}
+              contentContainerStyle={manageLeaguesModalStyles.leagueListContent}
+              showsVerticalScrollIndicator={false}
+            />
+          ) : (
+            <View style={manageLeaguesModalStyles.emptyState}>
+              <View style={manageLeaguesModalStyles.emptyStateIcon}>
+                <Ionicons
+                  name="football-outline"
+                  size={50}
+                  color={colors.backgroundSubtle}
+                />
+              </View>
+              <Text style={manageLeaguesModalStyles.emptyStateTitle}>
+                No leagues configured
+              </Text>
+              <Text style={manageLeaguesModalStyles.emptyStateMessage}>
+                Add leagues to get match data and live scores
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={manageLeaguesModalStyles.footer}>
+          <TouchableOpacity
+            style={manageLeaguesModalStyles.addButton}
+            onPress={() => {
+              onClose();
+              onAddLeague();
+            }}
+          >
+            <Ionicons name="add" size={20} color={colors.textLight} />
+            <Text style={manageLeaguesModalStyles.addButtonText}>
+              Add League
             </Text>
           </TouchableOpacity>
         </View>

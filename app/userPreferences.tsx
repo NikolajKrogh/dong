@@ -112,6 +112,7 @@ const UserPreferencesScreen = () => {
         onClose={() => setShowAddLeagueModal(false)}
         configuredLeagues={configuredLeagues}
         selectedLeagues={selectedLeagues}
+        setSelectedLeagues={setSelectedLeagues}
         toggleLeagueSelection={toggleLeagueSelection}
         handleAddSelectedLeagues={handleAddSelectedLeagues}
         searchQuery={searchQuery}

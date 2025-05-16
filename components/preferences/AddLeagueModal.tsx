@@ -35,6 +35,11 @@ interface AddLeagueModalProps {
   /** @brief Array of currently selected leagues. */
   selectedLeagues: LeagueEndpoint[];
   /**
+   * @brief Function to set the selected leagues.
+   * @param leagues The new array of selected leagues.
+   */
+  setSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
+  /**
    * @brief Function to toggle the selection state of a league.
    * @param league The league to toggle.
    */
@@ -69,7 +74,6 @@ const LeagueItem = ({
   isSelected: boolean;
   onPress: () => void;
 }) => {
-  // Pass both league name AND code
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
 
   return (
@@ -81,58 +85,55 @@ const LeagueItem = ({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      {isLoading ? (
-        <View
-          style={[
-            addLeagueModalStyles.leagueLogo,
-            {
-              backgroundColor: colors.backgroundSubtle,
-              alignItems: "center",
-              justifyContent: "center",
-            },
-          ]}
-        >
-          <Ionicons
-            name="hourglass-outline"
-            size={16}
-            color={colors.textMuted}
+      {/* Logo section */}
+      <View style={addLeagueModalStyles.leagueLogoContainer}>
+        {isLoading ? (
+          <View
+            style={[
+              addLeagueModalStyles.leagueLogo,
+              { backgroundColor: colors.backgroundSubtle },
+            ]}
+          >
+            <Ionicons
+              name="hourglass-outline"
+              size={16}
+              color={colors.textMuted}
+            />
+          </View>
+        ) : logoSource ? (
+          <Image
+            source={logoSource}
+            style={addLeagueModalStyles.leagueLogo}
+            resizeMode="contain"
           />
-        </View>
-      ) : logoSource ? (
-        <Image
-          source={logoSource}
-          style={addLeagueModalStyles.leagueLogo}
-          resizeMode="contain"
-        />
-      ) : (
-        <View
-          style={[
-            addLeagueModalStyles.leagueLogo,
-            {
-              backgroundColor: colors.backgroundSubtle,
-              alignItems: "center",
-              justifyContent: "center",
-            },
-          ]}
-        >
-          <Ionicons
-            name="football-outline"
-            size={16}
-            color={colors.textMuted}
-          />
-        </View>
-      )}
+        ) : (
+          <View
+            style={[
+              addLeagueModalStyles.leagueLogo,
+              { backgroundColor: colors.backgroundSubtle },
+            ]}
+          >
+            <Ionicons
+              name="football-outline"
+              size={16}
+              color={colors.textMuted}
+            />
+          </View>
+        )}
+
+      </View>
 
       <View style={addLeagueModalStyles.leagueItemContent}>
-        <Text style={addLeagueModalStyles.availableLeagueName}>
-          {league.name}
-        </Text>
-        {/* Display category instead of code */}
-        {league.category && (
-          <Text style={addLeagueModalStyles.availableLeagueCategory}>
-            {league.category}
+        <View style={{ justifyContent: "center", minHeight: 32 }}>
+          <Text style={addLeagueModalStyles.availableLeagueName}>
+            {league.name}
           </Text>
-        )}
+          {league.category && (
+            <Text style={addLeagueModalStyles.availableLeagueCategory}>
+              {league.category}
+            </Text>
+          )}
+        </View>
       </View>
 
       <Ionicons
@@ -165,6 +166,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
   onClose,
   configuredLeagues,
   selectedLeagues,
+  setSelectedLeagues,
   toggleLeagueSelection,
   handleAddSelectedLeagues,
   searchQuery,
@@ -275,6 +277,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                       selectedCategory === category &&
                         addLeagueModalStyles.categoryTabTextSelected,
                     ]}
+                    numberOfLines={1}
                   >
                     {category}
                   </Text>
@@ -283,26 +286,73 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
             </ScrollView>
           )}
 
-          {/* Search Results Title or Category Title */}
-          <View style={addLeagueModalStyles.sectionTitleContainer}>
-            <Text style={addLeagueModalStyles.sectionTitle}>
-              {searchQuery
-                ? `Search Results${
-                    filteredLeagues.length > 0
-                      ? ` (${filteredLeagues.length})`
-                      : ""
-                  }`
-                : selectedCategory}
-            </Text>
-          </View>
+          {/* Add bulk selection controls */}
+          {leaguesToDisplay.length > 0 && (
+            <View style={addLeagueModalStyles.bulkSelectionContainer}>
+              <TouchableOpacity
+                onPress={() => {
+                  // Find leagues that aren't currently selected
+                  const leaguesToSelect = leaguesToDisplay.filter(
+                    (league) =>
+                      !selectedLeagues.some((l) => l.code === league.code)
+                  );
+
+                  // Create a new array with all currently selected leagues plus the new ones
+                  const newSelectedLeagues = [
+                    ...selectedLeagues,
+                    ...leaguesToSelect,
+                  ];
+
+                  // Replace the entire selection state at once
+                  setSelectedLeagues(newSelectedLeagues);
+                }}
+                style={addLeagueModalStyles.bulkSelectionButton}
+              >
+                <Text style={addLeagueModalStyles.bulkSelectionText}>
+                  Select All
+                </Text>
+              </TouchableOpacity>
+
+              {selectedLeagues.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => {
+                    // Keep only selected leagues that are not in the current view
+                    const remainingSelected = selectedLeagues.filter(
+                      (league) =>
+                        !leaguesToDisplay.some((l) => l.code === league.code)
+                    );
+
+                    // Replace the entire selection state at once
+                    setSelectedLeagues(remainingSelected);
+                  }}
+                  style={addLeagueModalStyles.bulkSelectionButton}
+                >
+                  <Text style={addLeagueModalStyles.bulkSelectionText}>
+                    Clear Selection
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {/* League List */}
-          <ScrollView
-            style={addLeagueModalStyles.availableLeaguesList}
+          <FlatList
+            data={leaguesToDisplay}
+            keyExtractor={(item) => item.code}
             contentContainerStyle={{ paddingBottom: 16 }}
-            showsVerticalScrollIndicator={true}
-          >
-            {leaguesToDisplay.length === 0 ? (
+            renderItem={({ item }) => {
+              const isSelected = selectedLeagues.some(
+                (l) => l.code === item.code
+              );
+              return (
+                <LeagueItem
+                  league={item}
+                  isSelected={isSelected}
+                  onPress={() => toggleLeagueSelection(item)}
+                />
+              );
+            }}
+            ListEmptyComponent={
               <View style={addLeagueModalStyles.emptyStateContainer}>
                 <Text style={addLeagueModalStyles.emptyStateText}>
                   {searchQuery
@@ -310,22 +360,8 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                     : "No leagues available in this category"}
                 </Text>
               </View>
-            ) : (
-              leaguesToDisplay.map((league) => {
-                const isSelected = selectedLeagues.some(
-                  (l) => l.code === league.code
-                );
-                return (
-                  <LeagueItem
-                    key={league.code}
-                    league={league}
-                    isSelected={isSelected}
-                    onPress={() => toggleLeagueSelection(league)}
-                  />
-                );
-              })
-            )}
-          </ScrollView>
+            }
+          />
 
           {/* Add Selected Button */}
           {selectedLeagues.length > 0 && (

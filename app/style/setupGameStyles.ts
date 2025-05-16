@@ -1622,6 +1622,19 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 4,
   },
+  badgeLogoPlaceholder: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chipLogoPlaceholder: {
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 6,
+  },
 });
 
 export default styles;

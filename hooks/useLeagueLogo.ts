@@ -51,7 +51,6 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
     // First try local logo (immediate)
     const localLogo = LEAGUE_LOGOS[leagueName];
     if (localLogo) {
-      console.log(`Using local logo for ${leagueName}`);
       setLogoSource(localLogo);
       setIsLoading(false);
       return;
@@ -81,7 +80,6 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
         const cachedLogo = await AsyncStorage.getItem(key);
 
         if (cachedLogo && isMounted) {
-          console.log(`Using cached logo for ${leagueName}`);
           setLogoSource({ uri: cachedLogo });
           setIsLoading(false);
           return true;
@@ -101,7 +99,6 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
       if (!leagueCode) return;
 
       try {
-        console.log(`Fetching logo for ${leagueName} (${leagueCode})`);
 
         // Fetch league data from ESPN API
         const response = await fetch(
@@ -128,8 +125,6 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
             );
 
             if (defaultLogo && defaultLogo.href && isMounted) {
-              console.log(`Found logo for ${leagueName}:`, defaultLogo.href);
-
               // Cache the logo
               cacheLeagueLogo(leagueName, defaultLogo.href);
 
