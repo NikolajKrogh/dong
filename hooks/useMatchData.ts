@@ -178,7 +178,8 @@ export function useMatchData(selectedDate?: string) {
             if (league.logos && league.logos.length > 0) {
               const defaultLogo = league.logos.find(
                 (logo) =>
-                  logo.rel.includes("default") || logo.rel.includes("full")
+                  (logo.rel?.includes?.("default") ?? false) ||
+                  (logo.rel?.includes?.("full") ?? false)
               );
 
               if (defaultLogo && defaultLogo.href) {

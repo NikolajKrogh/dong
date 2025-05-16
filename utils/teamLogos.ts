@@ -54,8 +54,8 @@ export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
 export const getCachedLeagueLogo = (leagueName: string): string | null => {
   try {
     // Check if we have the logo in memory cache first
-    const key = `league_logo_${leagueName}`;
-    const inMemoryCache = logoCache[key];
+    const key = leagueName;
+    const inMemoryCache = leagueLogoCache[key];
     if (inMemoryCache) {
       return inMemoryCache;
     }
