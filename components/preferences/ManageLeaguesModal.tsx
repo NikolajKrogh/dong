@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   SafeAreaView,
   Image,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -32,8 +33,6 @@ interface ManageLeaguesModalProps {
   removeLeague: (code: string) => void;
   /** @brief Function to reset leagues to their default settings. */
   resetLeaguesToDefaults: () => void;
-  /** @brief Function to call when the "Add League" button is pressed. */
-  onAddLeague: () => void;
 }
 
 /**
@@ -65,7 +64,7 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
             <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
               <Ionicons
                 name="hourglass-outline"
-                size={18}
+                size={20}
                 color={colors.textMuted}
               />
             </View>
@@ -79,7 +78,7 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
             <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
               <Ionicons
                 name="football-outline"
-                size={18}
+                size={20}
                 color={colors.textMuted}
               />
             </View>
@@ -96,9 +95,8 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
       <TouchableOpacity
         onPress={() => removeLeague(league.code)}
         style={manageLeaguesModalStyles.removeButton}
-        accessibilityLabel={`Remove ${league.name}`}
       >
-        <Ionicons name="close-circle" size={16} color={colors.danger} />
+        <Ionicons name="close-circle" size={22} color={colors.danger} />
       </TouchableOpacity>
     </View>
   );
@@ -107,7 +105,7 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
 /**
  * @component ManageLeaguesModal
  * @brief A modal component for managing configured leagues.
- *        Allows users to view, remove, and reset leagues, or navigate to add new leagues.
+ *        Allows users to view, remove, and reset leagues.
  * @param {ManageLeaguesModalProps} props - The props for the component.
  * @returns {React.ReactElement} The ManageLeaguesModal component.
  */
@@ -117,8 +115,43 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
   configuredLeagues,
   removeLeague,
   resetLeaguesToDefaults,
-  onAddLeague,
 }) => {
+  const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
+
+  // Effect to clean up animation refs for leagues no longer present
+  useEffect(() => {
+    const currentLeagueCodes = new Set(configuredLeagues.map((l) => l.code));
+    const newFadeAnims = { ...fadeAnims.current };
+    let changed = false;
+    Object.keys(newFadeAnims).forEach((key) => {
+      if (!currentLeagueCodes.has(key)) {
+        delete newFadeAnims[key];
+        changed = true;
+      }
+    });
+    if (changed) {
+      fadeAnims.current = newFadeAnims;
+    }
+  }, [configuredLeagues]);
+
+  const handleRemoveLeagueWithAnimation = (leagueCode: string) => {
+    const anim = fadeAnims.current[leagueCode];
+    if (anim) {
+      Animated.timing(anim, {
+        toValue: 0, // Fade out and shrink
+        duration: 300,
+        useNativeDriver: true, // Use native driver for performance
+      }).start(() => {
+        removeLeague(leagueCode); // Call the original remove function after animation
+        // Clean up the animation value from the ref
+        delete fadeAnims.current[leagueCode];
+      });
+    } else {
+      // Fallback if animation value not found (should not happen)
+      removeLeague(leagueCode);
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -170,9 +203,27 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
             <FlatList
               data={configuredLeagues}
               keyExtractor={(item) => item.code}
-              renderItem={({ item }) => (
-                <LeagueCard league={item} removeLeague={removeLeague} />
-              )}
+              renderItem={({ item }) => {
+                // Ensure animation value exists, initialize if new to the list.
+                if (!fadeAnims.current[item.code]) {
+                  fadeAnims.current[item.code] = new Animated.Value(1);
+                }
+                const animValue = fadeAnims.current[item.code];
+
+                return (
+                  <Animated.View
+                    style={{
+                      opacity: animValue,
+                      transform: [{ scale: animValue }], // Apply scale for shrink effect
+                    }}
+                  >
+                    <LeagueCard
+                      league={item}
+                      removeLeague={handleRemoveLeagueWithAnimation} // Pass the animated remove function
+                    />
+                  </Animated.View>
+                );
+              }}
               contentContainerStyle={manageLeaguesModalStyles.leagueListContent}
               showsVerticalScrollIndicator={false}
             />
@@ -182,32 +233,17 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
                 <Ionicons
                   name="football-outline"
                   size={50}
-                  color={colors.backgroundSubtle}
+                  color={colors.primary}
                 />
               </View>
               <Text style={manageLeaguesModalStyles.emptyStateTitle}>
                 No leagues configured
               </Text>
               <Text style={manageLeaguesModalStyles.emptyStateMessage}>
-                Add leagues to get match data and live scores
+                Use the "Add Leagues" setting to configure leagues
               </Text>
             </View>
           )}
-        </View>
-
-        <View style={manageLeaguesModalStyles.footer}>
-          <TouchableOpacity
-            style={manageLeaguesModalStyles.addButton}
-            onPress={() => {
-              onClose();
-              onAddLeague();
-            }}
-          >
-            <Ionicons name="add" size={20} color={colors.textLight} />
-            <Text style={manageLeaguesModalStyles.addButtonText}>
-              Add League
-            </Text>
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
     </Modal>

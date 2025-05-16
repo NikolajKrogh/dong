@@ -9,10 +9,11 @@ import { commonStyles } from "./style/userPreferencesStyles";
 
 import Header from "../components/preferences/Header";
 import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
-import DataSourcesSettings from "../components/preferences/DataSourcesSettings";
+import DataSourcesSettings from "../components/preferences/LeagueSettings";
 import OnboardingButton from "../components/preferences/OnboardingButton";
 import AddLeagueModal from "../components/preferences/AddLeagueModal";
 import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
+import LeagueSettings from "../components/preferences/LeagueSettings";
 
 /**
  * @brief UserPreferencesScreen component.
@@ -99,9 +100,13 @@ const UserPreferencesScreen = () => {
           }
         />
 
-        <DataSourcesSettings
+        <LeagueSettings
           configuredLeagues={configuredLeagues}
-          onManageLeagues={() => setShowManageLeaguesModal(true)}
+          removeLeague={removeLeague}
+          resetLeaguesToDefaults={resetLeaguesToDefaults}
+          addLeagues={(leagues) =>
+            leagues.forEach((league) => addLeague(league))
+          }
         />
 
         <OnboardingButton onPress={() => setShowOnboarding(true)} />
@@ -125,7 +130,6 @@ const UserPreferencesScreen = () => {
         configuredLeagues={configuredLeagues}
         removeLeague={removeLeague}
         resetLeaguesToDefaults={resetLeaguesToDefaults}
-        onAddLeague={() => setShowAddLeagueModal(true)}
       />
     </SafeAreaView>
   );

@@ -8,9 +8,11 @@ import {
   TextInput,
   FlatList,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
+  manageLeaguesModalStyles,
   addLeagueModalStyles,
   colors,
 } from "../../app/style/userPreferencesStyles";
@@ -120,7 +122,6 @@ const LeagueItem = ({
             />
           </View>
         )}
-
       </View>
 
       <View style={addLeagueModalStyles.leagueItemContent}>
@@ -128,11 +129,6 @@ const LeagueItem = ({
           <Text style={addLeagueModalStyles.availableLeagueName}>
             {league.name}
           </Text>
-          {league.category && (
-            <Text style={addLeagueModalStyles.availableLeagueCategory}>
-              {league.category}
-            </Text>
-          )}
         </View>
       </View>
 
@@ -203,25 +199,22 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      transparent={false}
       onRequestClose={handleClose}
     >
-      <View style={addLeagueModalStyles.modalContainer}>
-        <View style={addLeagueModalStyles.modalContent}>
-          <View style={addLeagueModalStyles.modalHeader}>
-            <Text style={addLeagueModalStyles.modalTitle}>Add Leagues</Text>
-            <View style={addLeagueModalStyles.modalHeaderRight}>
-              {selectedLeagues.length > 0 && (
-                <Text style={addLeagueModalStyles.selectionCounter}>
-                  {selectedLeagues.length} selected
-                </Text>
-              )}
-              <TouchableOpacity onPress={handleClose}>
-                <Ionicons name="close" size={24} color={colors.textPrimary} />
-              </TouchableOpacity>
-            </View>
-          </View>
+      <SafeAreaView style={manageLeaguesModalStyles.modalSafeArea}>
+        <View style={manageLeaguesModalStyles.header}>
+          <TouchableOpacity
+            onPress={handleClose}
+            style={manageLeaguesModalStyles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={manageLeaguesModalStyles.headerTitle}>Add Leagues</Text>
+          <View style={{ width: 44 }} />
+        </View>
 
+        <View style={manageLeaguesModalStyles.contentContainer}>
           {/* Search Bar */}
           <View style={addLeagueModalStyles.searchContainer}>
             <Ionicons
@@ -253,15 +246,15 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
             )}
           </View>
 
-          {/* Category Tabs - Only show when not searching */}
-          {!searchQuery && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={addLeagueModalStyles.categoryTabsContainer}
-              contentContainerStyle={addLeagueModalStyles.categoryTabsContent}
-            >
-              {LEAGUE_CATEGORIES.map((category) => (
+          {/* Category Tabs - ScrollView is always rendered, content is conditional */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={addLeagueModalStyles.categoryTabsContainer}
+            contentContainerStyle={addLeagueModalStyles.categoryTabsContent}
+          >
+            {!searchQuery &&
+              LEAGUE_CATEGORIES.map((category) => (
                 <TouchableOpacity
                   key={category}
                   style={[
@@ -283,90 +276,136 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          )}
+          </ScrollView>
 
-          {/* Add bulk selection controls */}
-          {leaguesToDisplay.length > 0 && (
-            <View style={addLeagueModalStyles.bulkSelectionContainer}>
-              <TouchableOpacity
-                onPress={() => {
-                  // Find leagues that aren't currently selected
-                  const leaguesToSelect = leaguesToDisplay.filter(
-                    (league) =>
-                      !selectedLeagues.some((l) => l.code === league.code)
-                  );
+          {/* League count and selection controls */}
+          <View style={manageLeaguesModalStyles.leagueHeaderRow}>
+            <Text style={manageLeaguesModalStyles.leagueCountText}>
+              {leaguesToDisplay.length > 0 && (
+                <>
+                  {leaguesToDisplay.length}{" "}
+                  {leaguesToDisplay.length === 1 ? "league" : "leagues"}{" "}
+                  available
+                </>
+              )}
+              {leaguesToDisplay.length > 0 &&
+                selectedLeagues.length > 0 &&
+                " • "}
+              {selectedLeagues.length > 0 &&
+                `${selectedLeagues.length} selected`}
+            </Text>
 
-                  // Create a new array with all currently selected leagues plus the new ones
-                  const newSelectedLeagues = [
-                    ...selectedLeagues,
-                    ...leaguesToSelect,
-                  ];
-
-                  // Replace the entire selection state at once
-                  setSelectedLeagues(newSelectedLeagues);
-                }}
-                style={addLeagueModalStyles.bulkSelectionButton}
-              >
-                <Text style={addLeagueModalStyles.bulkSelectionText}>
-                  Select All
-                </Text>
-              </TouchableOpacity>
-
-              {selectedLeagues.length > 0 && (
+            {leaguesToDisplay.length > 0 && (
+              <View style={addLeagueModalStyles.selectionControls}>
                 <TouchableOpacity
                   onPress={() => {
-                    // Keep only selected leagues that are not in the current view
-                    const remainingSelected = selectedLeagues.filter(
+                    const leaguesToSelect = leaguesToDisplay.filter(
                       (league) =>
-                        !leaguesToDisplay.some((l) => l.code === league.code)
+                        !selectedLeagues.some((l) => l.code === league.code)
                     );
-
-                    // Replace the entire selection state at once
-                    setSelectedLeagues(remainingSelected);
+                    setSelectedLeagues([
+                      ...selectedLeagues,
+                      ...leaguesToSelect,
+                    ]);
                   }}
-                  style={addLeagueModalStyles.bulkSelectionButton}
+                  style={addLeagueModalStyles.actionPill}
                 >
-                  <Text style={addLeagueModalStyles.bulkSelectionText}>
-                    Clear Selection
-                  </Text>
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={14}
+                    color={colors.primary}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={addLeagueModalStyles.actionPillText}>All</Text>
                 </TouchableOpacity>
-              )}
-            </View>
-          )}
 
-          {/* League List */}
-          <FlatList
-            data={leaguesToDisplay}
-            keyExtractor={(item) => item.code}
-            contentContainerStyle={{ paddingBottom: 16 }}
-            renderItem={({ item }) => {
-              const isSelected = selectedLeagues.some(
-                (l) => l.code === item.code
-              );
-              return (
-                <LeagueItem
-                  league={item}
-                  isSelected={isSelected}
-                  onPress={() => toggleLeagueSelection(item)}
-                />
-              );
-            }}
-            ListEmptyComponent={
-              <View style={addLeagueModalStyles.emptyStateContainer}>
-                <Text style={addLeagueModalStyles.emptyStateText}>
+                {selectedLeagues.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const remainingSelected = selectedLeagues.filter(
+                        (league) =>
+                          !leaguesToDisplay.some((l) => l.code === league.code)
+                      );
+                      setSelectedLeagues(remainingSelected);
+                    }}
+                    style={[
+                      addLeagueModalStyles.actionPill,
+                      { backgroundColor: colors.dangerLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={14}
+                      color={colors.danger}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      style={[
+                        addLeagueModalStyles.actionPillText,
+                        { color: colors.danger },
+                      ]}
+                    >
+                      Clear
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Flex wrapper for League List or Empty State */}
+          <View style={{ flex: 1, width: "100%" }}>
+            {leaguesToDisplay.length > 0 ? (
+              <FlatList
+                data={leaguesToDisplay}
+                keyExtractor={(item) => item.code}
+                contentContainerStyle={
+                  manageLeaguesModalStyles.leagueListContent
+                }
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => {
+                  const isSelected = selectedLeagues.some(
+                    (l) => l.code === item.code
+                  );
+                  return (
+                    <LeagueItem
+                      league={item}
+                      isSelected={isSelected}
+                      onPress={() => toggleLeagueSelection(item)}
+                    />
+                  );
+                }}
+                // Optionally, if FlatList content is short, ensure it can expand:
+                // style={{ flex: 1 }}
+              />
+            ) : (
+              <View style={manageLeaguesModalStyles.emptyState}>
+                <View style={manageLeaguesModalStyles.emptyStateIcon}>
+                  <Ionicons
+                    name="football-outline"
+                    size={50}
+                    color={colors.primaryDark}
+                  />
+                </View>
+                <Text style={manageLeaguesModalStyles.emptyStateTitle}>
+                  No leagues found
+                </Text>
+                <Text style={manageLeaguesModalStyles.emptyStateMessage}>
                   {searchQuery
-                    ? "No leagues found matching your search"
+                    ? "Try a different search term"
                     : "No leagues available in this category"}
                 </Text>
               </View>
-            }
-          />
+            )}
+          </View>
 
           {/* Add Selected Button */}
           {selectedLeagues.length > 0 && (
             <TouchableOpacity
-              style={addLeagueModalStyles.addSelectedButton}
+              style={[
+                addLeagueModalStyles.addSelectedButton,
+                { marginHorizontal: 16, marginBottom: 16 },
+              ]}
               onPress={handleAddSelectedLeagues}
             >
               <Text style={addLeagueModalStyles.addButtonText}>
@@ -376,7 +415,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
