@@ -50,8 +50,6 @@ const getTodayDate = (): string => {
  * @property {(team: string) => void} setAwayTeam - Function to update the away team selection.
  * @property {() => void} handleAddMatch - Function to add a new match.
  * @property {(matchId: string) => void} handleRemoveMatch - Function to remove a match by ID.
- * @property {string | null} selectedCommonMatch - Currently selected common match ID.
- * @property {(matchId: string) => void} handleSelectCommonMatch - Function to select a common match.
  * @property {(matches: Match[]) => void} [setGlobalMatches] - Optional function to update global matches state.
  */
 interface MatchListProps {
@@ -62,8 +60,6 @@ interface MatchListProps {
   setAwayTeam: (team: string) => void;
   handleAddMatch: () => void;
   handleRemoveMatch: (matchId: string) => void;
-  selectedCommonMatch: string | null;
-  handleSelectCommonMatch: (matchId: string) => void;
   setGlobalMatches?: (matches: Match[]) => void;
 }
 
@@ -94,8 +90,6 @@ const MatchList: FC<MatchListProps> = ({
   setAwayTeam,
   handleAddMatch,
   handleRemoveMatch,
-  selectedCommonMatch,
-  handleSelectCommonMatch,
   setGlobalMatches,
 }) => {
   const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore(); // Get from store
@@ -418,10 +412,6 @@ const MatchList: FC<MatchListProps> = ({
             )
           )
       ) {
-        console.log(
-          "MatchList: Synchronizing selected leagues with API versions:",
-          updatedSelectedLeagues
-        );
         setSelectedLeagues(updatedSelectedLeagues);
       }
     }
@@ -763,8 +753,6 @@ const MatchList: FC<MatchListProps> = ({
             >
               <MatchItem
                 match={item}
-                selectedCommonMatch={selectedCommonMatch}
-                handleSelectCommonMatch={handleSelectCommonMatch}
                 handleRemoveMatch={() => handleRemoveWithAnimation(item.id)}
               />
             </Animated.View>

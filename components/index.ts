@@ -9,6 +9,7 @@ export { default as MatchItem } from "./setupGame/MatchItem";
 export { default as TeamSelectionRow } from "./setupGame/TeamSelectionRow";
 export { default as MatchFilter } from "./setupGame/MatchFilter";
 export { default as LeagueFilter } from "./setupGame/LeagueFilter";
+export { default as CommonMatchSelector } from "./setupGame/CommonMatchSelector";
 // GameProgress
 export { default as EndGameModal } from "./gameProgress/EndGameModal";
 export { default as FooterButtons } from "./gameProgress/FooterButtons";

@@ -1,26 +1,19 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, ImageStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Match } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
+import styles, { colors } from "../../app/style/setupGameStyles";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 interface MatchItemProps {
   match: Match;
-  selectedCommonMatch: string | null;
-  handleSelectCommonMatch: (id: string) => void;
   handleRemoveMatch: (id: string) => void;
 }
 
-const MatchItem: React.FC<MatchItemProps> = ({
-  match,
-  selectedCommonMatch,
-  handleSelectCommonMatch,
-  handleRemoveMatch,
-}) => {
+const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
   const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
-  const isSelected = selectedCommonMatch === match.id;
 
   // Format match start time with better error handling
   const formatMatchTime = () => {
@@ -71,79 +64,87 @@ const MatchItem: React.FC<MatchItemProps> = ({
 
   return (
     <View style={styles.matchItemWrapper}>
-      <TouchableOpacity
-        onPress={() => handleSelectCommonMatch(match.id)}
-        activeOpacity={0.6}
-        style={[
-          styles.assignmentItem,
-          isSelected && styles.selectedAssignmentItem,
-        ]}
-      >
-        {/* Teams section */}
-        <View style={styles.matchTeamsSection}>
-          {/* Home team row */}
-          <View style={styles.matchTeamRow}>
-            {homeTeamLogo && (
-              <Image source={homeTeamLogo} style={styles.matchTeamLogo} />
-            )}
-            <Text
-              style={styles.matchTeamName}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {match.homeTeam}
-            </Text>
+      <View style={styles.matchCard}>
+        <LinearGradient
+          colors={[colors.primaryLighter, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.matchCardGradient}
+        >
+          {/* Teams container */}
+          <View style={styles.matchTeamsContainer}>
+            {/* Home team column */}
+            <View style={styles.matchTeamColumn}>
+              <View style={styles.logoContainer}>
+                {homeTeamLogo ? (
+                  <Image source={homeTeamLogo} style={styles.teamLogo} />
+                ) : (
+                  <View style={styles.teamLogoPlaceholder}>
+                    <Text style={styles.teamLogoPlaceholderText}>
+                      {match.homeTeam.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={styles.teamName}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {match.homeTeam}
+              </Text>
+            </View>
+
+            {/* VS column */}
+            <View style={styles.vsDivider}>
+              <Text style={styles.vsText}>VS</Text>
+            </View>
+
+            {/* Away team column */}
+            <View style={styles.matchTeamColumn}>
+              <View style={styles.logoContainer}>
+                {awayTeamLogo ? (
+                  <Image source={awayTeamLogo} style={styles.teamLogo} />
+                ) : (
+                  <View style={styles.teamLogoPlaceholder}>
+                    <Text style={styles.teamLogoPlaceholderText}>
+                      {match.awayTeam.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={styles.teamName}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {match.awayTeam}
+              </Text>
+            </View>
           </View>
 
-          {/* Divider with vs text */}
-          <View style={styles.matchDivider}>
-            <Text style={styles.matchVsText}>vs</Text>
-          </View>
-
-          {/* Away team row */}
-          <View style={styles.matchTeamRow}>
-            {awayTeamLogo && (
-              <Image source={awayTeamLogo} style={styles.matchTeamLogo} />
-            )}
-            <Text
-              style={styles.matchTeamName}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {match.awayTeam}
-            </Text>
-          </View>
-
-          {/* Match start time - new addition */}
+          {/* Match time section at the bottom */}
           {match.startTime && (
-            <View style={styles.matchTimeContainer}>
-              <Ionicons name="time-outline" size={14} color="#666" />
+            <View style={styles.matchTimeHeader}>
+              <Ionicons
+                name="time-outline"
+                size={16}
+                color={colors.primary}
+              />
               <Text style={styles.matchTimeText}>{formatMatchTime()}</Text>
             </View>
           )}
-        </View>
 
-        {/* Actions section */}
-        <View style={styles.matchActionsContainer}>
-          {/* Selection indicator */}
-          <View style={styles.matchSelectionIndicator}>
-            <Ionicons
-              name={isSelected ? "checkmark-circle" : "radio-button-off"}
-              size={22}
-              color={isSelected ? "#007bff" : "#bbb"}
-            />
-          </View>
-
-          {/* Delete button */}
+          {/* Remove button */}
           <TouchableOpacity
-            style={styles.matchDeleteButton}
+            style={styles.removeButton}
             onPress={() => handleRemoveMatch(match.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={20} color={colors.danger} />
           </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+        </LinearGradient>
+      </View>
     </View>
   );
 };

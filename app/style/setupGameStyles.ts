@@ -196,14 +196,6 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     padding: 16,
   },
-  playerAssignmentName: {
-    ...baseSectionTitle,
-    fontSize: 18,
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLighter,
-  },
   assignmentItem: {
     position: "relative",
     paddingVertical: 12,
@@ -473,6 +465,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
+  currentStepLabel: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    textAlign: "center",
+    marginTop: 8,
+    marginBottom: 16,
+  },
   stepButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -691,9 +691,9 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
   },
-  emptyListTitleText: { 
+  emptyListTitleText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: colors.textSecondary,
     marginTop: 12,
     marginBottom: 8,
@@ -701,13 +701,13 @@ const styles = StyleSheet.create({
   emptyListText: {
     color: colors.textMuted,
     marginBottom: 10,
-    textAlign: 'center', 
-    paddingHorizontal: 20, 
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
   emptyListSubtitleText: {
     fontSize: 12,
     color: colors.textMuted,
-    textAlign: 'center',
+    textAlign: "center",
     lineHeight: 20,
     paddingHorizontal: 10,
   },
@@ -1049,8 +1049,8 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginLeft: 8,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
@@ -1063,86 +1063,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
-  matchEmptyListContainer: { 
+  matchEmptyListContainer: {
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 40,
     backgroundColor: colors.backgroundLight,
     borderRadius: 12,
-    padding: 20, 
+    padding: 20,
     marginTop: 20,
-    marginHorizontal: 8, 
+    marginHorizontal: 8,
   },
-  gridContainer: {
-    // For 2 or 3 column grids
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between", // Or space-around
-  },
-  gridItem: {
-    // Generic grid item, often needs width override
-    width: "32%", // Example for 3-column
-    marginBottom: 8,
-  },
-  compactMatchItem: {
-    borderRadius: 8,
-    padding: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: 1,
-    borderColor: colors.borderLighter, // Or borderSubtle
-  },
-  selectedCompactMatchItem: {
-    backgroundColor: colors.primaryLight,
-    borderColor: colors.compactMatchItemSelectedBorder,
-  },
-  compactTeamsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  compactTeamLogo: {
-    width: 26,
-    height: 26,
-    borderRadius: 13, // Circular
-  } as ImageStyle,
-  compactVsText: {
-    fontSize: 10,
-    color: colors.textMuted,
-    marginHorizontal: 4,
-  },
+
   compactCheckContainer: {
     // For selection checkmark
     marginLeft: 2,
-  },
-  playerHeader: {
-    // Header for a player section/card
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 2,
-  },
-  playerHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  playerBadge: {
-    backgroundColor: colors.primaryLight, // Or a specific badge color
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  playerBadgeText: {
-    fontSize: 13,
-    color: colors.primary, // Or textLink
-  },
-  chevronIcon: {
-    // For expand/collapse
-    marginRight: 8,
   },
   sectionHeader: {
     // Generic header for sections within a screen
@@ -1569,8 +1503,8 @@ const styles = StyleSheet.create({
     flex: 1, // Allow inputs to take available space
   },
   teamSearchField: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.backgroundLight,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1592,49 +1526,381 @@ const styles = StyleSheet.create({
   },
   teamSearchTextPlaceholder: {
     color: colors.textMuted,
-
   },
   teamSearchTextSelected: {
     color: colors.textPrimary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   teamClearButton: {
     paddingLeft: 8, // Add some padding for easier touch
   },
   vsText: {
-    marginHorizontal: 8,
-    fontSize: 16,
     fontWeight: "bold",
-    color: colors.textSecondary,
+    fontSize: 14,
+    color: colors.textMuted,
   },
   matchTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 4,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: "rgba(0,0,0,0.05)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   matchTimeText: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: "500",
+    marginLeft: 6,
   },
   badgeLogoPlaceholder: {
     width: 20,
     height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   chipLogoPlaceholder: {
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 6,
   },
+  commonMatchInfoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.infoLight,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  commonMatchInfoText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  commonMatchItem: {
+    ...baseCard,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectedCommonMatchItem: {
+    backgroundColor: colors.primaryLight,
+    borderColor: colors.primary,
+    borderWidth: 2,
+  },
+  commonMatchSelection: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingLeft: 16,
+  },
+  infoButton: {
+    padding: 8,
+  },
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.infoLight,
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
+  infoCardText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  matchCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: "hidden",
+    position: "relative",
+    marginHorizontal: 4,
+  },
+
+  matchCardGradient: {
+    padding: 16,
+  },
+
+  matchTeamsContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+
+  matchTeamColumn: {
+    flex: 3,
+    alignItems: "center",
+    paddingHorizontal: 4,
+  },
+  matchTimeHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLighter,
+  },
+  teamLogoPlaceholderText: {
+    color: colors.textLight,
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+
+  logoContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: colors.borderLighter,
+  },
+
+  teamLogo: {
+    width: 36,
+    height: 36,
+    resizeMode: "contain",
+  },
+
+  teamName: {
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "500",
+    color: colors.textPrimary,
+    marginTop: 8,
+    paddingHorizontal: 0,
+    width: "100%",
+    flexWrap: "wrap",
+  },
+
+  vsDivider: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 12,
+  },
+
+  teamLogoPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+
+  
+selectedRibbon: {
+  position: "absolute",
+  top: 15,
+  right: -30,
+  backgroundColor: colors.success,
+  paddingVertical: 5,
+  paddingHorizontal: 30,
+  transform: [{ rotate: "45deg" }],
+  shadowColor: colors.textPrimary,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 2,
+  elevation: 3,
+},
+selectedRibbonText: {
+  color: colors.textLight,
+  fontSize: 10,
+  fontWeight: "bold",
+  letterSpacing: 0.5,
+},
+
+selectedMatchCard: {
+  borderWidth: 2,
+  borderColor: colors.primary,
+  shadowColor: colors.primary,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.3,
+  shadowRadius: 4,
+  elevation: 5,
+},
+
+
+selectionCheckmark: {
+  position: "absolute",
+  top: 12,
+  right: 12,
+  zIndex: 2,
+},
+
+// Grid view compact match styles
+compactMatchItem: {
+  backgroundColor: colors.surface,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.borderLight,
+  padding: 8,
+  marginBottom: 6,
+  marginRight: 6,
+  overflow: "hidden",
+  shadowColor: colors.textPrimary,
+  shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.1,
+  shadowRadius: 2,
+  elevation: 2,
+},
+
+
+selectedCompactMatchItem: {
+  borderWidth: 2,
+  borderColor: colors.primary,
+  backgroundColor: colors.primaryLighter,
+  shadowColor: colors.primary,
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 3,
+  elevation: 4,
+},
+
+compactMatchContent: {
+  padding: 8,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+compactTeamsContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingBottom: 4,
+},
+
+compactTeamWrapper: {
+  width: 32,
+  height: 32,
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+compactTeamLogo: {
+  width: 24,
+  height: 24,
+  resizeMode: "contain",
+} as ImageStyle,
+
+compactTeamPlaceholder: {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  backgroundColor: colors.primary,
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+compactTeamPlaceholderText: {
+  color: colors.textLight,
+  fontWeight: "bold",
+  fontSize: 12,
+},
+
+compactVsText: {
+  fontSize: 10,
+  fontWeight: "500",
+  color: colors.textMuted,
+  marginHorizontal: 4,
+},
+
+compactCheckIndicator: {
+  position: "absolute",
+  bottom: 2,
+  right: 2,
+},
+
+// Player header styles
+playerHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  paddingVertical: 10,
+  paddingHorizontal: 12,
+  backgroundColor: colors.backgroundLight,
+  borderRadius: 8,
+  marginBottom: 8,
+  borderWidth: 1,
+  borderColor: colors.borderLight,
+},
+
+playerHeaderLeft: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+playerAssignmentName: {
+  fontSize: 16,
+  fontWeight: "500",
+  color: colors.textPrimary,
+},
+
+playerBadge: {
+  backgroundColor: colors.primary,
+  paddingHorizontal: 8,
+  paddingVertical: 3,
+  borderRadius: 12,
+},
+
+playerBadgeText: {
+  color: colors.textLight,
+  fontSize: 12,
+  fontWeight: "bold",
+},
+
+chevronIcon: {
+  marginRight: 8,
+},
+
+gridContainer: {
+  flexDirection: "row",
+  flexWrap: "wrap",
+  marginTop: 8,
+  marginBottom: 12,
+  paddingHorizontal: 4,
+},
+
+gridItem: {
+  width: "33.3%",
+  paddingRight: 8,
+  marginBottom: 8,
+},
+matchListItem: {
+  marginBottom: 12,
+},
+
 });
 
 export default styles;
