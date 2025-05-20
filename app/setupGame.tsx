@@ -8,6 +8,7 @@ import {
   MatchList,
   AssignmentSection,
   SetupWizard,
+  CommonMatchSelector,
 } from "../components";
 import { Player, Match } from "../store/store";
 import { LeagueEndpoint } from "../constants/leagues";
@@ -122,10 +123,15 @@ const SetupGameScreen = () => {
    */
   const canAdvanceToMatches = players.length > 0;
   /**
-   * @brief Boolean flag indicating if the user can advance to the assignment setup step.
-   * True if at least one match has been added and a common match has been selected.
+   * @brief Boolean flag indicating if the user can advance to the common match setup step.
+   * True if at least two matches have been added.
    */
-  const canAdvanceToAssign = matches.length > 0 && commonMatchId !== null;
+  const canAdvanceToCommonMatch = matches.length > 0;
+  /**
+   * @brief Boolean flag indicating if the user can advance to the assignment setup step.
+   * True if at least two matches have been added and a common match has been selected.
+   */
+  const canAdvanceToAssign = matches.length >= 2 && commonMatchId !== null;
   /**
    * @brief Boolean flag indicating if the user can start the game.
    * True if player assignments have been made and at least one player has at least one match assigned.
@@ -161,9 +167,19 @@ const SetupGameScreen = () => {
       setAwayTeam={setAwayTeam}
       handleAddMatch={handleAddMatch}
       handleRemoveMatch={handleRemoveMatch}
-      selectedCommonMatch={selectedCommonMatch}
-      handleSelectCommonMatch={handleSelectCommonMatch}
       setGlobalMatches={setGlobalMatches}
+    />
+  );
+
+  /**
+   * @brief Renders the common match setup step.
+   * @return The JSX element for the common match setup.
+   */
+  const renderCommonMatchStep = () => (
+    <CommonMatchSelector
+      matches={matches}
+      selectedCommonMatch={commonMatchId}
+      handleSelectCommonMatch={handleSelectCommonMatch}
     />
   );
 
@@ -607,9 +623,11 @@ const SetupGameScreen = () => {
       <SetupWizard
         renderPlayersStep={renderPlayersStep}
         renderMatchesStep={renderMatchesStep}
+        renderCommonMatchStep={renderCommonMatchStep} // New step
         renderAssignStep={renderAssignStep}
         handleStartGame={handleStartGame}
         canAdvanceToMatches={canAdvanceToMatches}
+        canAdvanceToCommonMatch={canAdvanceToCommonMatch}
         canAdvanceToAssign={canAdvanceToAssign}
         canStartGame={canStartGame}
       />

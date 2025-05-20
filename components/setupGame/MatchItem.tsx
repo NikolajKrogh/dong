@@ -2,25 +2,17 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Match } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
+import styles, { colors } from "../../app/style/setupGameStyles";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 interface MatchItemProps {
   match: Match;
-  selectedCommonMatch: string | null;
-  handleSelectCommonMatch: (id: string) => void;
   handleRemoveMatch: (id: string) => void;
 }
 
-const MatchItem: React.FC<MatchItemProps> = ({
-  match,
-  selectedCommonMatch,
-  handleSelectCommonMatch,
-  handleRemoveMatch,
-}) => {
+const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
   const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
-  const isSelected = selectedCommonMatch === match.id;
 
   // Format match start time with better error handling
   const formatMatchTime = () => {
@@ -71,14 +63,7 @@ const MatchItem: React.FC<MatchItemProps> = ({
 
   return (
     <View style={styles.matchItemWrapper}>
-      <TouchableOpacity
-        onPress={() => handleSelectCommonMatch(match.id)}
-        activeOpacity={0.6}
-        style={[
-          styles.assignmentItem,
-          isSelected && styles.selectedAssignmentItem,
-        ]}
-      >
+      <View style={styles.assignmentItem}>
         {/* Teams section */}
         <View style={styles.matchTeamsSection}>
           {/* Home team row */}
@@ -123,17 +108,8 @@ const MatchItem: React.FC<MatchItemProps> = ({
           )}
         </View>
 
-        {/* Actions section */}
+        {/* Actions section - only contains delete button now */}
         <View style={styles.matchActionsContainer}>
-          {/* Selection indicator */}
-          <View style={styles.matchSelectionIndicator}>
-            <Ionicons
-              name={isSelected ? "checkmark-circle" : "radio-button-off"}
-              size={22}
-              color={isSelected ? "#007bff" : "#bbb"}
-            />
-          </View>
-
           {/* Delete button */}
           <TouchableOpacity
             style={styles.matchDeleteButton}
@@ -143,7 +119,7 @@ const MatchItem: React.FC<MatchItemProps> = ({
             <Ionicons name="close-circle" size={18} color="#999" />
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </View>
   );
 };

@@ -8,7 +8,7 @@ import {
   Image,
 } from "react-native";
 import { Player, Match } from "../../store/store";
-import baseStyles from "../../app/style/setupGameStyles";
+import baseStyles, { colors } from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
@@ -136,7 +136,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
           <Ionicons
             name={isSelected ? "checkmark-circle" : "ellipse-outline"}
             size={18}
-            color={isSelected ? "#007bff" : "#bbb"}
+            color={isSelected ? colors.primary : colors.border}
           />
         </View>
       </TouchableOpacity>
@@ -229,7 +229,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
           <Ionicons
             name={isSelected ? "checkmark-circle" : "ellipse-outline"}
             size={22}
-            color={isSelected ? "#007bff" : "#bbb"}
+            color={isSelected ? colors.primary : colors.border}
           />
         </View>
       </TouchableOpacity>
@@ -247,7 +247,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
               <Ionicons
                 name="information-circle-outline"
                 size={24}
-                color="#007bff"
+                color = {colors.primary}
               />
             </TouchableOpacity>
           </View>

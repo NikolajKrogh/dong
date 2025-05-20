@@ -125,7 +125,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
         <View style={styles.filterCardContent}>
           <View style={styles.filterTitleContainer}>
             <Ionicons name="options-outline" size={22} color="#1976d2" />
-            <Text style={styles.filterTitle}>Find Matches</Text>
+            <Text style={styles.filterTitle}>Match Schedule</Text>
           </View>
 
           <View style={styles.filterBadgesSection}>
