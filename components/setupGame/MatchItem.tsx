@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, ImageStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { Match } from "../../store/store";
 import styles, { colors } from "../../app/style/setupGameStyles";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
@@ -63,62 +64,86 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
 
   return (
     <View style={styles.matchItemWrapper}>
-      <View style={styles.assignmentItem}>
-        {/* Teams section */}
-        <View style={styles.matchTeamsSection}>
-          {/* Home team row */}
-          <View style={styles.matchTeamRow}>
-            {homeTeamLogo && (
-              <Image source={homeTeamLogo} style={styles.matchTeamLogo} />
-            )}
-            <Text
-              style={styles.matchTeamName}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {match.homeTeam}
-            </Text>
+      <View style={styles.matchCard}>
+        <LinearGradient
+          colors={[colors.primaryLighter, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.matchCardGradient}
+        >
+          {/* Teams container */}
+          <View style={styles.matchTeamsContainer}>
+            {/* Home team column */}
+            <View style={styles.matchTeamColumn}>
+              <View style={styles.logoContainer}>
+                {homeTeamLogo ? (
+                  <Image source={homeTeamLogo} style={styles.teamLogo} />
+                ) : (
+                  <View style={styles.teamLogoPlaceholder}>
+                    <Text style={styles.teamLogoPlaceholderText}>
+                      {match.homeTeam.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={styles.teamName}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {match.homeTeam}
+              </Text>
+            </View>
+
+            {/* VS column */}
+            <View style={styles.vsDivider}>
+              <Text style={styles.vsText}>VS</Text>
+            </View>
+
+            {/* Away team column */}
+            <View style={styles.matchTeamColumn}>
+              <View style={styles.logoContainer}>
+                {awayTeamLogo ? (
+                  <Image source={awayTeamLogo} style={styles.teamLogo} />
+                ) : (
+                  <View style={styles.teamLogoPlaceholder}>
+                    <Text style={styles.teamLogoPlaceholderText}>
+                      {match.awayTeam.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={styles.teamName}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {match.awayTeam}
+              </Text>
+            </View>
           </View>
 
-          {/* Divider with vs text */}
-          <View style={styles.matchDivider}>
-            <Text style={styles.matchVsText}>vs</Text>
-          </View>
-
-          {/* Away team row */}
-          <View style={styles.matchTeamRow}>
-            {awayTeamLogo && (
-              <Image source={awayTeamLogo} style={styles.matchTeamLogo} />
-            )}
-            <Text
-              style={styles.matchTeamName}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {match.awayTeam}
-            </Text>
-          </View>
-
-          {/* Match start time - new addition */}
+          {/* Match time section at the bottom */}
           {match.startTime && (
-            <View style={styles.matchTimeContainer}>
-              <Ionicons name="time-outline" size={14} color="#666" />
+            <View style={styles.matchTimeHeader}>
+              <Ionicons
+                name="time-outline"
+                size={16}
+                color={colors.primary}
+              />
               <Text style={styles.matchTimeText}>{formatMatchTime()}</Text>
             </View>
           )}
-        </View>
 
-        {/* Actions section - only contains delete button now */}
-        <View style={styles.matchActionsContainer}>
-          {/* Delete button */}
+          {/* Remove button */}
           <TouchableOpacity
-            style={styles.matchDeleteButton}
+            style={styles.removeButton}
             onPress={() => handleRemoveMatch(match.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close-circle" size={18} color="#999" />
+            <Ionicons name="close-circle" size={20} color={colors.danger} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </View>
     </View>
   );

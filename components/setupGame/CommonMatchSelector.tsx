@@ -4,6 +4,7 @@ import { Match } from "../../store/store";
 import styles, { colors } from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { LinearGradient } from "expo-linear-gradient";
 
 /**
  * @interface CommonMatchSelectorProps
@@ -106,50 +107,84 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
                 onPress={() => handleSelectCommonMatch(item.id)}
                 activeOpacity={0.6}
                 style={[
-                  styles.assignmentItem,
-                  isSelected && styles.selectedAssignmentItem,
+                  styles.matchCard,
+                  isSelected && styles.selectedMatchCard,
                 ]}
               >
-                {/* Teams section */}
-                <View style={styles.matchTeamsSection}>
-                  {/* Home team row */}
-                  <View style={styles.matchTeamRow}>
-                    <Image source={homeTeamLogo} style={styles.matchTeamLogo} />
-                    <Text
-                      style={styles.matchTeamName}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {item.homeTeam}
-                    </Text>
+                <LinearGradient
+                  colors={[
+                    isSelected ? colors.primaryLight : colors.primaryLighter,
+                    colors.surface,
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={styles.matchCardGradient}
+                >
+                  {/* Teams container */}
+                  <View style={styles.matchTeamsContainer}>
+                    {/* Home team column */}
+                    <View style={styles.matchTeamColumn}>
+                      <View style={styles.logoContainer}>
+                        {homeTeamLogo ? (
+                          <Image
+                            source={homeTeamLogo}
+                            style={styles.teamLogo}
+                          />
+                        ) : (
+                          <View style={styles.teamLogoPlaceholder}>
+                            <Text style={styles.teamLogoPlaceholderText}>
+                              {item.homeTeam.charAt(0)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={styles.teamName}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                      >
+                        {item.homeTeam}
+                      </Text>
+                    </View>
+
+                    {/* VS column */}
+                    <View style={styles.vsDivider}>
+                      <Text style={styles.vsText}>VS</Text>
+                    </View>
+
+                    {/* Away team column */}
+                    <View style={styles.matchTeamColumn}>
+                      <View style={styles.logoContainer}>
+                        {awayTeamLogo ? (
+                          <Image
+                            source={awayTeamLogo}
+                            style={styles.teamLogo}
+                          />
+                        ) : (
+                          <View style={styles.teamLogoPlaceholder}>
+                            <Text style={styles.teamLogoPlaceholderText}>
+                              {item.awayTeam.charAt(0)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text
+                        style={styles.teamName}
+                        numberOfLines={2}
+                        ellipsizeMode="tail"
+                      >
+                        {item.awayTeam}
+                      </Text>
+                    </View>
                   </View>
 
-                  {/* Divider with vs text */}
-                  <View style={styles.matchDivider}>
-                    <Text style={styles.matchVsText}>vs</Text>
-                  </View>
-
-                  {/* Away team row */}
-                  <View style={styles.matchTeamRow}>
-                    <Image source={awayTeamLogo} style={styles.matchTeamLogo} />
-                    <Text
-                      style={styles.matchTeamName}
-                      numberOfLines={1}
-                      ellipsizeMode="tail"
-                    >
-                      {item.awayTeam}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Selection indicator */}
-                <View style={styles.matchActionsContainer}>
-                  <Ionicons
-                    name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                    size={22}
-                    color={isSelected ? colors.primary : colors.border}
-                  />
-                </View>
+                  {/* Selection indicator */}
+                  {isSelected && (
+                    <View style={styles.selectedRibbon}>
+                      <Text style={styles.selectedRibbonText}>COMMON</Text>
+                    </View>
+                  )}
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           );

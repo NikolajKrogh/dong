@@ -12,17 +12,38 @@ import baseStyles, { colors } from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
+/**
+ * @brief Props for the AssignmentSection component.
+ */
 interface AssignmentSectionProps {
+  /** @brief Array of players in the game. */
   players: Player[];
+  /** @brief Array of matches available for assignment. */
   matches: Match[];
+  /** @brief ID of the common match, if any. */
   commonMatchId: string | null;
+  /** @brief Object mapping player IDs to an array of assigned match IDs. */
   playerAssignments: { [playerId: string]: string[] };
+  /** @brief Function to toggle a match assignment for a player. */
   toggleMatchAssignment: (playerId: string, matchId: string) => void;
+  /** @brief Number of matches to be assigned per player in random assignment. */
   matchesPerPlayer: number;
+  /** @brief Function to set the number of matches per player for random assignment. */
   setMatchesPerPlayer: (count: number) => void;
+  /** @brief Function to handle random assignment of matches to players. */
   handleRandomAssignment: (numMatches: number) => void;
 }
 
+/**
+ * @brief Component for assigning matches to players, either manually or randomly.
+ *
+ * This component displays a list of players and allows the user to assign matches
+ * to each player. It supports both manual selection of matches and a random
+ * assignment feature. It also allows toggling between list and grid views for matches.
+ *
+ * @param {AssignmentSectionProps} props - The props for the component.
+ * @returns {React.FC} The AssignmentSection component.
+ */
 const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   players,
   matches,
@@ -33,15 +54,16 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   setMatchesPerPlayer,
   handleRandomAssignment,
 }) => {
+  /** @brief State to control the visibility of the manual assignment info modal. */
   const [isModalVisible, setIsModalVisible] = useState(false);
+  /** @brief State to control the visibility of the random assignment info modal. */
   const [isRandomModalVisible, setIsRandomModalVisible] = useState(false);
-  // Track current layout mode
+  /** @brief State to track the current layout mode (grid or list). False for list, true for grid. */
   const [useGridLayout, setUseGridLayout] = useState(false);
-  // Initialize all players as collapsed by default
+  /** @brief State to track which players' match lists are collapsed. */
   const [collapsedPlayers, setCollapsedPlayers] = useState<
     Record<string, boolean>
   >(() => {
-    // Create an object with all players collapsed
     const initialState: Record<string, boolean> = {};
     players.forEach((player) => {
       initialState[player.id] = true; // true = collapsed
@@ -49,32 +71,47 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return initialState;
   });
 
-  // Update collapsed players when players change
+  /**
+   * @brief Effect to update the collapsed state of players when the players prop changes.
+   * Ensures new players are initially collapsed.
+   */
   React.useEffect(() => {
     setCollapsedPlayers((prev) => {
       const updated = { ...prev };
       players.forEach((player) => {
-        // Only set if not already defined
         if (updated[player.id] === undefined) {
-          updated[player.id] = true; // true = collapsed
+          updated[player.id] = true; 
         }
       });
       return updated;
     });
   }, [players]);
 
+  /**
+   * @brief Toggles the visibility of the manual assignment info modal.
+   */
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
   };
 
+  /**
+   * @brief Toggles the visibility of the random assignment info modal.
+   */
   const toggleRandomModal = () => {
     setIsRandomModalVisible(!isRandomModalVisible);
   };
 
+  /**
+   * @brief Toggles the layout mode between grid and list view for matches.
+   */
   const toggleLayoutMode = () => {
     setUseGridLayout(!useGridLayout);
   };
 
+  /**
+   * @brief Toggles the collapsed state of a player's match list.
+   * @param {string} playerId - The ID of the player.
+   */
   const togglePlayerCollapse = (playerId: string) => {
     setCollapsedPlayers((prev) => ({
       ...prev,
@@ -82,23 +119,35 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     }));
   };
 
+  /** @brief Instructional text for manual match assignment. */
   const instructionText =
     "Tap on matches below to select which matches each player will drink for.";
 
+  /** @brief Instructional text for random match assignment. */
   const randomInstructionText =
     "Randomly assign matches to players. Each player will share exactly one match with every other player.";
 
-  // Get count of assigned matches for a player
+  /**
+   * @brief Calculates the number of non-common matches assigned to a player.
+   * @param {string} playerId - The ID of the player.
+   * @returns {number} The count of assigned non-common matches.
+   */
   const getAssignmentCount = (playerId: string) => {
-    return playerAssignments[playerId]?.length || 0;
+    const playerMatches = playerAssignments[playerId] || [];
+    return playerMatches.filter((matchId) => matchId !== commonMatchId).length;
   };
 
-  // Get non-common matches
+  /** @brief Filters out the common match from the list of all matches. */
   const nonCommonMatches = matches.filter(
     (match) => match.id !== commonMatchId
   );
 
-  // Render a compact match item for grid view
+  /**
+   * @brief Renders a compact match item for the grid view.
+   * @param {Match} match - The match object to render.
+   * @param {string} playerId - The ID of the player for whom the match is being rendered.
+   * @returns {JSX.Element} A TouchableOpacity component representing the compact match item.
+   */
   const renderCompactMatchItem = (match: Match, playerId: string) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
@@ -113,40 +162,46 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         onPress={() => toggleMatchAssignment(playerId, match.id)}
       >
         <View style={baseStyles.compactTeamsContainer}>
-          {/* Home team icon */}
-          <Image
-            source={homeTeamLogo}
-            style={baseStyles.compactTeamLogo}
-            resizeMode="contain"
-          />
-
-          {/* VS indicator */}
+          {homeTeamLogo ? (
+            <Image
+              source={homeTeamLogo}
+              style={baseStyles.compactTeamLogo}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={baseStyles.compactTeamPlaceholder}>
+              <Text style={baseStyles.compactTeamPlaceholderText}>
+                {match.homeTeam.charAt(0)}
+              </Text>
+            </View>
+          )}
           <Text style={baseStyles.compactVsText}>vs</Text>
-
-          {/* Away team icon */}
-          <Image
-            source={awayTeamLogo}
-            style={baseStyles.compactTeamLogo}
-            resizeMode="contain"
-          />
-        </View>
-
-        {/* Selection indicator */}
-        <View style={baseStyles.compactCheckContainer}>
-          <Ionicons
-            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-            size={18}
-            color={isSelected ? colors.primary : colors.border}
-          />
+          {awayTeamLogo ? (
+            <Image
+              source={awayTeamLogo}
+              style={baseStyles.compactTeamLogo}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={baseStyles.compactTeamPlaceholder}>
+              <Text style={baseStyles.compactTeamPlaceholderText}>
+                {match.awayTeam.charAt(0)}
+              </Text>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
   };
 
-  // Render the matches for a player
+  /**
+   * @brief Renders the list of matches for a specific player, adapting to grid or list view.
+   * @param {Player} player - The player object.
+   * @param {Match[]} matchList - The list of matches to render for the player.
+   * @returns {JSX.Element} A View containing either a grid or a FlatList of matches.
+   */
   const renderMatches = (player: Player, matchList: Match[]) => {
     if (useGridLayout) {
-      // Grid layout with 3 columns
       return (
         <View style={baseStyles.gridContainer}>
           {matchList.map((match) => (
@@ -157,7 +212,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         </View>
       );
     } else {
-      // Standard list layout
       return (
         <FlatList
           key={`list-${player.id}`}
@@ -171,7 +225,12 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     }
   };
 
-  // Render a single match item for list view
+  /**
+   * @brief Renders a single match item for the list view.
+   * @param {Match} match - The match object to render.
+   * @param {string} playerId - The ID of the player for whom the match is being rendered.
+   * @returns {JSX.Element} A TouchableOpacity component representing the match item.
+   */
   const renderMatchItem = (match: Match, playerId: string) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
@@ -180,57 +239,65 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return (
       <TouchableOpacity
         style={[
-          baseStyles.assignmentItem,
-          isSelected && baseStyles.selectedAssignmentItem,
+          baseStyles.matchCard,
+          isSelected && baseStyles.selectedMatchCard,
+          baseStyles.matchListItem,
         ]}
         onPress={() => toggleMatchAssignment(playerId, match.id)}
       >
-        <View style={baseStyles.matchTeamsSection}>
-          {/* Home team row */}
-          <View style={baseStyles.matchTeamRow}>
-            <Image
-              source={homeTeamLogo}
-              style={baseStyles.matchTeamLogo}
-              resizeMode="contain"
+        <View style={baseStyles.matchCardGradient}>
+          <View style={baseStyles.matchTeamsContainer}>
+            <View style={baseStyles.matchTeamColumn}>
+              <View style={baseStyles.logoContainer}>
+                {homeTeamLogo ? (
+                  <Image source={homeTeamLogo} style={baseStyles.teamLogo} />
+                ) : (
+                  <View style={baseStyles.teamLogoPlaceholder}>
+                    <Text style={baseStyles.teamLogoPlaceholderText}>
+                      {match.homeTeam.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={baseStyles.teamName}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {match.homeTeam}
+              </Text>
+            </View>
+            <View style={baseStyles.vsDivider}>
+              <Text style={baseStyles.vsText}>VS</Text>
+            </View>
+            <View style={baseStyles.matchTeamColumn}>
+              <View style={baseStyles.logoContainer}>
+                {awayTeamLogo ? (
+                  <Image source={awayTeamLogo} style={baseStyles.teamLogo} />
+                ) : (
+                  <View style={baseStyles.teamLogoPlaceholder}>
+                    <Text style={baseStyles.teamLogoPlaceholderText}>
+                      {match.awayTeam.charAt(0)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={baseStyles.teamName}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {match.awayTeam}
+              </Text>
+            </View>
+          </View>
+          <View style={baseStyles.selectionCheckmark}>
+            <Ionicons
+              name={isSelected ? "checkmark-circle" : "ellipse-outline"}
+              size={24}
+              color={isSelected ? colors.primary : colors.border}
             />
-            <Text
-              style={baseStyles.matchTeamName}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {match.homeTeam}
-            </Text>
           </View>
-
-          {/* Divider with vs text */}
-          <View style={baseStyles.matchDivider}>
-            <Text style={baseStyles.matchVsText}>vs</Text>
-          </View>
-
-          {/* Away team row */}
-          <View style={baseStyles.matchTeamRow}>
-            <Image
-              source={awayTeamLogo}
-              style={baseStyles.matchTeamLogo}
-              resizeMode="contain"
-            />
-            <Text
-              style={baseStyles.matchTeamName}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {match.awayTeam}
-            </Text>
-          </View>
-        </View>
-
-        {/* Selection indicator */}
-        <View style={baseStyles.matchActionsContainer}>
-          <Ionicons
-            name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-            size={22}
-            color={isSelected ? colors.primary : colors.border}
-          />
         </View>
       </TouchableOpacity>
     );
@@ -247,7 +314,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
               <Ionicons
                 name="information-circle-outline"
                 size={24}
-                color = {colors.primary}
+                color={colors.primary}
               />
             </TouchableOpacity>
           </View>
@@ -285,23 +352,29 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                     setMatchesPerPlayer(Math.max(1, matchesPerPlayer - 1))
                   }
                 >
-                  <Ionicons name="remove-outline" size={20} color="#fff" />
+                  <Ionicons
+                    name="remove-outline"
+                    size={20}
+                    color={colors.primaryLight}
+                  />
                 </TouchableOpacity>
-
                 <Text style={baseStyles.counterValue}>{matchesPerPlayer}</Text>
-
                 <TouchableOpacity
                   style={baseStyles.counterButton}
                   onPress={() =>
                     setMatchesPerPlayer(
                       Math.min(
                         matchesPerPlayer + 1,
-                        matches.length - 1 // Max = total matches minus common match
+                        matches.length - 1 
                       )
                     )
                   }
                 >
-                  <Ionicons name="add-outline" size={20} color="#fff" />
+                  <Ionicons
+                    name="add-outline"
+                    size={20}
+                    color={colors.primaryLight}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -310,7 +383,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
               style={baseStyles.randomizeButton}
               onPress={() => handleRandomAssignment(matchesPerPlayer)}
             >
-              <Ionicons name="shuffle" size={20} color="#fff" />
+              <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
               <Text style={baseStyles.randomizeButtonText}>
                 Randomize Matches
               </Text>
@@ -332,20 +405,19 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                 <Ionicons
                   name={useGridLayout ? "list" : "grid"}
                   size={22}
-                  color="#007bff"
+                  color={colors.primary}
                 />
               </TouchableOpacity>
               <TouchableOpacity onPress={toggleModal}>
                 <Ionicons
                   name="information-circle-outline"
                   size={24}
-                  color="#007bff"
+                  color={colors.primary}
                 />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Info Modal */}
           <Modal
             animationType="slide"
             transparent={true}
@@ -373,7 +445,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                 baseStyles.playerContainer,
               ]}
             >
-              {/* Collapsible Player Header */}
               <TouchableOpacity
                 style={baseStyles.playerHeader}
                 onPress={() => togglePlayerCollapse(player.id)}
@@ -387,22 +458,19 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                         : "chevron-down"
                     }
                     size={18}
-                    color="#007bff"
+                    color={colors.primary}
                     style={baseStyles.chevronIcon}
                   />
                   <Text style={baseStyles.playerAssignmentName}>
                     {player.name}
                   </Text>
                 </View>
-
                 <View style={baseStyles.playerBadge}>
                   <Text style={baseStyles.playerBadgeText}>
                     {getAssignmentCount(player.id)}/{nonCommonMatches.length}
                   </Text>
                 </View>
               </TouchableOpacity>
-
-              {/* Render matches only if not collapsed */}
               {!collapsedPlayers[player.id] &&
                 renderMatches(player, nonCommonMatches)}
             </View>
