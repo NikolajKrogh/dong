@@ -310,7 +310,10 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         source={getTeamLogoWithFallback(match.homeTeam)}
                         style={styles.matchTeamLogo}
                       />
-                      <Text style={styles.matchTeamName} numberOfLines={1}>
+                      <Text
+                        style={styles.matchTeamName}
+                        numberOfLines={2}
+                      >
                         {match.homeTeam}
                       </Text>
                     </View>
@@ -326,7 +329,10 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         source={getTeamLogoWithFallback(match.awayTeam)}
                         style={styles.matchTeamLogo}
                       />
-                      <Text style={styles.matchTeamName} numberOfLines={1}>
+                      <Text
+                        style={styles.matchTeamName}
+                        numberOfLines={2}
+                      >
                         {match.awayTeam}
                       </Text>
                     </View>
