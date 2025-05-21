@@ -820,17 +820,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   matchTeamLogo: {
-    width: 50,
-    height: 50,
+    width: 36,
+    height: 36,
+    marginBottom: 4,
     resizeMode: "contain",
-    marginBottom: 8,
   },
   matchTeamName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
     color: "#333",
-    minHeight: 36, 
   },
   matchVsBadge: {
     width: 26,
