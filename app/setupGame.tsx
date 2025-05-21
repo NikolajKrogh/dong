@@ -131,14 +131,14 @@ const SetupGameScreen = () => {
    * @brief Boolean flag indicating if the user can advance to the assignment setup step.
    * True if at least two matches have been added and a common match has been selected.
    */
-  const canAdvanceToAssign = matches.length >= 2 && commonMatchId !== null;
+  const canAdvanceToAssign = matches.length >= 1 && commonMatchId !== null;
   /**
    * @brief Boolean flag indicating if the user can start the game.
-   * True if player assignments have been made and at least one player has at least one match assigned.
+   * True if there are players, at least one match, and a common match is selected.
+   * Individual player assignments (beyond the common match) are not strictly required to enable starting the game.
    */
   const canStartGame =
-    Object.keys(playerAssignments).length > 0 &&
-    Object.values(playerAssignments).some((matches) => matches.length > 0);
+    players.length > 0 && matches.length > 0 && commonMatchId !== null;
 
   /**
    * @brief Renders the player list setup step.
