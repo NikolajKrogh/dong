@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Match, useGameStore } from "../store/store";
 import { formatDateForAPI } from "../utils/matchUtils";
-import { ESPNResponse } from "../types/espn";
+import {
+  ESPNResponse,
+  ESPNCompetitor,
+  ESPNCompetitionDetail,
+} from "../types/espn";
 import { cacheTeamLogo } from "../utils/teamLogos";
 
 /**
@@ -19,6 +23,8 @@ export interface MatchWithScore {
   awayTeamId: string;
   status: string;
   goalScorers?: GoalScorer[];
+  homeTeamStatistics?: MatchStatistics;
+  awayTeamStatistics?: MatchStatistics;
 }
 
 export interface GoalScorer {
@@ -28,6 +34,17 @@ export interface GoalScorer {
   isPenalty: boolean;
   isOwnGoal: boolean;
   goalType: string;
+}
+
+export interface MatchStatistics {
+  shotsOnGoal: number;
+  shotAttempts: number;
+  fouls: number;
+  yellowCards: number;
+  redCards: number;
+  cornerKicks: number;
+  saves: number;
+  possession: number;
 }
 
 /**
@@ -254,8 +271,49 @@ const extractMatchId = (event: any): string | null => {
 };
 
 /**
+ * @brief Parses statistics from an ESPN API competitor object.
+ * Extracts relevant statistics like shots, fouls, cards, and possession.
+ * @param {ESPNCompetitor} competitor The ESPN API competitor object.
+ * @returns {MatchStatistics} A MatchStatistics object containing parsed data.
+ */
+function parseStatistics(competitor: ESPNCompetitor): MatchStatistics {
+  const stats = competitor.statistics || [];
+
+  // Helper function to safely get statistics by name
+  const getStat = (name: string): number => {
+    const stat = stats.find(
+      (s) => s.name?.toLowerCase() === name.toLowerCase()
+    );
+    if (!stat) return 0;
+
+    // Prefer the numeric `value` field when present
+    if (typeof stat.value === "number" && !Number.isNaN(stat.value)) {
+      return stat.value;
+    }
+
+    if (typeof stat.displayValue === "string") {
+      // Strip non-digit / decimal chars (keeps "45.7" from "45.7%")
+      const numeric = parseFloat(stat.displayValue.replace(/[^\d.]/g, ""));
+      return Number.isNaN(numeric) ? 0 : numeric;
+    }
+    return 0;
+  };
+
+  return {
+    shotAttempts: getStat("totalShots"),
+    shotsOnGoal: getStat("shotsOnTarget"),
+    fouls: getStat("fouls"),
+    yellowCards: 0, // Will be counted from event details
+    redCards: 0, // Will be counted from event details
+    cornerKicks: getStat("corners"),
+    saves: getStat("saves"),
+    possession: parseFloat(getStat("possessionPct").toString()) || 0,
+  };
+}
+
+/**
  * @brief Processes a single match event from the ESPN API response.
- * Extracts relevant information like ID, scores, status, team names, and live status.
+ * Extracts relevant information like ID, scores, status, team names, live status, and statistics.
  * @param {any} event The ESPN API event object for a single match.
  * @returns {MatchWithScore | null} A MatchWithScore object containing processed data, or null if processing fails or data is incomplete.
  */
@@ -340,6 +398,29 @@ const processApiMatch = (event: any): MatchWithScore | null => {
       }
     }
 
+    // Parse statistics for home and away teams
+    const homeStatistics = { ...parseStatistics(homeTeamData) };
+    const awayStatistics = { ...parseStatistics(awayTeamData) };
+
+    // Count cards from match details
+    const details = competition.details || [];
+    details.forEach((detail: ESPNCompetitionDetail) => {
+      if (detail.yellowCard) {
+        if (detail.team?.id === homeTeamData.team?.id) {
+          homeStatistics.yellowCards++;
+        } else if (detail.team?.id === awayTeamData.team?.id) {
+          awayStatistics.yellowCards++;
+        }
+      }
+      if (detail.redCard) {
+        if (detail.team?.id === homeTeamData.team?.id) {
+          homeStatistics.redCards++;
+        } else if (detail.team?.id === awayTeamData.team?.id) {
+          awayStatistics.redCards++;
+        }
+      }
+    });
+
     // Construct the result object
     return {
       id,
@@ -353,6 +434,8 @@ const processApiMatch = (event: any): MatchWithScore | null => {
       isLive,
       minutesPlayed: matchTimeDisplay, // Use the determined display string
       goalScorers: goalScorers.length > 0 ? goalScorers : undefined,
+      homeTeamStatistics: homeStatistics,
+      awayTeamStatistics: awayStatistics,
     };
   } catch (error) {
     console.error("Error processing API match event:", error, event); // Log the specific event data on error

@@ -60,25 +60,41 @@ export interface ESPNCompetition {
     };
   };
   competitors?: Array<ESPNCompetitor>;
-  details?: Array<{
-    scoringPlay?: boolean;
-    team?: {
-      id: string;
-      name?: string;
-    };
-    athletesInvolved?: Array<{
-      displayName?: string;
-      shortName?: string;
-    }>;
-    clock?: {
-      displayValue?: string;
-    };
-    penaltyKick?: boolean;
-    ownGoal?: boolean;
-    type?: {
-      text?: string;
-    };
+  details?: Array<ESPNCompetitionDetail>;
+}
+
+/**
+ * @brief Interface for ESPN API competition details.
+ */
+export interface ESPNCompetitionDetail {
+  yellowCard?: boolean;
+  redCard?: boolean;
+  team?: {
+    id: string;
+    name?: string;
+  };
+  scoringPlay?: boolean;
+  athletesInvolved?: Array<{
+    displayName?: string;
+    shortName?: string;
   }>;
+  clock?: {
+    displayValue?: string;
+  };
+  penaltyKick?: boolean;
+  ownGoal?: boolean;
+  type?: {
+    text?: string;
+  };
+}
+
+/**
+ * @brief Interface for ESPN API statistic data.
+ */
+export interface ESPNStatistic {
+  name?: string;
+  displayValue?: string;
+  value?: number;
 }
 
 /**
@@ -88,6 +104,7 @@ export interface ESPNCompetitor {
   id?: string;
   homeAway?: string;
   score?: string;
+  statistics?: ESPNStatistic[];
   team?: {
     id?: string;
     name?: string;
