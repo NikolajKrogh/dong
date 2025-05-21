@@ -43,7 +43,6 @@ export interface MatchStatistics {
   yellowCards: number;
   redCards: number;
   cornerKicks: number;
-  saves: number;
   possession: number;
 }
 
@@ -302,11 +301,10 @@ function parseStatistics(competitor: ESPNCompetitor): MatchStatistics {
   return {
     shotAttempts: getStat("totalShots"),
     shotsOnGoal: getStat("shotsOnTarget"),
-    fouls: getStat("fouls"),
+    fouls: getStat("foulsCommitted"),
     yellowCards: 0, // Will be counted from event details
     redCards: 0, // Will be counted from event details
-    cornerKicks: getStat("corners"),
-    saves: getStat("saves"),
+    cornerKicks: getStat("wonCorners"),
     possession: parseFloat(getStat("possessionPct").toString()) || 0,
   };
 }

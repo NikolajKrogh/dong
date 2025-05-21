@@ -20,6 +20,7 @@ import {
   Animated,
   Image,
 } from "react-native";
+import Svg, { Path } from "react-native-svg"; // Import Svg and Path
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
@@ -120,9 +121,66 @@ const StatProgressBar = ({
   );
 };
 
+// Helper functions for SVG arc
+function polarToCartesian(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleInDegrees: number
+) {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  return {
+    x: centerX + radius * Math.cos(angleInRadians),
+    y: centerY + radius * Math.sin(angleInRadians),
+  };
+}
+function describeArc(
+  x: number,
+  y: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number,
+  counterClockwise: boolean = false
+): string {
+  if (startAngle === endAngle || Math.abs(startAngle - endAngle) < 0.01) {
+    return ""; // No arc to draw
+  }
+  // Ensure endAngle is slightly different from startAngle if it's a full circle from 0 to 360
+  if (
+    Math.abs(endAngle - startAngle - 360) < 0.01 ||
+    Math.abs(endAngle - startAngle + 360) < 0.01
+  ) {
+    endAngle = startAngle + (endAngle > startAngle ? 359.99 : -359.99);
+  } else if (endAngle >= 360 && startAngle === 0) {
+    endAngle = 359.99;
+  }
+
+  const start = polarToCartesian(x, y, radius, endAngle);
+  const end = polarToCartesian(x, y, radius, startAngle);
+
+  const largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+  const sweepFlag = counterClockwise ? "1" : "0"; // 0 for clockwise, 1 for counter-clockwise
+
+  const d = [
+    "M",
+    start.x,
+    start.y,
+    "A",
+    radius,
+    radius,
+    0,
+    largeArcFlag,
+    sweepFlag,
+    end.x,
+    end.y,
+  ].join(" ");
+
+  return d;
+}
+
 /**
  * @component PossessionCircle
- * @brief A circular visualization for possession statistics.
+ * @brief A circular visualization for possession statistics using a doughnut chart.
  * @param {object} props - The component's props.
  * @param {number} props.homeValue - The possession value for the home team.
  * @param {number} props.awayValue - The possession value for the away team.
@@ -135,12 +193,35 @@ const PossessionCircle = ({
   homeValue: number;
   awayValue: number;
 }) => {
-  // Ensure values add up to 100
   const total = homeValue + awayValue;
   const normalizedHome = total > 0 ? Math.round((homeValue / total) * 100) : 0;
   const normalizedAway = total > 0 ? Math.round((awayValue / total) * 100) : 0;
 
-  // Calculate the circumference and the stroke dasharray values
+  const size = 90; // Diameter of the doughnut
+  const strokeWidth = 18; // Thickness of the doughnut ring
+  const radius = (size - strokeWidth) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  const homeColor = "#0275d8";
+  const awayColor = "#fd7e14";
+  const trackColor = "#e0e0e0"; // Background track color
+
+  const homeAngle = (normalizedHome / 100) * 360;
+  const awayAngle = (normalizedAway / 100) * 360;
+
+  // Path for the background track (full circle)
+  const trackPath = describeArc(cx, cy, radius, 0, 359.99);
+
+  // Path for home team's possession - counter-clockwise from 0
+  const homeArcPath =
+    homeAngle > 0
+      ? describeArc(cx, cy, radius, 0, -homeAngle, true) // Negative angle for counter-clockwise
+      : "";
+
+  // Path for away team's possession - clockwise from 0
+  const awayArcPath =
+    awayAngle > 0 ? describeArc(cx, cy, radius, 0, awayAngle) : "";
 
   return (
     <View style={styles.possessionContainer}>
@@ -148,27 +229,33 @@ const PossessionCircle = ({
 
       <View style={styles.possessionCircleContainer}>
         <Text style={styles.statProgressLabel}>Possession</Text>
-
         <View style={styles.circleWrapper}>
-          <View style={styles.possessionCircle}>
-            <View
-              style={[
-                styles.circleSegment,
-                styles.homeSegment,
-                { flex: normalizedHome },
-              ]}
+          <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <Path
+              d={trackPath}
+              stroke={trackColor}
+              strokeWidth={strokeWidth}
+              fill="none"
             />
-            <View
-              style={[
-                styles.circleSegment,
-                styles.awaySegment,
-                { flex: normalizedAway },
-              ]}
-            />
-          </View>
-          <View style={styles.centerCircle}>
-            <Text style={styles.vsText}>VS</Text>
-          </View>
+            {homeArcPath ? (
+              <Path
+                d={homeArcPath}
+                stroke={homeColor}
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeLinecap="round"
+              />
+            ) : null}
+            {awayArcPath ? (
+              <Path
+                d={awayArcPath}
+                stroke={awayColor}
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeLinecap="round"
+              />
+            ) : null}
+          </Svg>
         </View>
       </View>
 
@@ -350,7 +437,13 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
       prevGoalsHomeRef.current = currentScore;
     }
-  }, [match?.homeGoals, liveMatchData?.homeScore, isApiControlledMatch, goalValueAnimHome, liveMatchData]); // Added goalValueAnimHome and liveMatchData to dependency array
+  }, [
+    match?.homeGoals,
+    liveMatchData?.homeScore,
+    isApiControlledMatch,
+    goalValueAnimHome,
+    liveMatchData,
+  ]); // Added goalValueAnimHome and liveMatchData to dependency array
 
   /**
    * @brief Effect to animate the away goal value when it changes (scale up then back down).
@@ -379,8 +472,13 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
       prevGoalsAwayRef.current = currentScore;
     }
-  }, [match?.awayGoals, liveMatchData?.awayScore, isApiControlledMatch, goalValueAnimAway, liveMatchData]); // Added goalValueAnimAway and liveMatchData to dependency array
-
+  }, [
+    match?.awayGoals,
+    liveMatchData?.awayScore,
+    isApiControlledMatch,
+    goalValueAnimAway,
+    liveMatchData,
+  ]); // Added goalValueAnimAway and liveMatchData to dependency array
 
   /**
    * @brief Memoized calculation to distribute affected players into three columns for display.
@@ -824,8 +922,12 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         />
 
                         <StatProgressBar
-                          homeValue={liveMatchData.homeTeamStatistics.fouls ?? 0}
-                          awayValue={liveMatchData.awayTeamStatistics.fouls ?? 0}
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.fouls ?? 0
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.fouls ?? 0
+                          }
                           label="Fouls"
                         />
 
@@ -857,12 +959,6 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                             liveMatchData.awayTeamStatistics.cornerKicks ?? 0
                           }
                           label="Corner Kicks"
-                        />
-
-                        <StatProgressBar
-                          homeValue={liveMatchData.homeTeamStatistics.saves ?? 0}
-                          awayValue={liveMatchData.awayTeamStatistics.saves ?? 0}
-                          label="Saves"
                         />
                       </View>
                     )}
@@ -1269,43 +1365,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
     marginTop: 5,
-  },
-  possessionCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    overflow: "hidden",
-    flexDirection: "row",
-    borderWidth: 2,
-    borderColor: "#222",
-  },
-  circleSegment: {
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  homeSegment: {
-    backgroundColor: "#0275d8",
-  },
-  awaySegment: {
-    backgroundColor: "#fd7e14",
-  },
-  centerCircle: {
-    position: "absolute",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "white",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    elevation: 2,
-  },
-  vsText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#555",
   },
 });
 
