@@ -1,4 +1,13 @@
-import React, { useRef, useEffect, useMemo } from "react";
+/**
+ * @file MatchQuickActionsModal.tsx
+ * @brief Defines the MatchQuickActionsModal component and its sub-components for displaying match details and statistics.
+ *
+ * This file contains the main modal component used to show quick actions and information
+ * related to a selected football match. It includes sub-components for displaying
+ * progress bars for statistics and a circular chart for possession.
+ */
+
+import React, { useRef, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -21,35 +30,159 @@ import { MatchWithScore } from "../../hooks/useLiveScores";
  * @brief Defines the properties required by the MatchQuickActionsModal component.
  */
 interface MatchQuickActionsModalProps {
-  /** @param isVisible Boolean indicating if the modal should be visible. */
+  /** @param {boolean} isVisible Boolean indicating if the modal should be visible. */
   isVisible: boolean;
-  /** @param onClose Function to call when the modal should be closed. */
+  /** @param {() => void} onClose Function to call when the modal should be closed. */
   onClose: () => void;
-  /** @param selectedMatchId The ID of the match currently selected for quick actions, or null. */
+  /** @param {string | null} selectedMatchId The ID of the match currently selected for quick actions, or null. */
   selectedMatchId: string | null;
-  /** @param matches Array of all match objects from the game store. */
+  /** @param {Match[]} matches Array of all match objects from the game store. */
   matches: Match[];
-  /** @param players Array of all player objects from the game store. */
+  /** @param {Player[]} players Array of all player objects from the game store. */
   players: Player[];
-  /** @param commonMatchId The ID of the match designated as 'common'. */
+  /** @param {string} commonMatchId The ID of the match designated as 'common'. */
   commonMatchId: string;
-  /** @param playerAssignments Record mapping player IDs to an array of match IDs they are assigned to. */
+  /** @param {Record<string, string[]>} playerAssignments Record mapping player IDs to an array of match IDs they are assigned to. */
   playerAssignments: Record<string, string[]>;
-  /** @param handleGoalIncrement Function to increment the goal count for a team in a match. */
+  /** @param {(matchId: string, team: "home" | "away") => void} handleGoalIncrement Function to increment the goal count for a team in a match. */
   handleGoalIncrement: (matchId: string, team: "home" | "away") => void;
-  /** @param handleGoalDecrement Function to decrement the goal count for a team in a match. */
+  /** @param {(matchId: string, team: "home" | "away") => void} handleGoalDecrement Function to decrement the goal count for a team in a match. */
   handleGoalDecrement: (matchId: string, team: "home" | "away") => void;
-  /** @param liveMatches Array of live match objects with scores. */
+  /** @param {MatchWithScore[]} liveMatches Array of live match objects with scores. */
   liveMatches: MatchWithScore[];
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 /**
+ * @component StatProgressBar
+ * @brief A component for visual stat comparison using horizontal bars.
+ * @param {object} props - The component's props.
+ * @param {number} props.homeValue - The value for the home team.
+ * @param {number} props.awayValue - The value for the away team.
+ * @param {string} props.label - The label for the statistic.
+ * @param {boolean} [props.isPercentage=false] - Whether to show values as percentages (for possession).
+ * @returns {React.ReactElement} A View containing the stat progress bar.
+ */
+const StatProgressBar = ({
+  homeValue,
+  awayValue,
+  label,
+  isPercentage = false,
+}: {
+  homeValue: number;
+  awayValue: number;
+  label: string;
+  isPercentage?: boolean;
+}) => {
+  // Calculate max value to use as reference for bar lengths
+  const maxValue = Math.max(homeValue, awayValue);
+
+  // Calculate percentages relative to max value (ensures proportional bars)
+  const homePercent = maxValue > 0 ? (homeValue / maxValue) * 100 : 0;
+  const awayPercent = maxValue > 0 ? (awayValue / maxValue) * 100 : 0;
+
+  return (
+    <View style={styles.statProgressContainer}>
+      <Text style={styles.statValue}>
+        {homeValue}
+        {isPercentage ? "%" : ""}
+      </Text>
+
+      <View style={styles.statProgressWrapper}>
+        <Text style={styles.statProgressLabel}>{label}</Text>
+
+        <View style={styles.progressBarContainer}>
+          {/* Home team progress bar (left side) */}
+          <View style={styles.homeProgressArea}>
+            <View
+              style={[styles.homeProgressBar, { width: `${homePercent}%` }]}
+            />
+          </View>
+
+          {/* Center divider */}
+          <View style={styles.progressDivider} />
+
+          {/* Away team progress bar (right side) */}
+          <View style={styles.awayProgressArea}>
+            <View
+              style={[styles.awayProgressBar, { width: `${awayPercent}%` }]}
+            />
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.statValue}>
+        {awayValue}
+        {isPercentage ? "%" : ""}
+      </Text>
+    </View>
+  );
+};
+
+/**
+ * @component PossessionCircle
+ * @brief A circular visualization for possession statistics.
+ * @param {object} props - The component's props.
+ * @param {number} props.homeValue - The possession value for the home team.
+ * @param {number} props.awayValue - The possession value for the away team.
+ * @returns {React.ReactElement} A View containing the possession circle.
+ */
+const PossessionCircle = ({
+  homeValue,
+  awayValue,
+}: {
+  homeValue: number;
+  awayValue: number;
+}) => {
+  // Ensure values add up to 100
+  const total = homeValue + awayValue;
+  const normalizedHome = total > 0 ? Math.round((homeValue / total) * 100) : 0;
+  const normalizedAway = total > 0 ? Math.round((awayValue / total) * 100) : 0;
+
+  // Calculate the circumference and the stroke dasharray values
+
+  return (
+    <View style={styles.possessionContainer}>
+      <Text style={styles.statValue}>{normalizedHome}%</Text>
+
+      <View style={styles.possessionCircleContainer}>
+        <Text style={styles.statProgressLabel}>Possession</Text>
+
+        <View style={styles.circleWrapper}>
+          <View style={styles.possessionCircle}>
+            <View
+              style={[
+                styles.circleSegment,
+                styles.homeSegment,
+                { flex: normalizedHome },
+              ]}
+            />
+            <View
+              style={[
+                styles.circleSegment,
+                styles.awaySegment,
+                { flex: normalizedAway },
+              ]}
+            />
+          </View>
+          <View style={styles.centerCircle}>
+            <Text style={styles.vsText}>VS</Text>
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.statValue}>{normalizedAway}%</Text>
+    </View>
+  );
+};
+
+/**
  * @component MatchQuickActionsModal
  * @brief A modal component displaying match information for a selected match.
- * Displays team information, current scores, goal scorers and players affected by the match.
+ * Displays team information, current scores, goal scorers, players affected by the match, and statistics.
  * @param {MatchQuickActionsModalProps} props - The properties for the component.
+ * @returns {React.ReactElement | null} The modal component or null if not visible or no match selected.
  */
 const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   isVisible,
@@ -63,6 +196,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   handleGoalIncrement,
   handleGoalDecrement,
 }) => {
+  const [activeTab, setActiveTab] = useState("overview");
+
   // Animation values for UI elements
   const closeButtonAnim = useRef(new Animated.Value(1)).current;
   const goalValueAnimHome = useRef(new Animated.Value(1)).current;
@@ -75,7 +210,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
   /**
    * @brief Memoized calculation to find the currently selected match object.
-   * Returns the match object corresponding to `selectedMatchId` or null if not found or `selectedMatchId` is null.
+   * @returns {Match | null} The match object corresponding to `selectedMatchId` or null if not found or `selectedMatchId` is null.
    */
   const match = useMemo(() => {
     return selectedMatchId
@@ -85,16 +220,17 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
   /**
    * @brief Memoized calculation to find the live match data for the selected match.
-   * Returns the `MatchWithScore` object from `liveMatches` corresponding to `selectedMatchId`, or undefined if not found.
+   * @returns {MatchWithScore | undefined} The `MatchWithScore` object from `liveMatches` corresponding to `selectedMatchId`, or undefined if not found.
    */
   const liveMatchData = useMemo(() => {
     return liveMatches?.find((m) => m.id === selectedMatchId);
   }, [liveMatches, selectedMatchId]);
 
   /**
-   * @brief Determines if the current match is controlled by the API or can be manually adjusted.
-   * If a match has corresponding live data from an API, we should display scores without controls.
-   * Otherwise, we should allow manual control of scores.
+   * @brief Determines if the current match is controlled by an API or can be manually adjusted.
+   * If a match has corresponding live data from an API, scores are displayed read-only.
+   * Otherwise, manual score controls are shown.
+   * @returns {boolean} True if the match is API-controlled, false otherwise.
    */
   const isApiControlledMatch = useMemo(() => {
     return !!liveMatchData; // If liveMatchData exists, this is an API-controlled match
@@ -103,6 +239,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   /**
    * @brief Memoized calculation to extract goal scorers for the home team from live match data.
    * Uses the explicit homeTeamId from the live match data to filter goal scorers.
+   * @returns {Array<object>} An array of goal scorer objects for the home team, or an empty array.
    */
   const homeTeamScorers = useMemo(() => {
     return (
@@ -115,6 +252,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   /**
    * @brief Memoized calculation to extract goal scorers for the away team from live match data.
    * Uses the explicit awayTeamId from the live match data to filter goal scorers.
+   * @returns {Array<object>} An array of goal scorer objects for the away team, or an empty array.
    */
   const awayTeamScorers = useMemo(() => {
     return (
@@ -131,7 +269,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   /**
    * @brief Memoized calculation to determine players affected by the selected match.
    * Filters the players list to include those assigned to the selected match or the common match.
-   * Returns an array of Player objects.
+   * @returns {Player[]} An array of Player objects.
    */
   const affectedPlayers = useMemo(() => {
     if (!match) return [];
@@ -212,7 +350,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
       prevGoalsHomeRef.current = currentScore;
     }
-  }, [match?.homeGoals, liveMatchData?.homeScore, isApiControlledMatch]);
+  }, [match?.homeGoals, liveMatchData?.homeScore, isApiControlledMatch, goalValueAnimHome, liveMatchData]); // Added goalValueAnimHome and liveMatchData to dependency array
 
   /**
    * @brief Effect to animate the away goal value when it changes (scale up then back down).
@@ -241,11 +379,12 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
       prevGoalsAwayRef.current = currentScore;
     }
-  }, [match?.awayGoals, liveMatchData?.awayScore, isApiControlledMatch]);
+  }, [match?.awayGoals, liveMatchData?.awayScore, isApiControlledMatch, goalValueAnimAway, liveMatchData]); // Added goalValueAnimAway and liveMatchData to dependency array
+
 
   /**
    * @brief Memoized calculation to distribute affected players into three columns for display.
-   * Returns a 2D array where each sub-array represents a column of players.
+   * @returns {Player[][]} A 2D array where each sub-array represents a column of players.
    */
   const playerColumns = useMemo(() => {
     const result: Player[][] = [[], [], []];
@@ -310,7 +449,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         source={getTeamLogoWithFallback(match.homeTeam)}
                         style={styles.matchTeamLogo}
                       />
-                      <Text style={styles.matchTeamName} numberOfLines={1}>
+                      <Text style={styles.matchTeamName} numberOfLines={2}>
                         {match.homeTeam}
                       </Text>
                     </View>
@@ -326,7 +465,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                         source={getTeamLogoWithFallback(match.awayTeam)}
                         style={styles.matchTeamLogo}
                       />
-                      <Text style={styles.matchTeamName} numberOfLines={1}>
+                      <Text style={styles.matchTeamName} numberOfLines={2}>
                         {match.awayTeam}
                       </Text>
                     </View>
@@ -341,237 +480,394 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
                   <View style={styles.divider} />
 
-                  {isApiControlledMatch ? (
-                    // Read-only score display for API matches
-                    <View style={styles.scoreContainer}>
-                      {/* Home team score */}
-                      <Animated.View
+                  {/* Tab Navigation */}
+                  <View style={styles.tabContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.tabButton,
+                        activeTab === "overview" && styles.activeTab,
+                      ]}
+                      onPress={() => setActiveTab("overview")}
+                    >
+                      <Text
                         style={[
-                          styles.scoreValue,
-                          { transform: [{ scale: goalValueAnimHome }] },
+                          styles.tabText,
+                          activeTab === "overview" && styles.activeTabText,
                         ]}
                       >
-                        <Text style={styles.scoreText}>
-                          {liveMatchData?.homeScore || 0}
-                        </Text>
-                      </Animated.View>
+                        Overview
+                      </Text>
+                    </TouchableOpacity>
 
-                      {/* Score separator */}
-                      <View style={styles.scoreSeparator}>
-                        <Text style={styles.scoreSeparatorText}>:</Text>
-                      </View>
-
-                      {/* Away team score */}
-                      <Animated.View
-                        style={[
-                          styles.scoreValue,
-                          { transform: [{ scale: goalValueAnimAway }] },
-                        ]}
-                      >
-                        <Text style={styles.scoreText}>
-                          {liveMatchData?.awayScore || 0}
-                        </Text>
-                      </Animated.View>
-                    </View>
-                  ) : (
-                    // Editable score controls for manual matches
-                    <View style={styles.goalActions}>
-                      {/* Home team goal controls */}
-                      <View style={styles.teamGoalControls}>
-                        <View style={styles.scoreControlRow}>
-                          <Animated.View
-                            style={{
-                              transform: [{ scale: decrementAnimHome }],
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.blueButton]}
-                              onPress={() => {
-                                handleGoalDecrement(match.id, "home");
-                                animateButtonPress(decrementAnimHome);
-                              }}
-                            >
-                              <Ionicons name="remove" size={20} color="#fff" />
-                            </TouchableOpacity>
-                          </Animated.View>
-
-                          <Animated.View
+                    {isApiControlledMatch &&
+                      liveMatchData?.homeTeamStatistics && ( // Only show stats tab if data exists
+                        <TouchableOpacity
+                          style={[
+                            styles.tabButton,
+                            activeTab === "statistics" && styles.activeTab,
+                          ]}
+                          onPress={() => setActiveTab("statistics")}
+                        >
+                          <Text
                             style={[
-                              styles.goalCounter,
-                              { transform: [{ scale: goalValueAnimHome }] },
+                              styles.tabText,
+                              activeTab === "statistics" &&
+                                styles.activeTabText,
                             ]}
                           >
-                            <Text style={styles.goalValue}>
-                              {match.homeGoals || 0}
-                            </Text>
-                          </Animated.View>
-
-                          <Animated.View
-                            style={{
-                              transform: [{ scale: incrementAnimHome }],
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.blueButton]}
-                              onPress={() => {
-                                handleGoalIncrement(match.id, "home");
-                                animateButtonPress(incrementAnimHome);
-                              }}
-                            >
-                              <Ionicons name="add" size={20} color="#fff" />
-                            </TouchableOpacity>
-                          </Animated.View>
-                        </View>
-                      </View>
-
-                      {/* Away team goal controls */}
-                      <View style={styles.teamGoalControls}>
-                        <View style={styles.scoreControlRow}>
-                          <Animated.View
-                            style={{
-                              transform: [{ scale: decrementAnimAway }],
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.blueButton]}
-                              onPress={() => {
-                                handleGoalDecrement(match.id, "away");
-                                animateButtonPress(decrementAnimAway);
-                              }}
-                            >
-                              <Ionicons name="remove" size={20} color="#fff" />
-                            </TouchableOpacity>
-                          </Animated.View>
-
-                          <Animated.View
-                            style={[
-                              styles.goalCounter,
-                              { transform: [{ scale: goalValueAnimAway }] },
-                            ]}
-                          >
-                            <Text style={styles.goalValue}>
-                              {match.awayGoals || 0}
-                            </Text>
-                          </Animated.View>
-
-                          <Animated.View
-                            style={{
-                              transform: [{ scale: incrementAnimAway }],
-                            }}
-                          >
-                            <TouchableOpacity
-                              style={[styles.actionButton, styles.blueButton]}
-                              onPress={() => {
-                                handleGoalIncrement(match.id, "away");
-                                animateButtonPress(incrementAnimAway);
-                              }}
-                            >
-                              <Ionicons name="add" size={20} color="#fff" />
-                            </TouchableOpacity>
-                          </Animated.View>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Goal Scorers Container - Show for API matches */}
-                  {isApiControlledMatch && (
-                    <View style={styles.goalScorersContainer}>
-                      {/* Home team scorers */}
-                      <View style={styles.teamScorersColumn}>
-                        {homeTeamScorers.length > 0 ? (
-                          <View style={styles.scorerContainer}>
-                            {homeTeamScorers.map((scorer, index) => (
-                              <Text
-                                key={`home-${index}`}
-                                style={styles.scorerText}
-                              >
-                                {scorer.name} {scorer.time}
-                                {scorer.isPenalty ? " (P)" : ""}
-                                {scorer.isOwnGoal ? " (OG)" : ""}
-                              </Text>
-                            ))}
-                          </View>
-                        ) : null}
-                      </View>
-
-                      {/* Away team scorers */}
-                      <View style={styles.teamScorersColumn}>
-                        {awayTeamScorers.length > 0 ? (
-                          <View style={styles.scorerContainer}>
-                            {awayTeamScorers.map((scorer, index) => (
-                              <Text
-                                key={`away-${index}`}
-                                style={styles.scorerText}
-                              >
-                                {scorer.name} {scorer.time}
-                                {scorer.isPenalty ? " (P)" : ""}
-                                {scorer.isOwnGoal ? " (OG)" : ""}
-                              </Text>
-                            ))}
-                          </View>
-                        ) : null}
-                      </View>
-                    </View>
-                  )}
+                            Statistics
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                  </View>
 
                   <View style={styles.divider} />
 
-                  {affectedPlayers.length > 0 && (
-                    <View style={styles.sectionHeader}>
-                      <Ionicons name="people" size={16} color="#555" />
-                      <Text style={styles.sectionTitle}>
-                        Players ({affectedPlayers.length})
-                      </Text>
-                    </View>
-                  )}
+                  {/* Overview Tab Content */}
+                  {activeTab === "overview" && (
+                    <>
+                      {isApiControlledMatch ? (
+                        // Read-only score display for API matches
+                        <View style={styles.scoreContainer}>
+                          {/* Home team score */}
+                          <Animated.View
+                            style={[
+                              styles.scoreValue,
+                              { transform: [{ scale: goalValueAnimHome }] },
+                            ]}
+                          >
+                            <Text style={styles.scoreText}>
+                              {liveMatchData?.homeScore ?? 0}
+                            </Text>
+                          </Animated.View>
 
-                  {affectedPlayers.length > 0 ? (
-                    <View style={styles.compactContainer}>
-                      {playerColumns.map(
-                        (column, columnIndex) =>
-                          column.length > 0 && (
-                            <View
-                              key={`column-${columnIndex}`}
-                              style={styles.playerColumn}
-                            >
-                              {column.map((player) => (
-                                <Animated.View
-                                  key={player.id}
+                          {/* Score separator */}
+                          <View style={styles.scoreSeparator}>
+                            <Text style={styles.scoreSeparatorText}>:</Text>
+                          </View>
+
+                          {/* Away team score */}
+                          <Animated.View
+                            style={[
+                              styles.scoreValue,
+                              { transform: [{ scale: goalValueAnimAway }] },
+                            ]}
+                          >
+                            <Text style={styles.scoreText}>
+                              {liveMatchData?.awayScore ?? 0}
+                            </Text>
+                          </Animated.View>
+                        </View>
+                      ) : (
+                        // Editable score controls for manual matches
+                        <View style={styles.goalActions}>
+                          {/* Home team goal controls */}
+                          <View style={styles.teamGoalControls}>
+                            <View style={styles.scoreControlRow}>
+                              <Animated.View
+                                style={{
+                                  transform: [{ scale: decrementAnimHome }],
+                                }}
+                              >
+                                <TouchableOpacity
                                   style={[
-                                    styles.compactPlayerCard,
-                                    {
-                                      opacity: modalContentAnim,
-                                      transform: [
-                                        {
-                                          translateY:
-                                            modalContentAnim.interpolate({
-                                              inputRange: [0, 1],
-                                              outputRange: [5, 0],
-                                            }),
-                                        },
-                                      ],
-                                    },
+                                    styles.actionButton,
+                                    styles.blueButton,
                                   ]}
+                                  onPress={() => {
+                                    handleGoalDecrement(match.id, "home");
+                                    animateButtonPress(decrementAnimHome);
+                                  }}
                                 >
-                                  <Text style={styles.compactPlayerName}>
-                                    {player.name}
-                                  </Text>
-                                </Animated.View>
-                              ))}
+                                  <Ionicons
+                                    name="remove"
+                                    size={20}
+                                    color="#fff"
+                                  />
+                                </TouchableOpacity>
+                              </Animated.View>
+
+                              <Animated.View
+                                style={[
+                                  styles.goalCounter,
+                                  {
+                                    transform: [{ scale: goalValueAnimHome }],
+                                  },
+                                ]}
+                              >
+                                <Text style={styles.goalValue}>
+                                  {match.homeGoals ?? 0}
+                                </Text>
+                              </Animated.View>
+
+                              <Animated.View
+                                style={{
+                                  transform: [{ scale: incrementAnimHome }],
+                                }}
+                              >
+                                <TouchableOpacity
+                                  style={[
+                                    styles.actionButton,
+                                    styles.blueButton,
+                                  ]}
+                                  onPress={() => {
+                                    handleGoalIncrement(match.id, "home");
+                                    animateButtonPress(incrementAnimHome);
+                                  }}
+                                >
+                                  <Ionicons name="add" size={20} color="#fff" />
+                                </TouchableOpacity>
+                              </Animated.View>
                             </View>
-                          )
+                          </View>
+
+                          {/* Away team goal controls */}
+                          <View style={styles.teamGoalControls}>
+                            <View style={styles.scoreControlRow}>
+                              <Animated.View
+                                style={{
+                                  transform: [{ scale: decrementAnimAway }],
+                                }}
+                              >
+                                <TouchableOpacity
+                                  style={[
+                                    styles.actionButton,
+                                    styles.blueButton,
+                                  ]}
+                                  onPress={() => {
+                                    handleGoalDecrement(match.id, "away");
+                                    animateButtonPress(decrementAnimAway);
+                                  }}
+                                >
+                                  <Ionicons
+                                    name="remove"
+                                    size={20}
+                                    color="#fff"
+                                  />
+                                </TouchableOpacity>
+                              </Animated.View>
+
+                              <Animated.View
+                                style={[
+                                  styles.goalCounter,
+                                  {
+                                    transform: [{ scale: goalValueAnimAway }],
+                                  },
+                                ]}
+                              >
+                                <Text style={styles.goalValue}>
+                                  {match.awayGoals ?? 0}
+                                </Text>
+                              </Animated.View>
+
+                              <Animated.View
+                                style={{
+                                  transform: [{ scale: incrementAnimAway }],
+                                }}
+                              >
+                                <TouchableOpacity
+                                  style={[
+                                    styles.actionButton,
+                                    styles.blueButton,
+                                  ]}
+                                  onPress={() => {
+                                    handleGoalIncrement(match.id, "away");
+                                    animateButtonPress(incrementAnimAway);
+                                  }}
+                                >
+                                  <Ionicons name="add" size={20} color="#fff" />
+                                </TouchableOpacity>
+                              </Animated.View>
+                            </View>
+                          </View>
+                        </View>
                       )}
-                    </View>
-                  ) : (
-                    <View style={styles.emptyStateContainer}>
-                      <Ionicons name="person-outline" size={24} color="#aaa" />
-                      <Text style={styles.noPlayersText}>
-                        No players affected
-                      </Text>
-                    </View>
+
+                      {/* Goal Scorers Section */}
+                      {isApiControlledMatch && (
+                        <View style={styles.goalScorersContainer}>
+                          {/* Home team scorers */}
+                          <View style={styles.teamScorersColumn}>
+                            {homeTeamScorers.length > 0 ? (
+                              <View style={styles.scorerContainer}>
+                                {homeTeamScorers.map((scorer, index) => (
+                                  <Text
+                                    key={`home-${index}`}
+                                    style={styles.scorerText}
+                                  >
+                                    {scorer.name} {scorer.time}
+                                    {scorer.isPenalty ? " (P)" : ""}
+                                    {scorer.isOwnGoal ? " (OG)" : ""}
+                                  </Text>
+                                ))}
+                              </View>
+                            ) : null}
+                          </View>
+
+                          {/* Away team scorers */}
+                          <View style={styles.teamScorersColumn}>
+                            {awayTeamScorers.length > 0 ? (
+                              <View style={styles.scorerContainer}>
+                                {awayTeamScorers.map((scorer, index) => (
+                                  <Text
+                                    key={`away-${index}`}
+                                    style={styles.scorerText}
+                                  >
+                                    {scorer.name} {scorer.time}
+                                    {scorer.isPenalty ? " (P)" : ""}
+                                    {scorer.isOwnGoal ? " (OG)" : ""}
+                                  </Text>
+                                ))}
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                      )}
+
+                      <View style={styles.divider} />
+
+                      {/* Players Section */}
+                      {affectedPlayers.length > 0 && (
+                        <View style={styles.sectionHeader}>
+                          <Ionicons name="people" size={16} color="#555" />
+                          <Text style={styles.sectionTitle}>
+                            Players ({affectedPlayers.length})
+                          </Text>
+                        </View>
+                      )}
+
+                      {affectedPlayers.length > 0 ? (
+                        <View style={styles.compactContainer}>
+                          {playerColumns.map(
+                            (column, columnIndex) =>
+                              column.length > 0 && (
+                                <View
+                                  key={`column-${columnIndex}`}
+                                  style={styles.playerColumn}
+                                >
+                                  {column.map((player) => (
+                                    <Animated.View
+                                      key={player.id}
+                                      style={[
+                                        styles.compactPlayerCard,
+                                        {
+                                          opacity: modalContentAnim,
+                                          transform: [
+                                            {
+                                              translateY:
+                                                modalContentAnim.interpolate({
+                                                  inputRange: [0, 1],
+                                                  outputRange: [5, 0], //NOSONAR - Animation value
+                                                }),
+                                            },
+                                          ],
+                                        },
+                                      ]}
+                                    >
+                                      <Text style={styles.compactPlayerName}>
+                                        {player.name}
+                                      </Text>
+                                    </Animated.View>
+                                  ))}
+                                </View>
+                              )
+                          )}
+                        </View>
+                      ) : (
+                        <View style={styles.emptyStateContainer}>
+                          <Ionicons
+                            name="person-outline"
+                            size={24}
+                            color="#aaa"
+                          />
+                          <Text style={styles.noPlayersText}>
+                            No players affected
+                          </Text>
+                        </View>
+                      )}
+                    </>
                   )}
 
+                  {/* Statistics Tab Content */}
+                  {activeTab === "statistics" &&
+                    isApiControlledMatch &&
+                    liveMatchData?.homeTeamStatistics && // Ensure home stats exist
+                    liveMatchData?.awayTeamStatistics && ( // Ensure away stats exist
+                      <View style={styles.statisticsContainer}>
+                        <PossessionCircle
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.possession ?? 0 // Default to 0 if undefined
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.possession ?? 0 // Default to 0 if undefined
+                          }
+                        />
+
+                        <StatProgressBar
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.shotsOnGoal ?? 0
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.shotsOnGoal ?? 0
+                          }
+                          label="Shots on Goal"
+                        />
+
+                        <StatProgressBar
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.shotAttempts ?? 0
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.shotAttempts ?? 0
+                          }
+                          label="Shot Attempts"
+                        />
+
+                        <StatProgressBar
+                          homeValue={liveMatchData.homeTeamStatistics.fouls ?? 0}
+                          awayValue={liveMatchData.awayTeamStatistics.fouls ?? 0}
+                          label="Fouls"
+                        />
+
+                        <StatProgressBar
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.yellowCards ?? 0
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.yellowCards ?? 0
+                          }
+                          label="Yellow Cards"
+                        />
+
+                        <StatProgressBar
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.redCards ?? 0
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.redCards ?? 0
+                          }
+                          label="Red Cards"
+                        />
+
+                        <StatProgressBar
+                          homeValue={
+                            liveMatchData.homeTeamStatistics.cornerKicks ?? 0
+                          }
+                          awayValue={
+                            liveMatchData.awayTeamStatistics.cornerKicks ?? 0
+                          }
+                          label="Corner Kicks"
+                        />
+
+                        <StatProgressBar
+                          homeValue={liveMatchData.homeTeamStatistics.saves ?? 0}
+                          awayValue={liveMatchData.awayTeamStatistics.saves ?? 0}
+                          label="Saves"
+                        />
+                      </View>
+                    )}
+
+                  {/* Close Button */}
                   <Animated.View
                     style={{
                       transform: [{ scale: closeButtonAnim }],
@@ -582,7 +878,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                       style={styles.closeButton}
                       onPress={() => {
                         animateButtonPress(closeButtonAnim);
-                        setTimeout(onClose, 100);
+                        setTimeout(onClose, 100); // Delay close for animation
                       }}
                     >
                       <Text style={styles.closeButtonText}>Close</Text>
@@ -598,6 +894,9 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   );
 };
 
+/**
+ * @brief StyleSheet for the MatchQuickActionsModal and its sub-components.
+ */
 const styles = StyleSheet.create({
   overlayTouchable: {
     position: "absolute",
@@ -646,6 +945,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 8,
   },
   matchTeamLogo: {
     width: 50,
@@ -658,7 +958,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
     color: "#333",
-    maxWidth: 120,
+    width: "100%",
   },
   matchVsBadge: {
     width: 32,
@@ -693,6 +993,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#eeeeee",
     width: "100%",
     marginVertical: 12,
+  },
+  // Tab container
+  tabContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 12,
+  },
+  tabButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+  },
+  activeTab: {
+    backgroundColor: "#0275d8",
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  activeTabText: {
+    color: "#fff",
   },
   // For API matches - read only display
   scoreContainer: {
@@ -855,6 +1179,133 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#333",
+  },
+  // Match statistics section
+  statisticsContainer: {
+    width: "100%",
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  statProgressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 6,
+    width: "100%",
+  },
+  statProgressWrapper: {
+    flex: 3,
+  },
+  statProgressLabel: {
+    fontSize: 12,
+    color: "#555",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  progressBarContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    height: 6,
+  },
+  homeProgressArea: {
+    flex: 1,
+    alignItems: "flex-end",
+    height: 6,
+    backgroundColor: "#e6f3ff", // Light blue background for home team area
+    borderTopLeftRadius: 3,
+    borderBottomLeftRadius: 3,
+  },
+  awayProgressArea: {
+    flex: 1,
+    alignItems: "flex-start",
+    height: 6,
+    backgroundColor: "#fff0e6", // Light orange background for away team area
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+  },
+  progressDivider: {
+    width: 2,
+    height: "100%",
+    backgroundColor: "#333",
+  },
+  homeProgressBar: {
+    height: 6,
+    backgroundColor: "#0275d8", // Blue for home team
+    borderTopLeftRadius: 3,
+    borderBottomLeftRadius: 3,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  awayProgressBar: {
+    height: 6,
+    backgroundColor: "#fd7e14", // Orange for away team
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
+  },
+  statValue: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#444",
+  },
+  possessionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 15,
+    width: "100%",
+  },
+  possessionCircleContainer: {
+    flex: 3,
+    alignItems: "center",
+  },
+  circleWrapper: {
+    width: 100,
+    height: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    marginTop: 5,
+  },
+  possessionCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    overflow: "hidden",
+    flexDirection: "row",
+    borderWidth: 2,
+    borderColor: "#222",
+  },
+  circleSegment: {
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeSegment: {
+    backgroundColor: "#0275d8",
+  },
+  awaySegment: {
+    backgroundColor: "#fd7e14",
+  },
+  centerCircle: {
+    position: "absolute",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    elevation: 2,
+  },
+  vsText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#555",
   },
 });
 
