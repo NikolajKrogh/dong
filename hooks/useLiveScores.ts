@@ -278,22 +278,36 @@ const extractMatchId = (event: any): string | null => {
  */
 function parseStatistics(competitor: ESPNCompetitor): MatchStatistics {
   const stats = competitor.statistics || [];
-  
+
   // Helper function to safely get statistics by name
   const getStat = (name: string): number => {
-    const stat = stats.find(s => s.name?.toLowerCase() === name.toLowerCase());
-    return stat ? parseInt(stat.displayValue || '0') : 0;
+    const stat = stats.find(
+      (s) => s.name?.toLowerCase() === name.toLowerCase()
+    );
+    if (!stat) return 0;
+
+    // Prefer the numeric `value` field when present
+    if (typeof stat.value === "number" && !Number.isNaN(stat.value)) {
+      return stat.value;
+    }
+
+    if (typeof stat.displayValue === "string") {
+      // Strip non-digit / decimal chars (keeps "45.7" from "45.7%")
+      const numeric = parseFloat(stat.displayValue.replace(/[^\d.]/g, ""));
+      return Number.isNaN(numeric) ? 0 : numeric;
+    }
+    return 0;
   };
-  
+
   return {
-    shotAttempts: getStat('totalShots'),
-    shotsOnGoal: getStat('shotsOnTarget'),
-    fouls: getStat('fouls'),
+    shotAttempts: getStat("totalShots"),
+    shotsOnGoal: getStat("shotsOnTarget"),
+    fouls: getStat("fouls"),
     yellowCards: 0, // Will be counted from event details
-    redCards: 0,    // Will be counted from event details
-    cornerKicks: getStat('corners'),
-    saves: getStat('saves'),
-    possession: parseFloat(getStat('possessionPct').toString()) || 0,
+    redCards: 0, // Will be counted from event details
+    cornerKicks: getStat("corners"),
+    saves: getStat("saves"),
+    possession: parseFloat(getStat("possessionPct").toString()) || 0,
   };
 }
 
@@ -385,8 +399,8 @@ const processApiMatch = (event: any): MatchWithScore | null => {
     }
 
     // Parse statistics for home and away teams
-    const homeStatistics = parseStatistics(homeTeamData);
-    const awayStatistics = parseStatistics(awayTeamData);
+    const homeStatistics = { ...parseStatistics(homeTeamData) };
+    const awayStatistics = { ...parseStatistics(awayTeamData) };
 
     // Count cards from match details
     const details = competition.details || [];
