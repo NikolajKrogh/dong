@@ -32,6 +32,16 @@ interface LastGoalInfo {
   timestamp: number; // To differentiate consecutive identical goals
 }
 
+// Define interface for queued toast data
+interface QueuedToastData {
+  type: string;
+  text1: string;
+  text2?: string;
+  props?: any;
+  position?: "top" | "bottom";
+  visibilityTime?: number;
+}
+
 /**
  * @component GameProgressScreen
  * @brief Represents the main screen during active gameplay.
@@ -52,6 +62,10 @@ const GameProgressScreen = () => {
   const [soundObject, setSoundObject] = useState<Audio.Sound | null>(null);
   // State to track the last goal scored, triggering sound/toast effect
   const [lastGoalInfo, setLastGoalInfo] = useState<LastGoalInfo | null>(null);
+
+  // Toast queue state
+  const [toastQueue, setToastQueue] = useState<QueuedToastData[]>([]);
+  const [isToastCurrentlyVisible, setIsToastCurrentlyVisible] = useState(false);
 
   const {
     players,
@@ -75,7 +89,7 @@ const GameProgressScreen = () => {
    * Manages audio focus and unloads the sound upon completion.
    * @async
    */
-  const playDongSound = async () => {
+  const playDongSound = useCallback(async () => {
     if (!soundEnabled || isSoundPlaying || appState !== "active") return;
 
     setIsSoundPlaying(true);
@@ -114,9 +128,9 @@ const GameProgressScreen = () => {
       });
     } catch (error) {
       console.error("Error playing sound:", error);
-      setIsSoundPlaying(false);
+      setIsSoundPlaying(false); // Reset on error
     }
-  };
+  }, [soundEnabled, isSoundPlaying, appState]);
 
   /**
    * @brief Stops the currently playing sound effect.
@@ -458,71 +472,109 @@ const GameProgressScreen = () => {
    * @param {string[]} playersToDrink - An array of names of players who should drink.
    * @returns {string} The formatted message string, or an empty string if the input array is empty.
    */
-  const formatGoalToastMessage = (playersToDrink: string[]): string => {
-    if (playersToDrink.length === 0) return "";
-    if (playersToDrink.length <= 3) {
-      return `${playersToDrink.join(", ")} should drink!`;
-    } else {
-      return `${playersToDrink.slice(0, 2).join(", ")} and ${
-        playersToDrink.length - 2
-      } others should drink!`;
-    }
-  };
+  const formatGoalToastMessage = useCallback(
+    (playersToDrink: string[]): string => {
+      if (playersToDrink.length === 0) return "";
+      if (playersToDrink.length <= 3) {
+        return `${playersToDrink.join(", ")} should drink!`;
+      } else {
+        return `${playersToDrink.slice(0, 2).join(", ")} and ${
+          playersToDrink.length - 2
+        } others should drink!`;
+      }
+    },
+    []
+  );
 
   /**
-   * @brief Shows a toast notification when a goal is scored.
-   * Finds the match from the *current* state, calculates the score display,
-   * determines which players should drink, formats the message, and displays the toast.
-   * Respects user preference for common match notifications.param {string} matchId - The ID of the match where a goal was scored.
+   * @brief Adds a toast notification to the queue when a goal is scored.
+   * Finds the match, calculates score display, determines players to drink, formats message,
+   * and adds the toast data to a queue for sequential display.
+   * Respects user preference for common match notifications.
+   * @param {string} matchId - The ID of the match where a goal was scored.
    * @param {'home' | 'away'} team - The team that scored the goal.
    * @param {boolean} [isLiveUpdate=false] - Flag indicating if the update is from live data.
    * @param {number} [newTotal] - The new total score for the scoring team (passed for live updates).
    * @param {number} [otherTeamScore] - The current score of the non-scoring team (passed for live updates).
    */
-  const showGoalToast = (
-    matchId: string,
-    team: "home" | "away",
-    isLiveUpdate = false,
-    newTotal?: number,
-    otherTeamScore?: number
-  ) => {
-    // Skip notifications for common match if disabled in preferences
-    if (matchId === commonMatchId && !commonMatchNotificationsEnabled) {
-      return;
+  const enqueueGoalToast = useCallback(
+    (
+      matchId: string,
+      team: "home" | "away",
+      isLiveUpdate = false,
+      newTotal?: number,
+      otherTeamScore?: number
+    ) => {
+      // Skip notifications for common match if disabled in preferences
+      if (matchId === commonMatchId && !commonMatchNotificationsEnabled) {
+        return;
+      }
+
+      // Find the match based on the *current* matches state
+      const match = matches.find((m) => m.id === matchId);
+      if (!match) {
+        console.warn(
+          "Toast: Match not found in current state for enqueue:",
+          matchId
+        );
+        return;
+      }
+
+      const { homeScore, awayScore } = calculateToastScoreDisplay(
+        match, // Pass the current match state
+        team,
+        isLiveUpdate,
+        newTotal,
+        otherTeamScore
+      );
+      const scoreTitle = `${match.homeTeam} ${homeScore}-${awayScore} ${match.awayTeam}`;
+
+      const playersToDrink = getPlayersWhoDrink(matchId);
+      const message = formatGoalToastMessage(playersToDrink);
+
+      if (!message) return; // Don't show toast if no one needs to drink
+
+      const toastData: QueuedToastData = {
+        type: "success",
+        text1: scoreTitle,
+        text2: message,
+        props: {
+          scoringTeam: team,
+        },
+        position: "bottom",
+        visibilityTime: 5000,
+      };
+
+      setToastQueue((prevQueue) => [...prevQueue, toastData]);
+    },
+    [
+      matches,
+      commonMatchId,
+      commonMatchNotificationsEnabled,
+      getPlayersWhoDrink,
+      calculateToastScoreDisplay,
+      formatGoalToastMessage,
+      players,
+      playerAssignments /* Added players & assignments as getPlayersWhoDrink depends on them */,
+    ]
+  );
+
+  // Effect to process the toast queue
+  useEffect(() => {
+    if (!isToastCurrentlyVisible && toastQueue.length > 0) {
+      const toastToShow = toastQueue[0];
+
+      setToastQueue((prevQueue) => prevQueue.slice(1)); // Dequeue
+      setIsToastCurrentlyVisible(true);
+
+      Toast.show({
+        ...toastToShow,
+        onHide: () => {
+          setIsToastCurrentlyVisible(false);
+        },
+      });
     }
-
-    // Find the match based on the *current* matches state
-    const match = matches.find((m) => m.id === matchId);
-    if (!match) {
-      console.warn("Toast: Match not found in current state:", matchId);
-      return;
-    }
-
-    const { homeScore, awayScore } = calculateToastScoreDisplay(
-      match, // Pass the current match state
-      team,
-      isLiveUpdate,
-      newTotal,
-      otherTeamScore
-    );
-    const scoreTitle = `${match.homeTeam} ${homeScore}-${awayScore} ${match.awayTeam}`;
-
-    const playersToDrink = getPlayersWhoDrink(matchId);
-    const message = formatGoalToastMessage(playersToDrink);
-
-    if (!message) return; // Don't show toast if no one needs to drink
-
-    Toast.show({
-      type: "success",
-      text1: scoreTitle,
-      text2: message,
-      props: {
-        scoringTeam: team,
-      },
-      position: "bottom",
-      visibilityTime: 5000,
-    });
-  };
+  }, [toastQueue, isToastCurrentlyVisible]);
 
   // Call the useLiveScores hook
   const {
@@ -572,23 +624,26 @@ const GameProgressScreen = () => {
       const { matchId, team, isLiveUpdate, newTotal, otherTeamScore } =
         lastGoalInfo;
 
-      // Skip notifications for common match if disabled in preferences
+      // Skip notifications AND SOUND for common match if disabled in preferences
       if (matchId === commonMatchId && !commonMatchNotificationsEnabled) {
-        // Reset lastGoalInfo without playing sound or showing toast
-        setLastGoalInfo(null);
+        setLastGoalInfo(null); // Reset to prevent re-trigger
         return;
       }
 
-      // Play sound
       playDongSound();
-
-      // Show toast using the info stored when the goal was processed
-      showGoalToast(matchId, team, isLiveUpdate, newTotal, otherTeamScore);
+      // Enqueue toast instead of showing directly
+      enqueueGoalToast(matchId, team, isLiveUpdate, newTotal, otherTeamScore);
 
       // Reset lastGoalInfo so this effect only runs once per goal
       setLastGoalInfo(null);
     }
-  }, [lastGoalInfo]); // This effect runs only when lastGoalInfo changes
+  }, [
+    lastGoalInfo,
+    commonMatchId,
+    commonMatchNotificationsEnabled,
+    playDongSound,
+    enqueueGoalToast,
+  ]);
 
   /**
    * @brief Handles the pull-to-refresh action.
