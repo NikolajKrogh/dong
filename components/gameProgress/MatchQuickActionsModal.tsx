@@ -20,7 +20,7 @@ import {
   Animated,
   Image,
 } from "react-native";
-import Svg, { Path } from "react-native-svg"; // Import Svg and Path
+import Svg, { Path, Rect } from "react-native-svg";
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
@@ -76,15 +76,28 @@ const StatProgressBar = ({
   label: string;
   isPercentage?: boolean;
 }) => {
-  // Calculate max value to use as reference for bar lengths
-  const maxValue = Math.max(homeValue, awayValue);
+  const maxValue = Math.max(1, homeValue, awayValue); // Ensure maxValue is at least 1 to avoid division by zero
+  const homePercent = (homeValue / maxValue) * 100;
+  const awayPercent = (awayValue / maxValue) * 100;
 
-  // Calculate percentages relative to max value (ensures proportional bars)
-  const homePercent = maxValue > 0 ? (homeValue / maxValue) * 100 : 0;
-  const awayPercent = maxValue > 0 ? (awayValue / maxValue) * 100 : 0;
+  const barHeight = 8; // Height of the progress bars
+  const totalBarWidth = 100; // Represents 100% width for calculations
+  const homeBarWidth = (homePercent / 100) * (totalBarWidth / 2);
+  const awayBarWidth = (awayPercent / 100) * (totalBarWidth / 2);
+
+  const homeColor = "#0275d8";
+  const awayColor = "#fd7e14";
+  const trackColor = "#e0e0e0"; // Background track color for the bars
+  const dividerColor = "#333";
 
   return (
-    <View style={styles.statProgressContainer}>
+    <View
+      style={styles.statProgressContainer}
+      accessible={true}
+      accessibilityLabel={`${label}: Home ${homeValue}${
+        isPercentage ? "%" : ""
+      }, Away ${awayValue}${isPercentage ? "%" : ""}`}
+    >
       <Text style={styles.statValue}>
         {homeValue}
         {isPercentage ? "%" : ""}
@@ -92,24 +105,60 @@ const StatProgressBar = ({
 
       <View style={styles.statProgressWrapper}>
         <Text style={styles.statProgressLabel}>{label}</Text>
-
-        <View style={styles.progressBarContainer}>
-          {/* Home team progress bar (left side) */}
-          <View style={styles.homeProgressArea}>
-            <View
-              style={[styles.homeProgressBar, { width: `${homePercent}%` }]}
+        <View style={styles.svgProgressBarContainer}>
+          <Svg height={barHeight} width="100%">
+            {/* Background for Home Side */}
+            <Rect
+              x="0"
+              y="0"
+              width="50%"
+              height={barHeight}
+              fill={styles.homeProgressArea.backgroundColor}
+              rx={styles.homeProgressBar.borderTopLeftRadius} // Optional: for rounded corners
+              ry={styles.homeProgressBar.borderTopLeftRadius}
             />
-          </View>
-
-          {/* Center divider */}
-          <View style={styles.progressDivider} />
-
-          {/* Away team progress bar (right side) */}
-          <View style={styles.awayProgressArea}>
-            <View
-              style={[styles.awayProgressBar, { width: `${awayPercent}%` }]}
+            {/* Home Progress */}
+            <Rect
+              x={`${50 - homeBarWidth}%`} // Start from the right edge of the home area and draw left
+              y="0"
+              width={`${homeBarWidth}%`}
+              height={barHeight}
+              fill={homeColor}
+              rx={styles.homeProgressBar.borderTopLeftRadius}
+              ry={styles.homeProgressBar.borderTopLeftRadius}
             />
-          </View>
+
+            {/* Background for Away Side */}
+            <Rect
+              x="50%"
+              y="0"
+              width="50%"
+              height={barHeight}
+              fill={styles.awayProgressArea.backgroundColor}
+              rx={styles.awayProgressBar.borderTopRightRadius} // Optional: for rounded corners
+              ry={styles.awayProgressBar.borderTopRightRadius}
+            />
+            {/* Away Progress */}
+            <Rect
+              x="50%"
+              y="0"
+              width={`${awayBarWidth}%`}
+              height={barHeight}
+              fill={awayColor}
+              rx={styles.awayProgressBar.borderTopRightRadius}
+              ry={styles.awayProgressBar.borderTopRightRadius}
+            />
+
+            {/* Center Divider */}
+            <Rect
+              x="50%"
+              y="0"
+              width={styles.progressDivider.width}
+              height={barHeight}
+              fill={dividerColor}
+              transform="translate(-1)" // Adjust to center the 2px divider
+            />
+          </Svg>
         </View>
       </View>
 
@@ -1285,11 +1334,12 @@ const styles = StyleSheet.create({
   statProgressContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 6,
+    marginVertical: 8, // Increased margin slightly
     width: "100%",
   },
   statProgressWrapper: {
     flex: 3,
+    marginHorizontal: 8, // Add some horizontal margin
   },
   statProgressLabel: {
     fontSize: 12,
@@ -1297,48 +1347,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 4,
   },
-  progressBarContainer: {
+  svgProgressBarContainer: {
+    // New or repurposed style for SVG wrapper
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
-    height: 6,
-  },
-  homeProgressArea: {
-    flex: 1,
-    alignItems: "flex-end",
-    height: 6,
-    backgroundColor: "#e6f3ff", // Light blue background for home team area
-    borderTopLeftRadius: 3,
-    borderBottomLeftRadius: 3,
-  },
-  awayProgressArea: {
-    flex: 1,
-    alignItems: "flex-start",
-    height: 6,
-    backgroundColor: "#fff0e6", // Light orange background for away team area
-    borderTopRightRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  progressDivider: {
-    width: 2,
-    height: "100%",
-    backgroundColor: "#333",
-  },
-  homeProgressBar: {
-    height: 6,
-    backgroundColor: "#0275d8", // Blue for home team
-    borderTopLeftRadius: 3,
-    borderBottomLeftRadius: 3,
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  awayProgressBar: {
-    height: 6,
-    backgroundColor: "#fd7e14", // Orange for away team
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-    borderTopRightRadius: 3,
-    borderBottomRightRadius: 3,
+    height: 8, // Match barHeight
   },
   statValue: {
     flex: 1,
@@ -1346,6 +1360,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
     color: "#444",
+  },
+  homeProgressArea: {
+    // Used for background color reference
+    backgroundColor: "#e6f3ff",
+  },
+  awayProgressArea: {
+    // Used for background color reference
+    backgroundColor: "#fff0e6",
+  },
+  progressDivider: {
+    // Used for width and color reference
+    width: 2,
+    backgroundColor: "#333",
+  },
+  homeProgressBar: {
+    // Used for borderRadius reference
+    borderTopLeftRadius: 3,
+    borderBottomLeftRadius: 3,
+  },
+  awayProgressBar: {
+    // Used for borderRadius reference
+    borderTopRightRadius: 3,
+    borderBottomRightRadius: 3,
   },
   possessionContainer: {
     flexDirection: "row",
