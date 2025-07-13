@@ -1446,7 +1446,7 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   inputRow: {
     flexDirection: "row",
-    marginBottom: 16, // Increased margin for more space
+    marginBottom: 12,
     alignItems: "center",
   },
   teamInputWrapper: {
@@ -1460,7 +1460,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 10,
-    height: 50, // Increased height
+    height: 50,
   },
   teamSearchFieldSelected: {
     borderColor: colors.primaryFocus,
@@ -1488,6 +1488,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
     color: colors.textMuted,
+    marginLeft: 10,
+    marginRight: 10,
   },
   matchTimeContainer: {
     flexDirection: "row",
