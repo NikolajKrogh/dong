@@ -1,28 +1,49 @@
 import React, { useState } from "react";
-import { View, Text, SafeAreaView, Pressable, StyleSheet, Image } from "react-native";
-import { GestureDetector, Gesture, Directions } from "react-native-gesture-handler";
-import Animated, { FadeIn, FadeOut, SlideInRight, SlideOutLeft } from "react-native-reanimated";
+import {
+  View,
+  Text,
+  SafeAreaView,
+  Pressable,
+  StyleSheet,
+  Image,
+} from "react-native";
+import {
+  GestureDetector,
+  Gesture,
+  Directions,
+} from "react-native-gesture-handler";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInRight,
+  SlideOutLeft,
+} from "react-native-reanimated";
+import { colors } from "../app/style/palette";
 
 const onboardingSteps = [
   {
     title: "Welcome to DONG",
-    description: "DONG is a Danish football drinking game where goals mean beers. Pick matches, follow the action, and drink up when your teams score!",
+    description:
+      "DONG is a Danish football drinking game where goals mean beers. Pick matches, follow the action, and drink up when your teams score!",
     image: require("../assets/onboarding/screen1.png"),
   },
   {
     title: "Add Players",
-    description: "Start by adding your friends. Each player picks matches and competes to see who ends up with the most goals—and beers!",
-    image:  require("../assets/onboarding/screen2.png"), 
+    description:
+      "Start by adding your friends. Each player picks matches and competes to see who ends up with the most goals—and beers!",
+    image: require("../assets/onboarding/screen2.png"),
   },
   {
     title: "Set Up Your Game",
-    description: "Choose multiple leagues, and select a number of matches. Everyone also drinks to the shared match — Which is chosen by everyone.",
-    image: require("../assets/onboarding/screen3.png"), 
+    description:
+      "Choose multiple leagues, and select a number of matches. Everyone also drinks to the shared match — Which is chosen by everyone.",
+    image: require("../assets/onboarding/screen3.png"),
   },
   {
     title: "Track Stats",
-    description: "Keep track of goals, beers consumed, and who’s winning. Check past games to see which of your friends is the reigning DONG champion!",
-    image: require("../assets/onboarding/screen4.png"), 
+    description:
+      "Keep track of goals, beers consumed, and who’s winning. Check past games to see which of your friends is the reigning DONG champion!",
+    image: require("../assets/onboarding/screen4.png"),
   },
 ];
 
@@ -99,7 +120,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
   },
   content: {
     padding: 24,
@@ -115,13 +136,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "bold",
-    color: "#0275d8",
+    color: colors.primary,
     marginBottom: 12,
     textAlign: "center",
   },
   description: {
     fontSize: 16,
-    color: "#6c757d",
+    color: colors.textMuted,
     marginBottom: 24,
     textAlign: "center",
   },
@@ -134,18 +155,18 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 18,
-    backgroundColor: "#0275d8",
+    backgroundColor: colors.primary,
     borderRadius: 10,
     marginHorizontal: 10,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
   },
   buttonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 15,
     fontWeight: "600",
   },
@@ -154,7 +175,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 16,
-    backgroundColor: "#FFFFFF", // Changed to white
+    backgroundColor: colors.surface,
   },
   progressDot: {
     width: 10,
@@ -163,10 +184,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeDot: {
-    backgroundColor: "#0275d8", // Blue for the current screen
+    backgroundColor: colors.primary,
   },
   inactiveDot: {
-    backgroundColor: "#d6d6d6", // Gray for other screens
+    backgroundColor: colors.border,
   },
 });
 

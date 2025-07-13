@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 import { LeagueEndpoint } from "../../constants/leagues";
 
@@ -32,7 +33,11 @@ const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
     <View key={league.code} style={styles.filterBadge}>
       {isLoading ? (
         <View style={styles.badgeLogoPlaceholder}>
-          <Ionicons name="hourglass-outline" size={14} color="#777" />
+          <Ionicons
+            name="hourglass-outline"
+            size={14}
+            color={colors.textMuted}
+          />
         </View>
       ) : logoSource ? (
         <Image source={logoSource} style={styles.badgeLogo} />
@@ -85,7 +90,11 @@ const LeagueItem: React.FC<LeagueItemProps> = ({
     >
       {isLoading ? (
         <View style={styles.chipLogoPlaceholder}>
-          <Ionicons name="hourglass-outline" size={14} color="#777" />
+          <Ionicons
+            name="hourglass-outline"
+            size={14}
+            color={colors.textMuted}
+          />
         </View>
       ) : logoSource ? (
         <View style={styles.chipContainer}>
@@ -179,7 +188,11 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
       >
         <View style={styles.filterCardContent}>
           <View style={styles.filterTitleContainer}>
-            <Ionicons name="football-outline" size={20} color="#1976d2" />
+            <Ionicons
+              name="football-outline"
+              size={20}
+              color={colors.primaryFocus}
+            />
             <Text style={styles.filterTitle}>Choose Leagues</Text>
           </View>
 
@@ -189,7 +202,7 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
               <Ionicons
                 name={isLeagueExpanded ? "chevron-up" : "chevron-down"}
                 size={18}
-                color="#777"
+                color={colors.textMuted}
               />
             </View>
           </View>

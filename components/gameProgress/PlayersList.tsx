@@ -2,7 +2,8 @@ import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, FlatList, Animated } from "react-native";
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
-import styles, { colors } from "../../app/style/gameProgressStyles";
+import styles from "../../app/style/gameProgressStyles";
+import { colors } from "../../app/style/palette"; 
 
 /**
  * @interface PlayersListProps

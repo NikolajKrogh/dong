@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../app/style/palette";
 
 export const goalToastConfig = {
   success: (props: {
@@ -51,18 +52,18 @@ export const goalToastConfig = {
       <View
         style={{
           width: "90%",
-          backgroundColor: "#222222",
+          backgroundColor: colors.toastBackground,
           borderRadius: 12,
           padding: 12,
           flexDirection: "column",
           alignSelf: "center",
-          shadowColor: "#000",
+          shadowColor: colors.black,
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.3,
           shadowRadius: 5,
           elevation: 8,
           borderLeftWidth: 3,
-          borderLeftColor: "#ffcc00",
+          borderLeftColor: colors.warning,
         }}
       >
         {/* Score section */}
@@ -76,7 +77,7 @@ export const goalToastConfig = {
           <Text
             style={{
               fontSize: 16,
-              color: scoringTeam === "home" ? "#4CAF50" : "#ffffff",
+              color: scoringTeam === "home" ? colors.success : colors.white,
               fontWeight: scoringTeam === "home" ? "bold" : "normal",
               flex: 1,
             }}
@@ -85,7 +86,7 @@ export const goalToastConfig = {
           </Text>
           <View
             style={{
-              backgroundColor: "#333333",
+              backgroundColor: colors.darkSurface,
               paddingHorizontal: 12,
               paddingVertical: 6,
               borderRadius: 8,
@@ -93,7 +94,11 @@ export const goalToastConfig = {
             }}
           >
             <Text
-              style={{ fontSize: 22, fontWeight: "bold", color: "#ffcc00" }}
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                color: colors.warning,
+              }}
             >
               {score}
             </Text>
@@ -101,7 +106,7 @@ export const goalToastConfig = {
           <Text
             style={{
               fontSize: 16,
-              color: scoringTeam === "away" ? "#4CAF50" : "#ffffff",
+              color: scoringTeam === "away" ? colors.success : colors.white,
               fontWeight: scoringTeam === "away" ? "bold" : "normal",
               flex: 1,
               textAlign: "right",
@@ -114,7 +119,7 @@ export const goalToastConfig = {
         {/* Improved message section */}
         <View
           style={{
-            backgroundColor: "#333",
+            backgroundColor: colors.darkSurface,
             marginTop: 10,
             borderRadius: 6,
             padding: 10,
@@ -129,12 +134,12 @@ export const goalToastConfig = {
               flexWrap: "wrap",
             }}
           >
-            <Ionicons name="beer" size={20} color="#ffcc00" />
+            <Ionicons name="beer" size={20} color={colors.warning} />
             <Text
               style={{
                 fontSize: 16,
                 fontWeight: "600",
-                color: "#ffcc00",
+                color: colors.warning,
                 marginLeft: 8,
                 textAlign: "center",
               }}

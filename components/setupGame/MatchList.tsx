@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Match } from "../../store/store";
-import styles, { colors } from "../../app/style/setupGameStyles";
+import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow";
 import MatchItem from "./MatchItem";

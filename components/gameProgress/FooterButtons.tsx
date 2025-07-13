@@ -1,10 +1,19 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Modal, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
+  Modal,
+  Dimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { colors } from "../../app/style/palette";
 
 // Get screen dimensions
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /**
  * @brief Interface defining the properties for the FooterButtons component.
@@ -64,7 +73,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   // Interpolate rotation value for the button animation
   const rotateInterpolate = rotation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '45deg']
+    outputRange: ["0deg", "45deg"],
   });
 
   /**
@@ -92,17 +101,21 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
         >
           {/* Menu content */}
           <View
-            style={[styles.menuContainer, {
-              left: SCREEN_WIDTH * 0.05,
-              bottom: SCREEN_HEIGHT * 0.1
-            }]}
+            style={[
+              styles.menuContainer,
+              {
+                left: SCREEN_WIDTH * 0.05,
+                bottom: SCREEN_HEIGHT * 0.1,
+              },
+            ]}
           >
             <View style={styles.expandableMenu}>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={goToHome}
-              >
-                <Ionicons name="home-outline" size={22} color="#555" />
+              <TouchableOpacity style={styles.menuItem} onPress={goToHome}>
+                <Ionicons
+                  name="home-outline"
+                  size={22}
+                  color={colors.textMuted}
+                />
                 <Text style={styles.menuItemText}>Home</Text>
               </TouchableOpacity>
 
@@ -113,7 +126,11 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
                   closeMenu();
                 }}
               >
-                <Ionicons name="settings-outline" size={22} color="#555" />
+                <Ionicons
+                  name="settings-outline"
+                  size={22}
+                  color={colors.textMuted}
+                />
                 <Text style={styles.menuItemText}>Setup</Text>
               </TouchableOpacity>
 
@@ -124,8 +141,8 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
                   closeMenu();
                 }}
               >
-                <Ionicons name="flag-outline" size={22} color="#dc3545" />
-                <Text style={[styles.menuItemText, { color: "#dc3545" }]}>
+                <Ionicons name="flag-outline" size={22} color={colors.danger} />
+                <Text style={[styles.menuItemText, { color: colors.danger }]}>
                   End Game
                 </Text>
               </TouchableOpacity>
@@ -136,12 +153,9 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
       {/* Menu toggle button */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={toggleMenu}
-        >
+        <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-            <Ionicons name="add" size={24} color="#fff" />
+            <Ionicons name="add" size={24} color={colors.white} />
           </Animated.View>
         </TouchableOpacity>
       </View>
@@ -151,20 +165,20 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative'
+    position: "relative",
   },
   modalOverlay: {
     flex: 1,
   },
   menuContainer: {
-    position: 'absolute',
+    position: "absolute",
   },
   expandableMenu: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 4,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -172,8 +186,8 @@ const styles = StyleSheet.create({
     width: 160,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -182,11 +196,11 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     marginLeft: 16,
-    color: '#555',
+    color: colors.textMuted,
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "flex-start",
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
@@ -194,15 +208,15 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 32,
-    backgroundColor: '#0275d8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
     elevation: 3,
-  }
+  },
 });
 
 export default FooterButtons;

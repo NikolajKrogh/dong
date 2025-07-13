@@ -1,35 +1,12 @@
 import {
   StyleSheet,
-  Platform,
-  StatusBar,
   ViewStyle,
   TextStyle,
   ImageStyle,
 } from "react-native";
 
+import { colors } from "./palette";
 // --- Color Palette ---
-const colors = {
-  primary: "#0275d8",
-  primaryDark: "#025aa5", // For hover or darker shades
-  secondary: "#6c757d",
-  success: "#28a745",
-  danger: "#dc3545",
-
-  background: "#f5f5f5",
-  surface: "#fff", // For cards, modals
-  backgroundModalOverlay: "rgba(0, 0, 0, 0.5)",
-
-  textPrimary: "#212529", // For darkest text, can also be used for shadows
-  textSecondary: "#333",
-  textMuted: "#6c757d", // Also used for subtitle, some info text
-  textLight: "#fff", // Text on dark backgrounds
-  textPlaceholder: "#999", // For footer or less important text
-  textLink: "#0275d8", // Same as primary
-
-  border: "#ddd", // A general border color if needed
-  borderLight: "#e0e0e0",
-  borderLighter: "#eee",
-};
 
 // --- Base Styles ---
 const baseButton: ViewStyle = {

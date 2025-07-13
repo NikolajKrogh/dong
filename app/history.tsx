@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useGameStore } from "../store/store";
-import { styles, colors } from "./style/historyStyles";
+import { styles } from "./style/historyStyles";
 import { GameSession, PlayerStat } from "../components/history/historyTypes";
 import GameHistoryItem from "../components/history/GameHistoryItem";
 import GameDetailsModal from "../components/history/GameDetailsModal";
@@ -19,6 +19,7 @@ import OverallStats from "../components/history/OverallStats";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { calculateLifetimePlayerStats } from "../components/history/historyUtils";
+import { colors } from "./style/palette";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];
@@ -85,7 +86,7 @@ const HistoryScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0275d8" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -117,7 +118,11 @@ const HistoryScreen = () => {
           <View style={styles.rightPlaceholder} />
         </View>
         <View style={styles.emptyStateContainer}>
-          <Ionicons name="calendar-outline" size={60} color="#ccc" />
+          <Ionicons
+            name="calendar-outline"
+            size={60}
+            color={colors.neutralGray}
+          />
           <Text style={styles.emptyStateText}>
             No game history yet. Play some games to see your stats and history
             here!
@@ -209,7 +214,11 @@ const HistoryScreen = () => {
                 </ScrollView>
               ) : (
                 <View style={styles.emptyTabContent}>
-                  <Ionicons name="people-outline" size={40} color="#ccc" />
+                  <Ionicons
+                    name="people-outline"
+                    size={40}
+                    color={colors.neutralGray}
+                  />
                   <Text style={styles.emptyStateText}>No player data yet.</Text>
                 </View>
               )}

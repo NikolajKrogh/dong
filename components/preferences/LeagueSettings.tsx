@@ -5,8 +5,8 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   settingsStyles,
   commonStyles,
-  colors,
 } from "../../app/style/userPreferencesStyles";
+import { colors } from "../../app/style/palette";
 
 interface LeagueSettingsProps {
   configuredLeagues: LeagueEndpoint[];

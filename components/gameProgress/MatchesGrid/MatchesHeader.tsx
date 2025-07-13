@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchesHeaderProps } from "./types";
 import styles from "../../../app/style/gameProgressStyles";
+import { colors } from "../../../app/style/palette";
 
 /**
  * @brief Header component for the matches grid/list.
@@ -33,7 +34,7 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
           style={headerStyles.sortButton}
           onPress={() => setSortModalVisible(true)}
         >
-          <Ionicons name="funnel-outline" size={18} color="#0275d8" />
+          <Ionicons name="funnel-outline" size={18} color={colors.primary} />
           <Ionicons
             name={
               sortDirection === "asc"
@@ -41,7 +42,7 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
                 : "arrow-down-outline"
             }
             size={14}
-            color="#0275d8"
+            color={colors.primary}
             style={{ marginLeft: 2 }}
           />
         </TouchableOpacity>
@@ -54,7 +55,7 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
           <Ionicons
             name={useGridLayout ? "list" : "grid"}
             size={22}
-            color="#0275d8"
+            color={colors.primary}
           />
         </TouchableOpacity>
       </View>

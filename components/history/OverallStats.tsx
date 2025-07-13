@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { GameSession } from "./historyTypes";
 import { styles } from "../../app/style/historyStyles";
+import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateTotalGoals, calculateTotalDrinks } from "./historyUtils";
 
@@ -83,7 +84,7 @@ const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
           <Ionicons
             name="beer"
             size={32}
-            color="#fff"
+            color={colors.white}
             style={{ marginRight: 12 }}
           />
           <View>
@@ -100,7 +101,7 @@ const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
         {/* Total Games Stat Item */}
         <View style={styles.statItemWithIcon}>
           <View style={styles.statIconContainer}>
-            <Ionicons name="game-controller" size={22} color="#0275d8" />
+            <Ionicons name="game-controller" size={22} color={colors.primary} />
           </View>
           <View style={styles.statTextContainer}>
             <Text style={styles.statValue}>{totalGames}</Text>
@@ -111,7 +112,7 @@ const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
         {/* Total Players Stat Item */}
         <View style={styles.statItemWithIcon}>
           <View style={styles.statIconContainer}>
-            <Ionicons name="people" size={22} color="#0275d8" />
+            <Ionicons name="people" size={22} color={colors.primary} />
           </View>
           <View style={styles.statTextContainer}>
             <Text style={styles.statValue}>{totalPlayers}</Text>
@@ -122,7 +123,7 @@ const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
         {/* Total Matches Stat Item */}
         <View style={styles.statItemWithIcon}>
           <View style={styles.statIconContainer}>
-            <Ionicons name="trophy" size={22} color="#0275d8" />
+            <Ionicons name="trophy" size={22} color={colors.primary} />
           </View>
           <View style={styles.statTextContainer}>
             <Text style={styles.statValue}>{totalMatches}</Text>
@@ -133,7 +134,7 @@ const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
         {/* Total Goals Stat Item */}
         <View style={styles.statItemWithIcon}>
           <View style={styles.statIconContainer}>
-            <Ionicons name="football" size={22} color="#0275d8" />
+            <Ionicons name="football" size={22} color={colors.primary} />
           </View>
           <View style={styles.statTextContainer}>
             <Text style={styles.statValue}>{totalGoals}</Text>
@@ -144,9 +145,12 @@ const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
         {/* Average Drinks Per Player Stat Item */}
         <View style={styles.statItemWithIcon}>
           <View
-            style={[styles.statIconContainer, { backgroundColor: "#e3f2fd" }]}
+            style={[
+              styles.statIconContainer,
+              { backgroundColor: colors.primaryLight },
+            ]}
           >
-            <Ionicons name="flash" size={22} color="#0275d8" />
+            <Ionicons name="flash" size={22} color={colors.primary} />
           </View>
           <View style={styles.statTextContainer}>
             <Text style={styles.statValue}>{averageDrinksPerPlayer}</Text>

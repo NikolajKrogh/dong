@@ -146,6 +146,7 @@ export const AVAILABLE_LEAGUES: LeagueEndpoint[] = [
   { code: "uefa.euroq", name: "UEFA European Championship Qualifying", category: "Internationals" },
   { code: "uefa.weuro", name: "UEFA Women's European Championship", category: "Internationals" },
   { code: "concacaf.womens.championship", name: "Concacaf W Championship", category: "Internationals" },
+  { code: "club.friendly", name: "Club Friendly", category: "Internationals" },
   
   // Asia
   { code: "afc.champions", name: "AFC Champions League Elite", category: "Asia" },

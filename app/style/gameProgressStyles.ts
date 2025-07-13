@@ -1,50 +1,6 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle, Dimensions } from "react-native";
+import { colors } from "./palette";
 
-// --- Color Palette ---
-export const colors = {
-  primary: "#0275d8",
-  primaryLight: "#e3f2fd",
-  primaryDark: "#0056b3",
-  primaryTransparentLight: "rgba(2, 117, 216, 0.08)",
-
-  secondary: "#6c757d",
-
-  success: "#28a745",
-  successLight: "#e8f5e9",
-  successText: "#fff",
-  successDarkText: "#155724",
-  successOwedText: "#388e3c",
-
-  danger: "#dc3545",
-  dangerLight: "#ffebee",
-  dangerText: "#fff",
-  dangerOwedText: "#d32f2f",
-
-  warning: "#ffc107",
-  warningLight: "#fff8e1",
-
-  info: "#17a2b8",
-  infoLight: "#e0f7fa",
-
-  background: "#f5f5f5",
-  backgroundLight: "#f8f9fa",
-  backgroundModalOverlay: "rgba(0, 0, 0, 0.5)",
-
-  surface: "#fff",
-
-  textPrimary: "#212529",
-  textSecondary: "#333",
-  textMuted: "#6c757d",
-  textDisabled: "#adb5bd",
-  textLight: "#fff",
-
-  border: "#ddd",
-  borderLight: "#e0e0e0",
-
-  liveIndicator: "#e74c3c",
-  owedPositiveBorder: "#e57373",
-  owedZeroBorder: "#81c784",
-};
 
 // --- Base Styles ---
 const baseContainer: ViewStyle = {

@@ -15,7 +15,8 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import styles, { colors } from "../../app/style/gameProgressStyles";
+import styles from "../../app/style/gameProgressStyles";
+import { colors } from "../../app/style/palette";
 
 /**
  * @interface TabNavigationProps

@@ -1,56 +1,6 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
+import { colors } from "./palette";
 
-// --- Color Palette ---
-export const colors = {
-  primary: "#0275d8",
-  primaryLight: "#e3f2fd",
-  primaryLighter: "#f0f8ff",
-  primaryDark: "#0056b3",
-  primaryFocus: "#1976d2", // For active/focused elements
-
-  secondary: "#6c757d", // Muted actions, secondary info
-  secondaryLight: "#f8f9fa", // Very light gray, often for subtle backgrounds
-
-  success: "#28a745", // Green for success states, start buttons
-  successLight: "#eaf6ec",
-  successText: "#fff",
-
-  danger: "#dc3545", // Red for errors, delete, end buttons
-  dangerLight: "#fbe9e7",
-  dangerText: "#fff",
-
-  warning: "#ffc107", // Yellow for warnings
-  warningLight: "#fff8e1",
-  warningText: "#212529",
-
-  info: "#17a2b8", // Blue for informational messages
-  infoLight: "#e0f7fa",
-
-  background: "#f5f5f5", // Main app background
-  backgroundLight: "#f8f9fa", // Slightly lighter than main
-  backgroundSubtle: "#f0f0f0", // For subtle UI elements like inactive buttons
-  backgroundModalOverlay: "rgba(0, 0, 0, 0.5)",
-
-  surface: "#fff", // Card backgrounds, modal backgrounds
-
-  textPrimary: "#212529", // Darkest text for main content
-  textSecondary: "#333", // Slightly lighter than primary
-  textMuted: "#6c757d", // For less important text, placeholders
-  textDisabled: "#adb5bd", // For disabled elements
-  textLight: "#fff", // Text on dark backgrounds
-
-  border: "#ddd", // Default border color
-  borderLight: "#e0e0e0", // Lighter border
-  borderLighter: "#eee", // Even lighter
-  borderSubtle: "#e1e4e8", // For subtle divisions
-
-  // Component-specific or semantic colors
-
-  playerItemOddBackground: "#fff8f0",
-  countBadgeBorder: "#81d4fa",
-  compactMatchItemSelectedBorder: "#b3d7ff",
-  processingIndicatorBorder: "#b8daff",
-};
 
 // --- Base Styles ---
 const baseContainer: ViewStyle = {

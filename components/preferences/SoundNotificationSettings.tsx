@@ -4,8 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   commonStyles,
   settingsStyles,
-  colors,
 } from "../../app/style/userPreferencesStyles";
+import { colors } from "../../app/style/palette";
 
 /**
  * @interface SoundNotificationSettingsProps

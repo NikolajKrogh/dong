@@ -14,8 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import {
   manageLeaguesModalStyles,
   addLeagueModalStyles,
-  colors,
 } from "../../app/style/userPreferencesStyles";
+import { colors } from "../../app/style/palette";
 import {
   AVAILABLE_LEAGUES,
   LEAGUE_CATEGORIES,

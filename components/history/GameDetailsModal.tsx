@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
-import { styles, colors } from "../../app/style/historyStyles";
+import { styles } from "../../app/style/historyStyles";
+import { colors } from "../../app/style/palette";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import {
   formatModalDate,

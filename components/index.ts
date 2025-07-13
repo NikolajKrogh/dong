@@ -3,7 +3,6 @@ export { default as SetupGamePlayerList } from "./setupGame/PlayerList";
 export { default as MatchList } from "./setupGame/MatchList";
 export { default as AssignmentSection } from "./setupGame/AssignmentSection";
 export { default as TabNavigation } from "./setupGame/TabNavigation";
-export { default as ActiveTabView } from "./setupGame/ActiveTabView";
 export { default as SetupWizard } from "./setupGame/SetupWizard";
 export { default as MatchItem } from "./setupGame/MatchItem";
 export { default as TeamSelectionRow } from "./setupGame/TeamSelectionRow";

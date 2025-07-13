@@ -3,7 +3,8 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
 import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
-import styles, { colors } from "../../../app/style/gameProgressStyles"; // Ensure colors is imported if used directly
+import styles from "../../../app/style/gameProgressStyles"; // Ensure colors is imported if used directly
+import { colors } from "../../../app/style/palette"; 
 
 /**
  * @brief Renders a single match item in a list layout.

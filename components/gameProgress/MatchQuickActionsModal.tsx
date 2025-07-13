@@ -25,6 +25,7 @@ import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import { MatchWithScore } from "../../hooks/useLiveScores";
+import { colors } from "../../app/style/palette";
 
 /**
  * @interface MatchQuickActionsModalProps
@@ -85,10 +86,9 @@ const StatProgressBar = ({
   const homeBarWidth = (homePercent / 100) * (totalBarWidth / 2);
   const awayBarWidth = (awayPercent / 100) * (totalBarWidth / 2);
 
-  const homeColor = "#0275d8";
-  const awayColor = "#fd7e14";
-  const trackColor = "#e0e0e0"; // Background track color for the bars
-  const dividerColor = "#333";
+  const homeColor = colors.primary;
+  const awayColor = colors.awayTeam;
+  const dividerColor = colors.darkSurface;
 
   return (
     <View
@@ -252,9 +252,9 @@ const PossessionCircle = ({
   const cx = size / 2;
   const cy = size / 2;
 
-  const homeColor = "#0275d8";
-  const awayColor = "#fd7e14";
-  const trackColor = "#e0e0e0"; // Background track color
+  const homeColor = colors.primary;
+  const awayColor = colors.awayTeam;
+  const trackColor = colors.borderLight; // Background track color
 
   const homeAngle = (normalizedHome / 100) * 360;
   const awayAngle = (normalizedAway / 100) * 360;
@@ -729,7 +729,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                                   <Ionicons
                                     name="remove"
                                     size={20}
-                                    color="#fff"
+                                    color={colors.white}
                                   />
                                 </TouchableOpacity>
                               </Animated.View>
@@ -762,7 +762,11 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                                     animateButtonPress(incrementAnimHome);
                                   }}
                                 >
-                                  <Ionicons name="add" size={20} color="#fff" />
+                                  <Ionicons
+                                    name="add"
+                                    size={20}
+                                    color={colors.white}
+                                  />
                                 </TouchableOpacity>
                               </Animated.View>
                             </View>
@@ -789,7 +793,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                                   <Ionicons
                                     name="remove"
                                     size={20}
-                                    color="#fff"
+                                    color={colors.white}
                                   />
                                 </TouchableOpacity>
                               </Animated.View>
@@ -822,7 +826,11 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                                     animateButtonPress(incrementAnimAway);
                                   }}
                                 >
-                                  <Ionicons name="add" size={20} color="#fff" />
+                                  <Ionicons
+                                    name="add"
+                                    size={20}
+                                    color={colors.white}
+                                  />
                                 </TouchableOpacity>
                               </Animated.View>
                             </View>
@@ -876,7 +884,11 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                       {/* Players Section */}
                       {affectedPlayers.length > 0 && (
                         <View style={styles.sectionHeader}>
-                          <Ionicons name="people" size={16} color="#555" />
+                          <Ionicons
+                            name="people"
+                            size={16}
+                            color={colors.textSecondary}
+                          />
                           <Text style={styles.sectionTitle}>
                             Players ({affectedPlayers.length})
                           </Text>
@@ -925,7 +937,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                           <Ionicons
                             name="person-outline"
                             size={24}
-                            color="#aaa"
+                            color={colors.textMuted}
                           />
                           <Text style={styles.noPlayersText}>
                             No players affected
@@ -1049,7 +1061,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: colors.backgroundModalOverlay,
     zIndex: 1000,
   },
   centeredView: {
@@ -1061,10 +1073,10 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: SCREEN_WIDTH * 0.85,
     maxWidth: 400,
-    backgroundColor: "#fff",
+    backgroundColor: colors.surface,
     borderRadius: 16,
     overflow: "hidden",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -1102,14 +1114,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
-    color: "#333",
+    color: colors.textSecondary,
     width: "100%",
   },
   matchVsBadge: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background,
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 10,
@@ -1117,11 +1129,11 @@ const styles = StyleSheet.create({
   matchVsText: {
     fontSize: 12,
     fontWeight: "700",
-    color: "#666",
+    color: colors.textMuted,
   },
   // Common match badge
   commonMatchBadge: {
-    backgroundColor: "#4caf50",
+    backgroundColor: colors.success,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1129,13 +1141,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   commonMatchText: {
-    color: "white",
+    color: colors.white,
     fontSize: 12,
     fontWeight: "600",
   },
   divider: {
     height: 1,
-    backgroundColor: "#eeeeee",
+    backgroundColor: colors.borderLighter,
     width: "100%",
     marginVertical: 12,
   },
@@ -1150,18 +1162,18 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.backgroundSubtle,
   },
   activeTab: {
-    backgroundColor: "#0275d8",
+    backgroundColor: colors.primary,
   },
   tabText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textSecondary,
   },
   activeTabText: {
-    color: "#fff",
+    color: colors.white,
   },
   // For API matches - read only display
   scoreContainer: {
@@ -1178,7 +1190,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 42,
     fontWeight: "bold",
-    color: "#0275d8",
+    color: colors.primary,
   },
   scoreSeparator: {
     paddingHorizontal: 8,
@@ -1186,7 +1198,7 @@ const styles = StyleSheet.create({
   scoreSeparatorText: {
     fontSize: 36,
     fontWeight: "bold",
-    color: "#777",
+    color: colors.textMuted,
   },
   // For editable matches - with controls
   goalActions: {
@@ -1203,7 +1215,7 @@ const styles = StyleSheet.create({
   teamLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   scoreControlRow: {
@@ -1218,7 +1230,7 @@ const styles = StyleSheet.create({
   goalValue: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#0275d8",
+    color: colors.primary,
   },
   actionButton: {
     width: 32,
@@ -1226,14 +1238,14 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
   blueButton: {
-    backgroundColor: "#0275d8",
+    backgroundColor: colors.primary,
   },
   // Goal Scorers display
   goalScorersContainer: {
@@ -1254,7 +1266,7 @@ const styles = StyleSheet.create({
   },
   scorerText: {
     fontSize: 11,
-    color: "#444",
+    color: colors.textSecondary,
     marginVertical: 2,
     fontStyle: "italic",
     textAlign: "center",
@@ -1269,7 +1281,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#555",
+    color: colors.textSecondary,
     marginLeft: 8,
   },
   // Player section - super compact layout
@@ -1284,7 +1296,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   compactPlayerCard: {
-    backgroundColor: "#f6f6f6",
+    backgroundColor: colors.backgroundSubtle,
     borderRadius: 6,
     paddingVertical: 4, // Even more compact
     paddingHorizontal: 6,
@@ -1294,26 +1306,26 @@ const styles = StyleSheet.create({
   compactPlayerName: {
     fontSize: 12, // Smaller font for compactness
     fontWeight: "500",
-    color: "#333",
+    color: colors.textSecondary,
     textAlign: "center",
   },
   emptyStateContainer: {
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.backgroundLight,
     borderRadius: 8,
     marginBottom: 12,
   },
   noPlayersText: {
     fontSize: 14,
-    color: "#888",
+    color: colors.textMuted,
     fontStyle: "italic",
     marginLeft: 8,
   },
   // Close button
   closeButton: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.backgroundSubtle,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 10,
@@ -1323,7 +1335,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textSecondary,
   },
   // Match statistics section
   statisticsContainer: {
@@ -1343,7 +1355,7 @@ const styles = StyleSheet.create({
   },
   statProgressLabel: {
     fontSize: 12,
-    color: "#555",
+    color: colors.textSecondary,
     textAlign: "center",
     marginBottom: 4,
   },
@@ -1359,20 +1371,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     fontWeight: "bold",
-    color: "#444",
+    color: colors.textSecondary,
   },
   homeProgressArea: {
     // Used for background color reference
-    backgroundColor: "#e6f3ff",
+    backgroundColor: colors.primaryLight,
   },
   awayProgressArea: {
     // Used for background color reference
-    backgroundColor: "#fff0e6",
+    backgroundColor: colors.playerItemOddBackground,
   },
   progressDivider: {
     // Used for width and color reference
     width: 2,
-    backgroundColor: "#333",
+    backgroundColor: colors.darkSurface,
   },
   homeProgressBar: {
     // Used for borderRadius reference

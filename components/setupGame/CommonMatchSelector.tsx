@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, Modal } from "react-native";
 import { Match } from "../../store/store";
-import styles, { colors } from "../../app/style/setupGameStyles";
+import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import { LinearGradient } from "expo-linear-gradient";
