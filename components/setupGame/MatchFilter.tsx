@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Animated } from "react-native";
 import DatePicker from "react-native-date-picker";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import { TeamWithLeague } from "../../utils/matchUtils";
 import { LeagueEndpoint } from "../../constants/leagues";
 
@@ -124,7 +125,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
       >
         <View style={styles.filterCardContent}>
           <View style={styles.filterTitleContainer}>
-            <Ionicons name="options-outline" size={22} color="#1976d2" />
+            <Ionicons
+              name="options-outline"
+              size={22}
+              color={colors.primaryFocus}
+            />
             <Text style={styles.filterTitle}>Match Schedule</Text>
           </View>
 
@@ -133,7 +138,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               <View style={styles.filterBadgesContainer}>
                 {localDateFilterActive && (
                   <View style={styles.filterBadge}>
-                    <Ionicons name="calendar" size={16} color="#1976d2" />
+                    <Ionicons
+                      name="calendar"
+                      size={16}
+                      color={colors.primaryFocus}
+                    />
                     <Text style={styles.filterBadgeText} numberOfLines={1}>
                       {formattedDate}
                     </Text>
@@ -141,7 +150,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 )}
                 {localTimeFilterActive && (
                   <View style={styles.filterBadge}>
-                    <Ionicons name="time" size={16} color="#1976d2" />
+                    <Ionicons
+                      name="time"
+                      size={16}
+                      color={colors.primaryFocus}
+                    />
                     <Text style={styles.filterBadgeText} numberOfLines={1}>
                       {startTime.substring(0, 5)} - {endTime.substring(0, 5)}
                     </Text>
@@ -155,7 +168,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
             <Animated.View
               style={[styles.indicatorContainer, { transform: [{ rotate }] }]}
             >
-              <Ionicons name="chevron-down" size={20} color="#555" />
+              <Ionicons
+                name="chevron-down"
+                size={20}
+                color={colors.textSecondary}
+              />
             </Animated.View>
           </View>
         </View>
@@ -176,7 +193,9 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               <Ionicons
                 name="calendar-outline"
                 size={18}
-                color={localDateFilterActive ? "#1976d2" : "#666"}
+                color={
+                  localDateFilterActive ? colors.primaryFocus : colors.textMuted
+                }
                 style={styles.inputIcon}
               />
               <Text
@@ -216,7 +235,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 <Ionicons
                   name="time-outline"
                   size={18}
-                  color={localTimeFilterActive ? "#1976d2" : "#666"}
+                  color={
+                    localTimeFilterActive
+                      ? colors.primaryFocus
+                      : colors.textMuted
+                  }
                   style={styles.inputIcon}
                 />
                 <Text
@@ -242,7 +265,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 <Ionicons
                   name="time-outline"
                   size={18}
-                  color={localTimeFilterActive ? "#1976d2" : "#666"}
+                  color={
+                    localTimeFilterActive
+                      ? colors.primaryFocus
+                      : colors.textMuted
+                  }
                   style={styles.inputIcon}
                 />
                 <Text
@@ -283,7 +310,11 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
 
           <View style={styles.resultsSummary}>
             <View style={styles.matchCountContainer}>
-              <Ionicons name="football-outline" size={16} color="#1976d2" />
+              <Ionicons
+                name="football-outline"
+                size={16}
+                color={colors.primaryFocus}
+              />
               <Text style={styles.matchCount}>
                 {filteredMatches.length} matches found
               </Text>
@@ -298,7 +329,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               disabled={!isAnyFilterActive}
               activeOpacity={0.7}
             >
-              <Ionicons name="add-circle" size={16} color="#fff" />
+              <Ionicons name="add-circle" size={16} color={colors.white} />
               <Text style={styles.filterActionButtonText}>Add Matches</Text>
             </TouchableOpacity>
           </View>

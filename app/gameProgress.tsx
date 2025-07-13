@@ -12,6 +12,7 @@ import { useGameStore, Match } from "../store/store";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import styles from "./style/gameProgressStyles";
 import Toast from "react-native-toast-message";
+import { colors } from "./style/palette";
 
 // Import components
 import TabNavigation from "../components/gameProgress/TabNavigation";
@@ -685,8 +686,8 @@ const GameProgressScreen = () => {
                 <RefreshControl
                   refreshing={refreshing}
                   onRefresh={onRefresh}
-                  colors={["#0275d8"]}
-                  tintColor="#0275d8"
+                  colors={[colors.primary]}
+                  tintColor={colors.primary}
                 />
               }
               onRefresh={onRefresh} // Make sure this is passed

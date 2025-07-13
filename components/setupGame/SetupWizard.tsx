@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import styles, { colors } from "../../app/style/setupGameStyles"; // Import colors
+import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette"; // Import colors
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
@@ -61,11 +62,18 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
    * @brief Configuration for the wizard steps, including their names and associated icons.
    * The icon names correspond to Ionicons.
    */
-  const steps: { name: string; icon: "person-add-outline" | "game-controller-outline" | "tv-outline" | "git-network" }[] = [
-    { name: "Players", icon: "person-add-outline"},
-    { name: "Matches", icon: "game-controller-outline"},
-    { name: "Common", icon: "tv-outline"},
-    { name: "Assign", icon: "git-network"},
+  const steps: {
+    name: string;
+    icon:
+      | "person-add-outline"
+      | "game-controller-outline"
+      | "tv-outline"
+      | "git-network";
+  }[] = [
+    { name: "Players", icon: "person-add-outline" },
+    { name: "Matches", icon: "game-controller-outline" },
+    { name: "Common", icon: "tv-outline" },
+    { name: "Assign", icon: "git-network" },
   ];
   const router = useRouter();
 
@@ -101,7 +109,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
               <Ionicons
                 name={step.icon}
                 size={24}
-                color={currentStep >= index ? colors.textLight : colors.textMuted} // Icon color changes based on active/inactive state
+                color={
+                  currentStep >= index ? colors.textLight : colors.textMuted
+                } // Icon color changes based on active/inactive state
               />
             </TouchableOpacity>
 
@@ -178,8 +188,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 (currentStep === 1 && !canAdvanceToCommonMatch) ||
                 (currentStep === 2 && !canAdvanceToAssign)) && { opacity: 0.5 },
             ]}
-            onPress={() =>
-              setCurrentStep(Math.min(steps.length - 1, currentStep + 1)) // Go to the next step
+            onPress={
+              () => setCurrentStep(Math.min(steps.length - 1, currentStep + 1)) // Go to the next step
             }
             disabled={
               // Disable next button if advancement conditions are not met

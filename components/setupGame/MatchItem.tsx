@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, Image, ImageStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Match } from "../../store/store";
-import styles, { colors } from "../../app/style/setupGameStyles";
+import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 interface MatchItemProps {
@@ -126,11 +127,7 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
           {/* Match time section at the bottom */}
           {match.startTime && (
             <View style={styles.matchTimeHeader}>
-              <Ionicons
-                name="time-outline"
-                size={16}
-                color={colors.primary}
-              />
+              <Ionicons name="time-outline" size={16} color={colors.primary} />
               <Text style={styles.matchTimeText}>{formatMatchTime()}</Text>
             </View>
           )}

@@ -11,12 +11,10 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  manageLeaguesModalStyles,
-  colors,
-} from "../../app/style/userPreferencesStyles";
+import { manageLeaguesModalStyles } from "../../app/style/userPreferencesStyles";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { colors } from "../../app/style/palette";
 
 /**
  * @interface ManageLeaguesModalProps

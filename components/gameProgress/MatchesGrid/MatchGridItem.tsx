@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
 import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
 import styles from "../../../app/style/gameProgressStyles";
+import { colors } from "../../../app/style/palette"; 
 
 const MatchGridItem: React.FC<MatchItemProps> = ({
   match,
@@ -129,7 +130,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
         {/* Stats row remains the same */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={13} color="#666" />
+            <Ionicons name="people-outline" size={13} color={colors.textMuted} />
             <Text style={styles.statValue}>{playerDisplayText}</Text>
           </View>
         </View>

@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Player } from "../../store/store";
 import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -123,14 +124,14 @@ const PlayerList: React.FC<PlayerListProps> = ({
           <Ionicons
             name="person-outline"
             size={20}
-            color="#555"
+            color={colors.textSecondary}
             style={styles.playerInputIcon}
           />
           <TextInput
             ref={inputRef}
             style={styles.playerTextInput}
             placeholder="Enter player name"
-            placeholderTextColor="#aaa"
+            placeholderTextColor={colors.textPlaceholder}
             value={newPlayerName}
             onChangeText={setNewPlayerName}
             returnKeyType="done"
@@ -146,7 +147,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
           onPress={addPlayerAndFocus}
           disabled={!newPlayerName.trim()}
         >
-          <Ionicons name="add-circle-outline" size={28} color="#fff" />
+          <Ionicons name="add-circle-outline" size={28} color={colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -182,17 +183,19 @@ const PlayerList: React.FC<PlayerListProps> = ({
                 onPress={() => handleRemoveWithAnimation(item.id)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="trash-outline" size={20} color="#E94E77" />
+                <Ionicons name="trash-outline" size={20} color={colors.error} />
               </TouchableOpacity>
             </Animated.View>
           );
         }}
         ListEmptyComponent={() => (
           <View style={styles.playerEmptyListContainer}>
-            <Ionicons name="people-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyListTitleText}>
-              No players added yet!
-            </Text>
+            <Ionicons
+              name="people-outline"
+              size={48}
+              color={colors.neutralGray}
+            />
+            <Text style={styles.emptyListTitleText}>No players added yet!</Text>
             <Text style={styles.emptyListSubtitleText}>
               Add players by typing their name in the input above.
             </Text>
@@ -210,7 +213,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
           <Ionicons
             name="trash-outline"
             size={16}
-            color="#fff"
+            color={colors.white}
             style={{ marginRight: 5 }}
           />
           <Text style={styles.playerClearAllButtonText}>Clear All Players</Text>

@@ -3,6 +3,7 @@ import { Alert, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import styles from "./style/setupGameStyles";
+import { colors } from "./style/palette"; 
 import {
   SetupGamePlayerList,
   MatchList,

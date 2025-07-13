@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LastUpdatedFooterProps } from "./types";
+import { colors } from "../../../app/style/palette";
 
 /**
  * @brief A footer component displaying the last updated time and a refresh button.
@@ -68,10 +69,10 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
       >
         {refreshing ? (
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
-            <Ionicons name="sync" size={14} color="#666" />
+            <Ionicons name="sync" size={14} color={colors.textMuted} />
           </Animated.View>
         ) : (
-          <Ionicons name="time-outline" size={14} color="#666" />
+          <Ionicons name="time-outline" size={14} color={colors.textMuted} />
         )}
 
         <Text style={styles.timeText}>
@@ -99,31 +100,31 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
+    backgroundColor: colors.backgroundLight,
     borderRadius: 20,
     paddingVertical: 6,
     paddingHorizontal: 12,
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   pillRefreshing: {
-    backgroundColor: "#f0f0f0",
-    borderColor: "#e0e0e0",
+    backgroundColor: colors.backgroundSubtle,
+    borderColor: colors.borderLight,
     borderWidth: 1,
   },
   timeText: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textMuted,
     marginLeft: 4,
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#28a745",
+    backgroundColor: colors.success,
     marginLeft: 4,
   },
 });

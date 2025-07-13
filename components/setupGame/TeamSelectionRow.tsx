@@ -8,12 +8,13 @@ import {
   Modal,
   SafeAreaView,
 } from "react-native";
-import styles, { colors } from "../../app/style/setupGameStyles";
+import styles from "../../app/style/setupGameStyles";
+import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
 
 /**
  * @brief Interface for a team option with its league information.
- * 
+ *
  * @property key Unique identifier for the team option.
  * @property value Original full team name.
  * @property league Optional league the team belongs to.
@@ -28,7 +29,7 @@ interface TeamOptionWithLeague {
 
 /**
  * @brief Interface for the props of the TeamSelectionRow component.
- * 
+ *
  * @property homeTeam Currently selected home team name.
  * @property awayTeam Currently selected away team name.
  * @property setHomeTeam Function to update the home team selection.
@@ -80,28 +81,28 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    * @brief Current search term for filtering home teams.
    */
   const [homeSearchTerm, setHomeSearchTerm] = useState("");
-  
+
   /**
    * @brief Current search term for filtering away teams.
    */
   const [awaySearchTerm, setAwaySearchTerm] = useState("");
-  
+
   /**
    * @brief Flag to control visibility of the home team selection modal.
    */
   const [showHomeDropdown, setShowHomeDropdown] = useState(false);
-  
+
   /**
    * @brief Flag to control visibility of the away team selection modal.
    */
   const [showAwayDropdown, setShowAwayDropdown] = useState(false);
-  
+
   /**
    * @brief Filtered list of home team options based on search term.
    */
   const [filteredHomeOptions, setFilteredHomeOptions] =
     useState(homeTeamOptions);
-  
+
   /**
    * @brief Filtered list of away team options based on search term.
    */
@@ -110,7 +111,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
 
   /**
    * @brief Flag indicating whether the add button should be disabled.
-   * 
+   *
    * The button is disabled when either home team or away team is not selected.
    */
   const isAddButtonDisabled = !homeTeam || !awayTeam;

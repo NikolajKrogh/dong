@@ -8,6 +8,7 @@ import {
   Dimensions,
   SafeAreaView,
 } from "react-native";
+import { colors } from "../../app/style/palette";
 
 /**
  * @brief Interface defining the properties for the EndGameModal component.
@@ -93,7 +94,7 @@ const modalStyles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: colors.backgroundModalOverlay,
   },
   centeredView: {
     flex: 1,
@@ -102,11 +103,11 @@ const modalStyles = StyleSheet.create({
   },
   modalContainer: {
     width: SCREEN_WIDTH * 0.85,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: {
       width: 0,
       height: 2,
@@ -121,10 +122,12 @@ const modalStyles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 15,
     textAlign: "center",
+    color: colors.textPrimary,
   },
   modalText: {
     marginBottom: 20,
     textAlign: "center",
+    color: colors.textSecondary,
   },
   modalButtons: {
     flexDirection: "row",
@@ -139,13 +142,13 @@ const modalStyles = StyleSheet.create({
     minWidth: 120,
   },
   buttonCancel: {
-    backgroundColor: "#6c757d",
+    backgroundColor: colors.secondary,
   },
   buttonConfirm: {
-    backgroundColor: "#dc3545", // Changed from blue (#2196F3) to red
+    backgroundColor: colors.danger,
   },
   textStyle: {
-    color: "white",
+    color: colors.white,
     fontWeight: "bold",
     textAlign: "center",
   },

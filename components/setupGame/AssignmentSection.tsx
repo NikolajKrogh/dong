@@ -8,9 +8,10 @@ import {
   Image,
 } from "react-native";
 import { Player, Match } from "../../store/store";
-import baseStyles, { colors } from "../../app/style/setupGameStyles";
+import baseStyles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { colors } from "../../app/style/palette";
 
 /**
  * @brief Props for the AssignmentSection component.

@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   Modal,
   Image,
@@ -18,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OnboardingScreen from "../components/OnboardingScreen";
+import { colors } from "./style/palette"; 
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -184,11 +184,11 @@ const HomeScreen = () => {
               <Text style={styles.sessionTitle}>Current Game in Progress</Text>
               <View style={styles.sessionInfoRow}>
                 <View style={styles.infoItem}>
-                  <Ionicons name="people" size={22} color="#0275d8" />
+                  <Ionicons name="people" size={22} color={colors.primary} />
                   <Text style={styles.infoText}>{players.length} Players</Text>
                 </View>
                 <View style={styles.infoItem}>
-                  <Ionicons name="football" size={22} color="#0275d8" />
+                  <Ionicons name="football" size={22} color={colors.primary} />
                   <Text style={styles.infoText}>{matches.length} Matches</Text>
                 </View>
               </View>
@@ -197,7 +197,7 @@ const HomeScreen = () => {
                 style={styles.continueButton}
                 onPress={() => router.push("/gameProgress")}
               >
-                <Ionicons name="play" size={22} color="#fff" />
+                <Ionicons name="play" size={22} color={colors.white} />
                 <Text style={styles.buttonText}>Continue Game</Text>
               </TouchableOpacity>
 
@@ -205,7 +205,7 @@ const HomeScreen = () => {
                 style={styles.cancelButton}
                 onPress={() => setIsConfirmModalVisible(true)}
               >
-                <Ionicons name="close-circle-outline" size={22} color="#fff" />
+                <Ionicons name="close-circle-outline" size={22} color={colors.white} />
                 <Text style={styles.buttonText}>Cancel Game</Text>
               </TouchableOpacity>
             </View>
@@ -214,7 +214,7 @@ const HomeScreen = () => {
               style={styles.startButton}
               onPress={() => router.push("/setupGame")}
             >
-              <Ionicons name="add-circle" size={22} color="#fff" />
+              <Ionicons name="add-circle" size={22} color={colors.white} />
               <Text style={styles.buttonText}>Start New Game</Text>
             </TouchableOpacity>
           )}
@@ -232,7 +232,7 @@ const HomeScreen = () => {
                   <Ionicons
                     name="chevron-forward"
                     size={18}
-                    color="#0275d8"
+                    color={colors.primary}
                     style={styles.titleChevron}
                   />
                 </View>
@@ -242,7 +242,7 @@ const HomeScreen = () => {
                 {/* Games Played */}
                 <View style={styles.statItem}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name="calendar" size={20} color="#0275d8" />
+                    <Ionicons name="calendar" size={20} color={colors.primary} />
                   </View>
                   <View style={styles.statTextContainer}>
                     <Text style={styles.statLabel}>Games Played</Text>
@@ -254,7 +254,7 @@ const HomeScreen = () => {
                 {topDrinkerInfo && (
                   <View style={styles.statItem}>
                     <View style={styles.iconContainer}>
-                      <Ionicons name="trophy" size={20} color="#0275d8" />
+                      <Ionicons name="trophy" size={20} color={colors.primary} /> 
                     </View>
                     <View style={styles.statTextContainer}>
                       <Text style={styles.statLabel}>Top Drinker</Text>
@@ -268,7 +268,7 @@ const HomeScreen = () => {
                 {/* Total Drinks */}
                 <View style={styles.statItem}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name="beer" size={20} color="#0275d8" />
+                    <Ionicons name="beer" size={20} color={colors.primary} />
                   </View>
                   <View style={styles.statTextContainer}>
                     <Text style={styles.statLabel}>Total Drinks</Text>
@@ -285,7 +285,7 @@ const HomeScreen = () => {
             style={styles.userPreferencesButton}
             onPress={() => router.push("/userPreferences")}
           >
-            <Ionicons name="person-circle-outline" size={28} color="#fff" />
+            <Ionicons name="person-circle-outline" size={28} color={colors.white} />
           </TouchableOpacity>
         </ScrollView>
 

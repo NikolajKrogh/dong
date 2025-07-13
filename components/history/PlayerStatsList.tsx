@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import { PlayerStat } from "./historyTypes";
-import { styles, colors } from "../../app/style/historyStyles";
+import { styles } from "../../app/style/historyStyles";
+import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import PlayerComparisonModal from "./PlayerComparisonModal";

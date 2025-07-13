@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
-import { styles, colors } from "../../app/style/historyStyles";
+import { styles } from "../../app/style/historyStyles";
+import { colors } from "../../app/style/palette";
 import {
   calculateTotalGoals,
   calculateTotalDrinks,

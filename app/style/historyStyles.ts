@@ -5,32 +5,10 @@ import {
   ViewStyle,
   ImageStyle,
 } from "react-native";
+import { colors } from "./palette";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// --- Color Palette ---
-export const colors = {
-  primary: "#0275d8",
-  primaryLight: "#e3f2fd",
-  primaryLighter: "#f0f8ff",
-  secondary: "#6c757d",
-  lightGray: "#f8f9fa",
-  mediumGray: "#e9ecef",
-  darkGray: "#adb5bd",
-  textPrimary: "#212529",
-  textSecondary: "#333",
-  textMuted: "#6c757d",
-  white: "#fff",
-  black: "#000",
-  gold: "#ffc107",
-  silver: "#adb5bd",
-  bronze: "#cd7f32",
-  success: "#4caf50",
-  error: '#dc3545', 
-  warning: "#ffc107", 
-  info: "#17a2b8", 
-  background: "#f8f9fa",
-};
 
 // --- Base Styles ---
 const baseCard: ViewStyle = {
@@ -362,7 +340,7 @@ export const styles = StyleSheet.create({
     // Label in featured card
     ...textLabel,
     fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
+    color: colors.white,
     textAlign: "left",
   } as TextStyle,
   playerStatName: {
@@ -651,7 +629,7 @@ export const styles = StyleSheet.create({
     alignItems: "center", // Center content horizontally
     zIndex: 10,
     elevation: 3, // Add shadow for Android
-    shadowColor: "#000", // Add shadow for iOS
+    shadowColor: colors.black, // Add shadow for iOS
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,
@@ -683,7 +661,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: colors.backgroundModalOverlay,
   } as ViewStyle,
   modalView: {
     backgroundColor: colors.white,
@@ -786,7 +764,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
   },
   gameCountText: {
-    color: "#fff",
+    color: colors.white,
     fontSize: 12,
     fontWeight: "600",
     marginLeft: 4,
@@ -869,7 +847,7 @@ export const styles = StyleSheet.create({
   },
   drinkBarContainer: {
     height: 24,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.white,
     borderRadius: 12,
     overflow: "hidden",
     position: "relative",
@@ -880,7 +858,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: colors.white,
     borderRadius: 12,
   },
   // --- Empty State ---

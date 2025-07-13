@@ -2,6 +2,7 @@ import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SortModalProps } from "./types";
+import { colors } from "../../../app/style/palette";
 
 /**
  * @brief A modal component for selecting match sorting options.
@@ -47,7 +48,7 @@ const SortModal: React.FC<SortModalProps> = ({
               <Ionicons
                 name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
                 size={18}
-                color="#0275d8"
+                color={colors.primary}
               />
             )}
           </TouchableOpacity>
@@ -62,7 +63,7 @@ const SortModal: React.FC<SortModalProps> = ({
               <Ionicons
                 name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
                 size={18}
-                color="#0275d8"
+                color={colors.primary}
               />
             )}
           </TouchableOpacity>
@@ -77,7 +78,7 @@ const SortModal: React.FC<SortModalProps> = ({
               <Ionicons
                 name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
                 size={18}
-                color="#0275d8"
+                color={colors.primary}
               />
             )}
           </TouchableOpacity>
@@ -90,17 +91,17 @@ const SortModal: React.FC<SortModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: colors.backgroundModalOverlay,
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
     width: "80%",
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 10,
     padding: 16,
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -110,6 +111,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 16,
     textAlign: "center",
+    color: colors.textPrimary,
   },
   sortOption: {
     flexDirection: "row",
@@ -117,10 +119,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: colors.borderLighter,
   },
   sortOptionText: {
     fontSize: 16,
+    color: colors.textSecondary,
   },
 });
 

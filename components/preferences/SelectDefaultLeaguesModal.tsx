@@ -7,13 +7,10 @@ import {
   FlatList,
   SafeAreaView,
   Image,
-  StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  colors,
-  selectDefaultLeaguesModalStyles,
-} from "../../app/style/userPreferencesStyles";
+import { selectDefaultLeaguesModalStyles } from "../../app/style/userPreferencesStyles";
+import { colors } from "../../app/style/palette";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 
@@ -73,7 +70,7 @@ const LeagueItem = ({
           <View style={selectDefaultLeaguesModalStyles.leagueLogoPlaceholder}>
             <Ionicons
               name="hourglass-outline"
-              size={20} 
+              size={20}
               color={colors.textMuted}
             />
           </View>
