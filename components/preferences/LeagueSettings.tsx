@@ -61,8 +61,8 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
       <Text style={commonStyles.sectionTitle}>League Configuration</Text>
       <View style={commonStyles.card}>
         <SettingsRow
-          label="Manage Configured Leagues"
-          iconName="list-outline"
+          label="Remove Leagues"
+          iconName="trash-outline"
           value={`${configuredLeagueCount} league${
             configuredLeagueCount === 1 ? "" : "s"
           }`}

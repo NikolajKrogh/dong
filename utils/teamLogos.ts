@@ -236,6 +236,17 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "Sønderjyske Foldbold": require("../assets/images/teams/superliga/sønderjyske.png"),
   "Viborg FF": require("../assets/images/teams/superliga/viborg.png"),
   "Vejle Boldklub": require("../assets/images/teams/superliga/vejle.png"),
+
+  // Serie 4 Hjørring IF, Vraa/Børglum IF, Hjørring AIK Frem, Hirtshals B,Sindal IF, Tårs/Ugilt IF, Skibsby-Højene IF,Skallerup/Vennebjerg IF
+  "Hjørring Idrætsforening": require("../assets/images/teams/serie-4/hi.png"),
+  "Vrå/Børglum IF": require("../assets/images/teams/serie-4/vraa-boerglum.png"),
+  "AIK Frem": require("../assets/images/teams/serie-4/hjoerring-aik-frem.png"),
+  "Hirtshals": require("../assets/images/teams/serie-4/hirtshals.png"),
+  "Sindal IF": require("../assets/images/teams/serie-4/sindal-if.png"),
+  "Tårs/Ugilt IF": require("../assets/images/teams/serie-4/taars-ugilt.png"),
+  "Skibsby-Højene IF": require("../assets/images/teams/serie-4/skibsby-hoejene.png"),
+  "SVIF": require("../assets/images/teams/serie-4/skallerup-vennebjerg.png"),
+
 };
 
 /**
