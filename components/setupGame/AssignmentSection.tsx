@@ -10,40 +10,47 @@ import {
 import { Player, Match } from "../../store/store";
 import baseStyles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import { colors } from "../../app/style/palette";
 
 /**
- * @brief Props for the AssignmentSection component.
+ * Props for the AssignmentSection component.
+ * @interface AssignmentSectionProps
  */
 interface AssignmentSectionProps {
-  /** @brief Array of players in the game. */
+  /** Array of players in the game. */
   players: Player[];
-  /** @brief Array of matches available for assignment. */
+  /** Array of matches available for assignment. */
   matches: Match[];
-  /** @brief ID of the common match, if any. */
+  /** ID of the common match, if any. Used for shared match that all players drink for. */
   commonMatchId: string | null;
-  /** @brief Object mapping player IDs to an array of assigned match IDs. */
+  /** Object mapping player IDs to an array of assigned match IDs. */
   playerAssignments: { [playerId: string]: string[] };
-  /** @brief Function to toggle a match assignment for a player. */
+  /** Function to toggle a match assignment for a player. */
   toggleMatchAssignment: (playerId: string, matchId: string) => void;
-  /** @brief Number of matches to be assigned per player in random assignment. */
+  /** Number of matches to be assigned per player in random assignment. */
   matchesPerPlayer: number;
-  /** @brief Function to set the number of matches per player for random assignment. */
+  /** Function to set the number of matches per player for random assignment. */
   setMatchesPerPlayer: (count: number) => void;
-  /** @brief Function to handle random assignment of matches to players. */
+  /**
+   * Function to handle random assignment of matches to players.
+   * @param {number} numMatches - Number of matches to assign to each player.
+   */
   handleRandomAssignment: (numMatches: number) => void;
 }
 
 /**
- * @brief Component for assigning matches to players, either manually or randomly.
+ * Component for assigning matches to players, either manually or randomly.
  *
  * This component displays a list of players and allows the user to assign matches
  * to each player. It supports both manual selection of matches and a random
  * assignment feature. It also allows toggling between list and grid views for matches.
+ * Players can collapse their match lists for better organization.
  *
+ * @component
  * @param {AssignmentSectionProps} props - The props for the component.
- * @returns {React.FC} The AssignmentSection component.
+ * @returns {JSX.Element} The AssignmentSection component.
  */
 const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   players,
@@ -55,13 +62,16 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   setMatchesPerPlayer,
   handleRandomAssignment,
 }) => {
-  /** @brief State to control the visibility of the manual assignment info modal. */
+  /** State to control the visibility of the manual assignment info modal. */
   const [isModalVisible, setIsModalVisible] = useState(false);
-  /** @brief State to control the visibility of the random assignment info modal. */
+  /** State to control the visibility of the random assignment info modal. */
   const [isRandomModalVisible, setIsRandomModalVisible] = useState(false);
-  /** @brief State to track the current layout mode (grid or list). False for list, true for grid. */
+  /**
+   * State to track the current layout mode (grid or list).
+   * @type {boolean} False for list view, true for grid view.
+   */
   const [useGridLayout, setUseGridLayout] = useState(false);
-  /** @brief State to track which players' match lists are collapsed. */
+  /** State to track which players' match lists are collapsed. */
   const [collapsedPlayers, setCollapsedPlayers] = useState<
     Record<string, boolean>
   >(() => {
@@ -73,15 +83,18 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   });
 
   /**
-   * @brief Effect to update the collapsed state of players when the players prop changes.
+   * Effect to update the collapsed state of players when the players prop changes.
    * Ensures new players are initially collapsed.
+   *
+   * @effect
+   * @dependencyArray {players} Re-runs when players array changes
    */
   React.useEffect(() => {
     setCollapsedPlayers((prev) => {
       const updated = { ...prev };
       players.forEach((player) => {
         if (updated[player.id] === undefined) {
-          updated[player.id] = true; 
+          updated[player.id] = true;
         }
       });
       return updated;
@@ -89,29 +102,41 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   }, [players]);
 
   /**
-   * @brief Toggles the visibility of the manual assignment info modal.
+   * Toggles the visibility of the manual assignment info modal.
+   *
+   * @function
+   * @returns {void}
    */
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
   };
 
   /**
-   * @brief Toggles the visibility of the random assignment info modal.
+   * Toggles the visibility of the random assignment info modal.
+   *
+   * @function
+   * @returns {void}
    */
   const toggleRandomModal = () => {
     setIsRandomModalVisible(!isRandomModalVisible);
   };
 
   /**
-   * @brief Toggles the layout mode between grid and list view for matches.
+   * Toggles the layout mode between grid and list view for matches.
+   *
+   * @function
+   * @returns {void}
    */
   const toggleLayoutMode = () => {
     setUseGridLayout(!useGridLayout);
   };
 
   /**
-   * @brief Toggles the collapsed state of a player's match list.
+   * Toggles the collapsed state of a player's match list.
+   *
+   * @function
    * @param {string} playerId - The ID of the player.
+   * @returns {void}
    */
   const togglePlayerCollapse = (playerId: string) => {
     setCollapsedPlayers((prev) => ({
@@ -120,16 +145,19 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     }));
   };
 
-  /** @brief Instructional text for manual match assignment. */
+  /** Instructional text for manual match assignment. */
   const instructionText =
     "Tap on matches below to select which matches each player will drink for.";
 
-  /** @brief Instructional text for random match assignment. */
+  /** Instructional text for random match assignment. */
   const randomInstructionText =
     "Randomly assign matches to players. Each player will share exactly one match with every other player.";
 
   /**
-   * @brief Calculates the number of non-common matches assigned to a player.
+   * Calculates the number of non-common matches assigned to a player.
+   * Used to display the assignment count in the player badge.
+   *
+   * @function
    * @param {string} playerId - The ID of the player.
    * @returns {number} The count of assigned non-common matches.
    */
@@ -138,18 +166,29 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return playerMatches.filter((matchId) => matchId !== commonMatchId).length;
   };
 
-  /** @brief Filters out the common match from the list of all matches. */
+  /**
+   * Filters out the common match from the list of all matches.
+   * Common match is excluded from the manual assignment section as it's assigned to all players.
+   */
   const nonCommonMatches = matches.filter(
     (match) => match.id !== commonMatchId
   );
 
   /**
-   * @brief Renders a compact match item for the grid view.
+   * Renders a compact match item for the grid view.
+   * Used when displaying matches in grid layout mode.
+   *
+   * @function
    * @param {Match} match - The match object to render.
    * @param {string} playerId - The ID of the player for whom the match is being rendered.
+   * @param {number} index - The index of the match in the list (used for numbering).
    * @returns {JSX.Element} A TouchableOpacity component representing the compact match item.
    */
-  const renderCompactMatchItem = (match: Match, playerId: string) => {
+  const renderCompactMatchItem = (
+    match: Match,
+    playerId: string,
+    index: number
+  ) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
     const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
@@ -162,6 +201,9 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         ]}
         onPress={() => toggleMatchAssignment(playerId, match.id)}
       >
+        <View style={baseStyles.compactMatchNumberBadge}>
+          <Text style={baseStyles.compactMatchNumberText}>{index + 1}</Text>
+        </View>
         <View style={baseStyles.compactTeamsContainer}>
           {homeTeamLogo ? (
             <Image
@@ -196,7 +238,10 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   };
 
   /**
-   * @brief Renders the list of matches for a specific player, adapting to grid or list view.
+   * Renders the list of matches for a specific player, adapting to grid or list view.
+   * Switches between grid and list layouts based on the useGridLayout state.
+   *
+   * @function
    * @param {Player} player - The player object.
    * @param {Match[]} matchList - The list of matches to render for the player.
    * @returns {JSX.Element} A View containing either a grid or a FlatList of matches.
@@ -205,9 +250,9 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     if (useGridLayout) {
       return (
         <View style={baseStyles.gridContainer}>
-          {matchList.map((match) => (
+          {matchList.map((match, index) => (
             <View key={match.id} style={baseStyles.gridItem}>
-              {renderCompactMatchItem(match, player.id)}
+              {renderCompactMatchItem(match, player.id, index)}
             </View>
           ))}
         </View>
@@ -219,7 +264,9 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
           data={matchList}
           keyExtractor={(item) => item.id}
           numColumns={1}
-          renderItem={({ item }) => renderMatchItem(item, player.id)}
+          renderItem={({ item, index }) =>
+            renderMatchItem(item, player.id, index)
+          }
           scrollEnabled={false}
         />
       );
@@ -227,12 +274,16 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   };
 
   /**
-   * @brief Renders a single match item for the list view.
+   * Renders a single match item for the list view.
+   * Displays team logos, names, and selection status with a LinearGradient background.
+   *
+   * @function
    * @param {Match} match - The match object to render.
    * @param {string} playerId - The ID of the player for whom the match is being rendered.
+   * @param {number} index - The index of the match in the list (used for numbering).
    * @returns {JSX.Element} A TouchableOpacity component representing the match item.
    */
-  const renderMatchItem = (match: Match, playerId: string) => {
+  const renderMatchItem = (match: Match, playerId: string, index: number) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
     const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
@@ -246,7 +297,15 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         ]}
         onPress={() => toggleMatchAssignment(playerId, match.id)}
       >
-        <View style={baseStyles.matchCardGradient}>
+        <View style={baseStyles.matchNumberBadge}>
+          <Text style={baseStyles.matchNumberText}>{index + 1}</Text>
+        </View>
+        <LinearGradient
+          colors={[colors.primaryLighter, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={baseStyles.matchCardGradient}
+        >
           <View style={baseStyles.matchTeamsContainer}>
             <View style={baseStyles.matchTeamColumn}>
               <View style={baseStyles.logoContainer}>
@@ -268,7 +327,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                 {match.homeTeam}
               </Text>
             </View>
-            <View style={baseStyles.vsDivider}>
+            <View style={baseStyles.vsDividerHorizontal}>
               <Text style={baseStyles.vsText}>VS</Text>
             </View>
             <View style={baseStyles.matchTeamColumn}>
@@ -299,7 +358,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
               color={isSelected ? colors.primary : colors.border}
             />
           </View>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
@@ -364,10 +423,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                   style={baseStyles.counterButton}
                   onPress={() =>
                     setMatchesPerPlayer(
-                      Math.min(
-                        matchesPerPlayer + 1,
-                        matches.length - 1 
-                      )
+                      Math.min(matchesPerPlayer + 1, matches.length - 1)
                     )
                   }
                 >

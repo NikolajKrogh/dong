@@ -1,7 +1,6 @@
 import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
 import { colors } from "./palette";
 
-
 // --- Base Styles ---
 const baseContainer: ViewStyle = {
   flex: 1,
@@ -187,11 +186,16 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   randomizeContainer: {
-    backgroundColor: colors.backgroundLight,
+    backgroundColor: colors.successText,
     borderRadius: 8,
     padding: 16,
     marginHorizontal: 8,
     marginBottom: 16,
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
   },
   matchCounterContainer: {
     flexDirection: "row",
@@ -1488,8 +1492,8 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
     color: colors.textMuted,
-    marginLeft: 10,
-    marginRight: 10,
+    textAlign: "center",
+    marginHorizontal: 10,
   },
   matchTimeContainer: {
     flexDirection: "row",
@@ -1596,13 +1600,13 @@ const styles = StyleSheet.create({
 
   matchTeamsContainer: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
   },
 
   matchTeamColumn: {
-    flex: 3,
+    flex: 2,
     alignItems: "center",
     paddingHorizontal: 4,
   },
@@ -1660,6 +1664,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingTop: 12,
   },
+  vsDividerHorizontal: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 8,
+  },
 
   teamLogoPlaceholder: {
     width: 48,
@@ -1670,189 +1681,335 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  selectedRibbon: {
+    position: "absolute",
+    top: 15,
+    right: -30,
+    backgroundColor: colors.success,
+    paddingVertical: 5,
+    paddingHorizontal: 30,
+    transform: [{ rotate: "45deg" }],
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  selectedRibbonText: {
+    color: colors.textLight,
+    fontSize: 10,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
 
-  
-selectedRibbon: {
-  position: "absolute",
-  top: 15,
-  right: -30,
-  backgroundColor: colors.success,
-  paddingVertical: 5,
-  paddingHorizontal: 30,
-  transform: [{ rotate: "45deg" }],
-  shadowColor: colors.textPrimary,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 2,
-  elevation: 3,
-},
-selectedRibbonText: {
-  color: colors.textLight,
-  fontSize: 10,
-  fontWeight: "bold",
-  letterSpacing: 0.5,
-},
+  selectedMatchCard: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
 
-selectedMatchCard: {
-  borderWidth: 2,
-  borderColor: colors.primary,
-  shadowColor: colors.primary,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.3,
-  shadowRadius: 4,
-  elevation: 5,
-},
+  selectionCheckmark: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    zIndex: 2,
+  },
 
+  // Grid view compact match styles
+  compactMatchItem: {
+    backgroundColor: colors.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    padding: 8,
+    marginBottom: 6,
+    marginRight: 6,
+    overflow: "hidden",
+    shadowColor: colors.textPrimary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
 
-selectionCheckmark: {
-  position: "absolute",
-  top: 12,
-  right: 12,
-  zIndex: 2,
-},
+  selectedCompactMatchItem: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLighter,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 4,
+  },
 
-// Grid view compact match styles
-compactMatchItem: {
-  backgroundColor: colors.surface,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: colors.borderLight,
-  padding: 8,
-  marginBottom: 6,
-  marginRight: 6,
-  overflow: "hidden",
-  shadowColor: colors.textPrimary,
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.1,
-  shadowRadius: 2,
-  elevation: 2,
-},
+  compactMatchContent: {
+    padding: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
+  compactTeamsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 4,
+  },
 
-selectedCompactMatchItem: {
-  borderWidth: 2,
-  borderColor: colors.primary,
-  backgroundColor: colors.primaryLighter,
-  shadowColor: colors.primary,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.2,
-  shadowRadius: 3,
-  elevation: 4,
-},
+  compactTeamWrapper: {
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-compactMatchContent: {
-  padding: 8,
-  alignItems: "center",
-  justifyContent: "center",
-},
+  compactTeamLogo: {
+    width: 24,
+    height: 24,
+    resizeMode: "contain",
+  } as ImageStyle,
 
-compactTeamsContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingBottom: 4,
-},
+  compactTeamPlaceholder: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-compactTeamWrapper: {
-  width: 32,
-  height: 32,
-  justifyContent: "center",
-  alignItems: "center",
-},
+  compactTeamPlaceholderText: {
+    color: colors.textLight,
+    fontWeight: "bold",
+    fontSize: 12,
+  },
 
-compactTeamLogo: {
-  width: 24,
-  height: 24,
-  resizeMode: "contain",
-} as ImageStyle,
+  compactVsText: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: colors.textMuted,
+    marginHorizontal: 4,
+  },
 
-compactTeamPlaceholder: {
-  width: 24,
-  height: 24,
-  borderRadius: 12,
-  backgroundColor: colors.primary,
-  justifyContent: "center",
-  alignItems: "center",
-},
+  compactCheckIndicator: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+  },
 
-compactTeamPlaceholderText: {
-  color: colors.textLight,
-  fontWeight: "bold",
-  fontSize: 12,
-},
+  // Player header styles
+  playerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: colors.backgroundLight,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+  },
 
-compactVsText: {
-  fontSize: 10,
-  fontWeight: "500",
-  color: colors.textMuted,
-  marginHorizontal: 4,
-},
+  playerHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-compactCheckIndicator: {
-  position: "absolute",
-  bottom: 2,
-  right: 2,
-},
+  playerAssignmentName: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: colors.textPrimary,
+  },
 
-// Player header styles
-playerHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingVertical: 10,
-  paddingHorizontal: 12,
-  backgroundColor: colors.backgroundLight,
-  borderRadius: 8,
-  marginBottom: 8,
-  borderWidth: 1,
-  borderColor: colors.borderLight,
-},
+  playerBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
 
-playerHeaderLeft: {
-  flexDirection: "row",
-  alignItems: "center",
-},
+  playerBadgeText: {
+    color: colors.textLight,
+    fontSize: 12,
+    fontWeight: "bold",
+  },
 
-playerAssignmentName: {
-  fontSize: 16,
-  fontWeight: "500",
-  color: colors.textPrimary,
-},
+  chevronIcon: {
+    marginRight: 8,
+  },
 
-playerBadge: {
-  backgroundColor: colors.primary,
-  paddingHorizontal: 8,
-  paddingVertical: 3,
-  borderRadius: 12,
-},
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
 
-playerBadgeText: {
-  color: colors.textLight,
-  fontSize: 12,
-  fontWeight: "bold",
-},
-
-chevronIcon: {
-  marginRight: 8,
-},
-
-gridContainer: {
-  flexDirection: "row",
-  flexWrap: "wrap",
-  marginTop: 8,
-  marginBottom: 12,
-  paddingHorizontal: 4,
-},
-
-gridItem: {
-  width: "33.3%",
-  paddingRight: 8,
-  marginBottom: 8,
-},
-matchListItem: {
-  marginBottom: 12,
-},
-
+  gridItem: {
+    width: "33.3%",
+    paddingRight: 8,
+    marginBottom: 8,
+  },
+  matchListItem: {
+    marginBottom: 12,
+  },
+  dropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    marginTop: 2,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+    zIndex: 1000,
+    overflow: "hidden",
+  },
+  suggestionsList: {
+    paddingBottom: 4,
+  },
+  moreItemsIndicator: {
+    alignItems: "center",
+    paddingVertical: 8,
+    backgroundColor: colors.backgroundLight,
+    marginTop: 2,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+  },
+  moreItemsText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontStyle: "italic",
+    fontWeight: "500",
+  },
+  dropdownHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.surfaceVariant || colors.surface,
+  },
+  dropdownHeaderText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.primary,
+    marginLeft: 6,
+  },
+  suggestionItem: {
+    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border,
+  },
+  suggestionContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  suggestionInfo: {
+    flex: 1,
+  },
+  suggestionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  suggestionName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  suggestionTime: {
+    fontSize: 10,
+    color: colors.textMuted,
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: colors.surfaceVariant || colors.backgroundLight,
+    borderRadius: 10,
+  },
+  highlightedText: {
+    backgroundColor: colors.warning + "4D",
+    color: colors.textPrimary,
+    fontWeight: "600",
+    borderRadius: 2,
+    paddingHorizontal: 1,
+  },
+  suggestionStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.backgroundLight,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statText: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginLeft: 3,
+    fontWeight: "500",
+  },
+  statDivider: {
+    width: 4,
+    height: 4,
+    backgroundColor: colors.border,
+    marginHorizontal: 6,
+    borderRadius: 2,
+    opacity: 0.5,
+  },
+  matchNumberBadge: {
+    position: "absolute",
+    top: 4,
+    left: 4,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  compactMatchNumberBadge: {
+    position: "absolute",
+    top: 2,
+    left: 2,
+    backgroundColor: colors.primary,
+    borderRadius: 7,
+    width: 14,
+    height: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
+  },
+  matchNumberText: {
+    color: colors.textLight,
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  compactMatchNumberText: {
+    color: colors.textLight,
+    fontSize: 8,
+    fontWeight: "bold",
+  },
 });
 
 export default styles;
