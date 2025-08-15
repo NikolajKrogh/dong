@@ -550,6 +550,35 @@ export const TEAM_ALIASES: { [key: string]: string } = {
   Como: "Como 1907",
   "Como Calcio": "Como 1907",
   "Calcio Como": "Como 1907",
+
+
+
+  // Serie 4
+  // HI
+  "Hjørring IF": "Hjørring Idrætsforening",
+  "HI": "Hjørring Idrætsforening",
+  // Vrå
+  "Vrå": "Vrå/Børglum IF",
+  "Børglum": "Vrå/Børglum IF",
+  // AIK Frem
+  "Frem": "AIK Frem",
+  // Hirtshals
+  "Hirtshals B": "Hirtshals",
+  // Sindal
+  "Sindal": "Sindal IF",
+  // Tårs
+  "Tårs": "Tårs/Ugilt IF",
+  "Ugilt": "Tårs/Ugilt IF",
+  // Skibsby-Højene
+  "Skibsby-Højene": "Skibsby-Højene IF",
+  "Skibsby": "Skibsby-Højene IF",
+  "Højene": "Skibsby-Højene IF",
+  "SHI": "Skibsby-Højene IF",
+  // SVIF
+  "SVIF": "Skallerup/Vennebjerg IF",
+  "Skallerup": "Skallerup/Vennebjerg IF",
+  "Vennebjerg": "Skallerup/Vennebjerg IF",
+
 };
 
 /**
