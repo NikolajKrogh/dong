@@ -3,7 +3,7 @@ import { Alert, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import styles from "./style/setupGameStyles";
-import { colors } from "./style/palette"; 
+import { colors } from "./style/palette";
 import {
   SetupGamePlayerList,
   MatchList,
@@ -151,6 +151,7 @@ const SetupGameScreen = () => {
       newPlayerName={newPlayerName}
       setNewPlayerName={setNewPlayerName}
       handleAddPlayer={handleAddPlayer}
+      handleAddPlayerByName={handleAddPlayerByName}
       handleRemovePlayer={handleRemovePlayer}
     />
   );
@@ -212,6 +213,25 @@ const SetupGameScreen = () => {
       };
       setGlobalPlayers([...players, newPlayer]);
       setNewPlayerName("");
+
+      setGlobalPlayerAssignments({
+        ...playerAssignments,
+        [newPlayer.id]: [],
+      });
+    }
+  };
+
+  /**
+   * @brief Handles adding a player directly by name (for dropdown selections).
+   * @param playerName The name of the player to add.
+   */
+  const handleAddPlayerByName = (playerName: string) => {
+    if (playerName.trim()) {
+      const newPlayer: Player = {
+        id: String(Date.now()),
+        name: playerName.trim(),
+      };
+      setGlobalPlayers([...players, newPlayer]);
 
       setGlobalPlayerAssignments({
         ...playerAssignments,
@@ -624,13 +644,15 @@ const SetupGameScreen = () => {
       <SetupWizard
         renderPlayersStep={renderPlayersStep}
         renderMatchesStep={renderMatchesStep}
-        renderCommonMatchStep={renderCommonMatchStep} // New step
+        renderCommonMatchStep={renderCommonMatchStep}
         renderAssignStep={renderAssignStep}
         handleStartGame={handleStartGame}
         canAdvanceToMatches={canAdvanceToMatches}
         canAdvanceToCommonMatch={canAdvanceToCommonMatch}
         canAdvanceToAssign={canAdvanceToAssign}
         canStartGame={canStartGame}
+        newPlayerName={newPlayerName}
+        handleAddPlayer={handleAddPlayer}
       />
     </SafeAreaView>
   );

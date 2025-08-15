@@ -28,6 +28,8 @@ interface SetupWizardProps {
   canAdvanceToCommonMatch: boolean;
   canAdvanceToAssign: boolean;
   canStartGame: boolean;
+  newPlayerName?: string;
+  handleAddPlayer?: () => void;
 }
 
 /**
@@ -50,6 +52,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   canAdvanceToCommonMatch,
   canAdvanceToAssign,
   canStartGame,
+  newPlayerName,
+  handleAddPlayer,
 }) => {
   /**
    * @brief State hook for managing the current active step in the wizard.
@@ -188,9 +192,23 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 (currentStep === 1 && !canAdvanceToCommonMatch) ||
                 (currentStep === 2 && !canAdvanceToAssign)) && { opacity: 0.5 },
             ]}
-            onPress={
-              () => setCurrentStep(Math.min(steps.length - 1, currentStep + 1)) // Go to the next step
-            }
+            onPress={() => {
+              // If we're on the players step and there's a player name in the input, add it first
+              if (
+                currentStep === 0 &&
+                newPlayerName?.trim() &&
+                handleAddPlayer
+              ) {
+                handleAddPlayer();
+                // Small delay before advancing to ensure the player is added
+                setTimeout(() => {
+                  setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
+                }, 50);
+              } else {
+                // Otherwise, just advance to the next step
+                setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
+              }
+            }}
             disabled={
               // Disable next button if advancement conditions are not met
               (currentStep === 0 && !canAdvanceToMatches) ||

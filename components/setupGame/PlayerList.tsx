@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -12,24 +12,56 @@ import styles from "../../app/style/setupGameStyles";
 import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { usePlayerSuggestions } from "../../hooks/usePlayerSuggestions";
+import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
 
+/**
+ * Props for the PlayerList component.
+ */
 interface PlayerListProps {
+  /** The current list of players in the game. */
   players: Player[];
+  /** The current value of the new player input field. */
   newPlayerName: string;
+  /** Callback to update the new player name. */
   setNewPlayerName: (name: string) => void;
+  /** Callback to add the player from the input field. */
   handleAddPlayer: () => void;
+  /** Optional direct method to add a player by name, bypassing the input field state. */
+  handleAddPlayerByName?: (name: string) => void;
+  /** Callback to remove a player by their ID. */
   handleRemovePlayer: (playerId: string) => void;
 }
 
+/**
+ * A component that manages the list of players for a game.
+ * It handles adding, removing, and displaying players, and includes a smart
+ * suggestion dropdown for quickly adding players from previous games.
+ *
+ * @param {PlayerListProps} props The props for the component.
+ * @returns {React.ReactElement} The rendered player list component.
+ */
 const PlayerList: React.FC<PlayerListProps> = ({
   players,
   newPlayerName,
   setNewPlayerName,
   handleAddPlayer,
+  handleAddPlayerByName,
   handleRemovePlayer,
 }) => {
   const inputRef = useRef<TextInput>(null);
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get player suggestions based on the current input value.
+  const { playerSuggestions, hasHistory } = usePlayerSuggestions(newPlayerName);
+
+  // Filter out suggestions for players who are already in the current game.
+  const availableSuggestions = playerSuggestions.filter(
+    (suggestion) => !players.some((player) => player.name === suggestion.name)
+  );
 
   useEffect(() => {
     players.forEach((player) => {
@@ -39,6 +71,78 @@ const PlayerList: React.FC<PlayerListProps> = ({
     });
   }, [players]);
 
+  /**
+   * Handles the input field gaining focus.
+   * It shows the suggestion dropdown if there is a history of players.
+   */
+  const handleInputFocus = () => {
+    setIsInputFocused(true);
+    if (hasHistory) {
+      setShowSuggestions(true);
+    }
+  };
+
+  /**
+   * Handles the input field losing focus.
+   * It hides the suggestion dropdown after a short delay to allow for taps.
+   */
+  const handleInputBlur = () => {
+    setIsInputFocused(false);
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+    hideTimeoutRef.current = setTimeout(() => {
+      setShowSuggestions(false);
+    }, 1000);
+  };
+
+  /**
+   * Handles changes to the text in the player input field.
+   * @param {string} text The new text in the input field.
+   */
+  const handleTextChange = (text: string) => {
+    // Clear any pending hide timeout when typing
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+
+    setNewPlayerName(text);
+    // Show suggestions only if the input is focused, has history, and contains text.
+    if (hasHistory && isInputFocused && text.length > 0) {
+      setShowSuggestions(true);
+    } else if (text.length === 0) {
+      setShowSuggestions(false);
+    }
+  };
+
+  /**
+   * Handles the selection of a player from the suggestion dropdown.
+   * @param {string} playerName The name of the player selected.
+   */
+  const handleSelectSuggestion = (playerName: string) => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+
+    setShowSuggestions(false);
+
+    if (handleAddPlayerByName) {
+      handleAddPlayerByName(playerName);
+      // Clear the input field immediately
+      setNewPlayerName("");
+      setTimeout(() => {
+        setIsInputFocused(true);
+        inputRef.current?.focus();
+      }, 100);
+    }
+  };
+
+  /**
+   * Adds the player from the input field and refocuses the input.
+   */
   const addPlayerAndFocus = () => {
     if (newPlayerName.trim()) {
       handleAddPlayer();
@@ -46,6 +150,10 @@ const PlayerList: React.FC<PlayerListProps> = ({
     }
   };
 
+  /**
+   * Handles the removal of a player with a fade-out animation.
+   * @param {string} playerId The ID of the player to remove.
+   */
   const handleRemoveWithAnimation = (playerId: string) => {
     const anim = fadeAnims.current[playerId];
     if (!anim) return;
@@ -60,6 +168,9 @@ const PlayerList: React.FC<PlayerListProps> = ({
     });
   };
 
+  /**
+   * Removes all players with a parallel fade-out animation.
+   */
   const handleRemoveAllPlayers = () => {
     const animations = Object.values(fadeAnims.current).map((anim) =>
       Animated.timing(anim, {
@@ -77,6 +188,11 @@ const PlayerList: React.FC<PlayerListProps> = ({
     });
   };
 
+  /**
+   * Gets a unique gradient for a player item based on its index.
+   * @param {number} index The index of the player in the list.
+   * @returns {readonly [string, string, ...string[]]} An array of color strings for the gradient.
+   */
   const getPlayerGradient = (
     index: number
   ): readonly [string, string, ...string[]] => {
@@ -120,7 +236,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
       </View>
 
       <View style={styles.inputRow}>
-        <View style={styles.playerInputContainer}>
+        <View style={[styles.playerInputContainer, { zIndex: 1000 }]}>
           <Ionicons
             name="person-outline"
             size={20}
@@ -133,9 +249,19 @@ const PlayerList: React.FC<PlayerListProps> = ({
             placeholder="Enter player name"
             placeholderTextColor={colors.textPlaceholder}
             value={newPlayerName}
-            onChangeText={setNewPlayerName}
+            onChangeText={handleTextChange}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             returnKeyType="done"
             onSubmitEditing={addPlayerAndFocus}
+          />
+
+          {/* Player Suggestion Dropdown */}
+          <PlayerSuggestionDropdown
+            suggestions={availableSuggestions}
+            visible={showSuggestions && availableSuggestions.length > 0}
+            onSelectPlayer={handleSelectSuggestion}
+            searchQuery={newPlayerName}
           />
         </View>
 
