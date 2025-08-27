@@ -3,8 +3,8 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
 import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
-import styles from "../../../app/style/gameProgressStyles";
-import { colors } from "../../../app/style/palette"; 
+import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
+import { useColors } from "../../../app/style/theme";
 
 const MatchGridItem: React.FC<MatchItemProps> = ({
   match,
@@ -13,6 +13,8 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
   liveMatch,
   openQuickActions,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
   // Determine the status string ('FT', 'HT', '45'', '?') from live data
   const displayStatus = liveMatch?.minutesPlayed || "?";
   // Check if the status indicates a finished or half-time state
@@ -25,15 +27,11 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
   const awayScore = liveMatch ? liveMatch.awayScore : match.awayGoals || 0;
 
   /**
-   * @brief Creates a visual representation of players assigned to a match using badges.
-   *
-   * This memoized function generates a component that displays player information with the following behavior:
-   * - For empty assignments: Displays a "0" in muted styling
-   * - For any number of players: Shows as many player badges as will fit within the MAX_CHARS limit
-   * - Each badge displays the player's first name only
-   * - When not all players can be shown, adds a "+N" counter badge for remaining players
-   *
-   * @returns {React.ReactNode} A View component containing player badges and optional count indicator
+   * Build compact player badge list.
+   * @description Memoized renderer that converts assigned players into a horizontal list of first‑name badges.
+   * Shows: muted 0 when empty; as many badges as fit within a simple character budget; a +N overflow badge when
+   * some players are hidden. Optimised for very small footprint in the grid card.
+   * @returns {React.ReactNode} Badge container element.
    */
   const playerDisplayText = useMemo(() => {
     if (!assignedPlayers || assignedPlayers.length === 0) {
@@ -130,7 +128,11 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
         {/* Stats row remains the same */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={13} color={colors.textMuted} />
+            <Ionicons
+              name="people-outline"
+              size={13}
+              color={colors.textMuted}
+            />
             <Text style={styles.statValue}>{playerDisplayText}</Text>
           </View>
         </View>

@@ -2,102 +2,102 @@ import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../hooks/useLiveScores";
 
 // Define sorting options
-/** @brief Type definition for the field used to sort matches. */
+/** Sort field keys for matches list/grid. */
 export type SortField = "homeTeam" | "awayTeam" | "playerName";
-/** @brief Type definition for the direction of sorting. */
+/** Sort direction. */
 export type SortDirection = "asc" | "desc";
 
 /**
- * @interface MatchesGridProps
- * @brief Defines the properties required by the MatchesGrid component.
+ * Props for MatchesGrid.
+ * @description Data + handlers required to render matches in grid/list form with pull‑to‑refresh and live score meta.
  */
 export interface MatchesGridProps {
-  /** @brief Array of match objects from the game store. */
+  /** Array of match objects from the game store. */
   matches: Match[];
-  /** @brief Array of player objects from the game store. */
+  /** Player list used for assignment lookups. */
   players: Player[];
-  /** @brief The ID of the match designated as 'common'. */
+  /** ID of the designated common match. */
   commonMatchId: string;
-  /** @brief Record mapping player IDs to an array of match IDs they are assigned to. */
+  /** Mapping playerId -> array of matchIds the player is assigned to. */
   playerAssignments: Record<string, string[]>;
-  /** @brief Function to open the quick actions modal for a specific match. */
+  /** Opens quick actions for a match. */
   openQuickActions: (matchId: string) => void;
-  /** @brief Optional array of live match data with scores. */
+  /** Optional live match score snapshots. */
   liveMatches?: MatchWithScore[];
-  /** @brief Optional React element for pull-to-refresh functionality. */
+  /** Optional refresh control element. */
   refreshControl?: React.ReactElement;
-  /** @brief Function to call when a refresh is triggered. */
+  /** Trigger manual refresh. */
   onRefresh: () => void;
-  /** @brief Boolean indicating if a refresh is currently in progress. */
+  /** True while refresh is in progress. */
   refreshing: boolean;
-  /** @brief Date object indicating the last time live scores were updated. */
+  /** Last successful live score update timestamp. */
   lastUpdated: Date | null;
-  /** @brief Boolean indicating if live score polling is active. */
+  /** Whether live polling is active. */
   isPolling: boolean;
 }
 
 /**
- * @interface MatchItemProps
- * @brief Defines the properties required by the MatchGridItem and MatchListItem components.
+ * Props for an individual match item (grid or list).
+ * @description Combines local match data, live overlay data and handlers for quick actions.
  */
 export interface MatchItemProps {
-  /** @brief The local match data object. */
+  /** Local match record. */
   match: Match;
-  /** @brief The ID of the common match, if any. */
+  /** ID of the common match (for highlighting). */
   commonMatchId: string;
-  /** @brief Array of players assigned to this match. */
+  /** Players assigned to this match. */
   assignedPlayers: Player[];
-  /** @brief Live score data for the match, if available. */
+  /** Optional live score snapshot. */
   liveMatch?: MatchWithScore;
-  /** @brief Function to call when the item is pressed to open quick actions. */
+  /** Opens quick actions for this match. */
   openQuickActions: (matchId: string) => void;
 }
 
 /**
- * @interface MatchesHeaderProps
- * @brief Defines the properties required by the MatchesHeader component.
+ * Props for MatchesHeader.
+ * @description Sorting + layout controls state used by the header bar.
  */
 export interface MatchesHeaderProps {
-  /** @brief The current field used for sorting matches. */
+  /** Current sort field. */
   sortField: SortField;
-  /** @brief The current direction of sorting (ascending or descending). */
+  /** Current sort direction. */
   sortDirection: SortDirection;
-  /** @brief Indicates whether the grid layout is currently active. */
+  /** True if grid layout is active (else list). */
   useGridLayout: boolean;
-  /** @brief Function to control the visibility of the sort modal. */
+  /** Show/hide sort modal. */
   setSortModalVisible: (visible: boolean) => void;
-  /** @brief Function to toggle between grid and list layout modes. */
+  /** Toggle layout mode. */
   toggleLayoutMode: () => void;
 }
 
 /**
- * @interface SortModalProps
- * @brief Defines the properties required by the SortModal component.
+ * Props for sort modal.
+ * @description Supplies current sort selection and change handlers.
  */
 export interface SortModalProps {
-  /** @brief Controls the visibility of the modal. */
+  /** Modal visibility flag. */
   visible: boolean;
-  /** @brief The currently active sort field. */
+  /** Active sort field. */
   sortField: SortField;
-  /** @brief The current sort direction. */
+  /** Active sort direction. */
   sortDirection: SortDirection;
-  /** @brief Function to call when the modal should be closed. */
+  /** Close modal handler. */
   onClose: () => void;
-  /** @brief Function to call when a sort option is selected. */
+  /** Change sort field handler. */
   onSortChange: (field: SortField) => void;
 }
 
 /**
- * @interface LastUpdatedFooterProps
- * @brief Defines the properties required by the LastUpdatedFooter component.
+ * Props for the last-updated footer.
+ * @description Provides refresh control state and last update metadata.
  */
 export interface LastUpdatedFooterProps {
-  /** @brief Callback function executed when the refresh button is pressed. */
+  /** Invoked to trigger manual refresh. */
   onRefresh: () => void;
-  /** @brief Indicates if a refresh operation is currently in progress. */
+  /** True if refresh in progress. */
   refreshing: boolean;
-  /** @brief The timestamp of the last successful update. Null if no update has occurred. */
+  /** Timestamp of last successful update (null if never). */
   lastUpdated: Date | null;
-  /** @brief Indicates if automatic polling for updates is active. */
+  /** True if automatic polling is active. */
   isPolling: boolean;
 }

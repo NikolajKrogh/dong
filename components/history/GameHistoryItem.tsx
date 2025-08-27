@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 import {
   calculateTotalGoals,
   calculateTotalDrinks,
@@ -13,10 +13,10 @@ import {
 import MatchCard from "./MatchCard";
 
 /**
- * @interface GameHistoryItemProps
- * @brief Props for the GameHistoryItem component.
- * @property {GameSession} game - The game session data to display.
- * @property {(game: GameSession) => void} onDetailsPress - Callback function invoked when the item is pressed, passing the game session data.
+ * Props for GameHistoryItem.
+ * @description Supplies the game session row to summarise plus details press handler.
+ * @property {GameSession} game Game session record.
+ * @property {(game: GameSession) => void} onDetailsPress Press handler to open details modal.
  */
 interface GameHistoryItemProps {
   game: GameSession;
@@ -24,38 +24,27 @@ interface GameHistoryItemProps {
 }
 
 /**
- * @component GameHistoryItem
- * @brief A component that displays a summary of a single game session in the history list.
- *
- * This component shows key information about a game session, including the date,
- * number of players, total drinks, total goals, and total matches. It also highlights
- * the top drinker for the session. Users can tap the item to view more details (via onDetailsPress)
- * or expand/collapse a list of matches played during the session.
- *
- * @param {GameHistoryItemProps} props - The props for the component.
- * @returns {React.ReactElement} The rendered GameHistoryItem component.
+ * Game history list row.
+ * @description Displays snapshot stats (players, drinks, goals, matches) and highlights top drinker.
+ * Invokes details handler when pressed.
+ * @param {GameHistoryItemProps} props Component props.
+ * @returns {React.ReactElement} List row element.
  */
 const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
   game,
   onDetailsPress,
 }) => {
-  /**
-   * @brief State variable to control the visibility of the matches list.
-   */
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  // Local expand toggle for potential future detailed match list (currently unused in snippet).
   const [showMatches, setShowMatches] = useState(false);
 
   // Use utility functions for calculations
-  /**
-   * @brief Total drinks consumed in this game session.
-   */
+  // Total drinks consumed.
   const totalDrinks = calculateTotalDrinks(game.players);
-  /**
-   * @brief Total goals scored in this game session.
-   */
+  // Total goals scored.
   const totalGoals = calculateTotalGoals(game.matches);
-  /**
-   * @brief The player who consumed the most drinks in this session. Null if no players or drinks.
-   */
+  // Top drinker (nullable).
   const topDrinker = findTopDrinker(game.players);
 
   return (
@@ -77,7 +66,6 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 
       {/* Game Summary Stats - Inlined */}
       <View style={styles.gameSummary}>
-        
         {/* Players Stat */}
         <View style={styles.summaryItem}>
           <Ionicons
@@ -134,7 +122,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
       {/* Top Drinker Highlight */}
       {topDrinker && (
         <View style={styles.topDrinkerContainer}>
-          <Ionicons name="flame" size={18} color="#ff8c00" />
+          <Ionicons name="flame" size={18} color={colors.warning} />
           <Text style={styles.topDrinkerText} numberOfLines={1}>
             {"Top Drinker: "}
             <Text style={styles.topDrinkerName}>{topDrinker.name}</Text>

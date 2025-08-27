@@ -1,4 +1,8 @@
-import React, { useState, useEffect } from "react";
+/**
+ * @file history.tsx
+ * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
+ */
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -10,7 +14,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useGameStore } from "../store/store";
-import { styles } from "./style/historyStyles";
+import { createHistoryStyles } from "./style/historyStyles";
 import { GameSession, PlayerStat } from "../components/history/historyTypes";
 import GameHistoryItem from "../components/history/GameHistoryItem";
 import GameDetailsModal from "../components/history/GameDetailsModal";
@@ -19,15 +23,26 @@ import OverallStats from "../components/history/OverallStats";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { calculateLifetimePlayerStats } from "../components/history/historyUtils";
-import { colors } from "./style/palette";
+import { useColors } from "./style/theme";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];
 
 /**
- * @component HistoryScreen
- * @brief A screen component that displays game history with multiple tabs for different views.
- * (Gesture handling removed)
+ * HistoryScreen component
+ *
+ * Renders the history feature area with three tabs:
+ *  - Games: List of completed game sessions; selecting one opens a details modal.
+ *  - Players: Aggregated lifetime drink statistics per player across all sessions.
+ *  - Stats: Overall cumulative stats (e.g., totals / aggregates) derived from history.
+ *
+ * Internal state:
+ *  - selectedGame / isDetailVisible: Manages modal visibility for game details.
+ *  - playerStats: Cached lifetime stats derived from store history (recomputed when history changes).
+ *  - activeTabIndex: Which of the three tabs is active.
+ *  - loading / error: Reserve hooks for potential async history loading (currently not externalized).
+ *
+ * @returns {JSX.Element} React element for the history screen.
  */
 const HistoryScreen = () => {
   const navigation = useNavigation();
@@ -42,9 +57,7 @@ const HistoryScreen = () => {
   // Remove gesture/animation related state and hooks
   // const translateX = useSharedValue(0);
 
-  /**
-   * @brief Effect for calculating player lifetime statistics.
-   */
+  /** Recompute lifetime player statistics when history changes. */
   useEffect(() => {
     if (history.length > 0) {
       const stats = calculateLifetimePlayerStats(history);
@@ -55,15 +68,16 @@ const HistoryScreen = () => {
   }, [history]);
 
   /**
-   * @brief Switches between tabs via button press.
-   * @param tabIndex The index of the tab to switch to.
+   * Switch the active tab.
+   * @param {number} tabIndex Index of the tab to activate (0 = Games, 1 = Players, 2 = Stats).
    */
   const switchTab = (tabIndex: number) => {
     setActiveTabIndex(tabIndex);
   };
 
   /**
-   * @brief Opens the details modal for a selected game.
+   * Open the details modal for a selected game.
+   * @param {GameSession} game The game session whose details should be shown.
    */
   const viewGameDetails = (game: GameSession) => {
     if (!game) {
@@ -74,13 +88,14 @@ const HistoryScreen = () => {
     setIsDetailVisible(true);
   };
 
-  /**
-   * @brief Closes the details modal.
-   */
+  /** Close the game details modal and clear the current selection. */
   const closeDetails = () => {
     setIsDetailVisible(false);
     setSelectedGame(null); // Also clear the selected game when closing
   };
+
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
 
   // --- Loading and Error States ---
   if (loading) {
@@ -182,11 +197,8 @@ const HistoryScreen = () => {
         ))}
       </View>
 
-      {/* Tab Content Area - WITHOUT Swipe */}
+      {/* Tab Content Area */}
       <View style={{ flex: 1 }}>
-        {/* Remove PanGestureHandler */}
-        {/* Remove Animated.View, use regular View */}
-        {/* Use conditional rendering based on activeTabIndex */}
         <View style={{ flex: 1 }}>
           {activeTabIndex === 0 && (
             <View style={styles.tabContent}>

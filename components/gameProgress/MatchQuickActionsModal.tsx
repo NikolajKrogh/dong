@@ -1,10 +1,6 @@
 /**
  * @file MatchQuickActionsModal.tsx
- * @brief Defines the MatchQuickActionsModal component and its sub-components for displaying match details and statistics.
- *
- * This file contains the main modal component used to show quick actions and information
- * related to a selected football match. It includes sub-components for displaying
- * progress bars for statistics and a circular chart for possession.
+ * @description Modal + sub-components for quick match actions and stat visualizations (progress bars, possession circle) for a selected match.
  */
 
 import React, { useRef, useEffect, useMemo, useState } from "react";
@@ -25,46 +21,39 @@ import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import { MatchWithScore } from "../../hooks/useLiveScores";
-import { colors } from "../../app/style/palette";
+import { useColors } from "../../app/style/theme";
 
-/**
- * @interface MatchQuickActionsModalProps
- * @brief Defines the properties required by the MatchQuickActionsModal component.
- */
+/** Props for MatchQuickActionsModal. */
 interface MatchQuickActionsModalProps {
-  /** @param {boolean} isVisible Boolean indicating if the modal should be visible. */
+  /** Whether the modal is visible. */
   isVisible: boolean;
-  /** @param {() => void} onClose Function to call when the modal should be closed. */
+  /** Callback invoked to close the modal. */
   onClose: () => void;
-  /** @param {string | null} selectedMatchId The ID of the match currently selected for quick actions, or null. */
+  /** ID of the currently selected match for quick actions; null if none. */
   selectedMatchId: string | null;
-  /** @param {Match[]} matches Array of all match objects from the game store. */
+  /** All match objects (from the store). */
   matches: Match[];
-  /** @param {Player[]} players Array of all player objects from the game store. */
+  /** All player objects (from the store). */
   players: Player[];
-  /** @param {string} commonMatchId The ID of the match designated as 'common'. */
+  /** The ID of the designated common match. */
   commonMatchId: string;
-  /** @param {Record<string, string[]>} playerAssignments Record mapping player IDs to an array of match IDs they are assigned to. */
+  /** Mapping of player IDs to the match IDs they are assigned to. */
   playerAssignments: Record<string, string[]>;
-  /** @param {(matchId: string, team: "home" | "away") => void} handleGoalIncrement Function to increment the goal count for a team in a match. */
+  /** Increment a team's goal count for a match. */
   handleGoalIncrement: (matchId: string, team: "home" | "away") => void;
-  /** @param {(matchId: string, team: "home" | "away") => void} handleGoalDecrement Function to decrement the goal count for a team in a match. */
+  /** Decrement a team's goal count for a match. */
   handleGoalDecrement: (matchId: string, team: "home" | "away") => void;
-  /** @param {MatchWithScore[]} liveMatches Array of live match objects with scores. */
+  /** Live match data (if available) used to render API-controlled matches. */
   liveMatches: MatchWithScore[];
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const useThemed = () => useColors();
 
 /**
- * @component StatProgressBar
- * @brief A component for visual stat comparison using horizontal bars.
- * @param {object} props - The component's props.
- * @param {number} props.homeValue - The value for the home team.
- * @param {number} props.awayValue - The value for the away team.
- * @param {string} props.label - The label for the statistic.
- * @param {boolean} [props.isPercentage=false] - Whether to show values as percentages (for possession).
- * @returns {React.ReactElement} A View containing the stat progress bar.
+ * Horizontal bar comparison for a stat (home vs away).
+ * @param {{homeValue:number, awayValue:number, label:string, isPercentage?:boolean}} props Component props.
+ * @returns {JSX.Element} Rendered stat progress bar.
  */
 const StatProgressBar = ({
   homeValue,
@@ -77,6 +66,8 @@ const StatProgressBar = ({
   label: string;
   isPercentage?: boolean;
 }) => {
+  const colors = useThemed();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const maxValue = Math.max(1, homeValue, awayValue); // Ensure maxValue is at least 1 to avoid division by zero
   const homePercent = (homeValue / maxValue) * 100;
   const awayPercent = (awayValue / maxValue) * 100;
@@ -171,6 +162,14 @@ const StatProgressBar = ({
 };
 
 // Helper functions for SVG arc
+/**
+ * Convert polar coordinates to cartesian for an SVG arc.
+ * @param {number} centerX X coordinate of center.
+ * @param {number} centerY Y coordinate of center.
+ * @param {number} radius Arc radius.
+ * @param {number} angleInDegrees Angle in degrees.
+ * @returns {{x:number,y:number}} Cartesian coordinates.
+ */
 function polarToCartesian(
   centerX: number,
   centerY: number,
@@ -183,6 +182,17 @@ function polarToCartesian(
     y: centerY + radius * Math.sin(angleInRadians),
   };
 }
+/**
+ * Describe an SVG arc path segment.
+ * Handles full-circle edge cases by slightly shrinking span.
+ * @param {number} x Center X.
+ * @param {number} y Center Y.
+ * @param {number} radius Arc radius.
+ * @param {number} startAngle Starting angle (deg).
+ * @param {number} endAngle Ending angle (deg).
+ * @param {boolean} [counterClockwise=false] Direction flag; true = CCW.
+ * @returns {string} SVG path definition or empty string if no arc span.
+ */
 function describeArc(
   x: number,
   y: number,
@@ -228,12 +238,9 @@ function describeArc(
 }
 
 /**
- * @component PossessionCircle
- * @brief A circular visualization for possession statistics using a doughnut chart.
- * @param {object} props - The component's props.
- * @param {number} props.homeValue - The possession value for the home team.
- * @param {number} props.awayValue - The possession value for the away team.
- * @returns {React.ReactElement} A View containing the possession circle.
+ * Doughnut possession chart (home vs away) rendered with two opposing arc paths.
+ * @param {{homeValue:number, awayValue:number}} props Component props.
+ * @returns {JSX.Element} Possession visualization.
  */
 const PossessionCircle = ({
   homeValue,
@@ -242,6 +249,8 @@ const PossessionCircle = ({
   homeValue: number;
   awayValue: number;
 }) => {
+  const colors = useThemed();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const total = homeValue + awayValue;
   const normalizedHome = total > 0 ? Math.round((homeValue / total) * 100) : 0;
   const normalizedAway = total > 0 ? Math.round((awayValue / total) * 100) : 0;
@@ -313,13 +322,7 @@ const PossessionCircle = ({
   );
 };
 
-/**
- * @component MatchQuickActionsModal
- * @brief A modal component displaying match information for a selected match.
- * Displays team information, current scores, goal scorers, players affected by the match, and statistics.
- * @param {MatchQuickActionsModalProps} props - The properties for the component.
- * @returns {React.ReactElement | null} The modal component or null if not visible or no match selected.
- */
+/** Quick actions & stats modal for selected match (scores, scorers, assignments, stats). */
 const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   isVisible,
   onClose,
@@ -332,6 +335,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   handleGoalIncrement,
   handleGoalDecrement,
 }) => {
+  const colors = useThemed();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [activeTab, setActiveTab] = useState("overview");
 
   // Animation values for UI elements
@@ -344,39 +349,24 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   const incrementAnimAway = useRef(new Animated.Value(1)).current;
   const decrementAnimAway = useRef(new Animated.Value(1)).current;
 
-  /**
-   * @brief Memoized calculation to find the currently selected match object.
-   * @returns {Match | null} The match object corresponding to `selectedMatchId` or null if not found or `selectedMatchId` is null.
-   */
+  /** Selected match entity (or null). */
   const match = useMemo(() => {
     return selectedMatchId
       ? matches.find((m) => m.id === selectedMatchId)
       : null;
   }, [selectedMatchId, matches]);
 
-  /**
-   * @brief Memoized calculation to find the live match data for the selected match.
-   * @returns {MatchWithScore | undefined} The `MatchWithScore` object from `liveMatches` corresponding to `selectedMatchId`, or undefined if not found.
-   */
+  /** Live data for selected match (if present). */
   const liveMatchData = useMemo(() => {
     return liveMatches?.find((m) => m.id === selectedMatchId);
   }, [liveMatches, selectedMatchId]);
 
-  /**
-   * @brief Determines if the current match is controlled by an API or can be manually adjusted.
-   * If a match has corresponding live data from an API, scores are displayed read-only.
-   * Otherwise, manual score controls are shown.
-   * @returns {boolean} True if the match is API-controlled, false otherwise.
-   */
+  /** Whether scores are driven by live API (read-only). */
   const isApiControlledMatch = useMemo(() => {
     return !!liveMatchData; // If liveMatchData exists, this is an API-controlled match
   }, [liveMatchData]);
 
-  /**
-   * @brief Memoized calculation to extract goal scorers for the home team from live match data.
-   * Uses the explicit homeTeamId from the live match data to filter goal scorers.
-   * @returns {Array<object>} An array of goal scorer objects for the home team, or an empty array.
-   */
+  /** Goal scorers array for home team (live data). */
   const homeTeamScorers = useMemo(() => {
     return (
       liveMatchData?.goalScorers?.filter(
@@ -385,11 +375,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     );
   }, [liveMatchData]);
 
-  /**
-   * @brief Memoized calculation to extract goal scorers for the away team from live match data.
-   * Uses the explicit awayTeamId from the live match data to filter goal scorers.
-   * @returns {Array<object>} An array of goal scorer objects for the away team, or an empty array.
-   */
+  /** Goal scorers array for away team (live data). */
   const awayTeamScorers = useMemo(() => {
     return (
       liveMatchData?.goalScorers?.filter(
@@ -402,11 +388,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   const prevGoalsHomeRef = useRef(match?.homeGoals ?? 0);
   const prevGoalsAwayRef = useRef(match?.awayGoals ?? 0);
 
-  /**
-   * @brief Memoized calculation to determine players affected by the selected match.
-   * Filters the players list to include those assigned to the selected match or the common match.
-   * @returns {Player[]} An array of Player objects.
-   */
+  /** Players impacted by this match (assigned or common). */
   const affectedPlayers = useMemo(() => {
     if (!match) return [];
     return players.filter(
@@ -420,8 +402,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   const isCommonMatch = match ? match.id === commonMatchId : false;
 
   /**
-   * @brief Animates a button press effect (scale down then back up).
-   * @param {Animated.Value} buttonAnim - The Animated value associated with the button's scale transform.
+   * Run press animation on a control button.
+   * @param {Animated.Value} buttonAnim Animated value controlling scale.
    */
   const animateButtonPress = (buttonAnim: Animated.Value) => {
     Animated.sequence([
@@ -438,10 +420,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     ]).start();
   };
 
-  /**
-   * @brief Effect to handle the modal's entry animation (fade in and scale up).
-   * Runs when the modal becomes visible and a match is selected. Resets animation on close.
-   */
+  /** Entry animation when modal becomes visible. */
   useEffect(() => {
     if (isVisible && match) {
       Animated.timing(modalContentAnim, {
@@ -459,10 +438,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     };
   }, [isVisible, match, modalContentAnim]);
 
-  /**
-   * @brief Effect to animate the home goal value when it changes (scale up then back down).
-   * Compares the current home goal count with the previously stored value.
-   */
+  /** Animate home goals when the displayed value changes. */
   useEffect(() => {
     // Get the current score (prioritize live data if available)
     const currentScore = isApiControlledMatch
@@ -494,10 +470,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     liveMatchData,
   ]); // Added goalValueAnimHome and liveMatchData to dependency array
 
-  /**
-   * @brief Effect to animate the away goal value when it changes (scale up then back down).
-   * Compares the current away goal count with the previously stored value.
-   */
+  /** Animate away goals when the displayed value changes. */
   useEffect(() => {
     // Get the current score (prioritize live data if available)
     const currentScore = isApiControlledMatch
@@ -530,8 +503,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   ]); // Added goalValueAnimAway and liveMatchData to dependency array
 
   /**
-   * @brief Memoized calculation to distribute affected players into three columns for display.
-   * @returns {Player[][]} A 2D array where each sub-array represents a column of players.
+   * Distribute affected players into three columns for display.
+   * @returns {Player[][]} 2D array; each sub-array is a column of players.
    */
   const playerColumns = useMemo(() => {
     const result: Player[][] = [[], [], []];
@@ -1051,370 +1024,369 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   );
 };
 
-/**
- * @brief StyleSheet for the MatchQuickActionsModal and its sub-components.
- */
-const styles = StyleSheet.create({
-  overlayTouchable: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.backgroundModalOverlay,
-    zIndex: 1000,
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  modalContainer: {
-    width: SCREEN_WIDTH * 0.85,
-    maxWidth: 400,
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    overflow: "hidden",
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
-    zIndex: 1001,
-  },
-  modalInnerContainer: {
-    width: "100%",
-  },
-  scrollContent: {
-    padding: 16,
-    alignItems: "center",
-  },
-  // Match header styling to match MatchesGrid
-  matchHeaderSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingBottom: 12,
-  },
-  matchTeamContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 8,
-  },
-  matchTeamLogo: {
-    width: 50,
-    height: 50,
-    resizeMode: "contain",
-    marginBottom: 8,
-  },
-  matchTeamName: {
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    color: colors.textSecondary,
-    width: "100%",
-  },
-  matchVsBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.background,
-    justifyContent: "center",
-    alignItems: "center",
-    marginHorizontal: 10,
-  },
-  matchVsText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.textMuted,
-  },
-  // Common match badge
-  commonMatchBadge: {
-    backgroundColor: colors.success,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginTop: 4,
-    marginBottom: 8,
-  },
-  commonMatchText: {
-    color: colors.white,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.borderLighter,
-    width: "100%",
-    marginVertical: 12,
-  },
-  // Tab container
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-    marginBottom: 12,
-  },
-  tabButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    backgroundColor: colors.backgroundSubtle,
-  },
-  activeTab: {
-    backgroundColor: colors.primary,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  activeTabText: {
-    color: colors.white,
-  },
-  // For API matches - read only display
-  scoreContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    paddingVertical: 16,
-  },
-  scoreValue: {
-    alignItems: "center",
-    paddingHorizontal: 12,
-  },
-  scoreText: {
-    fontSize: 42,
-    fontWeight: "bold",
-    color: colors.primary,
-  },
-  scoreSeparator: {
-    paddingHorizontal: 8,
-  },
-  scoreSeparatorText: {
-    fontSize: 36,
-    fontWeight: "bold",
-    color: colors.textMuted,
-  },
-  // For editable matches - with controls
-  goalActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: "100%",
-    paddingVertical: 8,
-  },
-  teamGoalControls: {
-    flex: 1,
-    alignItems: "center",
-  },
-  teamLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  scoreControlRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  goalCounter: {
-    alignItems: "center",
-    paddingHorizontal: 20,
-  },
-  goalValue: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: colors.primary,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 22,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  blueButton: {
-    backgroundColor: colors.primary,
-  },
-  // Goal Scorers display
-  goalScorersContainer: {
-    flexDirection: "row",
-    width: "100%",
-    minHeight: 0, // Minimum height even when empty
-    maxHeight: 120, // Maximum height before scrolling
-  },
-  teamScorersColumn: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  scorerContainer: {
-    width: "100%",
-    alignItems: "center",
-    paddingVertical: 4,
-  },
-  scorerText: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginVertical: 2,
-    fontStyle: "italic",
-    textAlign: "center",
-  },
-  // Players section
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textSecondary,
-    marginLeft: 8,
-  },
-  // Player section - super compact layout
-  compactContainer: {
-    flexDirection: "row",
-    width: "100%",
-    marginBottom: 12,
-    justifyContent: "flex-start",
-  },
-  playerColumn: {
-    flex: 1,
-    marginHorizontal: 2,
-  },
-  compactPlayerCard: {
-    backgroundColor: colors.backgroundSubtle,
-    borderRadius: 6,
-    paddingVertical: 4, // Even more compact
-    paddingHorizontal: 6,
-    marginBottom: 4,
-    marginHorizontal: 2,
-  },
-  compactPlayerName: {
-    fontSize: 12, // Smaller font for compactness
-    fontWeight: "500",
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
-  emptyStateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  noPlayersText: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontStyle: "italic",
-    marginLeft: 8,
-  },
-  // Close button
-  closeButton: {
-    backgroundColor: colors.backgroundSubtle,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    width: "100%",
-  },
-  closeButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: colors.textSecondary,
-  },
-  // Match statistics section
-  statisticsContainer: {
-    width: "100%",
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-  },
-  statProgressContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 8, // Increased margin slightly
-    width: "100%",
-  },
-  statProgressWrapper: {
-    flex: 3,
-    marginHorizontal: 8, // Add some horizontal margin
-  },
-  statProgressLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 4,
-  },
-  svgProgressBarContainer: {
-    // New or repurposed style for SVG wrapper
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    height: 8, // Match barHeight
-  },
-  statValue: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "bold",
-    color: colors.textSecondary,
-  },
-  homeProgressArea: {
-    // Used for background color reference
-    backgroundColor: colors.primaryLight,
-  },
-  awayProgressArea: {
-    // Used for background color reference
-    backgroundColor: colors.playerItemOddBackground,
-  },
-  progressDivider: {
-    // Used for width and color reference
-    width: 2,
-    backgroundColor: colors.darkSurface,
-  },
-  homeProgressBar: {
-    // Used for borderRadius reference
-    borderTopLeftRadius: 3,
-    borderBottomLeftRadius: 3,
-  },
-  awayProgressBar: {
-    // Used for borderRadius reference
-    borderTopRightRadius: 3,
-    borderBottomRightRadius: 3,
-  },
-  possessionContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 15,
-    width: "100%",
-  },
-  possessionCircleContainer: {
-    flex: 3,
-    alignItems: "center",
-  },
-  circleWrapper: {
-    width: 100,
-    height: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
-    marginTop: 5,
-  },
-});
+/** Style creator for the MatchQuickActionsModal and its sub-components. */
+const createStyles = (colors: ReturnType<typeof useColors>) =>
+  StyleSheet.create({
+    overlayTouchable: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.backgroundModalOverlay,
+      zIndex: 1000,
+    },
+    centeredView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 16,
+    },
+    modalContainer: {
+      width: SCREEN_WIDTH * 0.85,
+      maxWidth: 400,
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      overflow: "hidden",
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 5,
+      zIndex: 1001,
+    },
+    modalInnerContainer: {
+      width: "100%",
+    },
+    scrollContent: {
+      padding: 16,
+      alignItems: "center",
+    },
+    // Match header styling to match MatchesGrid
+    matchHeaderSection: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      paddingBottom: 12,
+    },
+    matchTeamContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 8,
+    },
+    matchTeamLogo: {
+      width: 50,
+      height: 50,
+      resizeMode: "contain",
+      marginBottom: 8,
+    },
+    matchTeamName: {
+      fontSize: 14,
+      fontWeight: "600",
+      textAlign: "center",
+      color: colors.textSecondary,
+      width: "100%",
+    },
+    matchVsBadge: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.background,
+      justifyContent: "center",
+      alignItems: "center",
+      marginHorizontal: 10,
+    },
+    matchVsText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: colors.textMuted,
+    },
+    // Common match badge
+    commonMatchBadge: {
+      backgroundColor: colors.success,
+      paddingHorizontal: 12,
+      paddingVertical: 4,
+      borderRadius: 12,
+      marginTop: 4,
+      marginBottom: 8,
+    },
+    commonMatchText: {
+      color: colors.white,
+      fontSize: 12,
+      fontWeight: "600",
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.borderLighter,
+      width: "100%",
+      marginVertical: 12,
+    },
+    // Tab container
+    tabContainer: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      width: "100%",
+      marginBottom: 12,
+    },
+    tabButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      backgroundColor: colors.backgroundSubtle,
+    },
+    activeTab: {
+      backgroundColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    activeTabText: {
+      color: colors.white,
+    },
+    // For API matches - read only display
+    scoreContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "100%",
+      paddingVertical: 16,
+    },
+    scoreValue: {
+      alignItems: "center",
+      paddingHorizontal: 12,
+    },
+    scoreText: {
+      fontSize: 42,
+      fontWeight: "bold",
+      color: colors.primary,
+    },
+    scoreSeparator: {
+      paddingHorizontal: 8,
+    },
+    scoreSeparatorText: {
+      fontSize: 36,
+      fontWeight: "bold",
+      color: colors.textMuted,
+    },
+    // For editable matches - with controls
+    goalActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+      paddingVertical: 8,
+    },
+    teamGoalControls: {
+      flex: 1,
+      alignItems: "center",
+    },
+    teamLabel: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    scoreControlRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    goalCounter: {
+      alignItems: "center",
+      paddingHorizontal: 20,
+    },
+    goalValue: {
+      fontSize: 32,
+      fontWeight: "bold",
+      color: colors.primary,
+    },
+    actionButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 22,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+      elevation: 2,
+    },
+    blueButton: {
+      backgroundColor: colors.primary,
+    },
+    // Goal Scorers display
+    goalScorersContainer: {
+      flexDirection: "row",
+      width: "100%",
+      minHeight: 0, // Minimum height even when empty
+      maxHeight: 120, // Maximum height before scrolling
+    },
+    teamScorersColumn: {
+      flex: 1,
+      alignItems: "center",
+      paddingHorizontal: 4,
+    },
+    scorerContainer: {
+      width: "100%",
+      alignItems: "center",
+      paddingVertical: 4,
+    },
+    scorerText: {
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginVertical: 2,
+      fontStyle: "italic",
+      textAlign: "center",
+    },
+    // Players section
+    sectionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      alignSelf: "flex-start",
+      marginBottom: 8,
+    },
+    sectionTitle: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      marginLeft: 8,
+    },
+    // Player section - super compact layout
+    compactContainer: {
+      flexDirection: "row",
+      width: "100%",
+      marginBottom: 12,
+      justifyContent: "flex-start",
+    },
+    playerColumn: {
+      flex: 1,
+      marginHorizontal: 2,
+    },
+    compactPlayerCard: {
+      backgroundColor: colors.backgroundSubtle,
+      borderRadius: 6,
+      paddingVertical: 4, // Even more compact
+      paddingHorizontal: 6,
+      marginBottom: 4,
+      marginHorizontal: 2,
+    },
+    compactPlayerName: {
+      fontSize: 12, // Smaller font for compactness
+      fontWeight: "500",
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    emptyStateContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      padding: 10,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 8,
+      marginBottom: 12,
+    },
+    noPlayersText: {
+      fontSize: 14,
+      color: colors.textMuted,
+      fontStyle: "italic",
+      marginLeft: 8,
+    },
+    // Close button
+    closeButton: {
+      backgroundColor: colors.backgroundSubtle,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 10,
+      alignItems: "center",
+      width: "100%",
+    },
+    closeButtonText: {
+      fontSize: 15,
+      fontWeight: "600",
+      color: colors.textSecondary,
+    },
+    // Match statistics section
+    statisticsContainer: {
+      width: "100%",
+      paddingVertical: 8,
+      paddingHorizontal: 8,
+    },
+    statProgressContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginVertical: 8, // Increased margin slightly
+      width: "100%",
+    },
+    statProgressWrapper: {
+      flex: 3,
+      marginHorizontal: 8, // Add some horizontal margin
+    },
+    statProgressLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: "center",
+      marginBottom: 4,
+    },
+    svgProgressBarContainer: {
+      // New or repurposed style for SVG wrapper
+      flexDirection: "row",
+      alignItems: "center",
+      width: "100%",
+      height: 8, // Match barHeight
+    },
+    statValue: {
+      flex: 1,
+      textAlign: "center",
+      fontSize: 14,
+      fontWeight: "bold",
+      color: colors.textSecondary,
+    },
+    homeProgressArea: {
+      // Used for background color reference
+      backgroundColor: colors.primaryLight,
+    },
+    awayProgressArea: {
+      // Used for background color reference
+      backgroundColor: colors.playerItemOddBackground,
+    },
+    progressDivider: {
+      // Used for width and color reference
+      width: 2,
+      backgroundColor: colors.darkSurface,
+    },
+    homeProgressBar: {
+      // Used for borderRadius reference
+      borderTopLeftRadius: 3,
+      borderBottomLeftRadius: 3,
+    },
+    awayProgressBar: {
+      // Used for borderRadius reference
+      borderTopRightRadius: 3,
+      borderBottomRightRadius: 3,
+    },
+    possessionContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginVertical: 15,
+      width: "100%",
+    },
+    possessionCircleContainer: {
+      flex: 3,
+      alignItems: "center",
+    },
+    circleWrapper: {
+      width: 100,
+      height: 100,
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+      marginTop: 5,
+    },
+  });
 
 export default MatchQuickActionsModal;

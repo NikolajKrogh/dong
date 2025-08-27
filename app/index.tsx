@@ -11,13 +11,13 @@ import {
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "./style/indexStyles";
+import createStyles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OnboardingScreen from "../components/OnboardingScreen";
-import { colors } from "./style/palette"; 
+import { useColors } from "./style/theme";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -33,19 +33,16 @@ interface GameSession {
 }
 
 /**
- * @brief The main home screen component for the Dong application.
- * - Displays the app logo and provides navigation options.
- * - Shows current game status (if a game is in progress) with options to continue or cancel.
- * - Presents a button to start a new game if no game is active.
- * - Displays overall game statistics (games played, top drinker, total drinks) if history exists.
- * - Includes a button to navigate to user preferences.
- * - Plays an introductory video animation once per app session on initial load.
- * - Handles the logic for canceling a game via a confirmation modal.
- * @params None
- * @return {React.ReactElement} The rendered home screen UI.
+ * HomeScreen component.
+ * @description Main landing screen: shows logo, game-in-progress actions,
+ * aggregate stats, onboarding on first launch, 
+ * and splash animation (once per session).
+ * @returns {React.ReactElement} Home screen UI.
  */
 const HomeScreen = () => {
   const router = useRouter();
+  const colors = useColors();
+  const styles = createStyles(colors);
   const { players, matches, history, resetState } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   // Initialize splash visibility based on if it's already been shown in this session
@@ -103,11 +100,8 @@ const HomeScreen = () => {
   const hasGameInProgress = players.length > 0 && matches.length > 0;
 
   /**
-   * @brief Handles the action of canceling the current game.
-   * - Resets the game state using the store's resetState function.
-   * - Hides the confirmation modal.
-   * @params None
-   * @return None
+   * Cancel current game.
+   * @description Resets global game state and dismisses confirmation modal.
    */
   const handleCancelGame = () => {
     resetState();
@@ -115,9 +109,10 @@ const HomeScreen = () => {
   };
 
   /**
-   * @brief Calculates the total number of drinks consumed across all games in the history.
-   * @param {GameSession[]} gameHistory - An array of past game sessions.
-   * @return {number} The total sum of drinks taken across all players and games.
+   * Get total drinks across history.
+   * @description Sums drinksTaken for every player in every session.
+   * @param {GameSession[]} gameHistory Game history array.
+   * @returns {number} Total drink count.
    */
   const getTotalDrinks = (gameHistory: GameSession[]) => {
     return gameHistory.reduce(
@@ -133,9 +128,10 @@ const HomeScreen = () => {
   };
 
   /**
-   * @brief Determines the player who has consumed the most drinks across all games in the history.
-   * @param {GameSession[]} gameHistory - An array of past game sessions.
-   * @return {{ name: string, drinks: number } | null} An object containing the name and drink count of the top drinker, or null if history is empty or no drinks were recorded.
+   * Get top drinker across history.
+   * @description Aggregates per-player drink totals and returns highest.
+   * @param {GameSession[]} gameHistory Game history array.
+   * @returns {{name:string,drinks:number}|null} Top drinker info or null.
    */
   const getTopDrinker = (gameHistory: GameSession[]) => {
     const playerDrinks = new Map<string, number>();
@@ -164,8 +160,8 @@ const HomeScreen = () => {
   return (
     <>
       <StatusBar
-        style="dark"
-        backgroundColor={styles.safeArea.backgroundColor}
+        style={colors.background === "#f5f5f5" ? "dark" : "light"}
+        backgroundColor={styles.safeArea.backgroundColor as string}
       />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -205,7 +201,11 @@ const HomeScreen = () => {
                 style={styles.cancelButton}
                 onPress={() => setIsConfirmModalVisible(true)}
               >
-                <Ionicons name="close-circle-outline" size={22} color={colors.white} />
+                <Ionicons
+                  name="close-circle-outline"
+                  size={22}
+                  color={colors.white}
+                />
                 <Text style={styles.buttonText}>Cancel Game</Text>
               </TouchableOpacity>
             </View>
@@ -242,7 +242,11 @@ const HomeScreen = () => {
                 {/* Games Played */}
                 <View style={styles.statItem}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name="calendar" size={20} color={colors.primary} />
+                    <Ionicons
+                      name="calendar"
+                      size={20}
+                      color={colors.primary}
+                    />
                   </View>
                   <View style={styles.statTextContainer}>
                     <Text style={styles.statLabel}>Games Played</Text>
@@ -254,7 +258,11 @@ const HomeScreen = () => {
                 {topDrinkerInfo && (
                   <View style={styles.statItem}>
                     <View style={styles.iconContainer}>
-                      <Ionicons name="trophy" size={20} color={colors.primary} /> 
+                      <Ionicons
+                        name="trophy"
+                        size={20}
+                        color={colors.primary}
+                      />
                     </View>
                     <View style={styles.statTextContainer}>
                       <Text style={styles.statLabel}>Top Drinker</Text>
@@ -285,7 +293,11 @@ const HomeScreen = () => {
             style={styles.userPreferencesButton}
             onPress={() => router.push("/userPreferences")}
           >
-            <Ionicons name="person-circle-outline" size={28} color={colors.white} />
+            <Ionicons
+              name="person-circle-outline"
+              size={28}
+              color={colors.white}
+            />
           </TouchableOpacity>
         </ScrollView>
 

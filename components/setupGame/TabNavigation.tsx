@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import styles from "../../app/style/setupGameStyles";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 
 interface TabNavigationProps {
   activeTab: string;
@@ -11,6 +12,8 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   setActiveTab,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   return (
     <View style={styles.tabContainer}>
       <TouchableOpacity

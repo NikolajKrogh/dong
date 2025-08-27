@@ -9,20 +9,18 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LastUpdatedFooterProps } from "./types";
-import { colors } from "../../../app/style/palette";
+import { useColors } from "../../../app/style/theme";
 
 /**
- * @brief A footer component displaying the last updated time and a refresh button.
- * - Shows the time of the last score update.
- * - Provides a button to manually trigger a refresh.
- * - Indicates when a refresh is in progress with a spinning icon.
- * - Shows a live indicator dot when polling is active.
- * @param {LastUpdatedFooterProps} props - The properties passed to the component.
- * @param {() => void} props.onRefresh - Callback function executed when the refresh button is pressed.
- * @param {boolean} props.refreshing - Indicates if a refresh operation is currently in progress.
- * @param {Date | null} props.lastUpdated - The timestamp of the last successful update. Null if no update has occurred.
- * @param {boolean} props.isPolling - Indicates if automatic polling for updates is active.
- * @returns {React.ReactElement} The rendered footer component.
+ * Footer showing last update time with manual refresh and live polling indicators.
+ * @component
+ * @param {LastUpdatedFooterProps} props Component props.
+ * @param {() => void} props.onRefresh Triggered when the refresh pill is pressed.
+ * @param {boolean} props.refreshing True while a refresh request is in progress.
+ * @param {Date | null} props.lastUpdated Timestamp of last successful update, or null if none yet.
+ * @param {boolean} props.isPolling True when automatic polling is active (shows live dot).
+ * @returns {React.ReactElement} Rendered footer element.
+ * @description Displays a compact pill containing either a spinning refresh icon (while refreshing) or a time icon plus the last updated time formatted as HH:MM. When polling is active and not currently refreshing, a green live dot is rendered to indicate ongoing background updates.
  */
 const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
   onRefresh,
@@ -30,6 +28,48 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
   lastUpdated,
   isPolling,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        footerContainer: {
+          alignItems: "center",
+          paddingVertical: 20,
+          width: "100%",
+        },
+        pill: {
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: colors.backgroundLight,
+          borderRadius: 20,
+          paddingVertical: 6,
+          paddingHorizontal: 12,
+          elevation: 3,
+          shadowColor: colors.black,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+        },
+        pillRefreshing: {
+          backgroundColor: colors.backgroundSubtle,
+          borderColor: colors.borderLight,
+          borderWidth: 1,
+        },
+        timeText: {
+          fontSize: 13,
+          color: colors.textMuted,
+          marginLeft: 4,
+        },
+        liveDot: {
+          width: 6,
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: colors.success,
+          marginLeft: 4,
+        },
+      }),
+    [colors]
+  );
   // Keep animation for refresh indicator
   const spinValue = React.useRef(new Animated.Value(0)).current;
 
@@ -90,43 +130,5 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  footerContainer: {
-    alignItems: "center",
-    paddingVertical: 20,
-    width: "100%",
-  },
-  pill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    elevation: 3,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  pillRefreshing: {
-    backgroundColor: colors.backgroundSubtle,
-    borderColor: colors.borderLight,
-    borderWidth: 1,
-  },
-  timeText: {
-    fontSize: 13,
-    color: colors.textMuted,
-    marginLeft: 4,
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.success,
-    marginLeft: 4,
-  },
-});
 
 export default React.memo(LastUpdatedFooter);

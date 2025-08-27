@@ -10,41 +10,40 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { colors } from "../../app/style/palette";
+import { useColors } from "../../app/style/theme";
 
 // Get screen dimensions
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /**
- * @brief Interface defining the properties for the FooterButtons component.
+ * Props for FooterButtons.
+ * @interface
  */
 interface FooterButtonsProps {
-  /** @brief Callback function executed when the "Back to Setup" action is triggered. */
+  /** Invoked when user selects Back to Setup. */
   onBackToSetup: () => void;
-  /** @brief Callback function executed when the "End Game" action is triggered. */
+  /** Invoked when user selects End Game. */
   onEndGame: () => void;
 }
 
 /**
- * @brief A component providing footer buttons for game progress actions.
- * - Includes a floating action button that expands into a menu with options like "Home", "Setup", and "End Game".
- * @param {FooterButtonsProps} props - The properties passed to the component.
- * @param {() => void} props.onBackToSetup - Function to call when the Setup button is pressed.
- * @param {() => void} props.onEndGame - Function to call when the End Game button is pressed.
- * @returns {React.ReactElement} The rendered footer buttons component.
+ * Floating action menu providing navigation (Home, Setup) and End Game trigger.
+ * @component
+ * @param {FooterButtonsProps} props Component props.
+ * @returns {React.ReactElement} Footer menu UI.
+ * @description Renders an animated FAB that rotates when expanded; displays a modal overlay containing actionable menu items. Delegates navigation & end-game logic to parent callbacks.
  */
 const FooterButtons: React.FC<FooterButtonsProps> = ({
   onBackToSetup,
   onEndGame,
 }) => {
   const router = useRouter();
+  const colors = useColors();
+  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
   const rotation = useState(new Animated.Value(0))[0];
 
-  /**
-   * @brief Toggles the visibility of the expandable menu.
-   * - Animates the rotation of the menu button.
-   */
+  /** Toggle expandable menu visibility with rotation animation. */
   const toggleMenu = () => {
     // Animate the button rotation
     Animated.timing(rotation, {
@@ -56,10 +55,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
     setMenuVisible(!menuVisible);
   };
 
-  /**
-   * @brief Closes the expandable menu.
-   * - Animates the rotation of the menu button back to its original state.
-   */
+  /** Close menu and reset rotation. */
   const closeMenu = () => {
     Animated.timing(rotation, {
       toValue: 0,
@@ -76,10 +72,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
     outputRange: ["0deg", "45deg"],
   });
 
-  /**
-   * @brief Navigates the user to the home screen.
-   * - Closes the menu after navigation.
-   */
+  /** Navigate to home then close menu. */
   const goToHome = () => {
     router.push("/");
     closeMenu();
@@ -163,60 +156,61 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    position: "relative",
-  },
-  modalOverlay: {
-    flex: 1,
-  },
-  menuContainer: {
-    position: "absolute",
-  },
-  expandableMenu: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
-    width: 160,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginVertical: 4,
-  },
-  menuItemText: {
-    fontSize: 16,
-    marginLeft: 16,
-    color: colors.textMuted,
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  menuButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-});
+const createStyles = (colors: ReturnType<typeof useColors>) =>
+  StyleSheet.create({
+    container: {
+      position: "relative",
+    },
+    modalOverlay: {
+      flex: 1,
+    },
+    menuContainer: {
+      position: "absolute",
+    },
+    expandableMenu: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 5,
+      width: 160,
+    },
+    menuItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      marginVertical: 4,
+    },
+    menuItemText: {
+      fontSize: 16,
+      marginLeft: 16,
+      color: colors.textMuted,
+    },
+    footer: {
+      flexDirection: "row",
+      justifyContent: "flex-start",
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+    },
+    menuButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 32,
+      backgroundColor: colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: colors.black,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+  });
 
 export default FooterButtons;

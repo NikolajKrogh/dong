@@ -1,9 +1,23 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors } from "../../app/style/palette";
+import { getCurrentColors } from "../../app/style/theme";
 
+/**
+ * Goal toast configuration for react-native-toast-message.
+ * Parses a combined title string into home team, score, away team and highlights the scoring side.
+ * Falls back gracefully if the primary regex pattern isn't matched.
+ * Uses theme colors via getCurrentColors (non-hook accessor) so it can run outside component trees.
+ */
 export const goalToastConfig = {
+  /**
+   * Success toast renderer for a scored goal.
+   * @param {Object} props Toast props provided by the library.
+   * @param {string} [props.text1] Title containing teams and score (e.g. "Team A 2-1 Team B").
+   * @param {string} [props.text2] Drink message listing players who should drink.
+   * @param {{ scoringTeam?: 'home' | 'away' }} [props.props] Extra props; which side scored for styling emphasis.
+   * @returns {JSX.Element}
+   */
   success: (props: {
     text1?: string;
     text2?: string;
@@ -48,6 +62,7 @@ export const goalToastConfig = {
     // Parse player names from the message for better formatting
     let drinkMessage = props.text2 || "";
 
+    const colors = getCurrentColors();
     return (
       <View
         style={{
@@ -144,7 +159,7 @@ export const goalToastConfig = {
                 textAlign: "center",
               }}
             >
-              {drinkMessage.replace("should drink!", "")} DRINK!
+              {[drinkMessage.replace("should drink!", ""), " DRINK!"]}
             </Text>
           </View>
         </View>

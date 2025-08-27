@@ -1,17 +1,17 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Modal, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 import { formatModalDate } from "./historyUtils";
 
 /**
- * @brief Props for the PlayerDetailsModal component.
- * @property {boolean} visible - Controls the visibility of the modal.
- * @property {() => void} onClose - Function to call when the modal should be closed.
- * @property {PlayerStat | null} player - The player data to display details for, or null if no player is selected.
- * @property {GameSession[]} gameHistory - Complete game history for finding player's participation.
+ * Player details modal.
+ * @description Presents comprehensive stats (games, averages) and per‑game history for a single player.
+ * Returns null if no player provided.
+ * @param {PlayerDetailsModalProps} props Component props.
+ * @returns {React.ReactElement | null} Modal element or null.
  */
 interface PlayerDetailsModalProps {
   visible: boolean;
@@ -20,22 +20,14 @@ interface PlayerDetailsModalProps {
   gameHistory: GameSession[];
 }
 
-/**
- * @brief A modal component that displays detailed information about a specific player.
- *
- * Shows comprehensive player statistics and game history, including total drinks,
- * games played, average per game, and a chronological breakdown of games with
- * individual drink amounts.
- *
- * @param props - The component props.
- * @returns The rendered modal component, or null if no player is selected.
- */
 const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   visible,
   onClose,
   player,
   gameHistory,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   if (!player) return null;
 
   // Find all games this player participated in
@@ -84,50 +76,31 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                 size={60}
                 color={colors.secondary}
               />
-              <Text style={styles.playerDetailsName}>{player.name}</Text>
+              <Text style={styles.modalTitle}>{player.name}</Text>
             </View>
 
-            {/* Stats Summary */}
-            <View style={styles.modalSummaryCard}>
-              <View style={styles.modalStatGrid}>
-                <View style={styles.modalStatItem}>
-                  <Ionicons
-                    name="beer"
-                    size={24}
-                    color={colors.primary}
-                    style={styles.summaryIcon}
-                  />
-                  <Text style={styles.modalStatValue}>
-                    {player.totalDrinks.toFixed(1)}
-                  </Text>
-                  <Text style={styles.modalStatLabel}>Total Drinks</Text>
-                </View>
-
-                <View style={styles.modalStatItem}>
-                  <Ionicons
-                    name="game-controller"
-                    size={24}
-                    color={colors.primary}
-                    style={styles.summaryIcon}
-                  />
-                  <Text style={styles.modalStatValue}>
-                    {player.gamesPlayed}
-                  </Text>
-                  <Text style={styles.modalStatLabel}>Games Played</Text>
-                </View>
-
-                <View style={styles.modalStatItem}>
-                  <Ionicons
-                    name="flash"
-                    size={24}
-                    color={colors.primary}
-                    style={styles.summaryIcon}
-                  />
-                  <Text style={styles.modalStatValue}>
-                    {player.averagePerGame.toFixed(1)}
-                  </Text>
-                  <Text style={styles.modalStatLabel}>Avg. Drinks/Game</Text>
-                </View>
+            <View style={styles.modalStatGrid}>
+              <View style={styles.modalStatItem}>
+                <Ionicons
+                  name="game-controller"
+                  size={24}
+                  color={colors.primary}
+                  style={styles.summaryIcon}
+                />
+                <Text style={styles.modalStatValue}>{player.gamesPlayed}</Text>
+                <Text style={styles.modalStatLabel}>Games Played</Text>
+              </View>
+              <View style={styles.modalStatItem}>
+                <Ionicons
+                  name="flash"
+                  size={24}
+                  color={colors.primary}
+                  style={styles.summaryIcon}
+                />
+                <Text style={styles.modalStatValue}>
+                  {player.averagePerGame.toFixed(1)}
+                </Text>
+                <Text style={styles.modalStatLabel}>Avg. Drinks/Game</Text>
               </View>
             </View>
 

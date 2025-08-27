@@ -2,13 +2,29 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Animated } from "react-native";
 import DatePicker from "react-native-date-picker";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
 import { TeamWithLeague } from "../../utils/matchUtils";
 import { LeagueEndpoint } from "../../constants/leagues";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @brief Interface for the props of the MatchFilter component.
+ * Props for match filter component.
+ * @description Provides date/time filter state + setters, bulk add handler and contextual match/team datasets (plus league selection context for integration with other filters).
+ * @property selectedDate Currently selected date (YYYY-MM-DD) used for filtering.
+ * @property startTime Optional start time (HH:MM 24h) boundary for time range filtering.
+ * @property endTime Optional end time (HH:MM 24h) boundary for time range filtering.
+ * @property setSelectedDate Setter to update the selected date ISO string.
+ * @property setStartTime Setter to update the start time string.
+ * @property setEndTime Setter to update the end time string.
+ * @property handleAddAllFilteredMatches Invoked to add every match in `filteredMatches` (bulk add action).
+ * @property isTimeFilterActive Whether a time range filter is currently applied.
+ * @property isDateFilterActive Whether a date filter is currently applied.
+ * @property filteredMatches Array of matches that satisfy current date/time (and possibly external) filters.
+ * @property filteredTeamsData Teams derived from filtered matches (supports dependent dropdowns; may be unused here but passed through for composition).
+ * @property isLoading Optional loading flag to show pending state while source data loads.
+ * @property availableLeagues All leagues available (for external league filtering UI integration).
+ * @property selectedLeagues Leagues currently selected elsewhere in the setup flow.
+ * @property handleLeagueChange Callback to toggle a league (forwarded for integrated controls if rendered inside this component).
  */
 interface MatchFilterProps {
   selectedDate: string;
@@ -29,25 +45,10 @@ interface MatchFilterProps {
 }
 
 /**
- * @brief Functional component that renders a filter for matches.
- *
- * This component allows users to filter matches by date and time.
- * It provides options to select a date, a time range, and actions to reset or apply the filters.
- *
- * @param selectedDate The selected date for the filter.
- * @param startTime The start time for the filter.
- * @param endTime The end time for the filter.
- * @param setSelectedDate Function to set the selected date.
- * @param setStartTime Function to set the start time.
- * @param setEndTime Function to set the end time.
- * @param handleAddAllFilteredMatches Function to handle adding all filtered matches.
- * @param isTimeFilterActive Boolean indicating if the time filter is active.
- * @param isDateFilterActive Boolean indicating if the date filter is active.
- * @param filteredTeamsData Array of filtered team data.
- * @param filteredMatches Array of filtered matches.
- * @param isLoading Boolean indicating if the data is loading.
- *
- * @return A React element, representing the match filter.
+ * Match filter.
+ * @description Date + optional time range filtering UI with collapse animation and bulk add action.
+ * @param {MatchFilterProps} props Component props.
+ * @returns {JSX.Element} Filter element.
  */
 const MatchFilter: React.FC<MatchFilterProps> = ({
   selectedDate,
@@ -62,6 +63,8 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   filteredMatches,
   isLoading = false,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const [showTimeFilter, setShowTimeFilter] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isStartTimePickerOpen, setIsStartTimePickerOpen] = useState(false);

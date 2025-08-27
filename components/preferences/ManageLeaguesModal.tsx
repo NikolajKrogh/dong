@@ -1,3 +1,7 @@
+/**
+ * @file ManageLeaguesModal.tsx
+ * @description Modal UI for viewing, removing, and resetting configured football leagues. Includes animated removal of league cards and integrates with themed styles.
+ */
 import React, { useRef, useEffect } from "react";
 import {
   View,
@@ -5,52 +9,49 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  Alert,
   SafeAreaView,
   Image,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { manageLeaguesModalStyles } from "../../app/style/userPreferencesStyles";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
-import { colors } from "../../app/style/palette";
+import { useColors } from "../../app/style/theme";
 
-/**
- * @interface ManageLeaguesModalProps
- * @brief Props for the ManageLeaguesModal component.
- */
+/** Props for `ManageLeaguesModal`. */
 interface ManageLeaguesModalProps {
-  /** @brief Whether the modal is visible. */
+  /** Whether the modal is visible. */
   visible: boolean;
-  /** @brief Function to call when the modal is closed. */
+  /** Callback when the modal requests close. */
   onClose: () => void;
-  /** @brief Array of currently configured leagues. */
+  /** Array of currently configured leagues. */
   configuredLeagues: LeagueEndpoint[];
-  /** @brief Function to remove a league. */
+  /** Removes a league by code. */
   removeLeague: (code: string) => void;
-  /** @brief Function to reset leagues to their default settings. */
+  /** Resets leagues to default selection. */
   resetLeaguesToDefaults: () => void;
 }
 
-/**
- * @interface LeagueCardProps
- * @brief Props for the LeagueCard component.
- */
+/** Props for `LeagueCard`. */
 interface LeagueCardProps {
-  /** @brief The league data to display. */
+  /** League data to display. */
   league: LeagueEndpoint;
-  /** @brief Function to remove the league. */
+  /** Removes the league by code. */
   removeLeague: (code: string) => void;
 }
 
 /**
- * @component LeagueCard
- * @brief Displays a single league card with its logo, name, code, category, and a remove button.
- * @param {LeagueCardProps} props - The props for the component.
- * @returns {React.ReactElement} The LeagueCard component.
+ * Renders a single league card row.
+ * @description Shows league logo (or placeholder), name and a remove action. Includes loading state for logo fetch.
+ * @param props Component props.
  */
 const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
+  const colors = useColors();
+  const { manageLeaguesModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   // Pass both league name AND code
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
 
@@ -101,11 +102,9 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
 };
 
 /**
- * @component ManageLeaguesModal
- * @brief A modal component for managing configured leagues.
- *        Allows users to view, remove, and reset leagues.
- * @param {ManageLeaguesModalProps} props - The props for the component.
- * @returns {React.ReactElement} The ManageLeaguesModal component.
+ * Modal for managing configured leagues.
+ * @description Lists current leagues with animated removal and provides a reset-to-defaults action. Uses themed styles and safe area layout.
+ * @param props Component props.
  */
 const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
   visible,
@@ -114,7 +113,13 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
   removeLeague,
   resetLeaguesToDefaults,
 }) => {
+  const colors = useColors();
+  const { manageLeaguesModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
+  const [showResetConfirm, setShowResetConfirm] = React.useState(false);
 
   // Effect to clean up animation refs for leagues no longer present
   useEffect(() => {
@@ -169,20 +174,7 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
             Manage Leagues
           </Text>
           <TouchableOpacity
-            onPress={() => {
-              Alert.alert(
-                "Reset Leagues",
-                "Are you sure you want to reset to default leagues?",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Reset",
-                    onPress: resetLeaguesToDefaults,
-                    style: "destructive",
-                  },
-                ]
-              );
-            }}
+            onPress={() => setShowResetConfirm(true)}
             style={manageLeaguesModalStyles.resetButton}
           >
             <Ionicons name="refresh-outline" size={22} color={colors.danger} />
@@ -243,6 +235,40 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
             </View>
           )}
         </View>
+
+        {showResetConfirm && (
+          <View style={manageLeaguesModalStyles.confirmOverlay}>
+            <View style={manageLeaguesModalStyles.confirmDialog}>
+              <Text style={manageLeaguesModalStyles.confirmTitle}>
+                Reset leagues?
+              </Text>
+              <Text style={manageLeaguesModalStyles.confirmMessage}>
+                This will restore the default league selection.
+              </Text>
+              <View style={manageLeaguesModalStyles.confirmActions}>
+                <TouchableOpacity
+                  onPress={() => setShowResetConfirm(false)}
+                  style={manageLeaguesModalStyles.confirmCancelBtn}
+                >
+                  <Text style={manageLeaguesModalStyles.confirmCancelText}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    resetLeaguesToDefaults();
+                    setShowResetConfirm(false);
+                  }}
+                  style={manageLeaguesModalStyles.confirmResetBtn}
+                >
+                  <Text style={manageLeaguesModalStyles.confirmResetText}>
+                    Reset
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );

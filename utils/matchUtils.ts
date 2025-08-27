@@ -3,13 +3,10 @@
  */
 
 /**
- * @brief Formats a date string as YYYYMMDD for the ESPN API.
- *
- * If no date string is provided or it's invalid (not YYYY-MM-DD),
- * it returns today's date in the YYYYMMDD format.
- *
- * @param dateString (optional) The date string to format (expected YYYY-MM-DD).
- * @return The formatted date string (YYYYMMDD).
+ * Format date for ESPN API.
+ * @description Converts YYYY-MM-DD (or today if invalid/missing) to compact YYYYMMDD.
+ * @param {string} [dateString] Input date.
+ * @returns {string} Formatted date.
  */
 export const formatDateForAPI = (dateString?: string): string => {
   // Ensure dateString is optional
@@ -31,29 +28,78 @@ export const formatDateForAPI = (dateString?: string): string => {
 };
 
 /**
- * @brief Cleans a team name by removing common prefixes, suffixes, and extra whitespace.
- *
- * @param teamName The team name to clean.
- * @return The cleaned team name.
+ * Normalize team name.
+ * @description Strips common prefixes/suffixes and trims whitespace.
+ * @param {string} teamName Raw name.
+ * @returns {string} Cleaned name.
  */
 export const cleanTeamName = (teamName: string): string => {
   if (!teamName) return "";
 
   // Define common affixes (escape special regex characters like '.')
   const prefixes = [
-    "FC", "AFC", "CF", "IF", "FF", "BK", "SCO", "OSC", "HSC", "BC", "CFC",
-    "AC", "AS", "SS", "SSC", "US", "ACF", "OGC", "VfL", "VfB", "TSG", "SC",
-    "RB", "SV", "RCD", "CA", "CD", "UD", "RC", "AJ", "1\\.\\s*FC", "1\\.\\s*FSV" // Escaped '.' and handled potential space
+    "FC",
+    "AFC",
+    "CF",
+    "IF",
+    "FF",
+    "BK",
+    "SCO",
+    "OSC",
+    "HSC",
+    "BC",
+    "CFC",
+    "AC",
+    "AS",
+    "SS",
+    "SSC",
+    "US",
+    "ACF",
+    "OGC",
+    "VfL",
+    "VfB",
+    "TSG",
+    "SC",
+    "RB",
+    "SV",
+    "RCD",
+    "CA",
+    "CD",
+    "UD",
+    "RC",
+    "AJ",
+    "1\\.\\s*FC",
+    "1\\.\\s*FSV", // Escaped '.' and handled potential space
   ];
   const suffixes = [
-    "FC", "AFC", "CF", "IF", "FF", "BK", "SCO", "OSC", "HSC", "BC", "CFC",
-    "AC", "AS", "SS", "SSC", "1909", "1913", "1846", "1848", "1910", "1901", "29"
+    "FC",
+    "AFC",
+    "CF",
+    "IF",
+    "FF",
+    "BK",
+    "SCO",
+    "OSC",
+    "HSC",
+    "BC",
+    "CFC",
+    "AC",
+    "AS",
+    "SS",
+    "SSC",
+    "1909",
+    "1913",
+    "1846",
+    "1848",
+    "1910",
+    "1901",
+    "29",
   ];
 
   // Match suffix preceded by one or more spaces, at the end of the string ($)
-  const suffixRegex = new RegExp(`\\s+(${suffixes.join('|')})$`, 'i');
+  const suffixRegex = new RegExp(`\\s+(${suffixes.join("|")})$`, "i");
   // Match prefix at the start of the string (^), followed by one or more spaces
-  const prefixRegex = new RegExp(`^(${prefixes.join('|')})\\s+`, 'i');
+  const prefixRegex = new RegExp(`^(${prefixes.join("|")})\\s+`, "i");
 
   let cleaned = teamName.trim();
 
@@ -66,10 +112,10 @@ export const cleanTeamName = (teamName: string): string => {
 };
 
 /**
- * @brief Converts a time string to minutes since midnight.
- *
- * @param timeString The time string to convert (HH:MM).
- * @return The number of minutes since midnight, or -1 if the time string is invalid.
+ * Convert HH:MM to minutes.
+ * @description Returns -1 for invalid input.
+ * @param {string} timeString Time string.
+ * @returns {number} Minutes since midnight or -1.
  */
 export const convertTimeToMinutes = (timeString: string): number => {
   if (!timeString || !timeString.includes(":")) return -1;
@@ -94,9 +140,7 @@ export const convertTimeToMinutes = (timeString: string): number => {
   }
 };
 
-/**
- * @brief Interface for match data.
- */
+/** Match data shape. */
 export interface MatchData {
   id: string;
   team1: string;
@@ -108,17 +152,13 @@ export interface MatchData {
   time?: string;
 }
 
-/**
- * @brief Interface for API response data.
- */
+/** API response subset. */
 export interface ApiResponse {
   name: string;
   matches: MatchData[];
 }
 
-/**
- * @brief Interface for team data with league information.
- */
+/** Team with league metadata. */
 export interface TeamWithLeague {
   key: string;
   value: string;
@@ -126,14 +166,10 @@ export interface TeamWithLeague {
 }
 
 /**
- * @brief Extracts team names from ESPN event data.
- *
- * This function attempts to extract home and away team names from various
- * properties of the ESPN event object. It prioritizes the `competitors` array
- * if available, then falls back to parsing the `name` or `shortName` properties.
- *
- * @param event The ESPN event object.
- * @return An object containing the extracted home and away team names.
+ * Extract home/away team names.
+ * @description Parses ESPN event competitors or falls back to name/shortName heuristics.
+ * @param {any} event ESPN event.
+ * @returns {{homeTeam:string;awayTeam:string}} Extracted names.
  */
 export function extractTeamsFromESPNEvent(event: any): {
   homeTeam: string;

@@ -8,17 +8,13 @@ import {
   Modal,
   SafeAreaView,
 } from "react-native";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 import { Ionicons } from "@expo/vector-icons";
 
 /**
- * @brief Interface for a team option with its league information.
- *
- * @property key Unique identifier for the team option.
- * @property value Original full team name.
- * @property league Optional league the team belongs to.
- * @property displayName Optional normalized team name for display without prefixes/suffixes.
+ * Represents a selectable team option including optional league metadata.
+ * @description Used to populate the home/away team pickers; displayName holds a cleaned version of value for UI.
  */
 interface TeamOptionWithLeague {
   key: string;
@@ -28,17 +24,17 @@ interface TeamOptionWithLeague {
 }
 
 /**
- * @brief Interface for the props of the TeamSelectionRow component.
- *
- * @property homeTeam Currently selected home team name.
- * @property awayTeam Currently selected away team name.
- * @property setHomeTeam Function to update the home team selection.
- * @property setAwayTeam Function to update the away team selection.
- * @property homeTeamOptions Array of team options for home team selection.
- * @property awayTeamOptions Array of team options for away team selection.
- * @property handleAddMatchAndClear Function to add the selected match and clear the form.
- * @property addNewHomeTeam Function to add a new home team to the available options.
- * @property addNewAwayTeam Function to add a new away team to the available options.
+ * Props for the TeamSelectionRow component.
+ * @description Provides current selections, option lists and callbacks for updating or adding teams and finalizing a match.
+ * @property homeTeam Current home team name.
+ * @property awayTeam Current away team name.
+ * @property setHomeTeam Setter for home team.
+ * @property setAwayTeam Setter for away team.
+ * @property homeTeamOptions Options available for home side.
+ * @property awayTeamOptions Options available for away side.
+ * @property handleAddMatchAndClear Adds the match then resets fields.
+ * @property addNewHomeTeam Adds a new custom home team.
+ * @property addNewAwayTeam Adds a new custom away team.
  */
 interface TeamSelectionRowProps {
   homeTeam: string;
@@ -53,18 +49,10 @@ interface TeamSelectionRowProps {
 }
 
 /**
- * @brief Component for selecting home and away teams.
- *
- * This component renders a row of input fields for selecting the home and away teams.
- * It provides modal dropdowns with searchable team options and allows adding new teams.
- * The component supports:
- * - Displaying team options with normalized names (without prefixes/suffixes)
- * - Searching for teams by name
- * - Adding new custom teams when no matches are found
- * - Visual feedback for selected teams
- *
- * @param props The props for the component.
- * @returns A React functional component.
+ * Row UI for selecting and optionally creating home and away teams.
+ * @description Renders two searchable modal pickers (home/away), supports free‑text addition of new teams, and an add‑match button once both sides are selected.
+ * @param props Component props.
+ * @returns JSX element.
  */
 const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   homeTeam,
@@ -77,50 +65,43 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   addNewHomeTeam,
   addNewAwayTeam,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   /**
-   * @brief Current search term for filtering home teams.
+   * Current search text for filtering home team options.
+   * @description Cleared after a selection or when the clear icon is pressed.
    */
   const [homeSearchTerm, setHomeSearchTerm] = useState("");
 
   /**
-   * @brief Current search term for filtering away teams.
+   * Current search text for filtering away team options.
+   * @description Cleared after a selection or when the clear icon is pressed.
    */
   const [awaySearchTerm, setAwaySearchTerm] = useState("");
 
-  /**
-   * @brief Flag to control visibility of the home team selection modal.
-   */
+  /** Flag controlling visibility of the home team modal. */
   const [showHomeDropdown, setShowHomeDropdown] = useState(false);
 
-  /**
-   * @brief Flag to control visibility of the away team selection modal.
-   */
+  /** Flag controlling visibility of the away team modal. */
   const [showAwayDropdown, setShowAwayDropdown] = useState(false);
 
-  /**
-   * @brief Filtered list of home team options based on search term.
-   */
+  /** Filtered home team options derived from search term. */
   const [filteredHomeOptions, setFilteredHomeOptions] =
     useState(homeTeamOptions);
 
-  /**
-   * @brief Filtered list of away team options based on search term.
-   */
+  /** Filtered away team options derived from search term. */
   const [filteredAwayOptions, setFilteredAwayOptions] =
     useState(awayTeamOptions);
 
   /**
-   * @brief Flag indicating whether the add button should be disabled.
-   *
-   * The button is disabled when either home team or away team is not selected.
+   * Whether the add button is disabled.
+   * @description Becomes enabled only when both teams have been selected.
    */
   const isAddButtonDisabled = !homeTeam || !awayTeam;
 
   /**
-   * @brief Filters home team options when the search term changes.
-   *
-   * This useEffect hook filters the home team options based on the current search term.
-   * It updates the filteredHomeOptions state with the matching teams.
+   * Filters the home team list when the search term changes.
+   * @description Updates filteredHomeOptions with matches or resets to full list when cleared.
    */
   useEffect(() => {
     if (homeSearchTerm) {
@@ -134,10 +115,8 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   }, [homeSearchTerm, homeTeamOptions]);
 
   /**
-   * @brief Filters away team options when the search term changes.
-   *
-   * This useEffect hook filters the away team options based on the current search term.
-   * It updates the filteredAwayOptions state with the matching teams.
+   * Filters the away team list when the search term changes.
+   * @description Updates filteredAwayOptions with matches or resets to full list when cleared.
    */
   useEffect(() => {
     if (awaySearchTerm) {
@@ -151,11 +130,9 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   }, [awaySearchTerm, awayTeamOptions]);
 
   /**
-   * @brief Selects the home team and closes the dropdown.
-   *
-   * This function sets the selected home team, clears the search term, and closes the dropdown.
-   *
-   * @param team The name of the home team to select.
+   * Selects a home team and resets related UI state.
+   * @description Sets chosen team, clears search input and closes the modal.
+   * @param team Team name.
    */
   const selectHomeTeam = (team: string) => {
     setHomeTeam(team);
@@ -164,11 +141,9 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   };
 
   /**
-   * @brief Selects the away team and closes the dropdown.
-   *
-   * This function sets the selected away team, clears the search term, and closes the dropdown.
-   *
-   * @param team The name of the away team to select.
+   * Selects an away team and resets related UI state.
+   * @description Sets chosen team, clears search input and closes the modal.
+   * @param team Team name.
    */
   const selectAwayTeam = (team: string) => {
     setAwayTeam(team);
@@ -177,10 +152,8 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   };
 
   /**
-   * @brief Adds and selects a new home team.
-   *
-   * This function adds a new home team to the list of available teams and selects it.
-   * It validates that the search term is not empty before adding.
+   * Adds a new custom home team then selects it.
+   * @description No-op if the trimmed search term is empty.
    */
   const handleAddHomeTeam = () => {
     if (homeSearchTerm.trim()) {
@@ -190,10 +163,8 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   };
 
   /**
-   * @brief Adds and selects a new away team.
-   *
-   * This function adds a new away team to the list of available teams and selects it.
-   * It validates that the search term is not empty before adding.
+   * Adds a new custom away team then selects it.
+   * @description No-op if the trimmed search term is empty.
    */
   const handleAddAwayTeam = () => {
     if (awaySearchTerm.trim()) {

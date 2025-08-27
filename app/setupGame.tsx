@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Alert, SafeAreaView } from "react-native";
+import { SafeAreaView } from "react-native";
+import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
-import styles from "./style/setupGameStyles";
-import { colors } from "./style/palette";
+import createSetupGameStyles from "./style/setupGameStyles";
+import { useColors } from "./style/theme";
 import {
   SetupGamePlayerList,
   MatchList,
@@ -23,66 +24,49 @@ interface SelectedMatchData {
 }
 
 /**
- * @brief SetupGameScreen component for configuring the game.
- *
- * This component orchestrates the entire game setup process. It manages
- * state for player creation, match selection (including fetching and filtering),
- * assignment of matches to players, and selection of a common match.
- * It utilizes various child components for each step of the setup wizard
- * and leverages `useGameStore` for global state management and `useMatchData`
- * for fetching match-related information.
+ * Game setup wizard: players, matches, common match selection, and assignments.
+ * @component
+ * @description Orchestrates multi-step setup (players > matches > common match > assignments)
+ * leveraging store state + remote match data; finalizes by filtering matches and navigating to gameplay.
  */
 const SetupGameScreen = () => {
-  /**
-   * @brief Expo Router instance for navigation.
-   */
   const router = useRouter();
-  /**
-   * @brief State for the name of a new player being added.
-   */
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  /** New player name input state. */
   const [newPlayerName, setNewPlayerName] = useState("");
-  /**
-   * @brief State for the selected home team name for a new match.
-   */
+  /** Pending new match home team input. */
   const [homeTeam, setHomeTeam] = useState("");
-  /**
-   * @brief State for the selected away team name for a new match.
-   */
+  /** Pending new match away team input. */
   const [awayTeam, setAwayTeam] = useState("");
-  /**
-   * @brief State for the ID of the currently selected common match.
-   */
+  /** ID of selected common match (local step state). */
   const [selectedCommonMatch, setSelectedCommonMatch] = useState<string | null>(
     null
   );
-  /**
-   * @brief State for data of a match selected from a dropdown or list, used to pre-fill team names.
-   */
+  /** Selected match metadata to pre-fill team inputs. */
   const [selectedMatchData, setSelectedMatchData] =
     useState<SelectedMatchData | null>(null);
-  /**
-   * @brief State for the list of leagues available for filtering, typically fetched from an API.
-   */
+  /** Leagues available for filtering (fetched). */
   const [availableLeagues, setAvailableLeagues] = useState<LeagueEndpoint[]>(
     []
   );
-  /**
-   * @brief State for the date selected by the user to filter matches.
-   */
+  /** Selected date (YYYY-MM-DD) for match filtering. */
   const [selectedDate, setSelectedDate] = useState("");
 
   /**
-   * @brief Destructured state and setters from `useGameStore` for global game management.
-   * @property players - Array of current players.
-   * @property matches - Array of current matches.
-   * @property commonMatchId - ID of the common match.
-   * @property playerAssignments - Object mapping player IDs to their assigned match IDs.
-   * @property matchesPerPlayer - Number of matches assigned per player.
-   * @property setGlobalPlayers - Function to update the global players list.
-   * @property setGlobalMatches - Function to update the global matches list.
-   * @property setGlobalCommonMatchId - Function to update the global common match ID.
-   * @property setGlobalPlayerAssignments - Function to update global player assignments.
-   * @property setMatchesPerPlayer - Function to update the number of matches per player.
+   * Global game setup state and mutators sourced from the central store.
+   *
+   * Destructured properties:
+   * @property {Player[]} players Current list of players added in the wizard.
+   * @property {Match[]} matches Current list of matches (pre-start this is the full candidate set; filtered when starting the game).
+   * @property {string|null} commonMatchId ID of the shared match all players drink to (null until chosen).
+   * @property {Record<string,string[]>} playerAssignments Mapping of playerId -> array of individually assigned match IDs (excludes the common match which is implicit for everyone).
+   * @property {number} matchesPerPlayer Target number of additional (non-common) matches per player used in distribution logic.
+   * @property {(players: Player[]) => void} setPlayers (Renamed to setGlobalPlayers) Replaces the players collection.
+   * @property {(matches: Match[]) => void} setMatches (Renamed to setGlobalMatches) Replaces the matches collection.
+   * @property {(id: string|null) => void} setCommonMatchId (Renamed to setGlobalCommonMatchId) Sets/clears the common match.
+   * @property {(assignments: Record<string,string[]>) => void} setPlayerAssignments (Renamed to setGlobalPlayerAssignments) Replaces player->match assignment map.
+   * @property {(n: number) => void} setMatchesPerPlayer Adjusts target additional matches per player.
    */
   const {
     players,
@@ -98,10 +82,12 @@ const SetupGameScreen = () => {
   } = useGameStore();
 
   /**
-   * @brief Destructured data from `useMatchData` hook.
-   * @property apiLeagues - Leagues fetched from the API, aliased from `availableLeagues` in the hook.
-   * @property teamsData - Team data fetched from the API.
-   * @property isLoading - Boolean indicating if match data is currently loading.
+   * Remote match + league data for the currently selected date.
+   *
+   * Destructured properties:
+   * @property {LeagueEndpoint[]} availableLeagues (aliased as apiLeagues) Leagues fetched for filtering & match suggestions.
+   * @property {*} teamsData Reference team data (names / metadata) returned by the hook for auto-complete or validation.
+   * @property {boolean} isLoading True while remote league / team data is being fetched.
    */
   const {
     availableLeagues: apiLeagues,
@@ -109,42 +95,24 @@ const SetupGameScreen = () => {
     isLoading,
   } = useMatchData(selectedDate);
 
-  /**
-   * @brief Effect hook to update the local `availableLeagues` state when `apiLeagues` from `useMatchData` changes.
-   */
+  /** Sync available leagues with API results. */
   useEffect(() => {
     if (apiLeagues && apiLeagues.length > 0) {
       setAvailableLeagues(apiLeagues);
     }
   }, [apiLeagues]);
 
-  /**
-   * @brief Boolean flag indicating if the user can advance to the matches setup step.
-   * True if at least one player has been added.
-   */
+  /** Whether player step can advance (>=1 player). */
   const canAdvanceToMatches = players.length > 0;
-  /**
-   * @brief Boolean flag indicating if the user can advance to the common match setup step.
-   * True if at least two matches have been added.
-   */
+  /** Whether match step can advance (>=1 match). */
   const canAdvanceToCommonMatch = matches.length > 0;
-  /**
-   * @brief Boolean flag indicating if the user can advance to the assignment setup step.
-   * True if at least two matches have been added and a common match has been selected.
-   */
+  /** Whether common match step can advance (>=1 match & common selected). */
   const canAdvanceToAssign = matches.length >= 1 && commonMatchId !== null;
-  /**
-   * @brief Boolean flag indicating if the user can start the game.
-   * True if there are players, at least one match, and a common match is selected.
-   * Individual player assignments (beyond the common match) are not strictly required to enable starting the game.
-   */
+  /** Whether Start Game is enabled (players + matches + common match). */
   const canStartGame =
     players.length > 0 && matches.length > 0 && commonMatchId !== null;
 
-  /**
-   * @brief Renders the player list setup step.
-   * @return The JSX element for the player list setup.
-   */
+  /** Render player list step. */
   const renderPlayersStep = () => (
     <SetupGamePlayerList
       players={players}
@@ -156,10 +124,7 @@ const SetupGameScreen = () => {
     />
   );
 
-  /**
-   * @brief Renders the matches setup step.
-   * @return The JSX element for the matches setup.
-   */
+  /** Render matches step. */
   const renderMatchesStep = () => (
     <MatchList
       matches={matches}
@@ -173,10 +138,7 @@ const SetupGameScreen = () => {
     />
   );
 
-  /**
-   * @brief Renders the common match setup step.
-   * @return The JSX element for the common match setup.
-   */
+  /** Render common match selection step. */
   const renderCommonMatchStep = () => (
     <CommonMatchSelector
       matches={matches}
@@ -185,10 +147,7 @@ const SetupGameScreen = () => {
     />
   );
 
-  /**
-   * @brief Renders the assignment setup step.
-   * @return The JSX element for the assignment setup.
-   */
+  /** Render assignment step. */
   const renderAssignStep = () => (
     <AssignmentSection
       players={players}
@@ -202,9 +161,7 @@ const SetupGameScreen = () => {
     />
   );
 
-  /**
-   * @brief Handles adding a new player to the game.
-   */
+  /** Add new player based on current input value. */
   const handleAddPlayer = () => {
     if (newPlayerName.trim()) {
       const newPlayer: Player = {
@@ -221,10 +178,7 @@ const SetupGameScreen = () => {
     }
   };
 
-  /**
-   * @brief Handles adding a player directly by name (for dropdown selections).
-   * @param playerName The name of the player to add.
-   */
+  /** Add player directly by provided name (dropdown selection). */
   const handleAddPlayerByName = (playerName: string) => {
     if (playerName.trim()) {
       const newPlayer: Player = {
@@ -240,10 +194,7 @@ const SetupGameScreen = () => {
     }
   };
 
-  /**
-   * @brief Handles removing a player from the game.
-   * @param playerId The ID of the player to remove.
-   */
+  /** Remove player and associated assignments. */
   const handleRemovePlayer = (playerId: string) => {
     setGlobalPlayers((prevPlayers) =>
       prevPlayers.filter((player) => player.id !== playerId)
@@ -258,9 +209,7 @@ const SetupGameScreen = () => {
     });
   };
 
-  /**
-   * @brief Handles adding a new match to the game.
-   */
+  /** Add new match from home/away inputs + optional time. */
   const handleAddMatch = () => {
     if (homeTeam.trim() && awayTeam.trim()) {
       const newMatch: Match = {
@@ -278,10 +227,7 @@ const SetupGameScreen = () => {
     }
   };
 
-  /**
-   * @brief Handles removing a match from the game.
-   * @param matchId The ID of the match to remove.
-   */
+  /** Remove match and clean assignments; reset common match if removed. */
   const handleRemoveMatch = (matchId: string) => {
     setGlobalMatches((prevMatches) =>
       prevMatches.filter((match) => match.id !== matchId)
@@ -305,19 +251,16 @@ const SetupGameScreen = () => {
     }
   };
 
-  /**
-   * @brief Handles selecting a common match for the game.
-   * @param matchId The ID of the common match.
-   */
+  /** Select common match and sync to store. */
   const handleSelectCommonMatch = (matchId: string) => {
     setSelectedCommonMatch(matchId);
     setGlobalCommonMatchId(matchId);
   };
 
   /**
-   * @brief Toggles the assignment of a match to a player.
-   * @param playerId The ID of the player.
-   * @param matchId The ID of the match.
+   * Toggle assignment of a match to a player (adds if absent, removes if present).
+   * @param {string} playerId Player identifier.
+   * @param {string} matchId Match identifier.
    */
   const toggleMatchAssignment = (playerId: string, matchId: string) => {
     setGlobalPlayerAssignments(
@@ -342,33 +285,36 @@ const SetupGameScreen = () => {
   };
 
   /**
-   * @brief Handles the start game action.
-   *
-   * Validates that there are players, matches, and a common match selected
-   * before navigating to the game progress screen.
+   * Start game after validating players, matches, and selected common match.
    */
   const handleStartGame = () => {
     if (players.length === 0) {
-      Alert.alert(
-        "No Players",
-        "Please add at least one player to start the game."
-      );
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Players",
+        text2: "Please add at least one player to start the game.",
+        position: "bottom",
+      });
       return;
     }
 
     if (matches.length === 0) {
-      Alert.alert(
-        "No Matches",
-        "Please add at least one match to start the game."
-      );
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Matches",
+        text2: "Please add at least one match to start the game.",
+        position: "bottom",
+      });
       return;
     }
 
     if (!commonMatchId) {
-      Alert.alert(
-        "No Common Match",
-        "Please select a common match that all players will drink for."
-      );
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Common Match",
+        text2: "Please select a common match that all players will drink for.",
+        position: "bottom",
+      });
       return;
     }
 
@@ -441,27 +387,18 @@ const SetupGameScreen = () => {
   }
 
   /**
-   * @brief Randomly assigns matches to players following specific distribution rules.
+   * Randomly assign matches to players using distribution rules (balance & uniqueness).
    *
-   * This function creates a match distribution where:
-   * 1. All players get the common match
-   * 2. Each pair of players shares exactly one additional unique match
-   * 3. Additional individual matches are assigned as needed to reach the target count
+   * This creates a distribution where:
+   * 1. All players get the common match.
+   * 2. Each pair of players shares exactly one additional unique match.
+   * 3. Extra individual matches are assigned as needed to reach target count per player.
    *
-   * The algorithm ensures that no player pair shares more than two matches total
-   * (the common match plus their unique pair match).
+   * Ensures no player pair shares more than two matches total (common + unique pair match).
    *
-   * @param numMatches The number of ADDITIONAL matches each player should have beyond the common match.
-   *                   Total matches per player will be numMatches + 1.
-   *
-   * @throws {Error} If no common match is selected
-   * @throws {Error} If there aren't enough unique matches for all player pairs
-   * @throws {Error} If the total available matches is insufficient for the distribution
-   * @throws {Error} If the algorithm couldn't satisfy all constraints
-   *
-   * @note The calculation for minimum required matches is:
-   *       1 (common) + n(n-1)/2 (pairs) + extra matches if numMatches > n
-   *       where n is the number of players
+   * @param {number} numMatches Additional matches each player should have beyond the common match (total per player = numMatches + 1).
+   * @throws {Error} If constraints cannot be satisfied (missing common match, insufficient matches, or distribution failure).
+   * @note Minimum required matches: 1 (common) + n(n-1)/2 (pairs) + extra if numMatches > n, where n = number of players.
    */
   const handleRandomAssignment = (numMatches: number) => {
     try {
@@ -499,7 +436,7 @@ const SetupGameScreen = () => {
 
       if (matches.length < totalMatchesNeeded) {
         throw new Error(
-          `Need at least ${totalMatchesNeeded} matches total (1 common, ${pairCount} for pairs, and ${extraMatchesTotal} extra) for ${numPlayers} players with ${numMatches} additional matches each`
+          `Need ${totalMatchesNeeded} matches (${pairCount} pair + ${extraMatchesTotal} extra) for ${numPlayers} players with ${numMatches} additional each`
         );
       }
 
@@ -628,12 +565,19 @@ const SetupGameScreen = () => {
 
       // Success!
       setGlobalPlayerAssignments(newAssignments);
-      Alert.alert(
-        "Success",
-        `Matches assigned! Each player has ${numMatches} additional matches plus the common match, sharing exactly one additional match with each other player.`
-      );
+      Toast.show({
+        type: "themedSuccess",
+        text1: "Matches assigned",
+        text2: `Each player has ${numMatches} additional matches plus the common match.`,
+        position: "bottom",
+      });
     } catch (error: any) {
-      Alert.alert("Failed", error.message || "Unknown error.");
+      Toast.show({
+        type: "themedWarning",
+        text1: "Failed",
+        text2: error.message || "Unknown error.",
+        position: "bottom",
+      });
       console.error(error);
     }
   };

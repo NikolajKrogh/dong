@@ -9,7 +9,8 @@ import {
 import { cacheTeamLogo } from "../utils/teamLogos";
 
 /**
- * @brief Interface for match state with score information.
+ * Match state including live scoring and optional statistics.
+ * @description Augments a tracked match with real‑time score, status, timing and statistics pulled from the ESPN API.
  */
 export interface MatchWithScore {
   id: string;
@@ -47,18 +48,13 @@ export interface MatchStatistics {
 }
 
 /**
- * @brief Custom hook for polling live scores from the ESPN API.
- * Fetches scores for specified matches at a regular interval and provides updates.
- * @param {Match[]} matches Array of matches to monitor for score updates.
- * @param {(matchId: string, team: "home" | "away", newGoals: number) => void} updateCallback Callback function to call when a score is updated.
- * @param {number} [intervalMs=60000] Polling interval in milliseconds.
- * @return An object containing:
- *  - liveMatches: Array of matches with live score information.
- *  - isPolling: Boolean indicating if the API is currently being polled.
- *  - lastUpdated: Date object of the last successful update.
- *  - startPolling: Function to start the polling.
- *  - stopPolling: Function to stop the polling.
- *  - fetchCurrentScores: Function to manually trigger a score fetch.
+ * Polls the ESPN API for live score updates.
+ * @description Maintains a list of live match snapshots; invokes updateCallback when new goals are detected,
+ *  and exposes controls to start/stop or manually fetch.
+ * @param matches Matches to monitor.
+ * @param updateCallback Invoked when a team's goal tally increases (matchId, side, newGoals).
+ * @param intervalMs Poll interval in ms (default 60000).
+ * @returns Control and data object (liveMatches, isPolling, lastUpdated, startPolling, stopPolling, fetchCurrentScores).
  */
 export function useLiveScores(
   matches: Match[],
@@ -77,11 +73,9 @@ export function useLiveScores(
   const configuredLeagues = useGameStore((state) => state.configuredLeagues);
 
   /**
-   * @brief Fetches current scores from the ESPN API for the tracked matches.
-   * Checks network connectivity, fetches data from multiple league endpoints,
-   * processes the responses, updates the live match state, and triggers the
-   * update callback for new goals detected.
-   * @async
+   * Fetch and process current scores for tracked matches.
+   * @description Performs a connectivity check, queries each configured league, derives match state,
+   * detects new goals and updates state; silent on failures.
    */
   const fetchCurrentScores = useCallback(async () => {
     // First verify network connectivity
@@ -209,8 +203,8 @@ export function useLiveScores(
   }, [matches, updateCallback, configuredLeagues]);
 
   /**
-   * @brief Starts polling the API for score updates at the specified interval.
-   * Performs an immediate fetch upon starting. Does nothing if already polling.
+   * Start polling if not already active (immediate fetch + interval).
+   * @description No effect when already polling.
    */
   const startPolling = useCallback(() => {
     if (isPolling || pollingIntervalRef.current) return; // Prevent multiple intervals
@@ -226,8 +220,7 @@ export function useLiveScores(
   }, [isPolling, intervalMs, fetchCurrentScores]);
 
   /**
-   * @brief Stops polling the API for score updates.
-   * Clears the polling interval.
+   * Stop polling and clear the interval.
    */
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -256,10 +249,10 @@ export function useLiveScores(
 }
 
 /**
- * @brief Extracts the match ID from an ESPN API event object.
- * Safely accesses the event ID.
- * @param {any} event The ESPN API event object.
- * @returns {string | null} The match ID as a string, or null if not available or invalid.
+ * Safely extract a match id from an event.
+ * @description Returns null when event.id is missing or empty.
+ * @param event Raw ESPN event.
+ * @returns Id string or null.
  */
 const extractMatchId = (event: any): string | null => {
   if (!event || typeof event.id !== "string" || event.id === "") {
@@ -270,10 +263,10 @@ const extractMatchId = (event: any): string | null => {
 };
 
 /**
- * @brief Parses statistics from an ESPN API competitor object.
- * Extracts relevant statistics like shots, fouls, cards, and possession.
- * @param {ESPNCompetitor} competitor The ESPN API competitor object.
- * @returns {MatchStatistics} A MatchStatistics object containing parsed data.
+ * Parse subset of competitor statistics.
+ * @description Normalises numeric values, ignoring missing stats.
+ * @param competitor ESPN competitor.
+ * @returns Parsed statistics.
  */
 function parseStatistics(competitor: ESPNCompetitor): MatchStatistics {
   const stats = competitor.statistics || [];
@@ -310,10 +303,11 @@ function parseStatistics(competitor: ESPNCompetitor): MatchStatistics {
 }
 
 /**
- * @brief Processes a single match event from the ESPN API response.
- * Extracts relevant information like ID, scores, status, team names, live status, and statistics.
- * @param {any} event The ESPN API event object for a single match.
- * @returns {MatchWithScore | null} A MatchWithScore object containing processed data, or null if processing fails or data is incomplete.
+ * Transform a raw ESPN event into MatchWithScore data.
+ * @description Extracts id, teams, score, status, time display, goal scorers
+ * and statistics; returns null on invalid/incomplete data.
+ * @param event Raw ESPN event.
+ * @returns MatchWithScore or null.
  */
 const processApiMatch = (event: any): MatchWithScore | null => {
   try {

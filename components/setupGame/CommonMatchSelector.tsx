@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, Modal } from "react-native";
-import { Match } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
 import { Ionicons } from "@expo/vector-icons";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import { LinearGradient } from "expo-linear-gradient";
+import { Match } from "../../store/store";
+import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @interface CommonMatchSelectorProps
- * @brief Props for the CommonMatchSelector component.
- * @property {Match[]} matches - An array of available matches to choose from.
- * @property {string | null} selectedCommonMatch - The ID of the currently selected common match, or null if none is selected.
- * @property {(matchId: string) => void} handleSelectCommonMatch - Callback function to handle the selection of a common match.
+ * Props for common match selector.
+ * @description Supplies match list plus currently selected common match ID and a selection callback.
+ * @property matches Array of all configured matches available for selection.
+ * @property selectedCommonMatch ID of the match currently marked as common, or null if none selected.
+ * @property handleSelectCommonMatch Callback invoked with a match ID when user selects/changes the common match.
  */
 interface CommonMatchSelectorProps {
   matches: Match[];
@@ -21,14 +21,10 @@ interface CommonMatchSelectorProps {
 }
 
 /**
- * @brief A React functional component for selecting a common match from a list.
- *
- * This component displays a list of matches and allows the user to select one as the "common match".
- * It also includes an informational modal explaining what a common match is.
- * If no matches are available, it displays a message prompting the user to add matches.
- *
- * @param {CommonMatchSelectorProps} props - The props for the component.
- * @returns {React.ReactNode} The rendered component.
+ * Common match selector.
+ * @description Lets user pick a single shared (all players) match; includes info modal when needed.
+ * @param {CommonMatchSelectorProps} props Component props.
+ * @returns {React.ReactElement} Component element.
  */
 const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
   matches,
@@ -36,18 +32,15 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
   handleSelectCommonMatch,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
-  /**
-   * @brief Toggles the visibility of the informational modal.
-   */
+  /** Toggle info modal visibility. */
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
   };
 
-  /**
-   * @const {string} commonMatchInfo
-   * @brief Informational text explaining the concept of a common match.
-   */
+  /** Informational copy for concept explanation. */
   const commonMatchInfo =
     "The common match is the game that's shown on TV and applies to all participants in the game. Regardless of which other matches players choose individually, everyone must drink one beer when a goal is scored in the common match.";
 

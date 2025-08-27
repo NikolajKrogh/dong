@@ -11,11 +11,8 @@ import {
   SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  manageLeaguesModalStyles,
-  addLeagueModalStyles,
-} from "../../app/style/userPreferencesStyles";
-import { colors } from "../../app/style/palette";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../app/style/theme";
 import {
   AVAILABLE_LEAGUES,
   LEAGUE_CATEGORIES,
@@ -24,48 +21,44 @@ import {
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 
 /**
- * @interface AddLeagueModalProps
- * @brief Props for the AddLeagueModal component.
+ * Props for add league modal.
+ * @description Controls modal visibility, league selection state and search; supplies callbacks for selection toggling, bulk add and closing.
+ * @property visible Whether the modal is currently shown.
+ * @property onClose Callback fired to request closing the modal (after internal reset logic runs).
+ * @property configuredLeagues Leagues already persisted / in use (excluded from selectable list).
+ * @property selectedLeagues Leagues currently picked in this modal (pending confirmation).
+ * @property setSelectedLeagues Replaces the full pending selection array.
+ * @property toggleLeagueSelection Toggles a single league in the pending selection set.
+ * @property handleAddSelectedLeagues Commits the currently selected leagues (e.g., adds to store) then typically closes the modal.
+ * @property searchQuery Current text query for filtering leagues by name/code.
+ * @property setSearchQuery Setter to update the search query (debounce handled upstream if needed).
  */
 interface AddLeagueModalProps {
-  /** @brief Whether the modal is visible. */
+  /** Modal visibility flag. */
   visible: boolean;
-  /** @brief Function to call when the modal is closed. */
+  /** Called when modal should close. */
   onClose: () => void;
-  /** @brief Array of currently configured leagues. */
+  /** Already configured leagues. */
   configuredLeagues: LeagueEndpoint[];
-  /** @brief Array of currently selected leagues. */
+  /** Currently selected (pending add) leagues. */
   selectedLeagues: LeagueEndpoint[];
-  /**
-   * @brief Function to set the selected leagues.
-   * @param leagues The new array of selected leagues.
-   */
+  /** Replace selected leagues list. */
   setSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
-  /**
-   * @brief Function to toggle the selection state of a league.
-   * @param league The league to toggle.
-   */
+  /** Toggle a league's selection state. */
   toggleLeagueSelection: (league: LeagueEndpoint) => void;
-  /** @brief Function to handle the addition of selected leagues. */
+  /** Commit adding selected leagues. */
   handleAddSelectedLeagues: () => void;
-  /** @brief The current search query. */
+  /** Current search query. */
   searchQuery: string;
-  /**
-   * @brief Function to set the search query.
-   * @param query The new search query.
-   */
+  /** Update search query. */
   setSearchQuery: (query: string) => void;
 }
 
 /**
- * @brief LeagueItem component.
- *
- * Displays a single league item with its logo, name, and selection status.
- *
- * @param league The league data to display.
- * @param isSelected Whether the league is currently selected.
- * @param onPress Function to call when the league item is pressed.
- * @returns {JSX.Element} The rendered LeagueItem.
+ * Single league list item.
+ * @description Shows league logo, name and selection state; press toggles selection.
+ * @param props Item props.
+ * @returns {JSX.Element} Rendered league row.
  */
 const LeagueItem = ({
   league,
@@ -76,6 +69,11 @@ const LeagueItem = ({
   isSelected: boolean;
   onPress: () => void;
 }) => {
+  const colors = useColors();
+  const { addLeagueModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
 
   return (
@@ -142,20 +140,10 @@ const LeagueItem = ({
 };
 
 /**
- * @brief AddLeagueModal component.
- *
- * A modal component for adding new leagues to the configured leagues.
- * Allows users to search for leagues, filter by category, and select leagues to add.
- *
- * @param visible Whether the modal is visible.
- * @param onClose Function to call when the modal is closed.
- * @param configuredLeagues Array of currently configured leagues.
- * @param selectedLeagues Array of currently selected leagues.
- * @param toggleLeagueSelection Function to toggle the selection state of a league.
- * @param handleAddSelectedLeagues Function to handle the addition of selected leagues.
- * @param searchQuery The current search query.
- * @param setSearchQuery Function to set the search query.
- * @returns {JSX.Element} The rendered AddLeagueModal.
+ * Add leagues modal.
+ * @description Search/filter and select leagues to add; excludes already configured leagues.
+ * @param {AddLeagueModalProps} props Component props.
+ * @returns {JSX.Element} Modal content.
  */
 const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
   visible,
@@ -169,11 +157,15 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
   setSearchQuery,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("Europe");
+  const colors = useColors();
+  const { manageLeaguesModalStyles, addLeagueModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
 
   /**
-   * @brief Handles the closing of the modal.
-   *
-   * Resets the search query and selected category, then calls the onClose function.
+   * Close handler.
+   * @description Resets search and category then triggers onClose.
    */
   const handleClose = () => {
     setSearchQuery("");
@@ -226,6 +218,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
             <TextInput
               style={addLeagueModalStyles.searchInput}
               placeholder="Search leagues..."
+              placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               autoCapitalize="none"

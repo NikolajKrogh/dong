@@ -1,122 +1,125 @@
+/**
+ * @file store.ts
+ * @description Global Zustand store defining core domain entities (Player, Match, GameSession) and state/actions for configuring, running, and persisting game sessions. Persists a curated subset of state to AsyncStorage.
+ */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
 
 /**
- * @brief Interface representing a player in the game.
- * - Contains the player's unique identifier, name, and optionally the number of drinks taken.
+ * Player participating in a game.
+ * @description Contains a unique identifier, display name and optional drink count metric accumulated during the game.
  */
 export interface Player {
-  /** @brief Unique identifier for the player. */
+  /** Unique identifier for the player. */
   id: string;
-  /** @brief Name of the player. */
+  /** Name of the player. */
   name: string;
-  /** @brief Optional count of drinks taken by the player during a game session. */
+  /** Optional count of drinks taken by the player during a game session. */
   drinksTaken?: number;
 }
 
 /**
- * @brief Interface representing a match in the game.
- * - Contains the match's unique identifier, team names, goals scored by each team, and optionally the total goals.
+ * Match within the game session.
+ * @description Stores IDs, participating team names, individual goal counts, and a legacy aggregate goal field retained for migration.
  */
 export interface Match {
-  /** @brief Unique identifier for the match. */
+  /** Unique identifier for the match. */
   id: string;
-  /** @brief Name of the home team. */
+  /** Name of the home team. */
   homeTeam: string;
-  /** @brief Name of the away team. */
+  /** Name of the away team. */
   awayTeam: string;
-  /** @brief Number of goals scored by the home team. */
+  /** Number of goals scored by the home team. */
   homeGoals: number;
-  /** @brief Number of goals scored by the away team. */
+  /** Number of goals scored by the away team. */
   awayGoals: number;
-  /** @brief Optional total number of goals in the match (calculated). */
+  /** Optional total number of goals in the match (legacy / derived). */
   goals?: number;
   startTime?: string;
 }
 
 /**
- * @brief Type definition for mapping player IDs to an array of match IDs they are assigned to.
- * - Used to track which matches each player is participating in.
+ * Mapping of player IDs to the match IDs they are assigned.
+ * @description Used to determine involvement and derive who should drink after a goal event.
  */
 type PlayerAssignments = { [playerId: string]: string[] };
 
 /**
- * @brief Interface representing a completed game session stored in history.
- * - Contains details about the game, including players, matches, assignments, and settings at the time of completion.
+ * Historical game session snapshot.
+ * @description Captures final state needed for later statistics: players (with drinks), matches, assignments, chosen common match and per‑player match count.
  */
 interface GameSession {
-  /** @brief Unique identifier for the game session. */
+  /** Unique identifier for the game session. */
   id: string;
-  /** @brief ISO string representation of the date and time the game session was saved. */
+  /** ISO timestamp when the game session was saved. */
   date: string;
-  /** @brief Array of players who participated in the game session, including their final drink counts. */
+  /** Players who participated (with final drink counts). */
   players: Player[];
-  /** @brief Array of matches played during the game session. */
+  /** Matches in the session. */
   matches: Match[];
-  /** @brief The common match ID used during the game, if applicable. */
+  /** Common match ID if selected. */
   commonMatchId: string | null;
-  /** @brief Mapping of player IDs to the match IDs they were assigned. */
+  /** Player-to-match assignment map. */
   playerAssignments: PlayerAssignments;
-  /** @brief The number of matches assigned per player in this session. */
+  /** Matches per player in this session. */
   matchesPerPlayer: number;
 }
 
 /**
- * @brief Interface defining the structure of the game state managed by Zustand.
- * - Includes current game details, game history, and actions to modify the state.
+ * Global game state structure managed by Zustand.
+ * @description Includes current configuration, runtime game data, user preferences, and persisted history along with mutation actions.
  */
 interface GameState {
+  /** Current theme mode for the app. */
+  theme: "light" | "dark";
   // Current game state
-  /** @brief Array of players currently participating in the game. */
+  /** Players in the current (active) game. */
   players: Player[];
-  /** @brief Array of matches currently part of the game. */
+  /** Matches in the current game. */
   matches: Match[];
-  /** @brief The common match ID for the current game, if one is selected. */
+  /** Common match ID for current game (if any). */
   commonMatchId: string | null;
-  /** @brief Current mapping of player IDs to assigned match IDs. */
+  /** Current player-to-match assignments. */
   playerAssignments: PlayerAssignments;
-  /** @brief Number of matches assigned per player for the current game setup. */
+  /** Matches per player for current setup. */
   matchesPerPlayer: number;
-  /** @brief Flag indicating if the introductory video has been played during the current app session. */
+  /** Whether the intro video has played this app session. */
   hasVideoPlayed: boolean;
-  /** @brief Flag indicating if sound effects are enabled. */
+  /** Whether sound effects are enabled. */
   soundEnabled: boolean;
-  /** @brief Flag indicating if notifications for common match are enabled. */
+  /** Whether common match goal notifications are enabled. */
   commonMatchNotificationsEnabled: boolean;
-  /** @brief Leagues configured by the user for fetching match data */
+  /** Leagues configured by user for fetching match data. */
   configuredLeagues: LeagueEndpoint[];
-  /** @brief Default leagues selected by the user to be active when opening the match list. */
+  /** Default leagues pre-selected when opening match list. */
   defaultSelectedLeagues: LeagueEndpoint[];
 
   // Game history
-  /** @brief Array containing past completed game sessions. */
+  /** Completed game sessions history. */
   history: GameSession[];
 
   // Actions for current game
   /**
-   * @brief Sets or updates the list of players in the current game.
-   * @param players - Either an array of Player objects or a function that receives the previous state and returns the new array.
-   * @return void
+  /**
+   * Sets or updates players for the current game.
+   * @param players Array or updater producing the new player collection.
    */
   setPlayers: (players: Player[] | ((prev: Player[]) => Player[])) => void;
   /**
-   * @brief Sets or updates the list of matches in the current game.
-   * @param matches - Either an array of Match objects or a function that receives the previous state and returns the new array.
-   * @return void
+   * Sets or updates matches for the current game.
+   * @param matches Array or updater producing the new match collection.
    */
   setMatches: (matches: Match[] | ((prev: Match[]) => Match[])) => void;
   /**
-   * @brief Sets the common match ID for the current game.
-   * @param commonMatchId - The ID of the common match, or null if none.
-   * @return void
+   * Sets the common match ID.
+   * @param commonMatchId Match ID or null to clear.
    */
   setCommonMatchId: (commonMatchId: string | null) => void;
   /**
-   * @brief Sets or updates the player-to-match assignments for the current game.
-   * @param playerAssignments - Either a PlayerAssignments object or a function that receives the previous state and returns the new object.
-   * @return void
+   * Sets or updates player assignments.
+   * @param playerAssignments Mapping or updater function.
    */
   setPlayerAssignments: (
     playerAssignments:
@@ -124,75 +127,60 @@ interface GameState {
       | ((prev: PlayerAssignments) => PlayerAssignments)
   ) => void;
   /**
-   * @brief Sets the number of matches assigned per player for the current game setup.
-   * @param count - The number of matches per player.
-   * @return void
+   * Sets matches per player configuration value.
+   * @param count Number of matches each player should receive.
    */
   setMatchesPerPlayer: (count: number) => void;
   /**
-   * @brief Sets the flag indicating whether the introductory video has played.
-   * @param value - Boolean value, true if the video has played, false otherwise.
-   * @return void
+   * Marks whether intro video has played this session.
+   * @param value Boolean flag.
    */
   setHasVideoPlayed: (value: boolean) => void;
   /**
-   * @brief Sets the flag indicating whether sound effects are enabled.
-   * @param enabled - Boolean value, true if sound is enabled, false otherwise.
-   * @return void
+   * Enables or disables sound effects.
+   * @param enabled Boolean flag.
    */
   setSoundEnabled: (enabled: boolean) => void;
   /**
-   * @brief Sets the flag indicating whether notifications for common match are enabled.
-   * @param enabled - Boolean value, true if common match notifications are enabled, false otherwise.
-   * @return void
+   * Enables or disables notifications for the common match.
+   * @param enabled Boolean flag.
    */
   setCommonMatchNotificationsEnabled: (enabled: boolean) => void;
   /**
-   * @brief Sets the list of configured leagues
-   * @param leagues - Array of league endpoints
+   * Sets configured leagues list.
+   * @param leagues League endpoint descriptors.
    */
   setConfiguredLeagues: (leagues: LeagueEndpoint[]) => void;
   /**
-   * @brief Adds a league to the configured leagues
-   * @param league - The league endpoint to add
+   * Adds a league to the configured list (de‑duplicates by code).
+   * @param league League endpoint to add.
    */
   addLeague: (league: LeagueEndpoint) => void;
   /**
-   * @brief Removes a league from the configured leagues
-   * @param code - The league code to remove
-   * @return void
+   * Removes a league by code.
+   * @param code League code.
    */
   removeLeague: (code: string) => void;
-  /**
-   * @brief Reset leagues to defaults
-   */
+  /** Resets leagues and defaults to initial set. */
   resetLeaguesToDefaults: () => void;
   /**
-   * @brief Sets the default selected leagues.
-   * @param leagues - Array of league endpoints to set as default.
+   * Updates default selected leagues.
+   * @param leagues League endpoints to mark as default.
    */
   setDefaultSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
+  /** Sets the current theme (light or dark). */
+  setTheme: (theme: "light" | "dark") => void;
 
   // Actions for game history
-  /**
-   * @brief Saves the current game state as a new session in the history.
-   * @params None
-   * @return void
-   */
+  /** Saves current game state as a new history entry. */
   saveGameToHistory: () => void;
-  /**
-   * @brief Resets the current game state fields to their initial default values.
-   * - Does not reset history, soundEnabled, or hasVideoPlayed status.
-   * @params None
-   * @return void
-   */
+  /** Resets current game state (retains history, soundEnabled, hasVideoPlayed). */
   resetState: () => void;
 }
 
 /**
- * @brief Zustand store hook for managing the global game state.
- * - Uses persistence middleware to save parts of the state to AsyncStorage.
- * - Provides access to the game state variables and actions defined in GameState.
+ * Zustand store hook exposing global game state & actions.
+ * @description Applies persistence middleware (AsyncStorage) to a curated subset of state keys for resilience across app restarts.
  */
 export const useGameStore = create<GameState>()(
   persist(
@@ -204,6 +192,7 @@ export const useGameStore = create<GameState>()(
       playerAssignments: {},
       matchesPerPlayer: 1,
       hasVideoPlayed: false,
+      theme: "light",
       soundEnabled: true,
       commonMatchNotificationsEnabled: true,
       configuredLeagues: LEAGUE_ENDPOINTS, // Initialize with all available as "configured"
@@ -262,6 +251,8 @@ export const useGameStore = create<GameState>()(
       setDefaultSelectedLeagues: (leagues) =>
         set({ defaultSelectedLeagues: leagues }),
 
+      setTheme: (theme) => set({ theme }),
+
       saveGameToHistory: () =>
         set((state) => {
           const newGameSession: GameSession = {
@@ -303,7 +294,8 @@ export const useGameStore = create<GameState>()(
         soundEnabled: state.soundEnabled,
         commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
         configuredLeagues: state.configuredLeagues,
-        defaultSelectedLeagues: state.defaultSelectedLeagues, 
+        defaultSelectedLeagues: state.defaultSelectedLeagues,
+        theme: state.theme,
       }),
     }
   )

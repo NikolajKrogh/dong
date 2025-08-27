@@ -8,8 +8,8 @@ import {
   Animated,
 } from "react-native";
 import { Player } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePlayerSuggestions } from "../../hooks/usePlayerSuggestions";
@@ -49,6 +49,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
   handleAddPlayerByName,
   handleRemovePlayer,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const inputRef = useRef<TextInput>(null);
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
   const [showSuggestions, setShowSuggestions] = useState(false);

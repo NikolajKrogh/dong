@@ -3,7 +3,8 @@ import { View, FlatList, Dimensions } from "react-native";
 import { MatchesGridProps, SortField, SortDirection } from "./types";
 import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../hooks/useLiveScores";
-import styles from "../../../app/style/gameProgressStyles";
+import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
+import { useColors } from "../../../app/style/theme";
 
 import MatchesHeader from "./MatchesHeader";
 import SortModal from "./SortModal";
@@ -12,9 +13,12 @@ import MatchListItem from "./MatchListItem";
 import LastUpdatedFooter from "./LastUpdatedFooter";
 
 /**
- * @component MatchesGridContainer
- * @brief Main container component that manages state and coordinates child components
- * @param {MatchesGridProps} props - The properties for the component.
+ * Main container that manages match rendering (grid or list), sorting, and integration of player assignments & live scores.
+ * @component
+ * @param {MatchesGridProps} props Component props.
+ * @description Coordinates layout mode toggling (grid/list), sorting by team or player,
+ * pins the common match at the top, and supplies each row/card with its players and live match data.
+ * Also wires up refresh / last updated footer metadata.
  */
 const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   matches,
@@ -29,6 +33,11 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   lastUpdated,
   isPolling,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(
+    () => createGameProgressStyles(colors),
+    [colors]
+  );
   // State to track layout mode
   const [useGridLayout, setUseGridLayout] = useState(false);
   // State for sorting options
@@ -42,14 +51,14 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   const numColumns = useGridLayout ? (screenWidth > 600 ? 3 : 2) : 1;
 
   /**
-   * @brief Toggles the display mode between grid and list layouts.
+   * Toggles between grid and list layout modes.
    */
   const toggleLayoutMode = () => {
     setUseGridLayout(!useGridLayout);
   };
 
   /**
-   * @brief Changes the sort field and toggles direction if same field is selected
+   * Changes the active sort field or toggles direction when the same field is re-selected.
    */
   const changeSortOption = (field: SortField) => {
     if (field === sortField) {
@@ -64,9 +73,11 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   };
 
   /**
-   * @brief Gets the sorted list of players for a match
-   * @param {Match} match - The match to get players for
-   * @returns {Player[]} The sorted list of players assigned to the match
+   * Returns alphabetically sorted players assigned to a specific match (or all players if it's the common match).
+   * @param {Match} match The match to retrieve players for.
+   * @returns {Player[]} Sorted player array.
+   * @description Filters players based on assignment mapping unless the match is the common match (then includes all).
+   * Result is sorted by player name for deterministic ordering.
    */
   const getSortedPlayersForMatch = (match: Match): Player[] => {
     return players
@@ -80,17 +91,18 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   };
 
   /**
-   * @brief Retrieves live match information for a given match ID.
-   * @param {string} matchId - The ID of the match to find live info for.
-   * @returns {MatchWithScore | undefined} The live match data or undefined if not found.
+   * Retrieves live score data for a given match ID if available.
+   * @param {string} matchId Match identifier.
+   * @returns {MatchWithScore | undefined} Live match info or undefined.
    */
   const getLiveMatchInfo = (matchId: string): MatchWithScore | undefined => {
     return liveMatches.find((m) => m.id === matchId);
   };
 
   /**
-   * @brief Memoized sorted list of matches.
-   * Sorts matches based on selected sort field and direction.
+   * Memoized array of matches sorted per current field & direction with the common match pinned at the top.
+   * @description Sorting prioritizes the common match first, then applies the selected criterion
+   * (home team, away team, or first assigned player name) with chosen direction.
    */
   const sortedMatches = React.useMemo(() => {
     return [...matches].sort((a, b) => {

@@ -2,11 +2,8 @@ import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  settingsStyles,
-  commonStyles,
-} from "../../app/style/userPreferencesStyles";
-import { colors } from "../../app/style/palette";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../app/style/theme";
 
 interface LeagueSettingsProps {
   configuredLeagues: LeagueEndpoint[];
@@ -22,30 +19,37 @@ const SettingsRow: React.FC<{
   onPress: () => void;
   iconName: keyof typeof Ionicons.glyphMap;
   valueIsSecondary?: boolean;
-}> = ({ label, value, onPress, iconName, valueIsSecondary }) => (
-  <TouchableOpacity onPress={onPress} style={settingsStyles.preferenceRow}>
-    <View style={settingsStyles.labelContainer}>
-      {/* @ts-ignore */}
-      <Ionicons
-        name={iconName}
-        size={22}
-        color={colors.secondary}
-        style={settingsStyles.prefIcon}
-      />
-      <Text style={settingsStyles.preferenceLabel}>{label}</Text>
-    </View>
-    {value && (
-      <Text
-        style={[
-          { fontSize: 14, color: colors.textMuted },
-          valueIsSecondary && { fontStyle: "italic" },
-        ]}
-      >
-        {value}
-      </Text>
-    )}
-  </TouchableOpacity>
-);
+}> = ({ label, value, onPress, iconName, valueIsSecondary }) => {
+  const colors = useColors();
+  const { settingsStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
+  return (
+    <TouchableOpacity onPress={onPress} style={settingsStyles.preferenceRow}>
+      <View style={settingsStyles.labelContainer}>
+        {/* @ts-ignore */}
+        <Ionicons
+          name={iconName}
+          size={22}
+          color={colors.secondary}
+          style={settingsStyles.prefIcon}
+        />
+        <Text style={settingsStyles.preferenceLabel}>{label}</Text>
+      </View>
+      {value && (
+        <Text
+          style={[
+            { fontSize: 14, color: colors.textMuted },
+            valueIsSecondary && { fontStyle: "italic" },
+          ]}
+        >
+          {value}
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 const LeagueSettings: React.FC<LeagueSettingsProps> = ({
   configuredLeagues,
@@ -54,6 +58,11 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
   defaultSelectedLeagues,
   onSetDefaultLeaguesPress,
 }) => {
+  const colors = useColors();
+  const { commonStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   const configuredLeagueCount = configuredLeagues.length;
 
   return (

@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Match } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow";
 import MatchItem from "./MatchItem";
@@ -28,12 +28,9 @@ import { LeagueEndpoint } from "../../constants/leagues";
 import { useGameStore } from "../../store/store";
 
 /**
- * @brief Helper function to get today's date in YYYY-MM-DD format.
- *
- * Creates a new Date object for the current date and converts it to
- * the ISO string format, then extracts just the date portion.
- *
- * @return A string representing today's date in YYYY-MM-DD format.
+ * Get today's date (YYYY-MM-DD).
+ * @description Returns ISO date portion for current day.
+ * @returns {string} Date string.
  */
 const getTodayDate = (): string => {
   const today = new Date();
@@ -42,7 +39,7 @@ const getTodayDate = (): string => {
 
 /**
  * @interface MatchListProps
- * @brief Props for the MatchList component.
+ * Props for the MatchList component.
  *
  * @property {Match[]} matches - List of current match objects.
  * @property {string} homeTeam - Currently selected home team name.
@@ -65,9 +62,9 @@ interface MatchListProps {
 }
 
 /**
- * @brief Functional component that renders a list of matches with filtering and team selection.
+ * Functional component that renders a list of matches with filtering and team selection.
  *
- * This component fetches match data from an API and team data from league JSON files.
+ * @description This component fetches match data from an API and team data from league JSON files.
  * It provides:
  * - League filtering to narrow down matches and teams
  * - Date and time filtering for matches
@@ -93,26 +90,18 @@ const MatchList: FC<MatchListProps> = ({
   handleRemoveMatch,
   setGlobalMatches,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore(); // Get from store
-  /**
-   * @brief State for the selected date for match filtering. Initializes to today's date.
-   * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
-   */
+  // Selected date (init to today)
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
-  /**
-   * @brief State for the currently selected match data, used to pre-fill team selection.
-   * @type {[MatchData | null, React.Dispatch<React.SetStateAction<MatchData | null>>]}
-   */
+  // Selected match details (for prefill)
   const [selectedMatchData, setSelectedMatchData] = useState<MatchData | null>(
     null
   );
 
-  /**
-   * @brief Custom hook for fetching and managing match data.
-   * Provides loading states, error states, team data extracted from matches,
-   * raw API data, and available leagues based on the `selectedDate`.
-   */
+  // Match data hook (api + teams + leagues)
   const {
     isLoading: isMatchLoading,
     isError: isMatchError,
@@ -122,10 +111,7 @@ const MatchList: FC<MatchListProps> = ({
     availableLeagues, // Leagues available from the API
   } = useMatchData(selectedDate);
 
-  /**
-   * @brief Custom hook for fetching and managing team data from local/static sources.
-   * Provides loading states, error states, and comprehensive team data from league JSON files.
-   */
+  // Local/static team data hook
   const {
     isLoading: isTeamLoading,
     isError: isTeamError,
@@ -134,11 +120,8 @@ const MatchList: FC<MatchListProps> = ({
   } = useTeamData();
 
   /**
-   * @brief State for the currently selected leagues for filtering.
-   * Initializes with user's default selected leagues from store, or hardcoded defaults.
-   * This state is updated by user interactions in the `LeagueFilter` component
-   * and synchronized with `availableLeagues` from the API to ensure correct league codes.
-   * @type {[LeagueEndpoint[], React.Dispatch<React.SetStateAction<LeagueEndpoint[]>>]}
+   * Selected leagues used for filtering.
+   * @description Initialized from stored defaults (if any) otherwise a fallback set. Updated via user interactions in `LeagueFilter` and aligned with `availableLeagues` to ensure codes are present.
    */
   const [selectedLeagues, setSelectedLeagues] = useState<LeagueEndpoint[]>(
     () => {
@@ -158,38 +141,33 @@ const MatchList: FC<MatchListProps> = ({
   );
 
   /**
-   * @brief State for filtered matches based on league, date, and time criteria.
-   * @type {[MatchData[], React.Dispatch<React.SetStateAction<MatchData[]>>]}
+   * Matches after applying league, date and time filters.
    */
   const [filteredMatches, setFilteredMatches] = useState<MatchData[]>([]);
 
   /**
-   * @brief State for the start time used in time filtering. Defaults to "15:00".
-   * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
+   * Start time boundary for time filtering (HH:MM, 24h).
    */
   const [startTime, setStartTime] = useState("15:00");
 
   /**
-   * @brief State for the end time used in time filtering. Defaults to "16:00".
-   * @type {[string, React.Dispatch<React.SetStateAction<string>>]}
+   * End time boundary for time filtering (HH:MM, 24h).
    */
-  const [endTime, setEndTime] = useState("16:00"); // Default was 22:00, changed to 16:00 for testing
+  const [endTime, setEndTime] = useState("16:00");
 
   /**
-   * @brief State indicating whether time filtering is currently active.
-   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   * Whether a time range filter is active.
    */
   const [isTimeFilterActive, setIsTimeFilterActive] = useState(false);
 
   /**
-   * @brief State indicating whether date filtering is currently active.
-   * @type {[boolean, React.Dispatch<React.SetStateAction<boolean>>]}
+   * Whether a date filter is active.
    */
   const [isDateFilterActive, setIsDateFilterActive] = useState(false);
 
   /**
-   * @brief Custom hook for filtering teams based on selected leagues and current match/team selections.
-   * Provides `filteredTeamsData` (teams available for selection dropdowns) and `setFilteredTeamsData`.
+   * Filter teams based on selected leagues & current selections (hook output).
+   * @description Supplies `filteredTeamsData` for dropdowns plus a setter.
    */
   const { filteredTeamsData, setFilteredTeamsData } = useTeamFiltering(
     matchTeamsData, // Use teams from API matches for filtering context
@@ -200,13 +178,8 @@ const MatchList: FC<MatchListProps> = ({
   );
 
   /**
-   * @brief Prepares home team options for the selection dropdown with normalized display names.
-   * Maps `allTeamsData` (from local JSON) to include:
-   * - Unique key for React rendering.
-   * - Original team value for data storage.
-   * - Normalized display name without common prefixes/suffixes (e.g., "FC").
-   * - League information for potential filtering or display.
-   * @type {{key: string, value: string, displayName: string, league: string}[]}
+   * Home team dropdown options with normalized display names.
+   * @description Derived from `allTeamsData` with cleaned display names and stable keys.
    */
   const homeTeamOptions = allTeamsData.map((team) => {
     const displayName = team.value
@@ -227,9 +200,7 @@ const MatchList: FC<MatchListProps> = ({
   });
 
   /**
-   * @brief Prepares away team options for the selection dropdown with normalized display names.
-   * Similar to `homeTeamOptions` but with unique keys prefixed for away teams.
-   * @type {{key: string, value: string, displayName: string, league: string}[]}
+   * Away team dropdown options (structure mirrors `homeTeamOptions`).
    */
   const awayTeamOptions = allTeamsData.map((team) => {
     const displayName = team.value
@@ -250,8 +221,8 @@ const MatchList: FC<MatchListProps> = ({
   });
 
   /**
-   * @brief Custom hook for batch processing of matches (e.g., adding multiple filtered matches).
-   * Provides `startProcessing` function and `processingState` (isProcessing, matchesAdded, matchesSkipped).
+   * Batch match processing utilities from hook.
+   * @description Exposes `startProcessing` plus progress state (added/skipped counts).
    */
   const { startProcessing, processingState } = useMatchProcessing(
     matches,
@@ -262,9 +233,9 @@ const MatchList: FC<MatchListProps> = ({
   );
 
   /**
-   * @brief Effect hook to filter matches based on date, time, and league criteria.
+   * Effect hook to filter matches based on date, time, and league criteria.
    *
-   * This effect performs several steps:
+   * @description This effect performs several steps:
    * 1. Extracts all matches from the raw `apiData`.
    * 2. Filters these matches by the selected date and time range using `filterMatchesByDateAndTime`.
    * 3. Further filters the matches by selected leagues:
@@ -380,8 +351,8 @@ const MatchList: FC<MatchListProps> = ({
   ]);
 
   /**
-   * @brief Effect hook to synchronize initial `selectedLeagues` with codes from `availableLeagues`.
-   * When `availableLeagues` (from API) are loaded, this effect checks if the initially
+   * Effect hook to synchronize initial `selectedLeagues` with codes from `availableLeagues`.
+   * @description When `availableLeagues` (from API) are loaded, this effect checks if the initially
    * selected leagues (by name) exist in `availableLeagues`. If so, it updates
    * `selectedLeagues` state with the versions from `availableLeagues` which include the correct API codes.
    * This ensures that league selection highlighting and filtering work correctly.
@@ -420,11 +391,8 @@ const MatchList: FC<MatchListProps> = ({
   }, [availableLeagues]); // Intentionally not including selectedLeagues to run only when API leagues update
 
   /**
-   * @brief Handles toggling a league in the `selectedLeagues` state.
-   * If the league (identified by its code) is already selected, it's removed.
-   * If not, it's added to the selection.
-   *
-   * @param {LeagueEndpoint} league - The league object to toggle.
+   * Toggle a league's inclusion in selection.
+   * @param league League to toggle.
    */
   const handleLeagueChange = (league: LeagueEndpoint) => {
     setSelectedLeagues((prev) => {
@@ -438,9 +406,9 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Handles adding all currently `filteredMatches` to the game.
+   * Handles adding all currently `filteredMatches` to the game.
    *
-   * Validates that:
+   * @description Validates that:
    * 1. There are matches in `filteredMatches` to add.
    * 2. At least one filter (date or time) is active.
    *
@@ -460,18 +428,9 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Normalizes team names for robust comparison and matching.
-   *
-   * Transformations include:
-   * - Converting to lowercase.
-   * - Removing common suffixes like "FC".
-   * - Removing common prefixes (e.g., "FC", "AFC", "1. FC").
-   * - Removing ampersands and multiple spaces/hyphens/dots.
-   * - Normalizing common accented characters (ø to o, ü to u, etc.).
-   * - Trimming whitespace.
-   *
-   * @param {string} name - The team name to normalize.
-   * @return {string} The normalized team name. Returns an empty string if input is falsy.
+   * Normalize a team name for comparison (lowercase, strip prefixes/suffixes, punctuation, accents).
+   * @param name Raw team name.
+   * @returns Normalized string (empty if falsy input).
    */
   const normalizeTeamName = (name: string): string => {
     if (!name) return "";
@@ -492,11 +451,8 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Adds a new custom home team to the `filteredTeamsData` state.
-   * This allows users to add teams not present in the fetched data.
-   * The team's league is set to the first selected league or "Custom" if no league is selected.
-   *
-   * @param {string} newTeamName - The name of the new home team to add.
+   * Add a custom home team entry to selection dataset.
+   * @param newTeamName Team name to add.
    */
   const addNewHomeTeam = (newTeamName: string) => {
     const league =
@@ -512,10 +468,8 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Adds a new custom away team to the `filteredTeamsData` state.
-   * Similar to `addNewHomeTeam` but for away teams.
-   *
-   * @param {string} newTeamName - The name of the new away team to add.
+   * Add a custom away team entry to selection dataset.
+   * @param newTeamName Team name to add.
    */
   const addNewAwayTeam = (newTeamName: string) => {
     const league =
@@ -531,10 +485,7 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Adds the currently selected home and away teams as a new match to the global `matches` list.
-   * This function is typically called when adding a single, manually configured match.
-   * It uses `selectedMatchData` for the match ID and start time if available, otherwise generates a new ID.
-   * After adding, it clears the team selections and `selectedMatchData`.
+   * Add currently selected teams as a new match (uses selected API match metadata if present).
    */
   const handleAddMatchLocally = () => {
     if (homeTeam.trim() && awayTeam.trim()) {
@@ -558,17 +509,14 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Convenience function that adds the current match (via `handleAddMatchLocally`)
-   * and then clears the team selection fields.
+   * Wrapper to add current match then clear selections.
    */
   const handleAddMatchAndClear = () => {
     handleAddMatchLocally();
   };
 
   /**
-   * @brief Clears all matches from the global matches list with a fade-out animation.
-   * Validates that there are matches to clear first.
-   * It animates all existing match items to fade out before updating the global state.
+   * Clear all matches with a fade-out animation (no-op if list empty).
    */
   const handleClearAllMatches = () => {
     if (matches.length === 0) {
@@ -597,18 +545,12 @@ const MatchList: FC<MatchListProps> = ({
   };
 
   /**
-   * @brief Ref to store Animated.Value instances for each match item, enabling fade-out animations.
-   * The keys are match IDs.
-   * @type {React.MutableRefObject<{[key: string]: Animated.Value}>}
+   * Ref map of matchId -> Animated.Value for fade animations.
    */
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
 
   /**
-   * @brief Effect hook to ensure `fadeAnims` ref has an Animated.Value for each match.
-   * When the `matches` list changes (e.g., a match is added), this effect ensures
-   * that new matches get an animation value initialized to 1 (fully opaque).
-   *
-   * Dependencies: `matches`.
+   * Ensure each match has an animation value; prune removed matches.
    */
   useEffect(() => {
     matches.forEach((match) => {
@@ -626,13 +568,8 @@ const MatchList: FC<MatchListProps> = ({
   }, [matches]);
 
   /**
-   * @brief Removes a specific match by its ID with a fade-out animation.
-   * It triggers an animation for the specified match item. On animation completion,
-   * it calls the `handleRemoveMatch` prop (from parent) to update the global state
-   * and then removes the animation value from the `fadeAnims` ref.
-   * If no animation value exists for the match, it removes it immediately.
-   *
-   * @param {string} matchId - The ID of the match to remove.
+   * Remove a match with fade-out animation fallback.
+   * @param matchId Match identifier.
    */
   const handleRemoveWithAnimation = (matchId: string) => {
     const anim = fadeAnims.current[matchId];
@@ -650,20 +587,11 @@ const MatchList: FC<MatchListProps> = ({
     });
   };
 
-  /**
-   * @brief Combined loading state indicating if either match data or team data is loading.
-   * @type {boolean}
-   */
+  /** Combined loading state (match or team fetch). */
   const isLoading = isMatchLoading || isTeamLoading;
-  /**
-   * @brief Combined error state indicating if an error occurred while fetching match or team data.
-   * @type {boolean}
-   */
+  /** Combined error state (match or team fetch). */
   const isError = isMatchError || isTeamError;
-  /**
-   * @brief Combined error message from match or team data fetching errors.
-   * @type {string}
-   */
+  /** Combined error message (match or team fetch). */
   const errorMessage = matchErrorMessage || teamErrorMessage;
 
   return (

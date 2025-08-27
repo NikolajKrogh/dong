@@ -1,16 +1,13 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Modal, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
-
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 /**
- * @interface TooltipModalProps
- * @brief Props for the TooltipModal component.
- * @property {boolean} visible - Whether the tooltip modal is visible.
- * @property {() => void} onClose - Function to call when the modal is closed.
- * @property {string} title - The title text to display in the tooltip.
- * @property {string} description - The description text to display in the tooltip.
+ * Tooltip / detail modal for comparison stat.
+ * @description Displays title + description for a stat; hidden when not visible.
+ * @param {TooltipModalProps} props Component props.
+ * @returns {React.ReactElement | null} Modal element or null.
  */
 interface TooltipModalProps {
   visible: boolean;
@@ -19,23 +16,15 @@ interface TooltipModalProps {
   description: string;
 }
 
-/**
- * @component TooltipModal
- * @brief A modal component that displays helpful tooltip information.
- * 
- * This component renders a modal with a title and description to provide
- * additional context or explanation for a feature. The modal can be closed
- * by pressing the close button or tapping anywhere outside the tooltip content.
- * 
- * @param {TooltipModalProps} props - The props for the component.
- * @returns {React.ReactElement} The rendered TooltipModal component.
- */
+// (Previously had percentage formatting & chart – simplified for text description use case.)
 const TooltipModal: React.FC<TooltipModalProps> = ({
   visible,
   onClose,
   title,
   description,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   return (
     <Modal
       animationType="fade"

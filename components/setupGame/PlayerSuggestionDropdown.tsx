@@ -1,10 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity, FlatList, Animated } from "react-native";
+import { View, Text, TouchableOpacity, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { PlayerSuggestion } from "../../hooks/usePlayerSuggestions";
-import { colors } from "../../app/style/palette";
-import styles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
 
 /**
  * Props for the PlayerSuggestionDropdown component.
@@ -30,6 +29,10 @@ interface SuggestionItemProps {
   onSelect: (playerName: string) => void;
   /** The current search query to highlight matching text. */
   searchQuery: string;
+  /** Theme-aware styles to use inside the item. */
+  styles: ReturnType<typeof createSetupGameStyles>;
+  /** Theme colors for icon tints, etc. */
+  colors: ReturnType<typeof useColors>;
 }
 
 /**
@@ -39,6 +42,8 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
   player,
   onSelect,
   searchQuery,
+  styles,
+  colors,
 }) => {
   /**
    * Handles the press event on a suggestion item.
@@ -92,7 +97,7 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
 
   return (
     <TouchableOpacity
-      style={styles.suggestionItem}
+      style={styles.playerSuggestionItem}
       onPress={handlePress}
       activeOpacity={0.6}
     >
@@ -164,6 +169,8 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
   onSelectPlayer,
   searchQuery,
 }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
 
@@ -226,24 +233,26 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
   return (
     <Animated.View
       style={[
-        styles.dropdown,
+        styles.playerSuggestionsDropdown,
         {
           opacity: fadeAnim,
           transform: [{ scale: scaleAnim }],
         },
       ]}
     >
-      <View style={styles.dropdownHeader}>
+      <View style={styles.playerSuggestionsHeader}>
         <Ionicons name="time-outline" size={14} color={colors.primary} />
-        <Text style={styles.dropdownHeaderText}>Recent Players</Text>
+        <Text style={styles.playerSuggestionsHeaderText}>Recent Players</Text>
       </View>
-      <View style={styles.suggestionsList}>
+      <View style={styles.playerSuggestionsList}>
         {sortedSuggestions.slice(0, 4).map((item) => (
           <SuggestionItem
             key={item.name}
             player={item}
             onSelect={onSelectPlayer}
             searchQuery={searchQuery}
+            styles={styles}
+            colors={colors}
           />
         ))}
         {sortedSuggestions.length > 4 && (

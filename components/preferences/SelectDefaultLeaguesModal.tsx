@@ -9,42 +9,38 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { selectDefaultLeaguesModalStyles } from "../../app/style/userPreferencesStyles";
-import { colors } from "../../app/style/palette";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../app/style/theme";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 
 /**
- * @interface SelectDefaultLeaguesModalProps
- * @brief Props for the SelectDefaultLeaguesModal component.
+ * Props for default leagues modal.
+ * @description Manages visibility, current persisted defaults and persistence callback for selecting initial leagues.
+ * @property visible Whether the modal is displayed.
+ * @property onClose Callback invoked to close the modal (without saving changes unless explicitly saved).
+ * @property configuredLeagues All leagues currently configured by the user (selection source list).
+ * @property currentDefaultLeagues Leagues previously marked as defaults (used to seed local selection on open).
+ * @property onSave Persists the provided selection as the new default leagues.
  */
 interface SelectDefaultLeaguesModalProps {
-  /** @brief Whether the modal is visible. */
+  /** Modal visibility flag. */
   visible: boolean;
-  /** @brief Function to call when the modal is closed. */
+  /** Close callback. */
   onClose: () => void;
-  /** @brief Array of all currently configured leagues by the user. */
+  /** All configured leagues. */
   configuredLeagues: LeagueEndpoint[];
-  /** @brief Array of leagues currently selected as default. */
+  /** Currently default leagues. */
   currentDefaultLeagues: LeagueEndpoint[];
-  /** @brief Function to call when the user saves the selected default leagues.
-   *  @param selectedDefaults - An array of LeagueEndpoint objects representing the new default leagues.
-   */
+  /** Persist selected defaults callback. */
   onSave: (selectedDefaults: LeagueEndpoint[]) => void;
 }
 
 /**
- * @component LeagueItem
- * @brief Displays a single league item within the selection list.
- *
- * This component shows the league's logo, name, and an indicator
- * of whether it's currently selected as a default league.
- *
- * @param {object} props - The component's props.
- * @param {LeagueEndpoint} props.league - The league data to display.
- * @param {boolean} props.isSelected - Whether the league is currently selected.
- * @param {() => void} props.onPress - Function to call when the league item is pressed.
- * @returns {JSX.Element} The rendered LeagueItem.
+ * League list item.
+ * @description Shows logo, name and selected state; press toggles selection.
+ * @param props Item props.
+ * @returns {JSX.Element} Row element.
  */
 const LeagueItem = ({
   league,
@@ -55,6 +51,11 @@ const LeagueItem = ({
   isSelected: boolean;
   onPress: () => void;
 }) => {
+  const colors = useColors();
+  const { selectDefaultLeaguesModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
   return (
     <TouchableOpacity
@@ -108,14 +109,10 @@ const LeagueItem = ({
 };
 
 /**
- * @component SelectDefaultLeaguesModal
- * @brief A modal for selecting which configured leagues should be active by default.
- *
- * This modal allows users to choose a subset of their configured leagues
- * to be automatically selected or prioritized when viewing match data.
- *
- * @param {SelectDefaultLeaguesModalProps} props - The component's props.
- * @returns {JSX.Element} The rendered SelectDefaultLeaguesModal.
+ * Select default leagues modal.
+ * @description Allows choosing subset of configured leagues to load initially on match screen.
+ * @param {SelectDefaultLeaguesModalProps} props Component props.
+ * @returns {JSX.Element} Modal content.
  */
 const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
   visible,
@@ -124,23 +121,21 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
   currentDefaultLeagues,
   onSave,
 }) => {
+  const colors = useColors();
+  const { selectDefaultLeaguesModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   const [selectedLeagues, setSelectedLeagues] = useState<LeagueEndpoint[]>([]);
 
-  /**
-   * @brief Effect to initialize or update the selected leagues when the modal becomes visible
-   *        or when the current default leagues change.
-   */
+  // Initialize selection from current defaults when opening
   useEffect(() => {
     if (visible) {
       setSelectedLeagues(currentDefaultLeagues);
     }
   }, [visible, currentDefaultLeagues]);
 
-  /**
-   * @brief Toggles the selection state of a league.
-   * If the league is already selected, it's removed; otherwise, it's added.
-   * @param {LeagueEndpoint} league - The league to toggle.
-   */
+  /** Toggle selection for a league. */
   const toggleLeagueSelection = (league: LeagueEndpoint) => {
     setSelectedLeagues((prevSelected) =>
       prevSelected.some((l) => l.code === league.code)
@@ -149,10 +144,7 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
     );
   };
 
-  /**
-   * @brief Handles the save action.
-   * Calls the onSave prop with the currently selected leagues and then closes the modal.
-   */
+  /** Persist selected defaults then close. */
   const handleSave = () => {
     onSave(selectedLeagues);
     onClose();

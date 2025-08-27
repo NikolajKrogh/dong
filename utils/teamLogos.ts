@@ -1,17 +1,31 @@
 /**
- * @file teamLogos.ts
- * @brief Provides utility functions and mappings for retrieving team logo assets.
- *
- * This file defines mappings between team names (including aliases and cleaned versions)
- * and their corresponding logo image assets. It offers functions to retrieve logos
- * with exact matching or fallback logic (case-insensitive, alias, cleaned name, partial match).
+ * Team logo utilities.
+ * @description Provides mappings and helpers to resolve team logos using multiple fallback strategies (exact, alias, cleaned, partial).
  */
 
 //! Find more logos at: https://brandlogos.net/
 import { cleanTeamName } from "./matchUtils";
 import { TEAM_ALIASES } from "./teamAliases";
 import { ImageSourcePropType } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// AsyncStorage is not available in Jest environment; require conditionally
+let AsyncStorageRef: {
+  getItem: (key: string) => Promise<string | null>;
+} | null = null;
+try {
+  if (
+    !(
+      typeof process !== "undefined" &&
+      (process.env.JEST_WORKER_ID !== undefined ||
+        process.env.NODE_ENV === "test")
+    )
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    AsyncStorageRef =
+      require("@react-native-async-storage/async-storage").default;
+  }
+} catch {
+  AsyncStorageRef = null;
+}
 
 // Cache for storing logos fetched from the API
 const logoCache: Record<string, string> = {};
@@ -46,7 +60,7 @@ export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
  *
  * @param leagueName - The name of the league whose logo is being retrieved.
  * @returns The cached logo as a string if found in memory cache, or `null` if not found.
- * 
+ *
  * @remarks
  * If the logo is not found in the memory cache, this function returns `null`.
  * Any errors encountered during the retrieval process are logged to the console.
@@ -59,7 +73,7 @@ export const getCachedLeagueLogo = (leagueName: string): string | null => {
     if (inMemoryCache) {
       return inMemoryCache;
     }
-    
+
     // Otherwise we'll return null and let the AsyncStorage check happen in the hook
     return null;
   } catch (error) {
@@ -77,8 +91,9 @@ export const getLeagueLogo = async (
   leagueName: string
 ): Promise<string | null> => {
   try {
+    if (!AsyncStorageRef) return null;
     const key = `league_logo_${leagueName}`;
-    return await AsyncStorage.getItem(key);
+    return await AsyncStorageRef.getItem(key);
   } catch (error) {
     console.error(`Error getting cached logo for ${leagueName}:`, error);
     return null;
@@ -86,10 +101,8 @@ export const getLeagueLogo = async (
 };
 
 /**
- * @brief Map of official team names to their logo image assets.
- * @details Uses `require` to include image assets directly.
- *          Keys are the official team names as strings.
- *          Values are the result of `require(path/to/logo.png)`.
+ * Official team logos.
+ * @description Keyed by canonical team name; values are static require() image assets.
  */
 export const TEAM_LOGOS: { [key: string]: any } = {
   // Bundesliga
@@ -241,21 +254,16 @@ export const TEAM_LOGOS: { [key: string]: any } = {
   "Hjørring Idrætsforening": require("../assets/images/teams/serie-4/hi.png"),
   "Vrå/Børglum IF": require("../assets/images/teams/serie-4/vraa-boerglum.png"),
   "AIK Frem": require("../assets/images/teams/serie-4/hjoerring-aik-frem.png"),
-  "Hirtshals": require("../assets/images/teams/serie-4/hirtshals.png"),
+  Hirtshals: require("../assets/images/teams/serie-4/hirtshals.png"),
   "Sindal IF": require("../assets/images/teams/serie-4/sindal-if.png"),
   "Tårs/Ugilt IF": require("../assets/images/teams/serie-4/taars-ugilt.png"),
   "Skibsby-Højene IF": require("../assets/images/teams/serie-4/skibsby-hoejene.png"),
-  "SVIF": require("../assets/images/teams/serie-4/skallerup-vennebjerg.png"),
-
+  SVIF: require("../assets/images/teams/serie-4/skallerup-vennebjerg.png"),
 };
 
 /**
- * @brief Mapping from cleaned team names to their official names in TEAM_LOGOS.
- * @details This map is automatically generated based on the keys in `TEAM_LOGOS`
- *          and the `cleanTeamName` function. It helps find the official name
- *          when only a cleaned version (e.g., without "FC", "CF") is available.
- *          Keys are the cleaned team names.
- *          Values are the corresponding official team names.
+ * Mapping from cleaned team names to official names.
+ * @description Auto-generated from `TEAM_LOGOS` via `cleanTeamName` to resolve original names from simplified variants (e.g., stripping FC/CF). Keys are cleaned forms; values are canonical team names.
  */
 const CLEANED_NAME_MAPPING: { [key: string]: string } = {
   // Automatically generate this from your TEAM_LOGOS keys
@@ -291,9 +299,9 @@ Object.entries(CLEANED_NAME_MAPPING).forEach(([cleaned, official]) => {
 });
 
 /**
- * @brief Retrieves the team logo asset using an exact, case-sensitive team name match.
- * @param {string} teamName - The official, case-sensitive team name.
- * @returns {any | null} The required logo asset if found, otherwise null.
+ * Retrieve logo by exact, case-sensitive team name.
+ * @param teamName Official team name.
+ * @returns Logo asset or null.
  */
 export const getTeamLogo = (teamName: string) => {
   return TEAM_LOGOS[teamName] || null;
