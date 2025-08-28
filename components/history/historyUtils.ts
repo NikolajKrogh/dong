@@ -65,7 +65,7 @@ export const formatHistoryDate = (dateString: string): string => {
  */
 export const formatModalDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleString(undefined, {
     weekday: "long",
     year: "numeric",
     month: "long",

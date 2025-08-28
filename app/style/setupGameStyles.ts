@@ -136,7 +136,7 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       width: 20,
       height: 20,
       borderRadius: 10,
-      backgroundColor: "rgba(240, 240, 240, 0.8)", // Kept specific for subtlety
+      backgroundColor: colors.backgroundSubtle + "CC", // 80% opacity
       alignItems: "center",
       justifyContent: "center",
       zIndex: 10,
@@ -525,7 +525,7 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     modalOverlay: {
       // Transparent overlay
       flex: 1,
-      backgroundColor: "rgba(0,0,0,0.1)", // Kept specific for subtle effect
+      backgroundColor: colors.backgroundModalOverlay + "1A", // 10% opacity
     },
     suggestionsModal: {
       // If suggestions are in a modal structure
@@ -1508,7 +1508,7 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       flexDirection: "row",
       alignItems: "center",
       marginTop: 4,
-      backgroundColor: "rgba(0,0,0,0.05)",
+      backgroundColor: colors.textPrimary + "0D", // 5% opacity
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 4,

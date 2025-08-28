@@ -1309,7 +1309,7 @@ export function createGameProgressStyles(colors: Colors) {
       overflow: "hidden",
     },
     tabPage: {
-      width: StyleSheet.hairlineWidth * Dimensions.get("window").width,
+      width: Dimensions.get("window").width,
       flex: 1,
     },
     tabBarContainer: {

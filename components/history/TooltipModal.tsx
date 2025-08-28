@@ -1,5 +1,12 @@
 import React, { useMemo } from "react";
-import { View, Text, Modal, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  Pressable,
+  StyleSheet,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createHistoryStyles } from "../../app/style/historyStyles";
 import { useColors } from "../../app/style/theme";
@@ -16,7 +23,6 @@ interface TooltipModalProps {
   description: string;
 }
 
-// (Previously had percentage formatting & chart – simplified for text description use case.)
 const TooltipModal: React.FC<TooltipModalProps> = ({
   visible,
   onClose,
@@ -32,23 +38,29 @@ const TooltipModal: React.FC<TooltipModalProps> = ({
       visible={visible}
       onRequestClose={onClose}
     >
-      <TouchableOpacity
-        style={styles.tooltipOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <View style={styles.tooltipContainer}>
+      <View style={styles.tooltipOverlay}>
+        {/* Backdrop press area (separate so taps inside content don't close) */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          android_ripple={{
+            color: colors.primaryTransparentLight || "#00000022",
+          }}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Dismiss tooltip"
+        />
+        <View style={styles.tooltipContainer} pointerEvents="box-none">
           <View style={styles.tooltipContent}>
             <View style={styles.tooltipHeader}>
               <Text style={styles.tooltipTitle}>{title}</Text>
-              <TouchableOpacity onPress={onClose}>
+              <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
                 <Ionicons name="close" size={20} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
             <Text style={styles.tooltipDescription}>{description}</Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 };
