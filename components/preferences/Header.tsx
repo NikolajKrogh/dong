@@ -1,39 +1,43 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { headerStyles } from "../../app/style/userPreferencesStyles";
-import { colors } from "../../app/style/palette";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @interface HeaderProps
- * @brief Props for the Header component.
+ * HeaderProps
+ * @description Props for the Header component.
  */
 interface HeaderProps {
-  /** @brief The title of the header. */
+  /** Header title text. */
   title: string;
-  /** @brief Function to call when the back button is pressed. */
+  /** Callback when back button pressed. */
   onBack: () => void;
-  /** @brief Optional top padding for the header. */
+  /** Optional extra top padding. */
   paddingTop?: number;
 }
 
 /**
- * @brief Header component.
- *
- * Displays a header with a title and a back button.
- *
- * @param {HeaderProps} props - The props for the component.
- * @returns {JSX.Element} The rendered Header component.
+ * Header component.
+ * @description Displays a surface-colored header bar with a title and back button.
+ * @param {HeaderProps} props Component props.
+ * @returns {JSX.Element} Header UI.
  */
 const Header: React.FC<HeaderProps> = ({ title, onBack, paddingTop = 0 }) => {
+  const colors = useColors();
+  const { headerStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   return (
-    <View
-      style={[headerStyles.header, { paddingTop: Math.max(paddingTop, 8) }]}
-    >
-      <TouchableOpacity onPress={onBack} style={headerStyles.backButton}>
-        <Ionicons name="arrow-back" size={24} color={colors.primary} />
-      </TouchableOpacity>
-      <Text style={headerStyles.headerTitle}>{title}</Text>
+    <View style={{ backgroundColor: colors.surface }}>
+      {paddingTop ? <View style={{ height: paddingTop }} /> : null}
+      <View style={headerStyles.header}>
+        <TouchableOpacity onPress={onBack} style={headerStyles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={colors.primary} />
+        </TouchableOpacity>
+        <Text style={headerStyles.headerTitle}>{title}</Text>
+      </View>
     </View>
   );
 };

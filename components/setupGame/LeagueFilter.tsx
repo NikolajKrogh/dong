@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 import { LeagueEndpoint } from "../../constants/leagues";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @interface LeagueFilterProps
- * @brief Props for the LeagueFilter component.
- * @property availableLeagues - An array of all `LeagueEndpoint` objects that can be selected.
- * @property selectedLeagues - An array of `LeagueEndpoint` objects that are currently selected.
- * @property handleLeagueChange - A function to be called when a league's selection status is toggled.
+ * Props for league filter.
+ * @description Supplies available league options, the user's current multi-selection and a toggle handler.
+ * @property availableLeagues All leagues fetched/derived that can be chosen.
+ * @property selectedLeagues Currently active (chosen) leagues used for filtering matches.
+ * @property handleLeagueChange Callback to toggle a league in/out of the selection.
  */
 interface LeagueFilterProps {
   availableLeagues: LeagueEndpoint[];
@@ -20,14 +20,13 @@ interface LeagueFilterProps {
 }
 
 /**
- * @brief A helper component to display a league badge, typically showing its logo.
- * Used in the collapsed header of the LeagueFilter to show selected leagues.
- * @param {object} props - The component's props.
- * @param {LeagueEndpoint} props.league - The league data to display in the badge.
- * @returns {JSX.Element} A React element representing the league badge.
+ * League badge.
+ * @description Small logo representation for collapsed header.
  */
 const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
   return (
     <View key={league.code} style={styles.filterBadge}>
@@ -56,11 +55,7 @@ const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
 };
 
 /**
- * @interface LeagueItemProps
- * @brief Props for the LeagueItem component.
- * @property league - The `LeagueEndpoint` object for this item.
- * @property isSelected - Boolean indicating if this league item is currently selected.
- * @property onPress - Function to call when the league item is pressed.
+ * Props for league item.
  */
 interface LeagueItemProps {
   league: LeagueEndpoint;
@@ -69,10 +64,10 @@ interface LeagueItemProps {
 }
 
 /**
- * @brief A helper component representing a selectable league item in the expanded grid.
- * Displays the league's logo and name, and indicates if it's selected.
- * @param {LeagueItemProps} props - The component's props.
- * @returns {JSX.Element} A React element representing a selectable league item.
+ * League grid item.
+ * @description Selectable league chip with logo + selection styling.
+ * @param {LeagueItemProps} props Item props.
+ * @returns {JSX.Element} Element.
  */
 const LeagueItem: React.FC<LeagueItemProps> = ({
   league,
@@ -80,6 +75,8 @@ const LeagueItem: React.FC<LeagueItemProps> = ({
   onPress,
 }) => {
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
   return (
     <TouchableOpacity
@@ -127,11 +124,10 @@ const LeagueItem: React.FC<LeagueItemProps> = ({
 };
 
 /**
- * @brief A component that allows users to filter by leagues.
- * It displays selected leagues in a collapsed view and provides an expandable grid
- * to select/deselect leagues from a list of available leagues.
- * @param {LeagueFilterProps} props - The component's props.
- * @returns {JSX.Element} A React element representing the league filter UI.
+ * League filter.
+ * @description Collapsible UI to select/deselect leagues with badge preview.
+ * @param {LeagueFilterProps} props Component props.
+ * @returns {JSX.Element} Filter element.
  */
 const LeagueFilter: React.FC<LeagueFilterProps> = ({
   availableLeagues,
@@ -139,15 +135,13 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
   handleLeagueChange,
 }) => {
   const [isLeagueExpanded, setIsLeagueExpanded] = useState(false);
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
   // Maximum number of badges to show before collapsing (when > 3 are selected)
   const MAX_VISIBLE_BADGES_WHEN_COLLAPSED = 2;
 
-  /**
-   * @brief Renders the league badges for the collapsed header view.
-   * Shows individual league badges or a summary count if many are selected.
-   * @returns {JSX.Element | JSX.Element[]} A React element or an array of elements representing the badges.
-   */
+  /** Render selected league badges or summary indicator. */
   const renderBadges = () => {
     const numSelected = selectedLeagues.length;
 

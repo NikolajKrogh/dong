@@ -9,39 +9,15 @@ import { Match } from "../store/store";
 import { LeagueEndpoint } from "../constants/leagues";
 
 /**
- * @brief Custom hook for filtering teams based on selected leagues and existing matches.
- *
- * This hook manages the list of teams available for selection in a match setup.
- * It filters teams based on the leagues chosen by the user and ensures that
- * teams already part of an existing match, or selected for the opposing side
- * in the current match being configured, are not available for selection.
- *
- * @param {TeamWithLeague[]} teamsData - An array of all available `TeamWithLeague` objects.
- *                                       This is the master list of teams from which filtering occurs.
- * @param {LeagueEndpoint[]} selectedLeagues - An array of `LeagueEndpoint` objects representing the leagues
- *                                             currently selected by the user for filtering.
- * @param {Match[]} matches - An array of `Match` objects that have already been created/added to the game.
- *                            Used to exclude teams that are already part of these matches.
- * @param {string} homeTeam - The cleaned name of the currently selected home team.
- *                            Used to prevent selecting the same team as the away team.
- * @param {string} awayTeam - The cleaned name of the currently selected away team.
- *                            Used to prevent selecting the same team as the home team.
- *
- * @returns {object} An object containing:
- * @property {TeamWithLeague[]} filteredTeamsData - An array of `TeamWithLeague` objects filtered by the
- *                                                  selected leagues. This list represents teams that match
- *                                                  the league criteria before further filtering for availability
- *                                                  (e.g., excluding used teams).
- * @property {React.Dispatch<React.SetStateAction<TeamWithLeague[]>>} setFilteredTeamsData - A state setter function
- *                                                  to manually update `filteredTeamsData`. This is primarily
- *                                                  for internal use or advanced scenarios where the filtered list
- *                                                  needs to be directly manipulated.
- * @property {TeamWithLeague[]} homeTeamOptions - An array of `TeamWithLeague` objects available for selection
- *                                                as the home team. This list excludes teams already used in
- *                                                other matches and the currently selected away team.
- * @property {TeamWithLeague[]} awayTeamOptions - An array of `TeamWithLeague` objects available for selection
- *                                                as the away team. This list excludes teams already used in
- *                                                other matches and the currently selected home team.
+ * Filter available teams based on league selection and existing matches.
+ * @description Returns derived option lists for home/away pickers excluding already used or opposing selections;
+ * also exposes the league‑filtered base list.
+ * @param teamsData Master list of teams with leagues.
+ * @param selectedLeagues Leagues user has selected.
+ * @param matches Existing scheduled matches.
+ * @param homeTeam Current home team selection (cleaned).
+ * @param awayTeam Current away team selection (cleaned).
+ * @returns filtered data, setter, and home/away option arrays.
  */
 export function useTeamFiltering(
   teamsData: TeamWithLeague[],
@@ -50,19 +26,11 @@ export function useTeamFiltering(
   homeTeam: string,
   awayTeam: string
 ) {
-  /**
-   * @brief State: Stores teams filtered by the selected leagues.
-   * This list is further refined to produce `homeTeamOptions` and `awayTeamOptions`.
-   */
+  /** Teams filtered by selected leagues (pre availability filtering). */
   const [filteredTeamsData, setFilteredTeamsData] =
     useState<TeamWithLeague[]>(teamsData);
 
-  /**
-   * @brief Effect hook to update `filteredTeamsData` when `selectedLeagues` or `teamsData` changes.
-   * If leagues are selected, it filters `teamsData` to include only teams from those leagues.
-   * If no leagues are selected, it defaults to showing all `teamsData`.
-   * It compares `team.league` (string name) with `league.name` from `selectedLeagues`.
-   */
+  /** Update filteredTeamsData when league selection or source data changes. */
   useEffect(() => {
     if (teamsData.length > 0 && selectedLeagues.length > 0) {
       const selectedLeagueNames = selectedLeagues.map((league) => league.name);
@@ -79,12 +47,7 @@ export function useTeamFiltering(
     }
   }, [selectedLeagues, teamsData]);
 
-  /**
-   * @brief Memoized set of cleaned team names that are already used in existing matches.
-   * This is used to prevent selecting a team that is already part of another match.
-   * Recalculates only when the `matches` array changes.
-   * @type {Set<string>}
-   */
+  /** Set of cleaned names already used in other matches. */
   const usedTeams = useMemo(() => {
     const teams = new Set<string>();
     matches.forEach((match) => {
@@ -94,14 +57,7 @@ export function useTeamFiltering(
     return teams;
   }, [matches]);
 
-  /**
-   * @brief Memoized list of available home team options.
-   * Filters `filteredTeamsData` to exclude:
-   * 1. The currently selected away team.
-   * 2. Teams already used in other matches (from `usedTeams`).
-   * Recalculates when `filteredTeamsData`, `awayTeam`, or `usedTeams` change.
-   * @type {TeamWithLeague[]}
-   */
+  /** Available home team options excluding picked away and used teams. */
   const homeTeamOptions = useMemo(() => {
     return filteredTeamsData.filter(
       (team) =>
@@ -110,14 +66,7 @@ export function useTeamFiltering(
     );
   }, [filteredTeamsData, awayTeam, usedTeams]);
 
-  /**
-   * @brief Memoized list of available away team options.
-   * Filters `filteredTeamsData` to exclude:
-   * 1. The currently selected home team.
-   * 2. Teams already used in other matches (from `usedTeams`).
-   * Recalculates when `filteredTeamsData`, `homeTeam`, or `usedTeams` change.
-   * @type {TeamWithLeague[]}
-   */
+  /** Available away team options excluding picked home and used teams. */
   const awayTeamOptions = useMemo(() => {
     return filteredTeamsData.filter(
       (team) =>
@@ -135,24 +84,14 @@ export function useTeamFiltering(
 }
 
 /**
- * @brief Filters an array of match data based on a specified date and optional time range.
- *
- * This function takes a list of matches and filters them based on whether their
- * date matches `selectedDate` and, if time filters are active, whether their
- * time falls within the `startTime` and `endTime` range.
- *
- * @param {MatchData[]} apiData - Array of `MatchData` objects to be filtered.
- *                                These typically come from an API.
- * @param {string} selectedDate - The date to filter by, in "YYYY-MM-DD" format.
- *                                If empty or null, the date filter is not applied.
- * @param {string} startTime - The start of the time range to filter by, in "HH:MM" format.
- *                             If empty or null (along with `endTime`), the time filter is not applied.
- * @param {string} endTime - The end of the time range to filter by, in "HH:MM" format.
- *                           If empty or null (along with `startTime`), the time filter is not applied.
- *
- * @returns {MatchData[]} A new array containing only the matches that meet the
- *                        date and time filter criteria. If no filters are active,
- *                        the original `apiData` array is returned.
+ * Filter matches by date and optional time range.
+ * @description Returns only matches on selectedDate and within the inclusive time window when both start/end provided;
+ * original list when no filters active.
+ * @param apiData Input matches.
+ * @param selectedDate YYYY-MM-DD date.
+ * @param startTime Start time HH:MM.
+ * @param endTime End time HH:MM.
+ * @returns Filtered matches array.
  */
 export function filterMatchesByDateAndTime(
   apiData: MatchData[],

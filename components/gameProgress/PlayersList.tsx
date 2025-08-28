@@ -1,61 +1,51 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { View, Text, TouchableOpacity, FlatList, Animated } from "react-native";
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "../../app/style/gameProgressStyles";
-import { colors } from "../../app/style/palette"; 
+import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
+import { useColors } from "../../app/style/theme";
 
-/**
- * @interface PlayersListProps
- * @brief Props for the PlayersList component.
- */
+/** Props for PlayersList. @interface */
 interface PlayersListProps {
-  /** @brief Array of player objects. */
+  /** Players array. */
   players: Player[];
-  /** @brief Array of match objects. */
+  /** Matches array. */
   matches: Match[];
-  /** @brief ID of the common match. */
+  /** Common match ID. */
   commonMatchId: string;
-  /** @brief Record of player assignments to matches. */
+  /** Map playerId -> matchIds assigned. */
   playerAssignments: Record<string, string[]>;
-  /** @brief Function to handle incrementing a player's drink count. */
+  /** Increment drink handler. */
   handleDrinkIncrement: (playerId: string) => void;
-  /** @brief Function to handle decrementing a player's drink count. */
+  /** Decrement drink handler. */
   handleDrinkDecrement: (playerId: string) => void;
 }
 
-/**
- * @interface PlayerCardProps
- * @brief Props for the PlayerCard component.
- */
+/** Props for PlayerCard. @interface */
 interface PlayerCardProps {
-  /** @brief The player object. */
+  /** Player entity. */
   player: Player;
-  /** @brief The number of drinks required for the player. */
+  /** Drinks required (computed). */
   required: number;
-  /** @brief The number of drinks consumed by the player. */
+  /** Drinks consumed. */
   consumed: number;
-  /** @brief The number of drinks owed by the player. */
+  /** Remaining drinks owed. */
   owed: number;
-  /** @brief The percentage of drinks completed by the player. */
+  /** Completion percentage (0-100). */
   percentComplete: number;
-  /** @brief Function to handle incrementing a player's drink count. */
+  /** Increment handler. */
   handleDrinkIncrement: (playerId: string) => void;
-  /** @brief Function to handle decrementing a player's drink count. */
+  /** Decrement handler. */
   handleDrinkDecrement: (playerId: string) => void;
-  /** @brief Function to trigger an animation on value change. */
+  /** Animates stat value change. */
   animateValue: (anim: Animated.Value) => void;
 }
 
 /**
- * @brief A memoized component that displays a card for a single player.
- *
- * This component shows the player's name, their progress towards completing
- * their required drinks, and controls to increment or decrement their consumed drinks.
- * It also includes animations for value changes and status updates.
- *
- * @param {PlayerCardProps} props - The props for the component.
- * @returns {React.FC<PlayerCardProps>} A React functional component.
+ * Player card with progress, status badge, and increment/decrement controls.
+ * Animated progress & badge respond to drink changes; memoized for perf.
+ * @param {PlayerCardProps} props Component props.
+ * @returns {JSX.Element} Rendered player card.
  */
 const PlayerCard: React.FC<PlayerCardProps> = React.memo(
   ({
@@ -68,15 +58,15 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     handleDrinkDecrement,
     animateValue,
   }) => {
+    const colors = useColors();
+    const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
     // Animation refs
     const animValue = React.useRef(new Animated.Value(1)).current;
     const progressAnim = React.useRef(new Animated.Value(0)).current;
     const badgeAnim = React.useRef(new Animated.Value(1)).current;
     const prevOwedRef = React.useRef(owed);
 
-    /**
-     * @brief Triggers the animation for the consumed value.
-     */
+    /** Trigger consumed value scale animation. */
     const handleValueAnimation = () => {
       animateValue(animValue);
     };
@@ -203,14 +193,9 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
 );
 
 /**
- * @brief A component that displays a list of player cards.
- *
- * This component takes a list of players and their match assignments,
- * calculates their required drinks, and renders a `PlayerCard` for each.
- * It uses a `FlatList` for efficient rendering of the list.
- *
- * @param {PlayersListProps} props - The props for the component.
- * @returns {React.FC<PlayersListProps>} A React functional component.
+ * Player list rendering computed drink requirements per player.
+ * @param {PlayersListProps} props Component props.
+ * @returns {JSX.Element} FlatList of player cards.
  */
 const PlayersList: React.FC<PlayersListProps> = ({
   players,
@@ -220,9 +205,11 @@ const PlayersList: React.FC<PlayersListProps> = ({
   handleDrinkIncrement,
   handleDrinkDecrement,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
   /**
-   * @brief Animates a value with a sequence of scaling effects.
-   * @param {Animated.Value} anim - The animated value to animate.
+   * Scale pulse animation for provided Animated.Value.
+   * @param {Animated.Value} anim Animated value controlling scale.
    */
   const animateValue = (anim: Animated.Value) => {
     Animated.sequence([
@@ -240,13 +227,9 @@ const PlayersList: React.FC<PlayersListProps> = ({
   };
 
   /**
-   * @brief Calculates the number of drinks required for a player based on assigned matches and goals scored.
-   *
-   * This function calculates the total number of drinks a player needs to take based on the goals scored in matches
-   * they are assigned to. Goals from the common match are weighted more heavily (1x) than goals from other assigned matches (0.5x).
-   *
-   * @param {string} playerId - The ID of the player for whom to calculate the drinks required.
-   * @returns {number} The total number of drinks required for the player.
+   * Compute drinks required for a player (common = 1x, assigned = 0.5x).
+   * @param {string} playerId Player identifier.
+   * @returns {number} Total required drinks.
    */
   const calculateDrinksRequired = (playerId: string) => {
     let total = 0;
@@ -276,9 +259,9 @@ const PlayersList: React.FC<PlayersListProps> = ({
   };
 
   /**
-   * @brief Renders a single player card item for the FlatList.
-   * @param {object} item - The player object from the FlatList data.
-   * @returns {JSX.Element} The PlayerCard component.
+   * FlatList item renderer for PlayerCard.
+   * @param {{item: Player}} param0 Destructured object containing the player item.
+   * @returns {JSX.Element} Rendered PlayerCard.
    */
   const renderItem = ({ item }: { item: Player }) => {
     const required = calculateDrinksRequired(item.id);

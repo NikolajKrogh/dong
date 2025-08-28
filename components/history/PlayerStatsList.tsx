@@ -1,37 +1,32 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
 import { PlayerStat } from "./historyTypes";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import PlayerComparisonModal from "./PlayerComparisonModal";
 import { useGameStore } from "../../store/store";
 
 /**
- * @interface PlayerStatsListProps
- * @brief Props for the PlayerStatsList component.
- * @property {PlayerStat[]} playerStats - An array of player statistics to display.
+ * PlayerStatsListProps
+ * @description Props for the PlayerStatsList component.
+ * @property {PlayerStat[]} playerStats Player statistics to render.
  */
 interface PlayerStatsListProps {
   playerStats: PlayerStat[];
 }
 
 /**
- * @component PlayerStatsList
- * @brief A component that displays ranked player statistics.
- *
- * This component takes an array of player statistics and renders them as a list,
- * with special styling for the top three ranked players. Each player card shows
- * their name, number of games played, total drinks, and average drinks per game.
- * Drink values are visualized with a horizontal bar whose width is proportional
- * to the player's drinks relative to the top drinker.
- *
- * @param {PlayerStatsListProps} props - The props for the component.
- * @returns {React.ReactElement} The rendered PlayerStatsList component.
+ * PlayerStatsList component.
+ * @description Displays ranked player statistics (top 3 highlighted) including games, total drinks, and averages with a proportional bar.
+ * @param {PlayerStatsListProps} props Component props.
+ * @returns {React.ReactElement} Player stats list UI.
  */
 const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   const { history } = useGameStore();
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isComparisonModalVisible, setIsComparisonModalVisible] =
@@ -40,8 +35,9 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   const [selectionMode, setSelectionMode] = useState(false);
 
   /**
-   * @brief Handles player selection and opens the details modal.
-   * @param player The selected player.
+   * Handle player press.
+   * @description Selects a player and opens the details modal.
+   * @param {PlayerStat} player Selected player.
    */
   const handlePlayerPress = (player: PlayerStat) => {
     setSelectedPlayer(player);
@@ -49,8 +45,9 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
   };
 
   /**
-   * @brief Handles player selection for comparison.
-   * @param player The selected player.
+   * Handle player selection for comparison.
+   * @description Toggles/adds player to comparison selection, opening modal when two selected.
+   * @param {PlayerStat} player Selected player.
    */
   const handlePlayerSelection = (player: PlayerStat) => {
     if (selectionMode) {
@@ -72,18 +69,15 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     }
   };
 
-  /**
-   * @brief Closes the player details modal.
-   */
+  /** Close player details modal. */
   const closeModal = () => {
     setIsModalVisible(false);
   };
 
   /**
-   * @brief Renders an individual player statistic item.
-   * @param item The PlayerStat object to render.
-   * @param index The index of the item in the list, used for ranking display.
-   * @returns Rendered player stat card.
+   * Render a player statistic item.
+   * @param {{item:PlayerStat,index:number}} param0 Destructured item + index.
+   * @returns {JSX.Element} Player stat card.
    */
   const renderPlayerStatItem = ({
     item,
@@ -93,7 +87,8 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     index: number;
   }) => {
     const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
-    const widthPercentage = maxDrinks === 0 ? 0 : Math.max((item.totalDrinks / maxDrinks) * 100, 0);
+    const widthPercentage =
+      maxDrinks === 0 ? 0 : Math.max((item.totalDrinks / maxDrinks) * 100, 0);
     const isSelected = selectedPlayers.find((p) => p.name === item.name);
 
     return (
@@ -156,9 +151,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     );
   };
 
-  /**
-   * @brief Toggles the selection mode for player comparison.
-   */
+  /** Toggle selection mode for comparison. */
   const toggleSelectionMode = () => {
     if (playerStats.length < 2) {
       Alert.alert(
@@ -177,9 +170,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
     }
   };
 
-  /**
-   * @brief Closes the comparison modal and resets selection.
-   */
+  /** Close comparison modal and reset selected players. */
   const closeComparisonModal = () => {
     setIsComparisonModalVisible(false);
     setSelectedPlayers([]);

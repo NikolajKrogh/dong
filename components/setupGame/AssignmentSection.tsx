@@ -8,11 +8,11 @@ import {
   Image,
 } from "react-native";
 import { Player, Match } from "../../store/store";
-import baseStyles from "../../app/style/setupGameStyles";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
-import { colors } from "../../app/style/palette";
+import { useColors } from "../../app/style/theme";
 
 /**
  * Props for the AssignmentSection component.
@@ -62,6 +62,11 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   setMatchesPerPlayer,
   handleRandomAssignment,
 }) => {
+  const colors = useColors();
+  const baseStyles = React.useMemo(
+    () => createSetupGameStyles(colors),
+    [colors]
+  );
   /** State to control the visibility of the manual assignment info modal. */
   const [isModalVisible, setIsModalVisible] = useState(false);
   /** State to control the visibility of the random assignment info modal. */

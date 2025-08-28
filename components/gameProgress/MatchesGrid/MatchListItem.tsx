@@ -3,16 +3,15 @@ import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
 import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
-import styles from "../../../app/style/gameProgressStyles"; // Ensure colors is imported if used directly
-import { colors } from "../../../app/style/palette"; 
+import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
+import { useColors } from "../../../app/style/theme";
 
 /**
- * @brief Renders a single match item in a list layout.
- * - Displays team logos, scores, match status (live time, FT, HT), and assigned player count.
- * - Highlights the common match.
- * - Allows opening quick actions via touch.
- * @param {MatchItemProps} props - The properties passed to the component.
- * @returns {React.ReactElement} The rendered list item component.
+ * MatchListItem component.
+ * @description Renders a single match in list form: team logos, live/finished status (minutes, FT, HT), 
+ * current scores, and assigned players (condensed into badges). 
+ * Highlights the common match and triggers quick action modal on press.
+ * @param props Component props.
  */
 const MatchListItem: React.FC<MatchItemProps> = ({
   match,
@@ -21,6 +20,8 @@ const MatchListItem: React.FC<MatchItemProps> = ({
   liveMatch,
   openQuickActions,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
   // Determine the status string ('FT', 'HT', '45'', '?') from live data
   const displayStatus = liveMatch?.minutesPlayed || "?";
   // Check if the status indicates a finished or half-time state
@@ -33,8 +34,8 @@ const MatchListItem: React.FC<MatchItemProps> = ({
   const awayScore = liveMatch ? liveMatch.awayScore : match.awayGoals || 0;
 
   /**
-   * @brief Creates a visual representation of players assigned to a match using badges.
-   * @returns {React.ReactNode} A View component containing player badges and optional count indicator
+   * Builds badge list for assigned players with +N overflow indicator.
+   * @returns React node containing player badges.
    */
   const playerDisplayText = useMemo(() => {
     if (!assignedPlayers || assignedPlayers.length === 0) {
@@ -92,7 +93,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
           <View style={styles.matchList_HomeLogoWrapper}>
             <Image
               source={getTeamLogoWithFallback(match.homeTeam)}
-              style={styles.matchList_LogoImage} 
+              style={styles.matchList_LogoImage}
             />
           </View>
 

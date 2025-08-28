@@ -11,12 +11,9 @@ interface LeagueData {
 }
 
 /**
- * @brief Custom hook to fetch team data from multiple league JSON files.
- *
- * This hook fetches data from multiple football league JSON files,
- * processes the data to extract teams.
- *
- * @returns Object containing loading state, error state, error message, team data, and available leagues.
+ * Load team lists from multiple league JSON sources.
+ * @description Fetches several openfootball JSON files, derives unique teams with league attribution and exposes loading/error state.
+ * @returns State bundle (isLoading, isError, errorMessage, teamsData, availableLeagues).
  */
 export const useTeamData = () => {
   const [isLoading, setIsLoading] = useState(true);

@@ -3,20 +3,15 @@ import { MatchData } from "../utils/matchUtils";
 import { Match } from "../store/store";
 
 /**
- * @brief Custom hook for reliable batch match processing
- *
- * @details This hook provides functionality to add multiple matches
- * either in batch mode (when setGlobalMatches is provided) or sequentially.
- * It handles duplicate detection, concurrent processing prevention, and
- * provides detailed processing state.
- *
- * @param matches Current list of matches in the game
- * @param setHomeTeam Function to set the home team name in parent component
- * @param setAwayTeam Function to set the away team name in parent component
- * @param handleAddMatch Function to add a new match in parent component
- * @param setGlobalMatches Optional direct state setter for batch processing
- *
- * @return Object containing startProcessing function and state information
+ * Provide reliable batch or sequential match insertion.
+ * @description Adds multiple matches via direct batch (if setGlobalMatches provided) or
+ * guarded sequential processing with duplicate detection and progress stats.
+ * @param matches Current match list.
+ * @param setHomeTeam Setter for home team in parent.
+ * @param setAwayTeam Setter for away team in parent.
+ * @param handleAddMatch Callback to add a single match.
+ * @param setGlobalMatches Optional state setter enabling fast batch add.
+ * @returns API with startProcessing plus processing state.
  */
 export function useMatchProcessing(
   matches: Match[],
@@ -64,12 +59,9 @@ export function useMatchProcessing(
   }, [matches]);
 
   /**
-   * @brief Add multiple matches directly to state in a single operation
-   *
-   * @details This is the faster path that avoids sequential processing when
-   * direct state access is available through setGlobalMatches
-   *
-   * @param matchesToAdd Array of matches to be added
+   * Add many matches in one state update when direct setter is available.
+   * @description Filters duplicates before conversion to Match objects.
+   * @param matchesToAdd Array of raw match data.
    */
   const processBatchDirectly = useCallback(
     (matchesToAdd: MatchData[]) => {
@@ -119,11 +111,8 @@ export function useMatchProcessing(
   );
 
   /**
-   * @brief Process one match at a time, with proper waiting between operations
-   *
-   * @details This function handles the sequential processing of matches when
-   * batch processing is not available. It includes safeguards against race
-   * conditions and ensures each match is fully processed before moving to the next.
+   * Sequentially process matches when batch path not available.
+   * @description Uses refs and small polling waits to avoid race conditions and confirm insertion before continuing.
    */
   const processMatch = useCallback(async () => {
     // Prevent concurrent processing
@@ -241,13 +230,9 @@ export function useMatchProcessing(
   }, [currentIndex, isProcessing, processMatch]);
 
   /**
-   * @brief Start processing a list of matches
-   *
-   * @details This function initiates match processing, either in batch mode
-   * or sequentially depending on available capabilities. It handles filtering
-   * of invalid or duplicate matches.
-   *
-   * @param filteredMatches Array of matches to process
+   * Begin processing a collection of candidate matches.
+   * @description Chooses fast batch or guarded sequential strategy; filters invalid/duplicate entries.
+   * @param filteredMatches Candidate matches ready for insertion.
    */
   const startProcessing = useCallback(
     (filteredMatches: MatchData[]) => {

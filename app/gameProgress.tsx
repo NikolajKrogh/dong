@@ -1,3 +1,7 @@
+/**
+ * @file gameProgress.tsx
+ * @description Main in-game screen: manages live score polling, goal handling (sound + toast queue), player drink tracking, quick actions, and end game workflow. Integrates theming and persistence via the global store.
+ */
 import React, { useState, useEffect, useCallback } from "react";
 import { useLiveScores } from "../hooks/useLiveScores";
 import {
@@ -10,9 +14,10 @@ import {
 import { useRouter } from "expo-router";
 import { useGameStore, Match } from "../store/store";
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
-import styles from "./style/gameProgressStyles";
+import { createGameProgressStyles } from "./style/gameProgressStyles";
+import { useColors } from "./style/theme";
 import Toast from "react-native-toast-message";
-import { colors } from "./style/palette";
+import { useMemo } from "react";
 
 // Import components
 import TabNavigation from "../components/gameProgress/TabNavigation";
@@ -21,7 +26,6 @@ import PlayersList from "../components/gameProgress/PlayersList";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import EndGameModal from "../components/gameProgress/EndGameModal";
 import FooterButtons from "../components/gameProgress/FooterButtons";
-import { goalToastConfig } from "../components/gameProgress/GoalToast";
 
 // Define interface for goal information
 interface LastGoalInfo {
@@ -44,13 +48,17 @@ interface QueuedToastData {
 }
 
 /**
- * @component GameProgressScreen
- * @brief Represents the main screen during active gameplay.
- * Displays matches, player stats, and provides controls for game interaction and management.
- * It handles live score updates, sound effects, and navigation between game setup and history.
+ * Main gameplay screen: live score polling, goal handling (sound + toast queue),
+ * player drink tracking, quick actions, and end-game workflow.
+ * @component
+ * @description Renders two tabs (matches / players), coordinates live polling + toast queue,
+ * plays goal sounds, and exposes modals for quick match adjustments and ending the game.
+ * Integrates global store + theming.
  */
 const GameProgressScreen = () => {
   const router = useRouter();
+  const colors = useColors();
+  const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
   const [activeTab, setActiveTab] = React.useState("matches"); // 'matches' or 'players'
   const [isAlertVisible, setIsAlertVisible] = React.useState(false);
   const [selectedMatchId, setSelectedMatchId] = React.useState<string | null>(
@@ -85,10 +93,9 @@ const GameProgressScreen = () => {
   const [isSoundPlaying, setIsSoundPlaying] = React.useState(false);
 
   /**
-   * @brief Plays the 'dong.mp3' sound effect.
-   * Plays if sound is enabled, the app is active, and no sound is currently playing.
-   * Manages audio focus and unloads the sound upon completion.
+   * Plays goal sound if enabled, app active, and no other playback in progress.
    * @async
+   * @description Sets audio mode, loads, plays, then unloads the sound; guards against overlap via isSoundPlaying flag.
    */
   const playDongSound = useCallback(async () => {
     if (!soundEnabled || isSoundPlaying || appState !== "active") return;
@@ -134,9 +141,7 @@ const GameProgressScreen = () => {
   }, [soundEnabled, isSoundPlaying, appState]);
 
   /**
-   * @brief Stops the currently playing sound effect.
-   * Stops the sound, if any, and unloads the audio resource to free up memory.
-   * Resets the sound playing state.
+   * Stop & unload currently playing goal sound (if any).
    * @async
    */
   const stopSound = async () => {
@@ -158,10 +163,8 @@ const GameProgressScreen = () => {
   // Listen for app state changes
   useEffect(() => {
     /**
-     * @brief Handles application state changes.
-     * Callback function triggered when the application's state changes (e.g., active, background, inactive).
-     * Stops sound playback if the app moves away from the active state.
-     * @param {AppStateStatus} nextAppState - The new state of the application.
+     * Handle app state changes; stops audio when moving to background.
+     * @param {AppStateStatus} nextAppState New application state string.
      */
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState !== "active" && appState === "active") {
@@ -182,19 +185,12 @@ const GameProgressScreen = () => {
     };
   }, [appState]);
 
-  /**
-   * @brief Initiates the end game process.
-   * Displays a confirmation modal to the user.
-   */
+  /** Show end-game confirmation modal. */
   const handleEndGame = () => {
     setIsAlertVisible(true);
   };
 
-  /**
-   * @brief Confirms the end game action.
-   * Saves the current game state to history, resets the application state for a new game,
-   * and navigates the user back to the home screen.
-   */
+  /** Persist game to history, reset state, navigate home (confirmation accepted). */
   const confirmEndGame = () => {
     setIsAlertVisible(false);
     saveGameToHistory();
@@ -202,33 +198,21 @@ const GameProgressScreen = () => {
     router.replace("/");
   };
 
-  /**
-   * @brief Cancels the end game action.
-   * Hides the confirmation modal.
-   */
+  /** Dismiss end-game confirmation modal (no state changes). */
   const cancelEndGame = () => {
     setIsAlertVisible(false);
   };
 
-  /**
-   * @brief Navigates back to the game setup screen.
-   * Navigates the user to '/setupGame', allowing modification of the game setup
-   * without ending the current game progress.
-   */
+  /** Navigate to setup screen without ending current game. */
   const handleBackToSetup = () => {
     router.push("/setupGame");
   };
 
   /**
-   * @brief Increments the goal count for a team in a match.
-   *
-   * Updates the goal count for the specified team in the given match. If a new total
-   * is provided (live update), sets the count directly. Otherwise, increments by 1 (manual).
-   * Stores goal information to trigger sound/toast effect *after* state update.
-   *
-   * @param {string} matchId - The ID of the match to update
-   * @param {'home' | 'away'} team - Which team scored the goal
-   * @param {number} [newTotal] - Optional specific goal count to set (used for live data)
+   * Increment (manual) or set (live) a team's goal count; queues goal meta for sound/toast.
+   * @param {string} matchId Match identifier.
+   * @param {('home'|'away')} team Scoring team.
+   * @param {number} [newTotal] New total (live updates only; if provided indicates a live update context).
    */
   const handleGoalIncrement = (
     matchId: string,
@@ -305,11 +289,9 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Decrements the goal count for a team.
-   * Decrements the goal count for a specified team in a given match.
-   * Ensures the goal count does not go below zero.
-   * @param {string} matchId - The ID of the match to update.
-   * @param {'home' | 'away'} team - The team ('home' or 'away') whose score is changing.
+   * Decrement a team's goal count (floored at 0).
+   * @param {string} matchId Match identifier.
+   * @param {('home'|'away')} team Team whose score should be decremented.
    */
   const handleGoalDecrement = (matchId: string, team: "home" | "away") => {
     setMatches((prevMatches) =>
@@ -327,9 +309,8 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Increments the drinks taken by a player.
-   * Increments the number of drinks taken by a specific player by 0.5.
-   * @param {string} playerId - The ID of the player whose drink count is increasing.
+   * Increment a player's drinksTaken by 0.5.
+   * @param {string} playerId Player identifier.
    */
   const handleDrinkIncrement = (playerId: string) => {
     setPlayers((prevPlayers) =>
@@ -345,10 +326,8 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Decrements the drinks taken by a player.
-   * Decrements the number of drinks taken by a specific player by 0.5.
-   * Ensures the drink count does not go below zero.
-   * @param {string} playerId - The ID of the player whose drink count is decreasing.
+   * Decrement a player's drinksTaken by 0.5 (not below zero).
+   * @param {string} playerId Player identifier.
    */
   const handleDrinkDecrement = (playerId: string) => {
     setPlayers((prevPlayers) =>
@@ -364,9 +343,8 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Opens the quick actions modal for a match.
-   * Opens the modal allowing rapid goal adjustments for the specified match.
-   * @param {string} matchId - The ID of the match for which to show quick actions.
+   * Open quick actions modal for a given match.
+   * @param {string} matchId Match identifier to inspect/modify.
    */
   const openQuickActions = (matchId: string) => {
     setSelectedMatchId(matchId);
@@ -374,9 +352,8 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Migrates older match data formats.
-   * Migrates formats using a single 'goals' property to the current format
-   * using 'homeGoals' and 'awayGoals'. Ensures goal counts are initialized to 0 if undefined.
+   * Migrate legacy single 'goals' field into homeGoals/awayGoals, initializing zeros.
+   * (No params; operates on matches store state.)
    */
   const migrateMatchData = () => {
     setMatches((prevMatches) =>
@@ -403,9 +380,9 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Determines which players should drink when a goal is scored
-   * @param {string} matchId - The ID of the match where a goal was scored
-   * @return {string[]} Array of player names who should drink
+   * Return list of player names who drink for a goal in the specified match.
+   * @param {string} matchId Match identifier.
+   * @returns {string[]} Player names to notify for the goal.
    */
   const getPlayersWhoDrink = (matchId: string): string[] => {
     // If it's the common match, all players drink
@@ -424,15 +401,13 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Calculates the home and away scores to be displayed in the goal toast.
-   * For live updates, uses the provided new total and the other team's score.
-   * For manual updates, uses the current scores from the match object (which should reflect the increment).
-   * @param {Match} match - The match object containing current scores and team names.
-   * @param {'home' | 'away'} team - The team that scored the goal.
-   * @param {boolean} isLiveUpdate - Flag indicating if the update is from live data.
-   * @param {number} [newTotal] - The new total score for the scoring team (passed for live updates).
-   * @param {number} [otherTeamScore] - The current score of the non-scoring team (passed for live updates).
-   * @returns {{ homeScore: number, awayScore: number }} An object containing the calculated home and away scores for display.
+   * Compute display scores for goal toast (handles manual vs live updates).
+   * @param {Match} match Current match object (post-update for manual increments).
+   * @param {('home'|'away')} team Scoring team.
+   * @param {boolean} isLiveUpdate Whether this update came from live polling.
+   * @param {number} [newTotal] New total for scoring team (live updates only).
+   * @param {number} [otherTeamScore] Other team's score at time of live goal.
+   * @returns {{ homeScore: number; awayScore: number }} Computed home/away scores for toast title.
    */
   const calculateToastScoreDisplay = (
     match: Match,
@@ -466,12 +441,9 @@ const GameProgressScreen = () => {
   };
 
   /**
-   * @brief Formats the message indicating which players should drink.
-   * Lists player names directly if 3 or fewer players need to drink.
-   * Summarizes if more than 3 players need to drink (e.g., "Player A, Player B and 5 others should drink!").
-   * Returns an empty string if no players need to drink.
-   * @param {string[]} playersToDrink - An array of names of players who should drink.
-   * @returns {string} The formatted message string, or an empty string if the input array is empty.
+   * Format goal toast drinking message (names if <=3 else summarized).
+   * @param {string[]} playersToDrink Array of player names.
+   * @returns {string} Formatted drinking message.
    */
   const formatGoalToastMessage = useCallback(
     (playersToDrink: string[]): string => {
@@ -488,15 +460,12 @@ const GameProgressScreen = () => {
   );
 
   /**
-   * @brief Adds a toast notification to the queue when a goal is scored.
-   * Finds the match, calculates score display, determines players to drink, formats message,
-   * and adds the toast data to a queue for sequential display.
-   * Respects user preference for common match notifications.
-   * @param {string} matchId - The ID of the match where a goal was scored.
-   * @param {'home' | 'away'} team - The team that scored the goal.
-   * @param {boolean} [isLiveUpdate=false] - Flag indicating if the update is from live data.
-   * @param {number} [newTotal] - The new total score for the scoring team (passed for live updates).
-   * @param {number} [otherTeamScore] - The current score of the non-scoring team (passed for live updates).
+   * Queue a goal toast (score + drink message) respecting common-match notification prefs.
+   * @param {string} matchId Match identifier.
+   * @param {('home'|'away')} team Scoring team.
+   * @param {boolean} [isLiveUpdate=false] Whether triggered by live polling.
+   * @param {number} [newTotal] New total for scoring team (live update context).
+   * @param {number} [otherTeamScore] Opponent score at time of live goal.
    */
   const enqueueGoalToast = useCallback(
     (
@@ -647,8 +616,7 @@ const GameProgressScreen = () => {
   ]);
 
   /**
-   * @brief Handles the pull-to-refresh action.
-   * Manually triggers fetching of current live scores and updates the refreshing state.
+   * Pull-to-refresh handler: fetch current scores, manage refreshing state.
    * @async
    */
   const onRefresh = useCallback(async () => {
@@ -739,8 +707,7 @@ const GameProgressScreen = () => {
         onConfirm={confirmEndGame}
       />
 
-      {/* Toast */}
-      <Toast config={goalToastConfig} />
+      {/* Toast mounted at app root */}
     </SafeAreaView>
   );
 };

@@ -4,18 +4,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { cacheLeagueLogo } from "../utils/teamLogos";
 
 /**
- * @interface LeagueLogos
- * @brief Mapping of league names to their local image assets.
+ * Map of league name -> local logo asset.
+ * @description Provides immediate offline access to common league logos.
  */
 interface LeagueLogos {
   [key: string]: ImageSourcePropType;
 }
 
 /**
- * @brief Local mapping of league names to their logo image assets.
- * 
- * This provides immediate access to common league logos without requiring
- * network requests or accessing AsyncStorage.
+ * Local league logos.
+ * @description Immediate synchronous assets avoiding network or storage lookups.
  */
 const LEAGUE_LOGOS: LeagueLogos = {
   "Premier League": require("../assets/images/leagues/premier-league.png"),
@@ -28,16 +26,11 @@ const LEAGUE_LOGOS: LeagueLogos = {
 };
 
 /**
- * @brief Custom hook to get a league logo, using a prioritized approach:
- * 1. Local assets (immediate)
- * 2. AsyncStorage cache (async but no network)
- * 3. API fetch (async with network request)
- *
- * @param leagueName The name of the league to retrieve the logo for
- * @param leagueCode Optional league code for API fetching when local/cached logo is not available
- * @returns {Object} Object with logoSource and loading state
- * @returns {ImageSourcePropType | undefined} logoSource - The image source for the logo, if found
- * @returns {boolean} isLoading - Whether the logo is still being loaded
+ * League logo hook.
+ * @description Resolves league logo via priority: local asset -> cached (AsyncStorage) -> remote fetch.
+ * @param {string} leagueName League display name.
+ * @param {string} [leagueCode] Optional code for remote fetch fallback.
+ * @returns {{logoSource: ImageSourcePropType | undefined; isLoading: boolean}} Logo state.
  */
 export function useLeagueLogo(leagueName: string, leagueCode?: string) {
   const [logoSource, setLogoSource] = useState<ImageSourcePropType | undefined>(
@@ -56,10 +49,7 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
       return;
     }
 
-    /**
-     * @brief Orchestrates the logo loading process.
-     * First tries AsyncStorage, then falls back to API if needed.
-     */
+    /** Begin async resolution flow (cache -> API). */
     const loadLogo = async () => {
       // 1. Try AsyncStorage
       const foundInCache = await getStoredLogo();
@@ -70,10 +60,7 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
       }
     };
 
-    /**
-     * @brief Attempts to retrieve a cached logo from AsyncStorage.
-     * @returns {Promise<boolean>} Whether a cached logo was found and set
-     */
+    /** Try cached logo from storage. */
     const getStoredLogo = async () => {
       try {
         const key = `league_logo_${leagueName}`;
@@ -91,15 +78,11 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
       }
     };
 
-    /**
-     * @brief Fetches a league logo from the ESPN API.
-     * If successful, caches the logo for future use.
-     */
+    /** Fetch logo remotely and cache. */
     const fetchLogoFromAPI = async () => {
       if (!leagueCode) return;
 
       try {
-
         // Fetch league data from ESPN API
         const response = await fetch(
           `https://site.api.espn.com/apis/site/v2/sports/soccer/${leagueCode}/scoreboard`

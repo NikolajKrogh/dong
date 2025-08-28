@@ -1,76 +1,56 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text } from "react-native";
 import { GameSession } from "./historyTypes";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateTotalGoals, calculateTotalDrinks } from "./historyUtils";
 
 /**
- * @interface OverallStatsProps
- * @brief Props for the OverallStats component.
- * @property {GameSession[]} history - An array of game session objects containing historical game data.
+ * OverallStatsProps
+ * @description Props for the OverallStats component.
+ * @property {GameSession[]} history Game session history array.
  */
 interface OverallStatsProps {
   history: GameSession[];
 }
 
 /**
- * @component OverallStats
- * @brief A React functional component that displays aggregated statistics from the game history.
- *
- * This component calculates and renders overall statistics such as total games played,
- * total players involved, total matches played, total goals scored, total drinks consumed,
- * and the average drinks per player across all recorded game sessions.
- * It features a prominent display for total drinks and a grid layout for other key stats.
- *
- * @param {OverallStatsProps} props - The props for the component.
- * @returns {React.ReactElement} The rendered OverallStats component.
+ * OverallStats component.
+ * @description Displays aggregated statistics: total games, players (participations),
+ * matches, goals, drinks, and average drinks per player.
+ * @param {OverallStatsProps} props Component props.
+ * @returns {React.ReactElement} Aggregated stats UI.
  */
 const OverallStats: React.FC<OverallStatsProps> = ({ history }) => {
-  /**
-   * @brief Total number of game sessions recorded.
-   */
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  /** Total number of recorded game sessions. */
   const totalGames = history.length;
 
-  /**
-   * @brief Total number of player participations across all games.
-   * Note: This counts participation per game, not unique players.
-   */
+  /** Total player participations (not unique players). */
   const totalPlayers = history.reduce(
     (sum, game) => sum + game.players.length,
     0
   );
 
-  /**
-   * @brief Total number of matches played across all game sessions.
-   */
+  /** Total matches across all sessions. */
   const totalMatches = history.reduce(
     (sum, game) => sum + game.matches.length,
     0
   );
 
-  /**
-   * @brief Total number of goals scored across all matches in all game sessions.
-   * Uses the calculateTotalGoals utility function.
-   */
+  /** Total goals across all sessions (via calculateTotalGoals). */
   const totalGoals = calculateTotalGoals(
     history.flatMap((game) => game.matches)
   );
 
-  /**
-   * @brief Total number of drinks consumed across all players in all game sessions.
-   * Uses the calculateTotalDrinks utility function.
-   */
+  /** Total drinks consumed across all sessions (via calculateTotalDrinks). */
   const totalDrinks = calculateTotalDrinks(
     history.flatMap((game) => game.players)
   );
 
-  /**
-   * @brief Average number of drinks consumed per player participation.
-   * Calculated as total drinks divided by total player participations.
-   * Returns "0" if there are no player participations.
-   */
+  /** Average drinks per player participation (string formatted, '0' if none). */
   const averageDrinksPerPlayer =
     totalPlayers > 0 ? (totalDrinks / totalPlayers).toFixed(1) : "0";
 

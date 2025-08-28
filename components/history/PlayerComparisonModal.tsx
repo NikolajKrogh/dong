@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Modal, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 import { getPlayerHeadToHeadStats } from "./historyUtils";
 import TooltipModal from "./TooltipModal";
 
@@ -26,13 +26,11 @@ interface ComparisonStatItemProps {
 }
 
 /**
- * @brief Modal component that shows a comparison between two players.
- *
- * Displays a comprehensive comparison of two players including basic stats,
- * head-to-head record, drinking performance, and influence on each other.
- *
- * @param props Component properties including player data and visibility state
- * @returns A modal with player comparison data
+ * Player comparison modal.
+ * @description Renders head‑to‑head stats, aggregate drinking performance and influence metrics
+ * between two selected players. Hidden (returns null) if either player is missing.
+ * @param {PlayerComparisonModalProps} props Component props (visibility, close handler, players, history).
+ * @returns {React.ReactElement | null} Modal element or null.
  */
 const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
   visible,
@@ -41,6 +39,8 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
   player2,
   gameHistory,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   if (!player1 || !player2) return null;
 
   const stats = getPlayerHeadToHeadStats(
@@ -207,6 +207,7 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
                       style={{
                         fontWeight: "bold",
                         color: getInfluenceColor(
+                          colors,
                           stats.player1AvgWithPlayer2,
                           stats.player1AvgWithoutPlayer2
                         ),
@@ -263,12 +264,10 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
 };
 
 /**
- * @brief Renders a comparison item showing stats for both players.
- *
- * Displays a statistic with labels, values for both players, and an optional tooltip.
- *
- * @param props Properties including label, values, icon, and optional tooltip
- * @returns Statistic comparison component
+ * Comparison stat row.
+ * @description Shows a single labelled metric for both players with optional tooltip info.
+ * @param {ComparisonStatItemProps} props Row props.
+ * @returns {React.ReactElement} Stat row element.
  */
 const ComparisonStatItem: React.FC<ComparisonStatItemProps> = ({
   label,
@@ -277,12 +276,14 @@ const ComparisonStatItem: React.FC<ComparisonStatItemProps> = ({
   icon,
   tooltip,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   const [tooltipVisible, setTooltipVisible] = React.useState(false);
 
   /**
-   * @brief Gets tooltip content based on the stat label.
-   *
-   * @returns Object containing title and description for the tooltip
+   * Derive tooltip copy from label.
+   * @description Maps known labels to richer explanations; falls back to provided tooltip text.
+   * @returns {{title: string; description: string}} Tooltip descriptor.
    */
   const getTooltipDetails = () => {
     switch (label) {
@@ -353,14 +354,11 @@ const ComparisonStatItem: React.FC<ComparisonStatItemProps> = ({
 };
 
 /**
- * @brief Generates descriptive text for drinking influence comparison.
- *
- * Creates a human-readable description of how one player's drinking habits
- * change when playing with another player, including percentage differences.
- *
- * @param withAvg Average drinks when playing with the other player
- * @param withoutAvg Average drinks when playing without the other player
- * @returns Descriptive text with percentage change
+ * Build influence delta text.
+ * @description Returns qualitative phrase describing % change in drinks with vs without the other player.
+ * @param {number} withAvg Average drinks when paired.
+ * @param {number} withoutAvg Average drinks when not paired.
+ * @returns {string} Human readable influence description.
  */
 const getInfluenceText = (withAvg: number, withoutAvg: number): string => {
   if (withoutAvg === 0) {
@@ -382,13 +380,18 @@ const getInfluenceText = (withAvg: number, withoutAvg: number): string => {
 };
 
 /**
- * @brief Determines the color to use for influence text based on the percentage change.
- *
- * @param withAvg Average drinks when playing with the other player
- * @param withoutAvg Average drinks when playing without the other player
- * @returns Color string to use for the influence text
+ * Influence color helper.
+ * @description Chooses semantic color based on percentage change thresholds.
+ * @param {ReturnType<typeof useColors>} colors Theme colors.
+ * @param {number} withAvg Average with partner.
+ * @param {number} withoutAvg Average without partner.
+ * @returns {string} Hex/color token.
  */
-const getInfluenceColor = (withAvg: number, withoutAvg: number): string => {
+const getInfluenceColor = (
+  colors: ReturnType<typeof useColors>,
+  withAvg: number,
+  withoutAvg: number
+): string => {
   if (withoutAvg === 0) return colors.textPrimary;
 
   const percentChange = ((withAvg - withoutAvg) / withoutAvg) * 100;

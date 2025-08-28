@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ScrollView, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { LeagueEndpoint } from "../constants/leagues";
-import { commonStyles } from "./style/userPreferencesStyles";
+import { createUserPreferencesStyles } from "./style/userPreferencesStyles";
 
 import Header from "../components/preferences/Header";
 import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
@@ -14,15 +14,14 @@ import OnboardingButton from "../components/preferences/OnboardingButton";
 import AddLeagueModal from "../components/preferences/AddLeagueModal";
 import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
 import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
+import AppearanceSettings from "../components/preferences/AppearanceSettings";
+import { useColors } from "./style/theme";
 
 /**
- * @brief UserPreferencesScreen component.
- *
- * This component renders the user preferences screen, allowing users to
- * configure sound notifications, manage data sources (leagues), and view the
- * onboarding screen.
- *
- * @returns {JSX.Element} The rendered UserPreferencesScreen.
+ * User preferences screen for configuring notifications, leagues, appearance, and onboarding.
+ * @component
+ * @returns {JSX.Element} Preferences screen element.
+ * @description Provides toggles for sound & common match notifications, league management (add/remove/reset & default selection), appearance theme controls, and access to onboarding. Uses multiple modals coordinated via local state.
  */
 const UserPreferencesScreen = () => {
   const router = useRouter();
@@ -40,6 +39,11 @@ const UserPreferencesScreen = () => {
   } = useGameStore();
 
   const insets = useSafeAreaInsets();
+  const colors = useColors();
+  const { commonStyles } = useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAddLeagueModal, setShowAddLeagueModal] = useState(false);
   const [showManageLeaguesModal, setShowManageLeaguesModal] = useState(false);
@@ -53,16 +57,12 @@ const UserPreferencesScreen = () => {
   const [searchQueryForAddingModal, setSearchQueryForAddingModal] =
     useState("");
 
-  /**
-   * @brief Navigates back to the previous screen.
-   */
+  /** Navigate back to previous screen. */
   const goBack = () => {
     router.push("../");
   };
 
-  /**
-   * @brief Toggles the selection state of a league for the AddLeagueModal.
-   */
+  /** Toggle selection of a league in AddLeagueModal multi-select state. */
   const toggleLeagueSelectionForAdding = (league: LeagueEndpoint) => {
     setLeaguesForAddingModal((prevSelected) =>
       prevSelected.some((l) => l.code === league.code)
@@ -71,9 +71,7 @@ const UserPreferencesScreen = () => {
     );
   };
 
-  /**
-   * @brief Handles the addition of selected leagues from the AddLeagueModal.
-   */
+  /** Add all currently selected leagues (batch) then reset modal selection state. */
   const handleAddSelectedLeaguesFromModal = () => {
     leaguesForAddingModal.forEach((leagueToAdd) => addLeague(leagueToAdd)); // Use addLeague from store
     setLeaguesForAddingModal([]);
@@ -81,9 +79,7 @@ const UserPreferencesScreen = () => {
     setShowAddLeagueModal(false);
   };
 
-  /**
-   * @brief Handles saving the selected default leagues.
-   */
+  /** Persist selected default leagues and close modal. */
   const handleSaveDefaultLeagues = (newDefaults: LeagueEndpoint[]) => {
     setDefaultSelectedLeagues(newDefaults);
     setShowSelectDefaultLeaguesModal(false);
@@ -94,13 +90,19 @@ const UserPreferencesScreen = () => {
   }
 
   return (
-    <SafeAreaView style={commonStyles.safeArea}>
+    <SafeAreaView
+      style={[commonStyles.safeArea, { backgroundColor: colors.background }]}
+    >
       <Header title="Settings" onBack={goBack} paddingTop={insets.top} />
 
       <ScrollView
-        style={commonStyles.container}
+        style={[
+          commonStyles.container,
+          { backgroundColor: colors.backgroundLight },
+        ]}
         contentContainerStyle={commonStyles.contentContainer}
       >
+        <AppearanceSettings />
         <SoundNotificationSettings
           soundEnabled={soundEnabled}
           setSoundEnabled={setSoundEnabled}

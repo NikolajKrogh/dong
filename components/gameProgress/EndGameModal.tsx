@@ -8,36 +8,37 @@ import {
   Dimensions,
   SafeAreaView,
 } from "react-native";
-import { colors } from "../../app/style/palette";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @brief Interface defining the properties for the EndGameModal component.
+ * Props for the EndGameModal component.
+ * @interface
  */
 interface EndGameModalProps {
-  /** @brief Controls the visibility of the modal. */
+  /** Whether the modal is visible. */
   isVisible: boolean;
-  /** @brief Callback function executed when the user cancels the end game action. */
+  /** Called when user cancels closing/end action. */
   onCancel: () => void;
-  /** @brief Callback function executed when the user confirms the end game action. */
+  /** Called when user confirms ending the game. */
   onConfirm: () => void;
 }
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /**
- * @brief A modal component to confirm the end game action.
- * - Displays a confirmation message and provides options to either confirm ending the game or cancel the action.
- * @param {EndGameModalProps} props - The properties passed to the component.
- * @param {boolean} props.isVisible - Determines if the modal is currently visible.
- * @param {() => void} props.onCancel - Function to call when the cancel button or overlay is pressed.
- * @param {() => void} props.onConfirm - Function to call when the confirm button is pressed.
- * @returns {React.ReactElement | null} The rendered modal component or null if not visible.
+ * Confirmation modal for ending the active game session.
+ * @component
+ * @param {EndGameModalProps} props Component props.
+ * @returns {React.ReactElement | null} Modal element or null if hidden.
+ * @description Presents a themed overlay with contextual text and two actions (Cancel / End Game). No side-effects; parent handles state persistence & history saving.
  */
 const EndGameModal: React.FC<EndGameModalProps> = ({
   isVisible,
   onCancel,
   onConfirm,
 }) => {
+  const colors = useColors();
+  const modalStyles = React.useMemo(() => createStyles(colors), [colors]);
   return (
     <SafeAreaView style={{ flex: 0 }}>
       <Modal
@@ -87,71 +88,72 @@ const EndGameModal: React.FC<EndGameModalProps> = ({
   );
 };
 
-const modalStyles = StyleSheet.create({
-  overlayTouchable: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.backgroundModalOverlay,
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: SCREEN_WIDTH * 0.85,
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 20,
-    alignItems: "center",
-    shadowColor: colors.black,
-    shadowOffset: {
-      width: 0,
-      height: 2,
+const createStyles = (colors: ReturnType<typeof useColors>) =>
+  StyleSheet.create({
+    overlayTouchable: {
+      position: "absolute",
+      top: 0,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.backgroundModalOverlay,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    maxHeight: SCREEN_HEIGHT * 0.6,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 15,
-    textAlign: "center",
-    color: colors.textPrimary,
-  },
-  modalText: {
-    marginBottom: 20,
-    textAlign: "center",
-    color: colors.textSecondary,
-  },
-  modalButtons: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
-  },
-  button: {
-    borderRadius: 20,
-    padding: 10,
-    elevation: 2,
-    marginHorizontal: 5,
-    minWidth: 120,
-  },
-  buttonCancel: {
-    backgroundColor: colors.secondary,
-  },
-  buttonConfirm: {
-    backgroundColor: colors.danger,
-  },
-  textStyle: {
-    color: colors.white,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-});
+    centeredView: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modalContainer: {
+      width: SCREEN_WIDTH * 0.85,
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      padding: 20,
+      alignItems: "center",
+      shadowColor: colors.black,
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
+      maxHeight: SCREEN_HEIGHT * 0.6,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: "bold",
+      marginBottom: 15,
+      textAlign: "center",
+      color: colors.textPrimary,
+    },
+    modalText: {
+      marginBottom: 20,
+      textAlign: "center",
+      color: colors.textSecondary,
+    },
+    modalButtons: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      width: "100%",
+    },
+    button: {
+      borderRadius: 20,
+      padding: 10,
+      elevation: 2,
+      marginHorizontal: 5,
+      minWidth: 120,
+    },
+    buttonCancel: {
+      backgroundColor: colors.secondary,
+    },
+    buttonConfirm: {
+      backgroundColor: colors.danger,
+    },
+    textStyle: {
+      color: colors.white,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+  });
 
 export default EndGameModal;

@@ -7,10 +7,10 @@ import {
 } from "./historyTypes";
 
 /**
- * @brief Calculates the total goals (home + away) for a list of matches.
- * Sums both home and away goals for each match in the provided array.
- * @param matches An array of Match objects.
- * @return The total number of goals.
+ * Calculate total goals (home + away) across matches.
+ * @description Sums home and away goals for every match in the array; undefined goals are treated as 0.
+ * @param {Match[]} matches Array of match objects.
+ * @returns {number} Total goals across all matches.
  */
 export const calculateTotalGoals = (matches: Match[]): number => {
   return matches.reduce(
@@ -20,20 +20,20 @@ export const calculateTotalGoals = (matches: Match[]): number => {
 };
 
 /**
- * @brief Calculates the total drinks taken by a list of players.
- * Sums the drinks taken by each player, treating undefined values as zero.
- * @param players An array of Player objects.
- * @return The total number of drinks.
+ * Calculate total drinks consumed by players.
+ * @description Aggregates drinksTaken for each player, treating undefined as 0.
+ * @param {Player[]} players Array of player objects.
+ * @returns {number} Total drinks consumed.
  */
 export const calculateTotalDrinks = (players: Player[]): number => {
   return players.reduce((sum, player) => sum + (player.drinksTaken || 0), 0);
 };
 
 /**
- * @brief Finds the player with the most drinks in a game session.
- * Returns the player who consumed the highest amount of drinks.
- * @param players An array of Player objects.
- * @return The Player object with the most drinks, or null if there are no players.
+ * Find top drinker.
+ * @description Returns the player with the highest drinksTaken value; null if list empty.
+ * @param {Player[]} players Player collection.
+ * @returns {Player | null} Player with most drinks or null.
  */
 export const findTopDrinker = (players: Player[]): Player | null => {
   if (players.length === 0) return null;
@@ -43,10 +43,10 @@ export const findTopDrinker = (players: Player[]): Player | null => {
 };
 
 /**
- * @brief Formats a date string into a readable format for history items.
- * Creates a concise date representation for display in history list items.
- * @param dateString The date string to format.
- * @return The formatted date string with short month, day, and year.
+ * Format date for list item.
+ * @description Produces a short month/day/year localized date string for history lists.
+ * @param {string} dateString ISO date string.
+ * @returns {string} Localized short date string.
  */
 export const formatHistoryDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -58,14 +58,14 @@ export const formatHistoryDate = (dateString: string): string => {
 };
 
 /**
- * @brief Formats a date string for the modal title with more detail.
- * Creates a more comprehensive date representation for the modal view.
- * @param dateString The date string to format.
- * @return The formatted date string with full weekday, month, day, year, and time.
+ * Format date for modal title.
+ * @description Full verbose date with weekday and time for detailed modal display.
+ * @param {string} dateString ISO date string.
+ * @returns {string} Localized verbose date/time string.
  */
 export const formatModalDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleString(undefined, {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -76,11 +76,10 @@ export const formatModalDate = (dateString: string): string => {
 };
 
 /**
- * @brief Calculates lifetime player statistics from game history.
- * Aggregates player data across multiple game sessions to produce lifetime stats.
- * Players are identified by name, and their drinks and game participations are totaled.
- * @param history An array of GameSession objects.
- * @return An array of PlayerStat objects, sorted by total drinks in descending order.
+ * Calculate lifetime player stats.
+ * @description Aggregates per-player totals and averages across the entire history dataset (identified by player name).
+ * @param {GameSession[]} history Game session history.
+ * @returns {PlayerStat[]} Array of lifetime player stats sorted by totalDrinks desc.
  */
 export const calculateLifetimePlayerStats = (
   history: GameSession[]
@@ -123,11 +122,12 @@ export const calculateLifetimePlayerStats = (
 };
 
 /**
- * @brief Calculates comprehensive head-to-head statistics for two players.
- * @param history An array of GameSession objects.
- * @param player1Name Name of the first player.
- * @param player2Name Name of the second player.
- * @return A HeadToHeadStats object with comparison metrics.
+ * Get head-to-head stats.
+ * @description Produces comparative metrics between two players including wins, efficiencies, maxima, and timeline trends.
+ * @param {GameSession[]} history Game session history.
+ * @param {string} player1Name First player's name.
+ * @param {string} player2Name Second player's name.
+ * @returns {HeadToHeadStats} Aggregated comparison object.
  */
 export const getPlayerHeadToHeadStats = (
   history: GameSession[],

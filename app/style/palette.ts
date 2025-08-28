@@ -90,3 +90,8 @@ export const colors = {
   white: "#fff",
   black: "#000",
 };
+
+// Dummy default export to satisfy Expo Router if this file is treated as a route
+export default function StylePaletteRoute() {
+  return null;
+}

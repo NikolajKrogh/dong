@@ -1,30 +1,30 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  commonStyles,
-  settingsStyles,
-} from "../../app/style/userPreferencesStyles";
-import { colors } from "../../app/style/palette";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @interface OnboardingButtonProps
- * @brief Props for the OnboardingButton component.
+ * Props for onboarding button.
+ * @description Provides press handler.
  */
 interface OnboardingButtonProps {
-  /** @brief Function to call when the button is pressed. */
+  /** Called when pressed. */
   onPress: () => void;
 }
 
 /**
- * @brief OnboardingButton component.
- *
- * Displays a button that, when pressed, navigates the user to the onboarding screen.
- *
- * @param {OnboardingButtonProps} props - The props for the component.
- * @returns {JSX.Element} The rendered OnboardingButton component.
+ * Onboarding button.
+ * @description Triggers onboarding flow display when pressed.
+ * @param {OnboardingButtonProps} props Component props.
+ * @returns {JSX.Element} Button element.
  */
 const OnboardingButton: React.FC<OnboardingButtonProps> = ({ onPress }) => {
+  const colors = useColors();
+  const { commonStyles, settingsStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   return (
     <View style={commonStyles.section}>
       <TouchableOpacity

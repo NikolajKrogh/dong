@@ -1,35 +1,29 @@
 import React from "react";
 import { View, Text, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  commonStyles,
-  settingsStyles,
-} from "../../app/style/userPreferencesStyles";
-import { colors } from "../../app/style/palette";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @interface SoundNotificationSettingsProps
- * @brief Props for the SoundNotificationSettings component.
+ * Props for sound + notification settings.
+ * @description Holds toggles for sound effects and common match notifications.
  */
 interface SoundNotificationSettingsProps {
-  /** @brief Whether sound is enabled. */
+  /** Whether sound is enabled. */
   soundEnabled: boolean;
-  /** @brief Function to set the sound enabled state. */
+  /** Setter for sound enabled state. */
   setSoundEnabled: (value: boolean) => void;
-  /** @brief Whether common match notifications are enabled. */
+  /** Whether common match notifications are enabled. */
   commonMatchNotificationsEnabled: boolean;
-  /** @brief Function to set the common match notifications enabled state. */
+  /** Setter for common match notifications state. */
   setCommonMatchNotificationsEnabled: (value: boolean) => void;
 }
 
 /**
- * @brief SoundNotificationSettings component.
- *
- * Displays settings related to sound and notifications, allowing users to
- * toggle sound effects and common match notifications.
- *
- * @param {SoundNotificationSettingsProps} props - The props for the component.
- * @returns {JSX.Element} The rendered SoundNotificationSettings component.
+ * Sound & notification settings.
+ * @description Allows toggling sound effects and common match notification feature.
+ * @param {SoundNotificationSettingsProps} props Component props.
+ * @returns {JSX.Element} Card element.
  */
 const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
   soundEnabled,
@@ -37,6 +31,11 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
   commonMatchNotificationsEnabled,
   setCommonMatchNotificationsEnabled,
 }) => {
+  const colors = useColors();
+  const { commonStyles, settingsStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
   return (
     <View style={commonStyles.section}>
       <Text style={commonStyles.sectionTitle}>Sound & Notifications</Text>

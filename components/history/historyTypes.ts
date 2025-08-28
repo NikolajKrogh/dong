@@ -1,10 +1,10 @@
 /**
- * @interface PlayerStat
- * @brief Represents a player's statistics across all game sessions.
- * @property {string} name - The name of the player.
- * @property {number} totalDrinks - The total number of drinks taken by the player.
- * @property {number} gamesPlayed - The total number of games the player has participated in.
- * @property {number} averagePerGame - The average number of drinks taken by the player per game.
+ * PlayerStat
+ * @description Represents a player's aggregated statistics across all recorded game sessions.
+ * @property {string} name Player name.
+ * @property {number} totalDrinks Total number of drinks taken across all sessions.
+ * @property {number} gamesPlayed Total number of games participated in.
+ * @property {number} averagePerGame Average drinks per game (totalDrinks / gamesPlayed).
  */
 export interface PlayerStat {
   name: string;
@@ -14,11 +14,11 @@ export interface PlayerStat {
 }
 
 /**
- * @interface Player
- * @brief Represents a player in a game session.
- * @property {string} id - The unique identifier of the player.
- * @property {string} name - The name of the player.
- * @property {number | undefined} drinksTaken - The number of drinks taken by the player in a specific game session (optional).
+ * Player
+ * @description Represents an individual player in a single game session.
+ * @property {string} id Unique identifier.
+ * @property {string} name Player display name.
+ * @property {number} [drinksTaken] Drinks taken within the specific game session.
  */
 export interface Player {
   id: string;
@@ -27,14 +27,14 @@ export interface Player {
 }
 
 /**
- * @interface Match
- * @brief Represents a match between two teams in a game session.
- * @property {string} id - The unique identifier of the match.
- * @property {string} homeTeam - The name of the home team.
- * @property {string} awayTeam - The name of the away team.
- * @property {number} homeGoals - The number of goals scored by the home team.
- * @property {number} awayGoals - The number of goals scored by the away team.
- * @property {number | undefined} goals - The total number of goals scored in the match (optional).
+ * Match
+ * @description Represents a match between two teams within a game session.
+ * @property {string} id Unique identifier for the match.
+ * @property {string} homeTeam Home team name.
+ * @property {string} awayTeam Away team name.
+ * @property {number} homeGoals Home team goals.
+ * @property {number} awayGoals Away team goals.
+ * @property {number} [goals] Optional total goals (may be precomputed or cached).
  */
 export interface Match {
   id: string;
@@ -46,22 +46,22 @@ export interface Match {
 }
 
 /**
- * @typedef PlayerAssignments
- * @brief Represents the assignment of players to matches in a game session.
- * @property {Object.<string, string[]>} [playerId: string] - An object where the keys are player IDs and the values are arrays of match IDs.
+ * PlayerAssignments
+ * @description Mapping of player IDs to arrays of match IDs they're assigned to.
+ * @typedef {Object.<string,string[]>} PlayerAssignments
  */
 export type PlayerAssignments = { [playerId: string]: string[] };
 
 /**
- * @interface GameSession
- * @brief Represents a single game session.
- * @property {string} id - The unique identifier of the game session.
- * @property {string} date - The date when the game session took place.
- * @property {Player[]} players - An array of players who participated in the game session.
- * @property {Match[]} matches - An array of matches played during the game session.
- * @property {string | null} commonMatchId - The ID of the most common match in the session, or null if there isn't one.
- * @property {PlayerAssignments} playerAssignments - The assignment of players to matches in the game session.
- * @property {number} matchesPerPlayer - The number of matches played per player in the game session.
+ * GameSession
+ * @description Represents a single complete game session containing players, matches, and assignments.
+ * @property {string} id Unique identifier.
+ * @property {string} date ISO date string for when the session occurred.
+ * @property {Player[]} players Participants in the session.
+ * @property {Match[]} matches Matches played during the session.
+ * @property {string|null} commonMatchId ID of the designated common match (or null).
+ * @property {PlayerAssignments} playerAssignments Mapping of player -> match IDs.
+ * @property {number} matchesPerPlayer Derived matches per player metric.
  */
 export interface GameSession {
   id: string;
@@ -74,38 +74,27 @@ export interface GameSession {
 }
 
 /**
- * @interface HeadToHeadStats
- * @brief Represents the statistics of two players head-to-head.
- * @property {Object} player1 - Statistics for player 1.
- * @property {string} player1.name - The name of player 1.
- * @property {number} player1.totalDrinks - The total number of drinks taken by player 1.
- * @property {number} player1.gamesPlayed - The total number of games played by player 1.
- * @property {number} player1.averagePerGame - The average number of drinks taken by player 1 per game.
- * @property {Object} player2 - Statistics for player 2.
- * @property {string} player2.name - The name of player 2.
- * @property {number} player2.totalDrinks - The total number of drinks taken by player 2.
- * @property {number} player2.gamesPlayed - The total number of games played by player 2.
- * @property {number} player2.averagePerGame - The average number of drinks taken by player 2 per game.
- * @property {number} gamesPlayedTogether - The total number of games played together by both players.
- * @property {number} player1WinsCount - The number of games won by player 1.
- * @property {number} player2WinsCount - The number of games won by player 2.
- * @property {number} tiedGamesCount - The number of games that ended in a tie.
- * @property {number} player1MaxInAGame - The maximum number of drinks taken by player 1 in a single game.
- * @property {number} player2MaxInAGame - The maximum number of drinks taken by player 2 in a single game.
- * @property {number} player1CommonMatchCount - The number of common matches played by player 1.
- * @property {number} player2CommonMatchCount - The number of common matches played by player 2.
- * @property {number} player1Efficiency - The efficiency of player 1.
- * @property {number} player2Efficiency - The efficiency of player 2.
- * @property {number} player1TopDrinkerCount - The number of times player 1 was the top drinker.
- * @property {number} player2TopDrinkerCount - The number of times player 2 was the top drinker.
- * @property {number} player1AvgWithPlayer2 - The average drinks taken by player 1 when playing with player 2.
- * @property {number} player1AvgWithoutPlayer2 - The average drinks taken by player 1 when not playing with player 2.
- * @property {number} player2AvgWithPlayer1 - The average drinks taken by player 2 when playing with player 1.
- * @property {number} player2AvgWithoutPlayer1 - The average drinks taken by player 2 when not playing with player 1.
- * @property {Array.<Object>} timelineData - Timeline data of drinks taken by both players.
- * @property {string} timelineData.date - The date of the game session.
- * @property {number} timelineData.player1Drinks - The number of drinks taken by player 1 in the game session.
- * @property {number} timelineData.player2Drinks - The number of drinks taken by player 2 in the game session.
+ * HeadToHeadStats
+ * @description Aggregated comparative statistics between two players including totals, efficiency, and timeline data.
+ * @property {{name:string,totalDrinks:number,gamesPlayed:number,averagePerGame:number}} player1 Stats for first player.
+ * @property {{name:string,totalDrinks:number,gamesPlayed:number,averagePerGame:number}} player2 Stats for second player.
+ * @property {number} gamesPlayedTogether Number of games both players participated in.
+ * @property {number} player1WinsCount Games where player1 drank more.
+ * @property {number} player2WinsCount Games where player2 drank more.
+ * @property {number} tiedGamesCount Games with equal drinks.
+ * @property {number} player1MaxInAGame Highest single-game drinks for player1.
+ * @property {number} player2MaxInAGame Highest single-game drinks for player2.
+ * @property {number} player1CommonMatchCount Common matches participated in by player1.
+ * @property {number} player2CommonMatchCount Common matches participated in by player2.
+ * @property {number} player1Efficiency Efficiency metric for player1.
+ * @property {number} player2Efficiency Efficiency metric for player2.
+ * @property {number} player1TopDrinkerCount Times player1 was top drinker.
+ * @property {number} player2TopDrinkerCount Times player2 was top drinker.
+ * @property {number} player1AvgWithPlayer2 Player1 average drinks in games with player2.
+ * @property {number} player1AvgWithoutPlayer2 Player1 average drinks without player2.
+ * @property {number} player2AvgWithPlayer1 Player2 average drinks in games with player1.
+ * @property {number} player2AvgWithoutPlayer1 Player2 average drinks without player1.
+ * @property {Array<{date:string,player1Drinks:number,player2Drinks:number}>} timelineData Time-series drink counts.
  */
 export interface HeadToHeadStats {
   player1: {

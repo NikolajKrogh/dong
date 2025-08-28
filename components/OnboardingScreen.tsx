@@ -18,7 +18,7 @@ import Animated, {
   SlideInRight,
   SlideOutLeft,
 } from "react-native-reanimated";
-import { colors } from "../app/style/palette";
+import { useColors } from "../app/style/theme";
 
 const onboardingSteps = [
   {
@@ -48,6 +48,85 @@ const onboardingSteps = [
 ];
 
 const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
+  const colors = useColors();
+  const styles = React.useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          justifyContent: "center",
+          backgroundColor: colors.surface,
+        },
+        content: {
+          padding: 24,
+          alignItems: "center",
+        },
+        logo: {
+          width: "100%",
+          height: undefined,
+          aspectRatio: 1,
+          resizeMode: "contain",
+          marginBottom: 20,
+        },
+        title: {
+          fontSize: 26,
+          fontWeight: "bold",
+          color: colors.primary,
+          marginBottom: 12,
+          textAlign: "center",
+        },
+        description: {
+          fontSize: 16,
+          color: colors.textMuted,
+          marginBottom: 24,
+          textAlign: "center",
+        },
+        buttons: {
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginTop: 24,
+        },
+        button: {
+          flex: 1,
+          paddingVertical: 14,
+          paddingHorizontal: 18,
+          backgroundColor: colors.primary,
+          borderRadius: 10,
+          marginHorizontal: 10,
+          alignItems: "center",
+          shadowColor: colors.black,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 4,
+          elevation: 3,
+        },
+        buttonText: {
+          color: colors.white,
+          fontSize: 15,
+          fontWeight: "600",
+        },
+        progressBarContainer: {
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          paddingVertical: 16,
+          backgroundColor: colors.surface,
+        },
+        progressDot: {
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          marginHorizontal: 5,
+        },
+        activeDot: {
+          backgroundColor: colors.primary,
+        },
+        inactiveDot: {
+          backgroundColor: colors.border,
+        },
+      }),
+    [colors]
+  );
   const [screenIndex, setScreenIndex] = useState(0);
   const data = onboardingSteps[screenIndex];
 
@@ -115,80 +194,5 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: colors.surface,
-  },
-  content: {
-    padding: 24,
-    alignItems: "center",
-  },
-  logo: {
-    width: "100%", // Adjusted to fit within the screen
-    height: undefined, // Maintain aspect ratio
-    aspectRatio: 1, // Ensures the logo maintains its proportions
-    resizeMode: "contain", // Ensures the image fits within the bounds
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: colors.primary,
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  description: {
-    fontSize: 16,
-    color: colors.textMuted,
-    marginBottom: 24,
-    textAlign: "center",
-  },
-  buttons: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 24,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    marginHorizontal: 10,
-    alignItems: "center",
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonText: {
-    color: colors.white,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  progressBarContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 16,
-    backgroundColor: colors.surface,
-  },
-  progressDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  activeDot: {
-    backgroundColor: colors.primary,
-  },
-  inactiveDot: {
-    backgroundColor: colors.border,
-  },
-});
 
 export default OnboardingScreen;

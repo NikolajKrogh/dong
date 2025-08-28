@@ -1,5 +1,6 @@
 /**
- * @brief Interface for ESPN API response data.
+ * ESPN API root response.
+ * @description Top-level shape containing leagues metadata and event entries.
  */
 export interface ESPNResponse {
   leagues?: Array<{
@@ -22,7 +23,8 @@ export interface ESPNResponse {
 }
 
 /**
- * @brief Interface for ESPN API event data.
+ * ESPN event object.
+ * @description Represents a single scheduled or live match event including competitions and status.
  */
 export interface ESPNEvent {
   id: string;
@@ -48,7 +50,8 @@ export interface ESPNEvent {
 }
 
 /**
- * @brief Interface for ESPN API competition data.
+ * ESPN competition wrapper.
+ * @description Contains competitors, status and detail records for a given event instance.
  */
 export interface ESPNCompetition {
   id?: string;
@@ -64,7 +67,8 @@ export interface ESPNCompetition {
 }
 
 /**
- * @brief Interface for ESPN API competition details.
+ * ESPN competition detail.
+ * @description Fine-grained event occurrences (cards, goals) with involved athletes and type info.
  */
 export interface ESPNCompetitionDetail {
   yellowCard?: boolean;
@@ -89,7 +93,8 @@ export interface ESPNCompetitionDetail {
 }
 
 /**
- * @brief Interface for ESPN API statistic data.
+ * ESPN statistic entry.
+ * @description Single stat name/value pair sometimes with display formatting.
  */
 export interface ESPNStatistic {
   name?: string;
@@ -98,7 +103,8 @@ export interface ESPNStatistic {
 }
 
 /**
- * @brief Interface for ESPN API competitor data.
+ * ESPN competitor entity.
+ * @description Team participant in a competition with score and statistics.
  */
 export interface ESPNCompetitor {
   id?: string;

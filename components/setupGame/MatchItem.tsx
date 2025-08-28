@@ -3,8 +3,8 @@ import { View, Text, TouchableOpacity, Image, ImageStyle } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Match } from "../../store/store";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 interface MatchItemProps {
@@ -13,6 +13,8 @@ interface MatchItemProps {
 }
 
 const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
   const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
 

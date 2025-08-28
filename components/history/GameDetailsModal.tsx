@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
-import { styles } from "../../app/style/historyStyles";
-import { colors } from "../../app/style/palette";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../app/style/theme";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 import {
   formatModalDate,
@@ -19,11 +19,12 @@ import {
 } from "./historyUtils";
 
 /**
- * @interface GameDetailsModalProps
- * @brief Props for the GameDetailsModal component.
- * @property {boolean} visible - Controls the visibility of the modal.
- * @property {() => void} onClose - Function to call when the modal should be closed.
- * @property {GameSession | null} game - The game session data to display details for, or null if no game is selected.
+ * Props for GameDetailsModal.
+ * @description Visibility flag, close handler, and the selected game session to display.
+ * When `game` is null the modal renders nothing.
+ * @property {boolean} visible Whether the modal is visible.
+ * @property {() => void} onClose Close handler.
+ * @property {GameSession | null} game Game session to show (null => no render).
  */
 interface GameDetailsModalProps {
   visible: boolean;
@@ -32,31 +33,25 @@ interface GameDetailsModalProps {
 }
 
 /**
- * @component GameDetailsModal
- * @brief A modal component that displays detailed information about a specific game session.
- *
- * This modal shows summary statistics (total drinks, goals, players, matches),
- * a list of players with their drink counts, and a list of matches played during the session
- * with their scores and team logos.
- *
- * @param {GameDetailsModalProps} props - The props for the component.
- * @returns {React.ReactElement | null} The rendered modal component, or null if the game prop is null.
+ * Game session details modal.
+ * @description Shows aggregated stats plus ordered lists of players (by drinks) and matches (with scores & logos).
+ * Renders nothing if `game` is null to avoid mounting an empty modal.
+ * @param {GameDetailsModalProps} props Component props.
+ * @returns {React.ReactElement | null} Modal content or null when no game.
  */
 const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   visible,
   onClose,
   game,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   // If no game data is provided, don't render the modal.
   if (!game) return null;
 
-  /**
-   * @brief Total goals scored in the selected game session.
-   */
+  // Total goals scored in the selected game session.
   const totalGoals = calculateTotalGoals(game.matches);
-  /**
-   * @brief Total drinks consumed in the selected game session.
-   */
+  // Total drinks consumed in the selected game session.
   const totalDrinks = calculateTotalDrinks(game.players);
 
   return (

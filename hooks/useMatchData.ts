@@ -10,93 +10,44 @@ import { useGameStore } from "../store/store";
 import { LeagueEndpoint } from "../constants/leagues";
 
 /**
- * @brief Fetches data directly from a specified URL.
- *
- * This function is a simple wrapper around the native `fetch` API.
- * It's used here to make direct requests to the ESPN API without any proxy.
- *
- * @param {string} url The URL to fetch data from.
- * @return {Promise<Response>} A promise that resolves with the Response object
- *                             representing the response to the request.
+ * Fetch raw data from a given ESPN endpoint.
+ * @description Thin wrapper over global fetch for direct scoreboard calls.
+ * @param url Endpoint URL.
+ * @returns Fetch response promise.
  */
 const fetchDataFromESPN = async (url: string): Promise<Response> => {
   return fetch(url);
 };
 
 /**
- * @brief Custom hook for fetching and processing match data from the ESPN API.
- *
- * This hook orchestrates the fetching of match and team data from the ESPN API
- * for a specified date and set of configured leagues. It manages loading states,
- * error handling, and processes the API response to extract relevant match details,
- * team information, and available leagues. It also caches team and league logos.
- *
- * @param {string} [selectedDate] - Optional. The date for which to fetch matches, expected in YYYY-MM-DD format.
- *                                  If not provided or if the format is invalid, it defaults to the current date
- *                                  as handled by `formatDateForAPI`.
- *
- * @return {object} An object containing the state and data related to match fetching:
- * @property {boolean} isLoading - True if data is currently being fetched or processed, false otherwise.
- * @property {boolean} isError - True if an error occurred during data fetching, false otherwise.
- * @property {string} errorMessage - A message describing the error, if one occurred.
- * @property {TeamWithLeague[]} teamsData - An array of `TeamWithLeague` objects, representing unique teams
- *                                          extracted from the fetched matches, sorted by team name.
- * @property {any[]} apiData - An array containing the processed data structured by league, where each element
- *                             has a `name` (league name) and `matches` (array of match details).
- * @property {LeagueEndpoint[]} availableLeagues - An array of `LeagueEndpoint` objects representing the leagues
- *                                                for which data was successfully fetched and processed.
+ * Load and process match + team data for configured leagues.
+ * @description Fetches each league scoreboard for the selected date, extracts simplified match objects,
+ * unique team list and caches logos; provides loading & error state.
+ * @param selectedDate Optional YYYY-MM-DD date (defaults handled by formatter when undefined/invalid).
+ * @returns State bundle (isLoading, isError, errorMessage, teamsData, apiData, availableLeagues).
  */
 export function useMatchData(selectedDate?: string) {
-  /**
-   * @brief State: Indicates if match data is currently being loaded.
-   */
+  /** Indicates if data is currently loading. */
   const [isLoading, setIsLoading] = useState(false);
-  /**
-   * @brief State: Indicates if an error occurred during data fetching.
-   */
+  /** Whether an error occurred. */
   const [isError, setIsError] = useState(false);
-  /**
-   * @brief State: Stores the error message if an error occurred.
-   */
+  /** Error message (if any). */
   const [errorMessage, setErrorMessage] = useState("");
-  /**
-   * @brief State: Stores the processed team data extracted from matches.
-   */
+  /** Processed unique team list. */
   const [teamsData, setTeamsData] = useState<TeamWithLeague[]>([]);
-  /**
-   * @brief State: Stores the raw, structured API data, typically by league.
-   */
+  /** Raw structured API data grouped by league. */
   const [apiData, setApiData] = useState<any[]>([]);
-  /**
-   * @brief State: Stores the list of leagues for which data was available.
-   */
+  /** Leagues for which data was successfully retrieved. */
   const [availableLeagues, setAvailableLeagues] = useState<LeagueEndpoint[]>(
     []
   );
 
-  /**
-   * @brief Retrieves the list of configured leagues from the global game store.
-   * These leagues determine which ESPN endpoints are queried.
-   */
+  /** User configured leagues (determine which endpoints to fetch). */
   const configuredLeagues = useGameStore((state) => state.configuredLeagues);
 
   /**
-   * @brief Asynchronous callback function to fetch and process match data.
-   *
-   * It performs the following steps:
-   * 1. Sets loading state and resets error state.
-   * 2. Formats the `selectedDate` for the API query.
-   * 3. Fetches data from ESPN for each `configuredLeagues`.
-   * 4. Processes each response:
-   *    - Caches team and league logos.
-   *    - Extracts league name and code.
-   *    - Transforms event data into a simplified match structure (ID, teams, date, time, venue).
-   *    - Aggregates all match data and unique team data.
-   * 5. Updates `apiData`, `availableLeagues`, and `teamsData` states.
-   * 6. Handles errors by setting error state and providing fallback team data.
-   * 7. Resets loading state in the `finally` block.
-   *
-   * Dependencies: `selectedDate`, `configuredLeagues`.
+   * Fetch & process league scoreboards, building match + team collections.
+   * @description Handles logo caching, uniqueness filtering, sorting, and fallback population when requests fail.
    */
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -104,19 +55,13 @@ export function useMatchData(selectedDate?: string) {
     setErrorMessage("");
 
     try {
-      /**
-       * @brief The date parameter formatted for the ESPN API query.
-       */
+      /** Date parameter for API queries. */
       const dateParam = formatDateForAPI(selectedDate);
 
-      /**
-       * @brief The list of league endpoints to fetch data from, derived from `configuredLeagues`.
-       */
+      /** League endpoints to query. */
       const leagueEndpoints = configuredLeagues;
 
-      /**
-       * @brief An array of Promises, each representing a fetch request to an ESPN league scoreboard endpoint.
-       */
+      /** Parallel fetch promises for each league scoreboard. */
       const responses = await Promise.all(
         leagueEndpoints.map((league) =>
           fetchDataFromESPN(
@@ -125,21 +70,13 @@ export function useMatchData(selectedDate?: string) {
         )
       );
 
-      /**
-       * @brief Accumulator for all processed data, structured by league.
-       */
+      /** Per-league match collections. */
       const allData: any[] = [];
-      /**
-       * @brief Accumulator for all unique teams extracted from matches.
-       */
+      /** Unique teams aggregate. */
       const allTeams: TeamWithLeague[] = [];
-      /**
-       * @brief Map to store unique available leagues encountered during processing.
-       */
+      /** Map of leagues encountered. */
       const leagueMap = new Map<string, LeagueEndpoint>();
-      /**
-       * @brief Set to keep track of processed team names to avoid duplicates in `allTeams`.
-       */
+      /** Track team names already included. */
       const processedTeams = new Set<string>();
 
       for (let i = 0; i < responses.length; i++) {
@@ -309,18 +246,13 @@ export function useMatchData(selectedDate?: string) {
       }));
 
       setTeamsData(fallbackTeams);
-      setAvailableLeagues([
-        { name: "Premier League", code: "eng.1" },
-      ]);
+      setAvailableLeagues([{ name: "Premier League", code: "eng.1" }]);
     } finally {
       setIsLoading(false);
     }
   }, [selectedDate, configuredLeagues]);
 
-  /**
-   * @brief Effect hook to trigger the `fetchData` callback when the component mounts
-   * or when `fetchData` (which depends on `selectedDate` or `configuredLeagues`) changes.
-   */
+  /** Trigger fetch on mount or when dependencies change. */
   useEffect(() => {
     fetchData();
   }, [fetchData]);

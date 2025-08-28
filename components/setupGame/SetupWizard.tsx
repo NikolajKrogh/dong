@@ -1,22 +1,24 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
-import styles from "../../app/style/setupGameStyles";
-import { colors } from "../../app/style/palette"; // Import colors
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 /**
- * @interface SetupWizardProps
- * @brief Props for the SetupWizard component.
- * @property {() => React.ReactNode} renderPlayersStep - Function to render the content for the players setup step.
- * @property {() => React.ReactNode} renderMatchesStep - Function to render the content for the matches setup step.
- * @property {() => React.ReactNode} renderCommonMatchStep - Function to render the content for the common match selection step.
- * @property {() => React.ReactNode} renderAssignStep - Function to render the content for the match assignment step.
- * @property {() => void} handleStartGame - Callback function to execute when the game setup is complete and the game should start.
- * @property {boolean} canAdvanceToMatches - Flag indicating if the user can proceed from the players step to the matches step.
- * @property {boolean} canAdvanceToCommonMatch - Flag indicating if the user can proceed from the matches step to the common match step.
- * @property {boolean} canAdvanceToAssign - Flag indicating if the user can proceed from the common match step to the assignment step.
- * @property {boolean} canStartGame - Flag indicating if all conditions are met to start the game.
+ * Props for setup wizard.
+ * @description Collection of render callbacks for each step, progression gating booleans, start handler and optional quick-add utility for the players step.
+ * @property renderPlayersStep Renders the players entry step (add/remove players UI).
+ * @property renderMatchesStep Renders the matches selection step.
+ * @property renderCommonMatchStep Renders the common match selection step (shared matches across players).
+ * @property renderAssignStep Renders the player-to-match assignment step.
+ * @property handleStartGame Invoked when the final Start Game button is pressed (all validation passed).
+ * @property canAdvanceToMatches Whether the wizard can move from Players -> Matches.
+ * @property canAdvanceToCommonMatch Whether the wizard can move from Matches -> Common step.
+ * @property canAdvanceToAssign Whether the wizard can move from Common -> Assign step.
+ * @property canStartGame Whether the game can be started (final validation for Assign step).
+ * @property newPlayerName Optional current text input value for a new player (used for auto-add before advancing).
+ * @property handleAddPlayer Optional helper to append `newPlayerName` before navigating forward from Players.
  */
 interface SetupWizardProps {
   renderPlayersStep: () => React.ReactNode;
@@ -33,14 +35,10 @@ interface SetupWizardProps {
 }
 
 /**
- * @brief A multi-step wizard component for setting up a game.
- *
- * This component guides the user through several steps: adding players, selecting matches,
- * choosing a common match, and assigning matches to players. It features a progress indicator
- * and navigation buttons to move between steps or start the game.
- *
- * @param {SetupWizardProps} props - The props for the component.
- * @returns {React.ReactNode} The rendered wizard component.
+ * Game setup wizard.
+ * @description Multi-step flow (players -> matches -> common -> assign) with progress indicator.
+ * @param {SetupWizardProps} props Component props.
+ * @returns {React.ReactElement} Wizard element.
  */
 const SetupWizard: React.FC<SetupWizardProps> = ({
   renderPlayersStep,
@@ -55,17 +53,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   newPlayerName,
   handleAddPlayer,
 }) => {
-  /**
-   * @brief State hook for managing the current active step in the wizard.
-   * Initializes to the first step (index 0).
-   */
+  // Active step index
   const [currentStep, setCurrentStep] = useState(0);
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
-  /**
-   * @const {Array<{name: string, icon: string}>} steps
-   * @brief Configuration for the wizard steps, including their names and associated icons.
-   * The icon names correspond to Ionicons.
-   */
+  // Step meta (label + icon)
   const steps: {
     name: string;
     icon:
@@ -115,7 +108,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 size={24}
                 color={
                   currentStep >= index ? colors.textLight : colors.textMuted
-                } // Icon color changes based on active/inactive state
+                }
               />
             </TouchableOpacity>
 

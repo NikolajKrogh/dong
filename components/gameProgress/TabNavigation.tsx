@@ -1,4 +1,4 @@
-import React, { ReactNode, useRef } from "react";
+import React, { ReactNode, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -15,25 +15,25 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import styles from "../../app/style/gameProgressStyles";
-import { colors } from "../../app/style/palette";
+import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
+import { useColors } from "../../app/style/theme";
 
 /**
- * @interface TabNavigationProps
- * @brief Props for the TabNavigation component.
+ * Props for the TabNavigation component.
+ * @interface
  */
 interface TabNavigationProps {
-  /** @brief The currently active tab's identifier string. */
+  /** The currently active tab's identifier string. */
   activeTab: string;
-  /** @brief Function to set the active tab. */
+  /** Setter invoked to change the active tab. */
   setActiveTab: (tab: string) => void;
-  /** @brief Array of React nodes, where each node is the content for a tab. */
+  /** Array of React nodes, each representing a tab's content (order matters). */
   children: ReactNode[];
-  /** @brief Count of items for the 'matches' tab. */
+  /** Count of items for the 'matches' tab (displayed as a badge). */
   matchesCount: number;
-  /** @brief Count of items for the 'players' tab. */
+  /** Count of items for the 'players' tab (displayed as a badge). */
   playersCount: number;
-  /** @brief Optional RefreshControl element to be applied to the first tab. */
+  /** Optional RefreshControl applied only to the first (matches) tab. */
   refreshControl?: React.ReactElement;
 }
 
@@ -41,13 +41,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.2;
 
 /**
- * @brief A component that provides tab-based navigation with swipe gestures.
- *
- * This component displays a tab bar and allows users to switch between tab content
- * by tapping on tabs or swiping horizontally. It uses Reanimated for smooth animations.
- *
- * @param {TabNavigationProps} props - The props for the component.
- * @returns {React.FC<TabNavigationProps>} A React functional component.
+ * Tab navigation with swipe gestures and animated transitions.
+ * @component
+ * @param {TabNavigationProps} props Component props.
+ * @returns {React.ReactElement} Rendered tab navigation UI.
+ * @description Renders a tab bar (matches / players) with counts and icons. Users can switch tabs by tapping or via horizontal swipe gestures handled with Reanimated + Gesture Handler. Horizontal gestures are suppressed when a predominantly vertical scroll is detected to avoid interference with list scrolling. Applies an optional RefreshControl only to the first tab's content.
  */
 const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
@@ -57,15 +55,16 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   playersCount,
   refreshControl,
 }) => {
+  const colors = useColors();
+  const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
   const tabs = ["matches", "players"];
   const activeIndex = tabs.indexOf(activeTab);
-  /** @brief Shared value for the horizontal translation of the tab content. */
+  /** Shared value for horizontal translation of the tab content pages. */
   const translateX = useSharedValue(-activeIndex * SCREEN_WIDTH);
 
   /**
-   * @brief Handles changing the active tab.
-   * Animates the tab content to the selected tab and updates the active tab state.
-   * @param {string} tab - The identifier of the tab to switch to.
+   * Animates to a new tab and updates active tab state.
+   * @param {string} tab Target tab identifier.
    */
   const handleTabChange = (tab: string) => {
     const index = tabs.indexOf(tab);
@@ -77,9 +76,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   };
 
   /**
-   * @brief Animated gesture handler for swipe gestures.
-   * Manages the horizontal translation of tab content during swipes and
-   * determines when to switch tabs based on swipe velocity and distance.
+   * Gesture handler controlling horizontal swipes between tabs with velocity & distance thresholds.
    */
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (event, ctx: any) => {
@@ -141,10 +138,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
     },
   });
 
-  /**
-   * @brief Animated style for the tab content container.
-   * Applies the horizontal translation based on the `translateX` shared value.
-   */
+  /** Animated style binding translateX to the tab pages container. */
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateX: translateX.value }],
@@ -154,20 +148,12 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
     };
   });
 
-  /**
-   * @brief Gets the count for a specific tab.
-   * @param {string} tab - The identifier of the tab.
-   * @returns {number} The count for the specified tab.
-   */
+  /** Returns the numeric badge count for a tab. */
   const getTabCount = (tab: string) => {
     return tab === "matches" ? matchesCount : playersCount;
   };
 
-  /**
-   * @brief Gets the icon name for a specific tab.
-   * @param {string} tab - The identifier of the tab.
-   * @returns {string} The Ionicons name for the tab icon.
-   */
+  /** Returns Ionicons name for a given tab. */
   const getTabIcon = (tab: string) => {
     return tab === "matches" ? "football" : "people";
   };
