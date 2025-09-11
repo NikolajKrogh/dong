@@ -22,8 +22,16 @@ import PlayerStatsList from "../components/history/PlayerStatsList";
 import OverallStats from "../components/history/OverallStats";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { calculateLifetimePlayerStats } from "../components/history/historyUtils";
+import {
+  calculateLifetimePlayerStats,
+  calculateTotalDrinks,
+  calculateTotalGoals,
+} from "../components/history/historyUtils";
 import { useColors } from "./style/theme";
+import SortHistoryModal, {
+  HistorySortField,
+  SortDirection,
+} from "../components/history/SortHistoryModal";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];
@@ -41,6 +49,7 @@ const TABS = ["Games", "Players", "Stats"];
  *  - playerStats: Cached lifetime stats derived from store history (recomputed when history changes).
  *  - activeTabIndex: Which of the three tabs is active.
  *  - loading / error: Reserve hooks for potential async history loading (currently not externalized).
+ *  - sortField / sortDirection: Manages sorting state for the games list.
  *
  * @returns {JSX.Element} React element for the history screen.
  */
@@ -53,6 +62,24 @@ const HistoryScreen = () => {
   const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<HistorySortField>("date");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+
+  // Sort handler
+  const handleSortChange = (field: HistorySortField) => {
+    if (field === sortField) {
+      // Toggle direction if same field
+      setSortDirection(sortDirection === "desc" ? "asc" : "desc");
+    } else {
+      // New field, default to descending for all fields since we want highest values first
+      setSortField(field);
+      setSortDirection("desc");
+    }
+    setSortModalVisible(false);
+  };
 
   // Remove gesture/animation related state and hooks
   // const translateX = useSharedValue(0);
@@ -147,10 +174,41 @@ const HistoryScreen = () => {
     );
   }
 
+  // Memoized sorted history
+  const sortedHistory = useMemo(() => {
+    return [...history].sort((a, b) => {
+      let comparison: number;
+
+      switch (sortField) {
+        case "date":
+          comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+          break;
+        case "players":
+          comparison = b.players.length - a.players.length;
+          break;
+        case "drinks":
+          comparison =
+            calculateTotalDrinks(b.players) - calculateTotalDrinks(a.players);
+          break;
+        case "goals":
+          comparison =
+            calculateTotalGoals(b.matches) - calculateTotalGoals(a.matches);
+          break;
+        case "matches":
+          comparison = b.matches.length - a.matches.length;
+          break;
+        default:
+          comparison = 0;
+      }
+
+      return sortDirection === "desc" ? comparison : -comparison;
+    });
+  }, [history, sortField, sortDirection]);
+
   // --- Main Content Rendering ---
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
+      {/* Header with integrated sort controls */}
       <View style={styles.pageHeader}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -159,8 +217,30 @@ const HistoryScreen = () => {
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Game History</Text>
-        <View style={styles.rightPlaceholder} />
+        {activeTabIndex === 0 && (
+          <TouchableOpacity
+            style={styles.headerSortButton}
+            onPress={() => setSortModalVisible(true)}
+          >
+            <Ionicons
+              name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
+              size={20}
+              color={colors.primary}
+              style={{ marginRight: 4 }}
+            />
+            <Ionicons name="funnel-outline" size={20} color={colors.primary} />
+          </TouchableOpacity>
+        )}
       </View>
+
+      {/* Sort Modal */}
+      <SortHistoryModal
+        visible={sortModalVisible}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onClose={() => setSortModalVisible(false)}
+        onSortChange={handleSortChange}
+      />
 
       {/* Tab Navigation Buttons */}
       <View style={styles.tabsContainer}>
@@ -203,7 +283,7 @@ const HistoryScreen = () => {
           {activeTabIndex === 0 && (
             <View style={styles.tabContent}>
               <FlatList
-                data={history}
+                data={sortedHistory}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                   <GameHistoryItem
@@ -212,8 +292,7 @@ const HistoryScreen = () => {
                   />
                 )}
                 contentContainerStyle={styles.listContent}
-                // Add a key to potentially help with re-rendering if needed
-                key="games-list"
+                key={`games-list-${sortField}-${sortDirection}`}
               />
             </View>
           )}

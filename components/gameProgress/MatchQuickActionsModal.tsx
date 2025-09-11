@@ -19,7 +19,7 @@ import {
 import Svg, { Path, Rect } from "react-native-svg";
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { useTeamLogo } from "../../hooks/useTeamLogo";
 import { MatchWithScore } from "../../hooks/useLiveScores";
 import { useColors } from "../../app/style/theme";
 
@@ -356,6 +356,10 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
       : null;
   }, [selectedMatchId, matches]);
 
+  // Get team logos with async fallback support
+  const homeTeamLogo = useTeamLogo(match?.homeTeam || '');
+  const awayTeamLogo = useTeamLogo(match?.awayTeam || '');
+
   /** Live data for selected match (if present). */
   const liveMatchData = useMemo(() => {
     return liveMatches?.find((m) => m.id === selectedMatchId);
@@ -566,7 +570,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                     {/* Home team */}
                     <View style={styles.matchTeamContainer}>
                       <Image
-                        source={getTeamLogoWithFallback(match.homeTeam)}
+                        source={homeTeamLogo}
                         style={styles.matchTeamLogo}
                       />
                       <Text style={styles.matchTeamName} numberOfLines={2}>
@@ -582,7 +586,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                     {/* Away team */}
                     <View style={styles.matchTeamContainer}>
                       <Image
-                        source={getTeamLogoWithFallback(match.awayTeam)}
+                        source={awayTeamLogo}
                         style={styles.matchTeamLogo}
                       />
                       <Text style={styles.matchTeamName} numberOfLines={2}>

@@ -11,12 +11,73 @@ import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
 import { createHistoryStyles } from "../../app/style/historyStyles";
 import { useColors } from "../../app/style/theme";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { useTeamLogo } from "../../hooks/useTeamLogo";
 import {
   formatModalDate,
   calculateTotalGoals,
   calculateTotalDrinks,
 } from "./historyUtils";
+import { Match } from "../../store/store";
+
+/**
+ * Helper component to render a match within the modal
+ * Uses useTeamLogo hooks for proper logo resolution
+ */
+const ModalMatchCard: React.FC<{
+  match: Match;
+  isCommon: boolean;
+  styles: any;
+}> = ({ match, isCommon, styles }) => {
+  const homeTeamLogo = useTeamLogo(match.homeTeam);
+  const awayTeamLogo = useTeamLogo(match.awayTeam);
+
+  return (
+    <View style={styles.modalMatchCard}>
+      {/* Match Teams and Score Display */}
+      <View style={styles.matchTeams}>
+        {/* Home Team */}
+        <View style={styles.matchTeamBlock}>
+          <Image
+            source={homeTeamLogo}
+            style={styles.modalMatchLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.modalMatchTeamName} numberOfLines={1}>
+            {match.homeTeam}
+          </Text>
+        </View>
+        {/* Score */}
+        <View style={styles.scoreBlock}>
+          <Text style={styles.modalScoreText}>
+            {match.homeGoals ?? 0}
+          </Text>
+          <Text style={styles.modalScoreDivider}>-</Text>
+          <Text style={styles.modalScoreText}>
+            {match.awayGoals ?? 0}
+          </Text>
+        </View>
+        {/* Away Team */}
+        <View style={styles.matchTeamBlock}>
+          <Image
+            source={awayTeamLogo}
+            style={styles.modalMatchLogo}
+            resizeMode="contain"
+          />
+          <Text style={styles.modalMatchTeamName} numberOfLines={1}>
+            {match.awayTeam}
+          </Text>
+        </View>
+      </View>
+
+      {/* Common Match Badge */}
+      {isCommon && (
+        <View style={styles.commonBadge}>
+          <Text style={styles.commonBadgeText}>Common Match</Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 /**
  * Props for GameDetailsModal.
@@ -179,50 +240,12 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
               </View>
               {/* Map through matches to display scorecards */}
               {game.matches.map((match, index) => (
-                <View key={index} style={styles.modalMatchCard}>
-                  {/* Match Teams and Score Display */}
-                  <View style={styles.matchTeams}>
-                    {/* Home Team */}
-                    <View style={styles.matchTeamBlock}>
-                      <Image
-                        source={getTeamLogoWithFallback(match.homeTeam)}
-                        style={styles.modalMatchLogo}
-                        resizeMode="contain"
-                      />
-                      <Text style={styles.modalMatchTeamName} numberOfLines={1}>
-                        {match.homeTeam}
-                      </Text>
-                    </View>
-                    {/* Score */}
-                    <View style={styles.scoreBlock}>
-                      <Text style={styles.modalScoreText}>
-                        {match.homeGoals ?? 0}
-                      </Text>
-                      <Text style={styles.modalScoreDivider}>-</Text>
-                      <Text style={styles.modalScoreText}>
-                        {match.awayGoals ?? 0}
-                      </Text>
-                    </View>
-                    {/* Away Team */}
-                    <View style={styles.matchTeamBlock}>
-                      <Image
-                        source={getTeamLogoWithFallback(match.awayTeam)}
-                        style={styles.modalMatchLogo}
-                        resizeMode="contain"
-                      />
-                      <Text style={styles.modalMatchTeamName} numberOfLines={1}>
-                        {match.awayTeam}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Common Match Badge */}
-                  {game.commonMatchId === match.id && (
-                    <View style={styles.commonBadge}>
-                      <Text style={styles.commonBadgeText}>Common</Text>
-                    </View>
-                  )}
-                </View>
+                <ModalMatchCard
+                  key={index}
+                  match={match}
+                  isCommon={game.commonMatchId === match.id}
+                  styles={styles}
+                />
               ))}
             </View>
           </ScrollView>

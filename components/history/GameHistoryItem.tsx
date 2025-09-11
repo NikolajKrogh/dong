@@ -10,7 +10,6 @@ import {
   findTopDrinker,
   formatHistoryDate,
 } from "./historyUtils";
-import MatchCard from "./MatchCard";
 
 /**
  * Props for GameHistoryItem.
@@ -36,8 +35,6 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createHistoryStyles(colors), [colors]);
-  // Local expand toggle for potential future detailed match list (currently unused in snippet).
-  const [showMatches, setShowMatches] = useState(false);
 
   // Use utility functions for calculations
   // Total drinks consumed.

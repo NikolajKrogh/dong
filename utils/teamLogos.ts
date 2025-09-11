@@ -10,6 +10,7 @@ import { ImageSourcePropType } from "react-native";
 // AsyncStorage is not available in Jest environment; require conditionally
 let AsyncStorageRef: {
   getItem: (key: string) => Promise<string | null>;
+  setItem: (key: string, value: string) => Promise<void>;
 } | null = null;
 try {
   if (
@@ -34,13 +35,64 @@ const logoCache: Record<string, string> = {};
 const leagueLogoCache: Record<string, string> = {};
 
 /**
- * Stores a team logo URL in the cache
+ * Clears cached API logos for teams that have hardcoded assets
+ * This ensures hardcoded logos take priority over previously cached API logos
+ */
+export const clearOverriddenLogos = (): void => {
+  const teamsToRemove: string[] = [];
+
+  // Check each cached logo to see if it should be removed
+  Object.keys(logoCache).forEach((teamName) => {
+    const hardcodedLogo = getHardcodedTeamLogoOnly(teamName);
+    if (hardcodedLogo) {
+      teamsToRemove.push(teamName);
+    }
+  });
+
+  // Remove logos that have hardcoded alternatives
+  teamsToRemove.forEach((teamName) => {
+    delete logoCache[teamName];
+  });
+};
+
+/**
+ * Stores a team logo URL in the cache and persists it to AsyncStorage
+ * Only caches logos for teams that don't already have hardcoded assets
  * @param teamName The name of the team
  * @param logoUrl The URL of the team's logo
  */
 export const cacheTeamLogo = (teamName: string, logoUrl: string): void => {
   if (teamName && logoUrl) {
+    // Check if this team already has a hardcoded logo
+    const hardcodedLogo = getHardcodedTeamLogoOnly(teamName);
+    if (hardcodedLogo) {
+      // Don't cache API logos for teams that have hardcoded assets
+      return;
+    }
+
+    // Check if this logo is already cached to prevent duplicates
+    if (logoCache[teamName] === logoUrl) {
+      // Logo is already cached with the same URL, no need to cache again
+      return;
+    }
+
     logoCache[teamName] = logoUrl;
+
+    // Also persist to AsyncStorage in the background, but only if not already stored
+    if (AsyncStorageRef) {
+      const key = `team_logo_${teamName}`;
+      // Check if it's already in AsyncStorage before storing
+      AsyncStorageRef.getItem(key)
+        .then((existingUrl) => {
+          if (existingUrl !== logoUrl) {
+            // Only store if the URL is different or doesn't exist
+            return AsyncStorageRef.setItem(key, logoUrl);
+          }
+        })
+        .catch((error) => {
+          console.error(`Error caching team logo for ${teamName}:`, error);
+        });
+    }
   }
 };
 
@@ -96,6 +148,22 @@ export const getLeagueLogo = async (
     return await AsyncStorageRef.getItem(key);
   } catch (error) {
     console.error(`Error getting cached logo for ${leagueName}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Get a cached team logo by name from AsyncStorage
+ * @param teamName The name of the team
+ * @returns Promise resolving to the logo URI or null if not found
+ */
+export const getTeamLogo = async (teamName: string): Promise<string | null> => {
+  try {
+    if (!AsyncStorageRef) return null;
+    const key = `team_logo_${teamName}`;
+    return await AsyncStorageRef.getItem(key);
+  } catch (error) {
+    console.error(`Error getting cached team logo for ${teamName}:`, error);
     return null;
   }
 };
@@ -299,12 +367,52 @@ Object.entries(CLEANED_NAME_MAPPING).forEach(([cleaned, official]) => {
 });
 
 /**
- * Retrieve logo by exact, case-sensitive team name.
- * @param teamName Official team name.
- * @returns Logo asset or null.
+ * Returns a team logo prioritizing only hardcoded assets, ignoring API cache
+ * @param teamName The name of the team
+ * @returns An Image source that can be used by React Native, or null if no hardcoded logo exists
  */
-export const getTeamLogo = (teamName: string) => {
-  return TEAM_LOGOS[teamName] || null;
+export const getHardcodedTeamLogoOnly = (
+  teamName: string
+): ImageSourcePropType | null => {
+  // Normalize the input name
+  const normalizedName = teamName.trim();
+  const lowerCaseName = normalizedName.toLowerCase();
+
+  // 1. Try direct match first (case-insensitive)
+  if (NORMALIZED_LOGOS[lowerCaseName]) {
+    return NORMALIZED_LOGOS[lowerCaseName];
+  }
+
+  // 2. Check for aliases (case-insensitive)
+  const aliasedTeam = NORMALIZED_ALIASES[lowerCaseName];
+  if (aliasedTeam && TEAM_LOGOS[aliasedTeam]) {
+    return TEAM_LOGOS[aliasedTeam];
+  }
+
+  // 3. Check if the input itself is a cleaned name (case-insensitive)
+  const cleanedName = cleanTeamName(normalizedName).toLowerCase();
+  if (NORMALIZED_LOGOS[cleanedName]) {
+    return NORMALIZED_LOGOS[cleanedName];
+  }
+
+  // 4. Check the mapping of cleaned names to official names (case-insensitive)
+  const officialFromCleaned = NORMALIZED_CLEANED_MAPPING[cleanedName];
+  if (officialFromCleaned && TEAM_LOGOS[officialFromCleaned]) {
+    return TEAM_LOGOS[officialFromCleaned];
+  }
+
+  // 5. Partial match as a last resort (case-insensitive)
+  for (const [lowercaseKey, logo] of Object.entries(NORMALIZED_LOGOS)) {
+    if (
+      lowercaseKey.includes(lowerCaseName) ||
+      lowerCaseName.includes(lowercaseKey)
+    ) {
+      return logo;
+    }
+  }
+
+  // No hardcoded logo found
+  return null;
 };
 
 /**

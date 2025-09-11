@@ -4,10 +4,10 @@
  */
 import React, { useMemo } from "react";
 import { View, Text, Image } from "react-native";
-import { Match } from "./historyTypes";
-import { createHistoryStyles } from "../../app/style/historyStyles";
+import { Match } from "../../store/store";
 import { useColors } from "../../app/style/theme";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useTeamLogo } from "../../hooks/useTeamLogo";
 
 /**
  * Props for {@link MatchCard}.
@@ -28,13 +28,16 @@ interface MatchCardProps {
  * to a single line), and the score block in the middle. If `isCommon` is set it
  * appends a highlighted badge indicating the match belongs to the common set.
  *
- * Logos are resolved through `getTeamLogoWithFallback` to guard against
- * missing assets. Null / undefined goal values are displayed as 0 to keep a
- * consistent layout.
+ * Logos are resolved through the `useTeamLogo` hook which prioritizes hardcoded
+ * logos over cached API logos, with proper AsyncStorage persistence handling.
+ * Null / undefined goal values are displayed as 0 to keep a consistent layout.
  */
 const MatchCard: React.FC<MatchCardProps> = ({ match, isCommon, style }) => {
   const colors = useColors();
   const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  const homeTeamLogo = useTeamLogo(match.homeTeam);
+  const awayTeamLogo = useTeamLogo(match.awayTeam);
+  
   return (
     <View style={[styles.matchRow, style]}>
       {" "}
@@ -42,7 +45,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, isCommon, style }) => {
       <View style={styles.matchTeams}>
         <View style={styles.matchTeamBlock}>
           <Image
-            source={getTeamLogoWithFallback(match.homeTeam)}
+            source={homeTeamLogo}
             style={styles.matchTeamLogo}
             resizeMode="contain"
           />
@@ -59,7 +62,7 @@ const MatchCard: React.FC<MatchCardProps> = ({ match, isCommon, style }) => {
 
         <View style={styles.matchTeamBlock}>
           <Image
-            source={getTeamLogoWithFallback(match.awayTeam)}
+            source={awayTeamLogo}
             style={styles.matchTeamLogo}
             resizeMode="contain"
           />

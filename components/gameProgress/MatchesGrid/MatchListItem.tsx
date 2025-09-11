@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
-import { getTeamLogoWithFallback } from "../../../utils/teamLogos";
+import { useTeamLogo } from "../../../hooks/useTeamLogo";
 import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
 import { useColors } from "../../../app/style/theme";
 
@@ -22,6 +22,11 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
+  
+  // Get team logos with async fallback support
+  const homeTeamLogo = useTeamLogo(match.homeTeam);
+  const awayTeamLogo = useTeamLogo(match.awayTeam);
+  
   // Determine the status string ('FT', 'HT', '45'', '?') from live data
   const displayStatus = liveMatch?.minutesPlayed || "?";
   // Check if the status indicates a finished or half-time state
@@ -92,7 +97,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
           {/* Home team: Logo on LEFT */}
           <View style={styles.matchList_HomeLogoWrapper}>
             <Image
-              source={getTeamLogoWithFallback(match.homeTeam)}
+              source={homeTeamLogo}
               style={styles.matchList_LogoImage}
             />
           </View>
@@ -128,7 +133,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
           {/* Away team: Logo on RIGHT */}
           <View style={styles.matchList_AwayLogoWrapper}>
             <Image
-              source={getTeamLogoWithFallback(match.awayTeam)}
+              source={awayTeamLogo}
               style={styles.matchList_LogoImage}
             />
           </View>
