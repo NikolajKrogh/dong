@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useLiveScores } from "../hooks/useLiveScores";
+import { usePersistedTeamLogos } from "../hooks/usePersistedTeamLogos";
 import {
   View,
   SafeAreaView,
@@ -59,6 +60,10 @@ const GameProgressScreen = () => {
   const router = useRouter();
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
+  
+  // Load persisted team logos when matches are available
+  usePersistedTeamLogos();
+  
   const [activeTab, setActiveTab] = React.useState("matches"); // 'matches' or 'players'
   const [isAlertVisible, setIsAlertVisible] = React.useState(false);
   const [selectedMatchId, setSelectedMatchId] = React.useState<string | null>(
