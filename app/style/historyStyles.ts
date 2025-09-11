@@ -26,6 +26,13 @@ const makeBaseText = (colors: Colors): TextStyle => ({
   color: colors.textPrimary,
 });
 
+const headerSortButton: ViewStyle = {
+  flexDirection: "row",
+  alignItems: "center",
+  padding: 8,
+  marginLeft: "auto",
+};
+
 const makeTextTitle = (colors: Colors): TextStyle => ({
   ...makeBaseText(colors),
   fontWeight: "bold",
@@ -68,6 +75,7 @@ export function createHistoryStyles(colors: Colors) {
   const textValue = makeTextValue(colors);
   const textLabel = makeTextLabel(colors);
   const baseHeader = makeBaseHeader(colors);
+  const sortButton = headerSortButton;
 
   return StyleSheet.create({
     // --- Layout & Containers ---
@@ -127,10 +135,10 @@ export function createHistoryStyles(colors: Colors) {
       // Title in pageHeader
       ...textTitle,
       fontSize: 18,
+      flex: 1,
     } as TextStyle,
-    rightPlaceholder: {
-      // For centering title in pageHeader
-      width: 56,
+    headerSortButton: {
+      ...sortButton,
     },
 
     // --- Tabs ---
