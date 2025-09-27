@@ -30,16 +30,23 @@ export const calculateTotalDrinks = (players: Player[]): number => {
 };
 
 /**
- * Find top drinker.
- * @description Returns the player with the highest drinksTaken value; null if list empty.
+ * Find top drinkers.
+ * @description Returns player(s) with the highest drinksTaken value; empty array if list empty.
  * @param {Player[]} players Player collection.
- * @returns {Player | null} Player with most drinks or null.
+ * @returns {Player[]} Array of players with most drinks (multiple if tied).
  */
-export const findTopDrinker = (players: Player[]): Player | null => {
-  if (players.length === 0) return null;
-  return [...players].sort(
+export const findTopDrinker = (players: Player[]): Player[] => {
+  if (players.length === 0) return [];
+  
+  const sortedPlayers = [...players].sort(
     (a, b) => (b.drinksTaken || 0) - (a.drinksTaken || 0)
-  )[0];
+  );
+  
+  const highestDrinks = sortedPlayers[0].drinksTaken || 0;
+  
+  return sortedPlayers.filter(
+    player => (player.drinksTaken || 0) === highestDrinks
+  );
 };
 
 /**
