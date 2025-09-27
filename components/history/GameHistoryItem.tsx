@@ -116,14 +116,19 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
         </View>
       </View>
 
-      {/* Top Drinker Highlight */}
-      {topDrinker && (
+            {/* Top Drinker Highlight */}
+      {topDrinker.length > 0 && (
         <View style={styles.topDrinkerContainer}>
           <Ionicons name="flame" size={18} color={colors.warning} />
           <Text style={styles.topDrinkerText} numberOfLines={1}>
-            {"Top Drinker: "}
-            <Text style={styles.topDrinkerName}>{topDrinker.name}</Text>
-            <Text> ({topDrinker.drinksTaken?.toFixed(1) ?? "0"})</Text>
+            {"Top Drinker" + (topDrinker.length > 1 ? "s" : "") + ": "}
+            {topDrinker.map((player, index) => (
+              <React.Fragment key={player.name}>
+                <Text style={styles.topDrinkerName}>{player.name}</Text>
+                <Text>{` (${player.drinksTaken?.toFixed(1) ?? "0"})`}</Text>
+                {index < topDrinker.length - 1 && <Text>, </Text>}
+              </React.Fragment>
+            ))}
           </Text>
         </View>
       )}
