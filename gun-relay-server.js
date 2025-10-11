@@ -1,4 +1,4 @@
-node gun-relay-server.js/**
+/**
  * Simple Gun.js Relay Server
  * 
  * This is a basic Gun relay server that can be deployed to:
