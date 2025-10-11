@@ -35,7 +35,7 @@ interface GameSession {
 /**
  * HomeScreen component.
  * @description Main landing screen: shows logo, game-in-progress actions,
- * aggregate stats, onboarding on first launch, 
+ * aggregate stats, onboarding on first launch,
  * and splash animation (once per session).
  * @returns {React.ReactElement} Home screen UI.
  */
@@ -288,6 +288,15 @@ const HomeScreen = () => {
               </View>
             </TouchableOpacity>
           )}
+
+          {/* Room Test Button */}
+          <TouchableOpacity
+            style={styles.testButton}
+            onPress={() => router.push("/roomTest")}
+          >
+            <Ionicons name="flask" size={22} color={colors.white} />
+            <Text style={styles.buttonText}>🧪 Test Rooms</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.userPreferencesButton}

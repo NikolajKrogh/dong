@@ -9,13 +9,15 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "relay": "node gun-relay-server.js"
   },
   "jest": {
     "preset": "jest-expo"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.2",
+    "@lottiefiles/dotlottie-react": "^0.6.5",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "^8.2.0",
     "@react-navigation/bottom-tabs": "^7.2.0",
@@ -58,7 +60,9 @@
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
     "text-encoding-polyfill": "^0.6.7",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

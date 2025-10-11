@@ -1,0 +1,17 @@
+{
+  "name": "dong-gun-relay",
+  "version": "1.0.0",
+  "description": "Gun.js relay server for DONG app",
+  "main": "gun-relay-server.js",
+  "scripts": {
+    "start": "node gun-relay-server.js"
+  },
+  "dependencies": {
+    "gun": "^0.2020.1241",
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
