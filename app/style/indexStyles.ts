@@ -290,6 +290,18 @@ export default function createStyles(colors: Colors) {
     iconContainer: {
       marginRight: 8,
     },
+    testButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.warning,
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      marginTop: 16,
+      marginHorizontal: 16,
+      gap: 8,
+    },
     userPreferencesButton: {
       position: "absolute",
       bottom: 16,

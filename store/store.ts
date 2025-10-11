@@ -6,6 +6,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
+import { GameRoom, RoomConnectionStatus } from "../types/room";
 
 /**
  * Player participating in a game.
@@ -96,6 +97,14 @@ interface GameState {
   /** Default leagues pre-selected when opening match list. */
   defaultSelectedLeagues: LeagueEndpoint[];
 
+  // Room/multiplayer state
+  /** Current player ID for this device. */
+  currentPlayerId: string | null;
+  /** Current room the player is in. */
+  currentRoom: GameRoom | null;
+  /** Room connection status. */
+  roomConnectionStatus: RoomConnectionStatus;
+
   // Game history
   /** Completed game sessions history. */
   history: GameSession[];
@@ -171,6 +180,23 @@ interface GameState {
   /** Sets the current theme (light or dark). */
   setTheme: (theme: "light" | "dark") => void;
 
+  // Actions for room/multiplayer
+  /**
+   * Sets the current player ID for this device.
+   * @param playerId Unique player identifier.
+   */
+  setCurrentPlayerId: (playerId: string | null) => void;
+  /**
+   * Sets the current room.
+   * @param room Room data or null to clear.
+   */
+  setCurrentRoom: (room: GameRoom | null) => void;
+  /**
+   * Sets the room connection status.
+   * @param status Connection status.
+   */
+  setRoomConnectionStatus: (status: RoomConnectionStatus) => void;
+
   // Actions for game history
   /** Saves current game state as a new history entry. */
   saveGameToHistory: () => void;
@@ -200,6 +226,9 @@ export const useGameStore = create<GameState>()(
         { name: "Premier League", code: "eng.1", category: "Europe" },
         { name: "Championship", code: "eng.2", category: "Europe" },
       ],
+      currentPlayerId: null,
+      currentRoom: null,
+      roomConnectionStatus: "disconnected" as RoomConnectionStatus,
       history: [],
 
       // --- Actions ---
@@ -252,6 +281,11 @@ export const useGameStore = create<GameState>()(
         set({ defaultSelectedLeagues: leagues }),
 
       setTheme: (theme) => set({ theme }),
+
+      setCurrentPlayerId: (playerId) => set({ currentPlayerId: playerId }),
+      setCurrentRoom: (room) => set({ currentRoom: room }),
+      setRoomConnectionStatus: (status) =>
+        set({ roomConnectionStatus: status }),
 
       saveGameToHistory: () =>
         set((state) => {

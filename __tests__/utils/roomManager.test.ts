@@ -1,6 +1,6 @@
 /**
  * Room Manager Tests
- * 
+ *
  * Tests for room creation, joining, and management utilities
  */
 
@@ -10,22 +10,22 @@ import {
   createRoom,
   joinRoom,
   leaveRoom,
-} from '../../utils/roomManager';
+} from "../../utils/roomManager";
 
-describe('Room Manager', () => {
-  describe('generateRoomCode', () => {
-    it('should generate a 6-character code', () => {
+describe("Room Manager", () => {
+  describe("generateRoomCode", () => {
+    it("should generate a 6-character code", () => {
       const code = generateRoomCode();
       expect(code).toHaveLength(6);
     });
 
-    it('should only contain valid characters', () => {
+    it("should only contain valid characters", () => {
       const code = generateRoomCode();
       const validChars = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]+$/;
       expect(code).toMatch(validChars);
     });
 
-    it('should generate unique codes', () => {
+    it("should generate unique codes", () => {
       const codes = new Set();
       for (let i = 0; i < 100; i++) {
         codes.add(generateRoomCode());
@@ -35,11 +35,11 @@ describe('Room Manager', () => {
     });
   });
 
-  describe('generateRoomId', () => {
-    it('should generate a room ID', () => {
+  describe("generateRoomId", () => {
+    it("should generate a room ID", () => {
       const id = generateRoomId();
       expect(id).toBeDefined();
-      expect(typeof id).toBe('string');
+      expect(typeof id).toBe("string");
     });
 
     it('should start with "room_"', () => {
@@ -47,17 +47,17 @@ describe('Room Manager', () => {
       expect(id).toMatch(/^room_/);
     });
 
-    it('should generate unique IDs', () => {
+    it("should generate unique IDs", () => {
       const id1 = generateRoomId();
       const id2 = generateRoomId();
       expect(id1).not.toBe(id2);
     });
   });
 
-  describe('createRoom', () => {
-    it('should create a room with valid data', async () => {
-      const hostId = 'test-host-123';
-      const hostName = 'Test Host';
+  describe("createRoom", () => {
+    it("should create a room with valid data", async () => {
+      const hostId = "test-host-123";
+      const hostName = "Test Host";
       const maxPlayers = 10;
 
       const room = await createRoom(hostId, hostName, maxPlayers);
@@ -72,21 +72,21 @@ describe('Room Manager', () => {
       expect(room.players[0].isHost).toBe(true);
     });
 
-    it('should use default max players if not provided', async () => {
-      const room = await createRoom('host-456', 'Host Two');
+    it("should use default max players if not provided", async () => {
+      const room = await createRoom("host-456", "Host Two");
       expect(room.maxPlayers).toBe(10);
     });
   });
 
-  describe('joinRoom', () => {
-    it('should handle non-existent room', async () => {
-      const result = await joinRoom('XXXXXX', 'player-1', 'Test Player');
+  describe("joinRoom", () => {
+    it("should handle non-existent room", async () => {
+      const result = await joinRoom("XXXXXX", "player-1", "Test Player");
       expect(result).toBeNull();
     }, 5000); // Fast timeout in test mode (1s)
 
-    it('should timeout quickly in test mode', async () => {
+    it("should timeout quickly in test mode", async () => {
       const startTime = Date.now();
-      const result = await joinRoom('XXXXXX', 'player-1', 'Test Player');
+      const result = await joinRoom("XXXXXX", "player-1", "Test Player");
       const endTime = Date.now();
 
       expect(result).toBeNull();
@@ -96,10 +96,10 @@ describe('Room Manager', () => {
     }, 5000);
   });
 
-  describe('leaveRoom', () => {
-    it('should not throw when leaving a room', () => {
+  describe("leaveRoom", () => {
+    it("should not throw when leaving a room", () => {
       expect(() => {
-        leaveRoom('TEST12', 'player-123');
+        leaveRoom("TEST12", "player-123");
       }).not.toThrow();
     });
   });
