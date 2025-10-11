@@ -76,6 +76,48 @@ describe("Room Manager", () => {
       const room = await createRoom("host-456", "Host Two");
       expect(room.maxPlayers).toBe(10);
     });
+
+    it("should include host in the players array", async () => {
+      const hostId = "host-789";
+      const hostName = "John Doe";
+
+      const room = await createRoom(hostId, hostName);
+
+      // Host should be in players list
+      expect(room.players).toHaveLength(1);
+      expect(room.players[0]).toEqual({
+        id: hostId,
+        name: hostName,
+        isHost: true,
+        joinedAt: expect.any(Number),
+      });
+    });
+
+    it("should have host with correct name property", async () => {
+      const hostId = "host-abc";
+      const hostName = "Jane Smith";
+
+      const room = await createRoom(hostId, hostName);
+
+      // Verify host has name property
+      const hostPlayer = room.players.find((p) => p.id === hostId);
+      expect(hostPlayer).toBeDefined();
+      expect(hostPlayer?.name).toBe(hostName);
+      expect(hostPlayer?.isHost).toBe(true);
+    });
+
+    it("should create room with timestamp", async () => {
+      const beforeTime = Date.now();
+      const room = await createRoom("host-xyz", "Test Host");
+      const afterTime = Date.now();
+
+      expect(room.createdAt).toBeGreaterThanOrEqual(beforeTime);
+      expect(room.createdAt).toBeLessThanOrEqual(afterTime);
+
+      // Host should also have joinedAt timestamp
+      expect(room.players[0].joinedAt).toBeGreaterThanOrEqual(beforeTime);
+      expect(room.players[0].joinedAt).toBeLessThanOrEqual(afterTime);
+    });
   });
 
   describe("joinRoom", () => {
@@ -101,6 +143,59 @@ describe("Room Manager", () => {
       expect(() => {
         leaveRoom("TEST12", "player-123");
       }).not.toThrow();
+    });
+  });
+
+  describe("Player Data Validation", () => {
+    it("should create valid player objects with required fields", async () => {
+      const hostId = "host-validation-1";
+      const hostName = "Valid Host";
+
+      const room = await createRoom(hostId, hostName);
+      const hostPlayer = room.players[0];
+
+      // Must have id
+      expect(hostPlayer.id).toBeDefined();
+      expect(typeof hostPlayer.id).toBe("string");
+      expect(hostPlayer.id.length).toBeGreaterThan(0);
+
+      // Must have name
+      expect(hostPlayer.name).toBeDefined();
+      expect(typeof hostPlayer.name).toBe("string");
+      expect(hostPlayer.name.length).toBeGreaterThan(0);
+
+      // Must have isHost flag
+      expect(hostPlayer.isHost).toBeDefined();
+      expect(typeof hostPlayer.isHost).toBe("boolean");
+
+      // Must have joinedAt timestamp
+      expect(hostPlayer.joinedAt).toBeDefined();
+      expect(typeof hostPlayer.joinedAt).toBe("number");
+    });
+
+    it("should not have undefined or null in player fields", async () => {
+      const room = await createRoom("host-check", "Check Host");
+      const hostPlayer = room.players[0];
+
+      expect(hostPlayer.id).not.toBeNull();
+      expect(hostPlayer.id).not.toBeUndefined();
+      expect(hostPlayer.name).not.toBeNull();
+      expect(hostPlayer.name).not.toBeUndefined();
+      expect(hostPlayer.isHost).not.toBeNull();
+      expect(hostPlayer.isHost).not.toBeUndefined();
+      expect(hostPlayer.joinedAt).not.toBeNull();
+      expect(hostPlayer.joinedAt).not.toBeUndefined();
+    });
+
+    it("should only include one player (host) in new room", async () => {
+      const room = await createRoom("host-single", "Single Host");
+
+      // Should have exactly 1 player
+      expect(room.players).toHaveLength(1);
+
+      // That player should be the host
+      expect(room.players[0].isHost).toBe(true);
+      expect(room.players[0].id).toBe("host-single");
     });
   });
 });

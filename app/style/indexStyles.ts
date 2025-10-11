@@ -290,6 +290,22 @@ export default function createStyles(colors: Colors) {
     iconContainer: {
       marginRight: 8,
     },
+    testButtonsContainer: {
+      marginTop: 24,
+      marginHorizontal: 16,
+      padding: 16,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    testSectionTitle: {
+      fontSize: 16,
+      fontWeight: "bold",
+      color: colors.textSecondary,
+      marginBottom: 12,
+      textAlign: "center",
+    },
     testButton: {
       flexDirection: "row",
       alignItems: "center",
@@ -298,8 +314,7 @@ export default function createStyles(colors: Colors) {
       paddingVertical: 16,
       paddingHorizontal: 24,
       borderRadius: 12,
-      marginTop: 16,
-      marginHorizontal: 16,
+      marginTop: 8,
       gap: 8,
     },
     userPreferencesButton: {

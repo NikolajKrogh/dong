@@ -121,7 +121,10 @@ export const RoomDisplayComponent: React.FC<RoomDisplayProps> = ({
   }
 
   const isHost = currentRoom.hostId === currentPlayerId;
-  const playersList = currentRoom.players || [];
+  // Filter out invalid players (must have id and name)
+  const playersList = (currentRoom.players || []).filter(
+    (player) => player && player.id && player.name
+  );
 
   return (
     <View style={styles.container}>
