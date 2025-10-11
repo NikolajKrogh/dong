@@ -37,6 +37,7 @@
     "expo-symbols": "~0.2.2",
     "expo-system-ui": "~4.0.9",
     "expo-web-browser": "~14.0.2",
+    "gun": "^0.2020.1241",
     "image-size": "^2.0.2",
     "js-base64": "^3.7.7",
     "lottie-react-native": "7.1.0",
@@ -56,6 +57,7 @@
     "react-native-ui-datepicker": "^3.0.7",
     "react-native-web": "~0.19.13",
     "react-native-webview": "13.12.5",
+    "text-encoding-polyfill": "^0.6.7",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
