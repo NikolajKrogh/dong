@@ -289,14 +289,28 @@ const HomeScreen = () => {
             </TouchableOpacity>
           )}
 
-          {/* Room Test Button */}
-          <TouchableOpacity
-            style={styles.testButton}
-            onPress={() => router.push("/roomTest")}
-          >
-            <Ionicons name="flask" size={22} color={colors.white} />
-            <Text style={styles.buttonText}>🧪 Test Rooms</Text>
-          </TouchableOpacity>
+          {/* Test Buttons Section */}
+          <View style={styles.testButtonsContainer}>
+            <Text style={styles.testSectionTitle}>🧪 Test Features</Text>
+
+            {/* Room Test Button */}
+            <TouchableOpacity
+              style={styles.testButton}
+              onPress={() => router.push("/roomTest")}
+            >
+              <Ionicons name="flask" size={22} color={colors.white} />
+              <Text style={styles.buttonText}>Room Test Menu</Text>
+            </TouchableOpacity>
+
+            {/* Game State Sync Test Button */}
+            <TouchableOpacity
+              style={[styles.testButton, { backgroundColor: "#9C27B0" }]}
+              onPress={() => router.push("/gameStateSyncTest")}
+            >
+              <Ionicons name="sync" size={22} color={colors.white} />
+              <Text style={styles.buttonText}>Game Sync Test</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={styles.userPreferencesButton}

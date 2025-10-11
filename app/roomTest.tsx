@@ -13,6 +13,8 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { CreateRoomComponent } from "../components/room/CreateRoomComponent";
 import { JoinRoomComponent } from "../components/room/JoinRoomComponent";
 import { RoomDisplayComponent } from "../components/room/RoomDisplayComponent";
@@ -21,6 +23,7 @@ import { useGameStore } from "../store/store";
 type ViewMode = "menu" | "create" | "join" | "room";
 
 export default function RoomTestScreen() {
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("menu");
   const { currentRoom } = useGameStore();
 
@@ -33,26 +36,63 @@ export default function RoomTestScreen() {
     switch (viewMode) {
       case "create":
         return (
-          <CreateRoomComponent
-            onRoomCreated={() => setViewMode("room")}
-            onCancel={() => setViewMode("menu")}
-          />
+          <>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+              <Text style={styles.backButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+            <CreateRoomComponent
+              onRoomCreated={() => setViewMode("room")}
+              onCancel={() => setViewMode("menu")}
+            />
+          </>
         );
 
       case "join":
         return (
-          <JoinRoomComponent
-            onRoomJoined={() => setViewMode("room")}
-            onCancel={() => setViewMode("menu")}
-          />
+          <>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+              <Text style={styles.backButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+            <JoinRoomComponent
+              onRoomJoined={() => setViewMode("room")}
+              onCancel={() => setViewMode("menu")}
+            />
+          </>
         );
 
       case "room":
-        return <RoomDisplayComponent onLeaveRoom={() => setViewMode("menu")} />;
+        return (
+          <>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+              <Text style={styles.backButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+            <RoomDisplayComponent onLeaveRoom={() => setViewMode("menu")} />
+          </>
+        );
 
       default:
         return (
           <View style={styles.menuContainer}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#333" />
+              <Text style={styles.backButtonText}>Back to Home</Text>
+            </TouchableOpacity>
+
             <Text style={styles.title}>Gun.js Room Test</Text>
             <Text style={styles.subtitle}>
               Test multiplayer room functionality
@@ -91,12 +131,23 @@ export default function RoomTestScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
-      {renderContent()}
-    </ScrollView>
+    <View style={styles.container}>
+      <View style={styles.backButtonContainer}>
+        <TouchableOpacity
+          style={styles.backButtonFixed}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+          <Text style={styles.backButtonTextFixed}>← Back to Home</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.contentContainer}
+      >
+        {renderContent()}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -105,11 +156,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
   },
+  scrollContainer: {
+    flex: 1,
+  },
   contentContainer: {
     padding: 20,
   },
   menuContainer: {
     alignItems: "center",
+  },
+  backButtonContainer: {
+    backgroundColor: "#2196F3",
+    padding: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#1976D2",
+  },
+  backButtonFixed: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  backButtonTextFixed: {
+    fontSize: 18,
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    padding: 12,
+    marginBottom: 20,
+    backgroundColor: "white",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  backButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "500",
   },
   title: {
     fontSize: 28,
