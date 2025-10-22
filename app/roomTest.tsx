@@ -25,12 +25,28 @@ type ViewMode = "menu" | "create" | "join" | "room";
 export default function RoomTestScreen() {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("menu");
-  const { currentRoom } = useGameStore();
+  const { currentRoom, _hasHydrated, roomConnectionStatus } = useGameStore();
 
   // If already in a room, show room display
   if (currentRoom && viewMode === "menu") {
     setViewMode("room");
   }
+
+  // Hydration/online status indicator
+  const getHydrationStatus = () => {
+    if (_hasHydrated) return "✅ Hydrated";
+    return "⏳ Hydrating...";
+  };
+  const getOnlineStatus = () => {
+    switch (roomConnectionStatus) {
+      case "connected":
+        return "🟢 Online";
+      case "connecting":
+        return "🟡 Connecting";
+      default:
+        return "⚪ Offline";
+    }
+  };
 
   const renderContent = () => {
     switch (viewMode) {
@@ -132,6 +148,19 @@ export default function RoomTestScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Hydration/Online Status Indicator */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 16,
+          marginTop: 8,
+        }}
+      >
+        <Text style={{ fontSize: 14 }}>{getHydrationStatus()}</Text>
+        <Text style={{ fontSize: 14 }}>{getOnlineStatus()}</Text>
+      </View>
       <View style={styles.backButtonContainer}>
         <TouchableOpacity
           style={styles.backButtonFixed}

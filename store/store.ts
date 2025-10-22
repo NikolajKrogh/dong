@@ -208,7 +208,9 @@ interface GameState {
  * Zustand store hook exposing global game state & actions.
  * @description Applies persistence middleware (AsyncStorage) to a curated subset of state keys for resilience across app restarts.
  */
-export const useGameStore = create<GameState>()(
+export const useGameStore = create<
+  GameState & { _hasHydrated: boolean; setHasHydrated: (v: boolean) => void }
+>()(
   persist(
     (set, get) => ({
       // --- Initial State ---
@@ -230,6 +232,10 @@ export const useGameStore = create<GameState>()(
       currentRoom: null,
       roomConnectionStatus: "disconnected" as RoomConnectionStatus,
       history: [],
+
+      // --- Hydration Status ---
+      _hasHydrated: false,
+      setHasHydrated: (v: boolean) => set({ _hasHydrated: v }),
 
       // --- Actions ---
       setPlayers: (players) =>
@@ -330,7 +336,17 @@ export const useGameStore = create<GameState>()(
         configuredLeagues: state.configuredLeagues,
         defaultSelectedLeagues: state.defaultSelectedLeagues,
         theme: state.theme,
+        // Persist room and player identity for continuity
+        currentRoom: state.currentRoom,
+        currentPlayerId: state.currentPlayerId,
       }),
+      onRehydrateStorage: (state) => {
+        return (hydratedState, error) => {
+          if (!error) {
+            state?.setHasHydrated(true);
+          }
+        };
+      },
     }
   )
 );

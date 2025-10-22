@@ -35,6 +35,10 @@ export default function GameStateSyncTest() {
   const players = useGameStore((state) => state.players);
   const matches = useGameStore((state) => state.matches);
   const commonMatchId = useGameStore((state) => state.commonMatchId);
+  const _hasHydrated = useGameStore((state) => state._hasHydrated);
+  const roomConnectionStatus = useGameStore(
+    (state) => state.roomConnectionStatus
+  );
 
   const {
     syncStatus,
@@ -77,6 +81,22 @@ export default function GameStateSyncTest() {
       syncStatus,
     });
   }, [players, matches, syncStatus]);
+
+  // Hydration/online status indicator
+  const getHydrationStatus = () => {
+    if (_hasHydrated) return "✅ Hydrated";
+    return "⏳ Hydrating...";
+  };
+  const getOnlineStatus = () => {
+    switch (roomConnectionStatus) {
+      case "connected":
+        return "🟢 Online";
+      case "connecting":
+        return "🟡 Connecting";
+      default:
+        return "⚪ Offline";
+    }
+  };
 
   // Manual refresh function
   const handleRefresh = async () => {
@@ -166,6 +186,19 @@ export default function GameStateSyncTest() {
   if (!currentRoom) {
     return (
       <View style={styles.container}>
+        {/* Hydration/Online Status Indicator */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: 16,
+            marginTop: 8,
+          }}
+        >
+          <Text style={{ fontSize: 14 }}>{getHydrationStatus()}</Text>
+          <Text style={{ fontSize: 14 }}>{getOnlineStatus()}</Text>
+        </View>
         <View style={styles.backButtonContainer}>
           <TouchableOpacity
             style={styles.backButton}
@@ -188,6 +221,19 @@ export default function GameStateSyncTest() {
 
   return (
     <View style={styles.container}>
+      {/* Hydration/Online Status Indicator */}
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 16,
+          marginTop: 8,
+        }}
+      >
+        <Text style={{ fontSize: 14 }}>{getHydrationStatus()}</Text>
+        <Text style={{ fontSize: 14 }}>{getOnlineStatus()}</Text>
+      </View>
       {/* Fixed Back Button Header */}
       <View style={styles.backButtonContainer}>
         <TouchableOpacity
