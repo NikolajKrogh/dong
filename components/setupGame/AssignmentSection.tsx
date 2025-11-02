@@ -19,25 +19,36 @@ import { useColors } from "../../app/style/theme";
  * @interface AssignmentSectionProps
  */
 interface AssignmentSectionProps {
-  /** Array of players in the game. */
+  /** The list of players. */
   players: Player[];
-  /** Array of matches available for assignment. */
+  /** The list of all matches. */
   matches: Match[];
-  /** ID of the common match, if any. Used for shared match that all players drink for. */
+  /** The ID of the common match. */
   commonMatchId: string | null;
-  /** Object mapping player IDs to an array of assigned match IDs. */
-  playerAssignments: { [playerId: string]: string[] };
-  /** Function to toggle a match assignment for a player. */
-  toggleMatchAssignment: (playerId: string, matchId: string) => void;
-  /** Number of matches to be assigned per player in random assignment. */
-  matchesPerPlayer: number;
-  /** Function to set the number of matches per player for random assignment. */
-  setMatchesPerPlayer: (count: number) => void;
+  /** Mapping of player IDs to their assigned match IDs. */
+  playerAssignments: Record<string, string[]>;
   /**
-   * Function to handle random assignment of matches to players.
-   * @param {number} numMatches - Number of matches to assign to each player.
+   * Function to toggle assignment of a match to a player.
+   * @param playerId - The ID of the player.
+   * @param matchId - The ID of the match to toggle.
+   */
+  toggleMatchAssignment: (playerId: string, matchId: string) => void;
+  /** Number of matches to assign per player during random assignment. */
+  matchesPerPlayer: number;
+  /**
+   * Function to set the number of matches per player.
+   * @param value - The new value.
+   */
+  setMatchesPerPlayer: (value: number) => void;
+  /**
+   * Function to trigger random match assignment.
+   * @param numMatches - The number of matches to assign per player.
    */
   handleRandomAssignment: (numMatches: number) => void;
+  /** The current player's ID (used for permission checks). */
+  currentPlayerId?: string;
+  /** Whether the current user is the host (can modify all assignments). */
+  isHost?: boolean;
 }
 
 /**
@@ -61,6 +72,8 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   matchesPerPlayer,
   setMatchesPerPlayer,
   handleRandomAssignment,
+  currentPlayerId,
+  isHost = true,
 }) => {
   const colors = useColors();
   const baseStyles = React.useMemo(
@@ -180,6 +193,18 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   );
 
   /**
+   * Checks if the current user can modify assignments for a given player.
+   * Host can modify all assignments, guests can only modify their own.
+   *
+   * @function
+   * @param {string} playerId - The ID of the player whose assignments are being checked.
+   * @returns {boolean} True if the current user can modify this player's assignments.
+   */
+  const canModifyAssignment = (playerId: string): boolean => {
+    return isHost || playerId === currentPlayerId;
+  };
+
+  /**
    * Renders a compact match item for the grid view.
    * Used when displaying matches in grid layout mode.
    *
@@ -195,6 +220,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     index: number
   ) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
+    const canModify = canModifyAssignment(playerId);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
     const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
 
@@ -203,8 +229,10 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         style={[
           baseStyles.compactMatchItem,
           isSelected && baseStyles.selectedCompactMatchItem,
+          !canModify && { opacity: 0.5 },
         ]}
-        onPress={() => toggleMatchAssignment(playerId, match.id)}
+        disabled={!canModify}
+        onPress={() => canModify && toggleMatchAssignment(playerId, match.id)}
       >
         <View style={baseStyles.compactMatchNumberBadge}>
           <Text style={baseStyles.compactMatchNumberText}>{index + 1}</Text>
@@ -290,6 +318,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
    */
   const renderMatchItem = (match: Match, playerId: string, index: number) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
+    const canModify = canModifyAssignment(playerId);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
     const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
 
@@ -299,8 +328,10 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
           baseStyles.matchCard,
           isSelected && baseStyles.selectedMatchCard,
           baseStyles.matchListItem,
+          !canModify && { opacity: 0.5 },
         ]}
-        onPress={() => toggleMatchAssignment(playerId, match.id)}
+        disabled={!canModify}
+        onPress={() => canModify && toggleMatchAssignment(playerId, match.id)}
       >
         <View style={baseStyles.matchNumberBadge}>
           <Text style={baseStyles.matchNumberText}>{index + 1}</Text>
@@ -370,8 +401,8 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
 
   return (
     <View style={baseStyles.tabContent}>
-      {/* Random Assignment Section */}
-      {players.length > 0 && matches.length > 0 && commonMatchId && (
+      {/* Random Assignment Section - Host Only */}
+      {isHost && players.length > 0 && matches.length > 0 && commonMatchId && (
         <View style={[baseStyles.assignmentSection, { marginBottom: 16 }]}>
           <View style={baseStyles.sectionHeader}>
             <Text style={baseStyles.sectionTitle}>Random Assignment</Text>
@@ -479,6 +510,36 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
               </TouchableOpacity>
             </View>
           </View>
+
+          {!isHost && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: colors.primaryLighter,
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 12,
+              }}
+            >
+              <Ionicons
+                name="information-circle"
+                size={20}
+                color={colors.primary}
+                style={{ marginRight: 8 }}
+              />
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 14,
+                  color: colors.textPrimary,
+                }}
+              >
+                You can only modify your own match assignments. Other players'
+                assignments are managed by the host.
+              </Text>
+            </View>
+          )}
 
           <Modal
             animationType="slide"

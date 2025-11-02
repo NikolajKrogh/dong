@@ -24,7 +24,6 @@ const gameStateCache = new Map<string, SyncedGameState>();
 const syncStatusCache = new Map<string, SyncStatus>();
 
 if (!isTestEnv) {
-  console.log("🎮 Game state sync initialized");
 }
 
 /**
@@ -57,16 +56,6 @@ export const initializeGameState = async (
     phase: "setup",
   };
 
-  if (!isTestEnv) {
-    console.log(
-      "🎲 Initializing game state for room:",
-      normalizedCode,
-      "with",
-      gamePlayers.length,
-      "players from room"
-    );
-  }
-
   // Store in local cache
   gameStateCache.set(normalizedCode, initialState);
   syncStatusCache.set(normalizedCode, "syncing");
@@ -80,7 +69,6 @@ export const initializeGameState = async (
     gameRef.get("state").put(stateJson);
 
     if (!isTestEnv) {
-      console.log("✅ Game state initialized and syncing");
     }
 
     syncStatusCache.set(normalizedCode, "synced");
@@ -104,7 +92,6 @@ export const getGameState = async (
   }
 
   if (!isTestEnv) {
-    console.log("🔍 Fetching game state from Gun:", normalizedCode);
   }
 
   return new Promise((resolve) => {
@@ -120,7 +107,6 @@ export const getGameState = async (
         syncStatusCache.set(normalizedCode, "synced");
 
         if (!isTestEnv) {
-          console.log("✅ Got game state from Gun");
         }
 
         if (listener) listener.off();
@@ -136,7 +122,6 @@ export const getGameState = async (
     setTimeout(() => {
       if (!resolved) {
         if (!isTestEnv) {
-          console.log("⏱️ Game state fetch timeout");
         }
         if (listener) listener.off();
         resolved = true;
@@ -168,7 +153,6 @@ export const updateGameState = async (
   newState.lastUpdated = Date.now();
 
   if (!isTestEnv) {
-    console.log("🔄 Updating game state:", normalizedCode);
   }
 
   // Update cache
@@ -320,7 +304,6 @@ export const subscribeToGameState = (
   let lastUpdate = 0;
 
   if (!isTestEnv) {
-    console.log("👂 Subscribing to game state updates:", normalizedCode);
   }
 
   const listener = gameRef.get("state").on((stateJson: any) => {
@@ -340,7 +323,6 @@ export const subscribeToGameState = (
       syncStatusCache.set(normalizedCode, "synced");
 
       if (!isTestEnv) {
-        console.log("📡 Game state update received");
       }
 
       callback(state, "synced");
@@ -353,7 +335,6 @@ export const subscribeToGameState = (
   // Return cleanup function
   return () => {
     if (!isTestEnv) {
-      console.log("🔇 Unsubscribing from game state updates");
     }
     if (listener) listener.off();
   };

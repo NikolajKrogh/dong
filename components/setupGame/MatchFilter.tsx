@@ -25,6 +25,7 @@ import { useColors } from "../../app/style/theme";
  * @property availableLeagues All leagues available (for external league filtering UI integration).
  * @property selectedLeagues Leagues currently selected elsewhere in the setup flow.
  * @property handleLeagueChange Callback to toggle a league (forwarded for integrated controls if rendered inside this component).
+ * @property isHost Whether the current user is the host (can add matches).
  */
 interface MatchFilterProps {
   selectedDate: string;
@@ -42,6 +43,7 @@ interface MatchFilterProps {
   availableLeagues: LeagueEndpoint[];
   selectedLeagues: LeagueEndpoint[];
   handleLeagueChange: (league: LeagueEndpoint) => void;
+  isHost?: boolean;
 }
 
 /**
@@ -62,6 +64,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   isDateFilterActive,
   filteredMatches,
   isLoading = false,
+  isHost = true,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -213,15 +216,15 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
             </TouchableOpacity>
             <DatePicker
               modal
-              mode="date"
+                mode="date"
               open={isDatePickerOpen}
               date={new Date(selectedDate || Date.now())}
               onConfirm={(date) => {
                 setIsDatePickerOpen(false);
-                setSelectedDate(date.toISOString().split("T")[0]);
-              }}
+                    setSelectedDate(date.toISOString().split("T")[0]);
+                }}
               onCancel={() => setIsDatePickerOpen(false)}
-            />
+              />
           </View>
 
           <View style={styles.filterSection}>
@@ -287,27 +290,27 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
 
               <DatePicker
                 modal
-                mode="time"
+                  mode="time"
                 open={isStartTimePickerOpen}
                 date={new Date()}
                 onConfirm={(date) => {
                   setIsStartTimePickerOpen(false);
-                  setStartTime(date.toTimeString().slice(0, 5));
-                }}
+                      setStartTime(date.toTimeString().slice(0, 5));
+                  }}
                 onCancel={() => setIsStartTimePickerOpen(false)}
-              />
+                />
 
               <DatePicker
                 modal
-                mode="time"
+                  mode="time"
                 open={isEndTimePickerOpen}
                 date={new Date()}
                 onConfirm={(date) => {
                   setIsEndTimePickerOpen(false);
-                  setEndTime(date.toTimeString().slice(0, 5));
-                }}
+                      setEndTime(date.toTimeString().slice(0, 5));
+                  }}
                 onCancel={() => setIsEndTimePickerOpen(false)}
-              />
+                />
             </View>
           </View>
 
@@ -326,14 +329,16 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
             <TouchableOpacity
               style={[
                 styles.filterActionButton,
-                !isAnyFilterActive && styles.disabledButton,
+                (!isAnyFilterActive || !isHost) && styles.disabledButton,
               ]}
               onPress={handleAddAllFilteredMatches}
-              disabled={!isAnyFilterActive}
+              disabled={!isAnyFilterActive || !isHost}
               activeOpacity={0.7}
             >
               <Ionicons name="add-circle" size={16} color={colors.white} />
-              <Text style={styles.filterActionButtonText}>Add Matches</Text>
+              <Text style={styles.filterActionButtonText}>
+                {isHost ? "Add Matches" : "Host Only"}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

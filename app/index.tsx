@@ -7,6 +7,9 @@ import {
   Image,
   ScrollView,
   Animated,
+  TextInput,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
@@ -18,6 +21,8 @@ import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { useColors } from "./style/theme";
+import { createRoom, joinRoom } from "../utils/roomManager";
+import { GameRoom } from "../types/room";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -43,8 +48,23 @@ const HomeScreen = () => {
   const router = useRouter();
   const colors = useColors();
   const styles = createStyles(colors);
-  const { players, matches, history, resetState } = useGameStore();
+  const {
+    players,
+    matches,
+    history,
+    resetState,
+    setCurrentRoom,
+    setCurrentPlayerId,
+    setRoomConnectionStatus,
+    playerName: storedPlayerName,
+    setPlayerName: setStoredPlayerName,
+  } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [isJoinModalVisible, setIsJoinModalVisible] = useState(false);
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+  const [playerName, setPlayerName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
   // Initialize splash visibility based on if it's already been shown in this session
   const [isSplashVisible, setIsSplashVisible] = useState(!hasSplashBeenShown); // Splash screen state
   const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
@@ -78,6 +98,18 @@ const HomeScreen = () => {
     };
     checkFirstLaunch();
   }, []);
+
+  // Pre-populate player name from store when modals open
+  useEffect(() => {
+    const loadSavedName = async () => {
+      if (isCreateModalVisible || isJoinModalVisible) {
+        if (storedPlayerName) {
+          setPlayerName(storedPlayerName);
+        }
+      }
+    };
+    loadSavedName();
+  }, [isCreateModalVisible, isJoinModalVisible, storedPlayerName]);
 
   if (isSplashVisible) {
     return (
@@ -157,10 +189,143 @@ const HomeScreen = () => {
 
   const topDrinkerInfo = getTopDrinker(history);
 
+  /**
+   * Handle create game button press
+   * If name is already set in preferences, create room directly
+   * Otherwise, show modal to get name
+   */
+  const handleCreateGameButtonPress = () => {
+    if (storedPlayerName) {
+      // Name already set, create room directly
+      handleCreateGameWithName(storedPlayerName);
+    } else {
+      // No name set, show modal
+      setIsCreateModalVisible(true);
+    }
+  };
+
+  /**
+   * Handle creating a new game room with a given name
+   */
+  const handleCreateGameWithName = async (hostName: string) => {
+    setIsCreatingRoom(true);
+    setRoomConnectionStatus("connecting");
+
+    try {
+      // Generate unique player ID
+      const playerId = `player_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // Create room
+      const room = await createRoom(playerId, hostName, 10);
+
+      // Update store
+      setCurrentPlayerId(playerId);
+      setCurrentRoom(room);
+      setRoomConnectionStatus("connected");
+
+      // Save player name to store
+      setStoredPlayerName(hostName);
+
+      // Close modal if open and navigate
+      if (isCreateModalVisible) {
+        setIsCreateModalVisible(false);
+        setPlayerName("");
+      }
+      router.push("/setupGame");
+    } catch (error) {
+      console.error("Failed to create room:", error);
+      setRoomConnectionStatus("error");
+      Alert.alert("Error", "Failed to create room. Please try again.");
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  };
+
+  /**
+   * Handle creating a new game room from modal
+   */
+  const handleCreateGame = async () => {
+    if (!playerName.trim()) {
+      Alert.alert("Name Required", "Please enter your name");
+      return;
+    }
+
+    await handleCreateGameWithName(playerName.trim());
+  };
+
+  /**
+   * Handle joining an existing game room
+   */
+  const handleJoinGame = async () => {
+    if (!playerName.trim()) {
+      Alert.alert("Name Required", "Please enter your name");
+      return;
+    }
+
+    if (!roomCode.trim()) {
+      Alert.alert("Room Code Required", "Please enter a room code");
+      return;
+    }
+
+    if (roomCode.trim().length !== 6) {
+      Alert.alert("Invalid Code", "Room code must be 6 characters");
+      return;
+    }
+
+    setIsCreatingRoom(true);
+    setRoomConnectionStatus("connecting");
+
+    try {
+      // Generate unique player ID
+      const playerId = `player_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // Join room
+      const room = await joinRoom(
+        roomCode.trim().toUpperCase(),
+        playerId,
+        playerName.trim()
+      );
+
+      if (!room) {
+        setRoomConnectionStatus("error");
+        Alert.alert(
+          "Room Not Found",
+          "Could not find a room with that code. Please check and try again."
+        );
+        setIsCreatingRoom(false);
+        return;
+      }
+
+      // Update store
+      setCurrentPlayerId(playerId);
+      setCurrentRoom(room);
+      setRoomConnectionStatus("connected");
+
+      // Save player name to store for future use
+      setStoredPlayerName(playerName.trim());
+
+      // Close modal and navigate
+      setIsJoinModalVisible(false);
+      setPlayerName("");
+      setRoomCode("");
+      router.push("/setupGame");
+    } catch (error) {
+      console.error("Failed to join room:", error);
+      setRoomConnectionStatus("error");
+      Alert.alert("Error", "Failed to join room. Please try again.");
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  };
+
   return (
     <>
       <StatusBar
-        style={colors.background === "#f5f5f5" ? "dark" : "light"}
+        style={colors.background === colors.background ? "dark" : "light"}
         backgroundColor={styles.safeArea.backgroundColor as string}
       />
       <SafeAreaView style={styles.safeArea}>
@@ -210,13 +375,35 @@ const HomeScreen = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={() => router.push("/setupGame")}
-            >
-              <Ionicons name="add-circle" size={22} color={colors.white} />
-              <Text style={styles.buttonText}>Start New Game</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={styles.createGameButton}
+                onPress={handleCreateGameButtonPress}
+                disabled={isCreatingRoom}
+              >
+                {isCreatingRoom ? (
+                  <ActivityIndicator color={colors.white} />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="add-circle"
+                      size={22}
+                      color={colors.white}
+                    />
+                    <Text style={styles.buttonText}>Create New Game</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.joinGameButton}
+                onPress={() => setIsJoinModalVisible(true)}
+                disabled={isCreatingRoom}
+              >
+                <Ionicons name="enter-outline" size={22} color={colors.white} />
+                <Text style={styles.buttonText}>Join Game</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           {/* Stats Container */}
@@ -289,29 +476,6 @@ const HomeScreen = () => {
             </TouchableOpacity>
           )}
 
-          {/* Test Buttons Section */}
-          <View style={styles.testButtonsContainer}>
-            <Text style={styles.testSectionTitle}>🧪 Test Features</Text>
-
-            {/* Room Test Button */}
-            <TouchableOpacity
-              style={styles.testButton}
-              onPress={() => router.push("/roomTest")}
-            >
-              <Ionicons name="flask" size={22} color={colors.white} />
-              <Text style={styles.buttonText}>Room Test Menu</Text>
-            </TouchableOpacity>
-
-            {/* Game State Sync Test Button */}
-            <TouchableOpacity
-              style={[styles.testButton, { backgroundColor: "#9C27B0" }]}
-              onPress={() => router.push("/gameStateSyncTest")}
-            >
-              <Ionicons name="sync" size={22} color={colors.white} />
-              <Text style={styles.buttonText}>Game Sync Test</Text>
-            </TouchableOpacity>
-          </View>
-
           <TouchableOpacity
             style={styles.userPreferencesButton}
             onPress={() => router.push("/userPreferences")}
@@ -351,6 +515,162 @@ const HomeScreen = () => {
                   <Text style={styles.textStyle}>Yes, Cancel Game</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Join Room Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isJoinModalVisible}
+          onRequestClose={() => {
+            if (!isCreatingRoom) {
+              setIsJoinModalVisible(false);
+              setPlayerName("");
+              setRoomCode("");
+            }
+          }}
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.roomModalContainer}>
+              <Text style={styles.roomModalTitle}>Join Game</Text>
+              <Text style={styles.roomModalSubtitle}>
+                Enter the room code to join your friends
+              </Text>
+
+              <Text style={styles.roomInputLabel}>Your Name</Text>
+              <TextInput
+                style={styles.roomInput}
+                placeholder="Enter your name"
+                placeholderTextColor={colors.textPlaceholder}
+                value={playerName}
+                onChangeText={setPlayerName}
+                editable={!isCreatingRoom}
+                autoCapitalize="words"
+              />
+
+              <Text style={styles.roomInputLabel}>Room Code</Text>
+              <TextInput
+                style={styles.roomCodeInput}
+                placeholder="ABC123"
+                placeholderTextColor={colors.textPlaceholder}
+                value={roomCode}
+                onChangeText={(text) => setRoomCode(text.toUpperCase())}
+                editable={!isCreatingRoom}
+                maxLength={6}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+
+              {isCreatingRoom ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.loadingText}>Joining room...</Text>
+                </View>
+              ) : (
+                <View style={styles.roomModalButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.roomModalButton,
+                      styles.roomModalButtonSecondary,
+                    ]}
+                    onPress={() => {
+                      setIsJoinModalVisible(false);
+                      setPlayerName("");
+                      setRoomCode("");
+                    }}
+                  >
+                    <Text style={styles.textStyle}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.roomModalButton,
+                      styles.roomModalButtonSuccess,
+                    ]}
+                    onPress={handleJoinGame}
+                  >
+                    <Ionicons
+                      name="enter-outline"
+                      size={20}
+                      color={colors.white}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.textStyle}>Join</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Create Room Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isCreateModalVisible}
+          onRequestClose={() => {
+            if (!isCreatingRoom) {
+              setIsCreateModalVisible(false);
+              setPlayerName("");
+            }
+          }}
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.roomModalContainer}>
+              <Text style={styles.roomModalTitle}>Create New Game</Text>
+              <Text style={styles.roomModalSubtitle}>
+                Enter your name to start a new game
+              </Text>
+
+              <Text style={styles.roomInputLabel}>Your Name</Text>
+              <TextInput
+                style={styles.roomInput}
+                placeholder="Enter your name"
+                placeholderTextColor={colors.textPlaceholder}
+                value={playerName}
+                onChangeText={setPlayerName}
+                editable={!isCreatingRoom}
+                autoCapitalize="words"
+                autoFocus={true}
+              />
+
+              {isCreatingRoom ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.primary} />
+                  <Text style={styles.loadingText}>Creating room...</Text>
+                </View>
+              ) : (
+                <View style={styles.roomModalButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.roomModalButton,
+                      styles.roomModalButtonSecondary,
+                    ]}
+                    onPress={() => {
+                      setIsCreateModalVisible(false);
+                      setPlayerName("");
+                    }}
+                  >
+                    <Text style={styles.textStyle}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.roomModalButton,
+                      styles.roomModalButtonPrimary,
+                    ]}
+                    onPress={handleCreateGame}
+                  >
+                    <Ionicons
+                      name="add-circle"
+                      size={20}
+                      color={colors.white}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.textStyle}>Create</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </Modal>

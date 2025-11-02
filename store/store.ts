@@ -96,6 +96,8 @@ interface GameState {
   configuredLeagues: LeagueEndpoint[];
   /** Default leagues pre-selected when opening match list. */
   defaultSelectedLeagues: LeagueEndpoint[];
+  /** Player name for multiplayer games. */
+  playerName: string | null;
 
   // Room/multiplayer state
   /** Current player ID for this device. */
@@ -179,6 +181,11 @@ interface GameState {
   setDefaultSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
   /** Sets the current theme (light or dark). */
   setTheme: (theme: "light" | "dark") => void;
+  /**
+   * Sets the player name for multiplayer games.
+   * @param name Player name or null to clear.
+   */
+  setPlayerName: (name: string | null) => void;
 
   // Actions for room/multiplayer
   /**
@@ -229,6 +236,7 @@ export const useGameStore = create<GameState>()(
       currentPlayerId: null,
       currentRoom: null,
       roomConnectionStatus: "disconnected" as RoomConnectionStatus,
+      playerName: null,
       history: [],
 
       // --- Actions ---
@@ -281,6 +289,7 @@ export const useGameStore = create<GameState>()(
         set({ defaultSelectedLeagues: leagues }),
 
       setTheme: (theme) => set({ theme }),
+      setPlayerName: (name) => set({ playerName: name }),
 
       setCurrentPlayerId: (playerId) => set({ currentPlayerId: playerId }),
       setCurrentRoom: (room) => set({ currentRoom: room }),
@@ -330,6 +339,7 @@ export const useGameStore = create<GameState>()(
         configuredLeagues: state.configuredLeagues,
         defaultSelectedLeagues: state.defaultSelectedLeagues,
         theme: state.theme,
+        playerName: state.playerName,
       }),
     }
   )

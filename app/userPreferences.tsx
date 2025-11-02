@@ -15,6 +15,7 @@ import AddLeagueModal from "../components/preferences/AddLeagueModal";
 import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
 import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
 import AppearanceSettings from "../components/preferences/AppearanceSettings";
+import PlayerNameSettings from "../components/preferences/PlayerNameSettings";
 import { useColors } from "./style/theme";
 
 /**
@@ -36,6 +37,8 @@ const UserPreferencesScreen = () => {
     resetLeaguesToDefaults,
     defaultSelectedLeagues,
     setDefaultSelectedLeagues,
+    playerName,
+    setPlayerName,
   } = useGameStore();
 
   const insets = useSafeAreaInsets();
@@ -103,6 +106,9 @@ const UserPreferencesScreen = () => {
         contentContainerStyle={commonStyles.contentContainer}
       >
         <AppearanceSettings />
+
+        <PlayerNameSettings playerName={playerName} onSave={setPlayerName} />
+
         <SoundNotificationSettings
           soundEnabled={soundEnabled}
           setSoundEnabled={setSoundEnabled}

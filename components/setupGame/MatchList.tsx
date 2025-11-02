@@ -49,6 +49,7 @@ const getTodayDate = (): string => {
  * @property {() => void} handleAddMatch - Function to add a new match.
  * @property {(matchId: string) => void} handleRemoveMatch - Function to remove a match by ID.
  * @property {(matches: Match[]) => void} [setGlobalMatches] - Optional function to update global matches state.
+ * @property {boolean} [isHost] - Whether the current user is the host (can add/remove matches).
  */
 interface MatchListProps {
   matches: Match[];
@@ -59,6 +60,7 @@ interface MatchListProps {
   handleAddMatch: () => void;
   handleRemoveMatch: (matchId: string) => void;
   setGlobalMatches?: (matches: Match[]) => void;
+  isHost?: boolean;
 }
 
 /**
@@ -89,6 +91,7 @@ const MatchList: FC<MatchListProps> = ({
   handleAddMatch,
   handleRemoveMatch,
   setGlobalMatches,
+  isHost = true, // Default to true for backward compatibility
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -620,15 +623,21 @@ const MatchList: FC<MatchListProps> = ({
         availableLeagues={availableLeagues} // Pass availableLeagues for potential use in MatchFilter
         selectedLeagues={selectedLeagues} // Pass selectedLeagues for potential use in MatchFilter
         handleLeagueChange={handleLeagueChange} // Pass handleLeagueChange for potential use in MatchFilter
+        isHost={isHost}
       />
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.loadingContainer} key="loading-view">
           <LottieView
+            key={`lottie-${isMatchLoading}-${isTeamLoading}-${selectedDate}`}
             source={require("../../assets/lottie/football_loading.json")}
-            autoPlay
-            loop
+            autoPlay={true}
+            loop={true}
+            resizeMode="cover"
             style={styles.lottieAnimation}
+            onAnimationFailure={(error) => {
+              console.warn("Lottie animation failed:", error);
+            }}
           />
           <Text style={styles.loadingText}>Loading matches and teams...</Text>
         </View>
@@ -638,7 +647,7 @@ const MatchList: FC<MatchListProps> = ({
             {errorMessage || "Error loading data."}
           </Text>
         </View>
-      ) : (
+      ) : isHost ? (
         <TeamSelectionRow
           homeTeam={homeTeam}
           awayTeam={awayTeam}
@@ -650,6 +659,19 @@ const MatchList: FC<MatchListProps> = ({
           addNewHomeTeam={addNewHomeTeam}
           addNewAwayTeam={addNewAwayTeam}
         />
+      ) : (
+        <View style={styles.emptyListContainer}>
+          <Ionicons
+            name="football-outline"
+            size={48}
+            color={colors.textMuted}
+          />
+          <Text style={styles.emptyListTitleText}>Host-Only Feature</Text>
+          <Text style={styles.emptyListSubtitleText}>
+            Only the host can add matches. Wait for the host to add matches to
+            the game.
+          </Text>
+        </View>
       )}
 
       {processingState.isProcessing && (
@@ -683,6 +705,7 @@ const MatchList: FC<MatchListProps> = ({
               <MatchItem
                 match={item}
                 handleRemoveMatch={() => handleRemoveWithAnimation(item.id)}
+                isHost={isHost}
               />
             </Animated.View>
           );
@@ -705,7 +728,7 @@ const MatchList: FC<MatchListProps> = ({
         contentContainerStyle={styles.matchesGridContainer} // If using a grid layout
       />
 
-      {matches.length > 0 && (
+      {matches.length > 0 && isHost && (
         <TouchableOpacity
           style={styles.clearAllButton}
           onPress={handleClearAllMatches}

@@ -19,6 +19,9 @@ import { useRouter } from "expo-router";
  * @property canStartGame Whether the game can be started (final validation for Assign step).
  * @property newPlayerName Optional current text input value for a new player (used for auto-add before advancing).
  * @property handleAddPlayer Optional helper to append `newPlayerName` before navigating forward from Players.
+ * @property currentStep Current wizard step (0-3).
+ * @property setCurrentStep Setter for current step.
+ * @property isHost Whether the current user is the host (can control navigation).
  */
 interface SetupWizardProps {
   renderPlayersStep: () => React.ReactNode;
@@ -32,6 +35,9 @@ interface SetupWizardProps {
   canStartGame: boolean;
   newPlayerName?: string;
   handleAddPlayer?: () => void;
+  currentStep: number;
+  setCurrentStep: (step: number) => void;
+  isHost: boolean;
 }
 
 /**
@@ -52,9 +58,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   canStartGame,
   newPlayerName,
   handleAddPlayer,
+  currentStep,
+  setCurrentStep,
+  isHost,
 }) => {
-  // Active step index
-  const [currentStep, setCurrentStep] = useState(0);
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
@@ -86,6 +93,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 currentStep >= index && styles.activeStepButton,
               ]}
               onPress={() => {
+                // Only host can navigate between steps
+                if (!isHost) return;
+
                 // Logic to allow navigation to a step if prerequisites are met
                 if (
                   (index === 1 && canAdvanceToMatches) ||
@@ -97,7 +107,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 }
               }}
               disabled={
-                // Disable step buttons if prerequisites are not met
+                // Disable step buttons if not host or prerequisites are not met
+                !isHost ||
                 (index === 1 && !canAdvanceToMatches) ||
                 (index === 2 && !canAdvanceToCommonMatch) ||
                 (index === 3 && !canAdvanceToAssign)
@@ -137,111 +148,113 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         {currentStep === 3 && renderAssignStep()}
       </ScrollView>
 
-      {/* Navigation Buttons */}
-      <View style={styles.wizardNavigation}>
-        {/* Back/Home button */}
-        {currentStep === 0 ? (
-          // Home button on the first step
-          <TouchableOpacity
-            style={[styles.navButton, { backgroundColor: colors.secondary }]}
-            onPress={() => router.push("./")}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons
-                name="home"
-                size={20}
-                color={colors.textLight}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.navButtonText}>Home</Text>
-            </View>
-          </TouchableOpacity>
-        ) : (
-          // Back button on subsequent steps
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => setCurrentStep(Math.max(0, currentStep - 1))} // Go to the previous step
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons
-                name="arrow-back"
-                size={20}
-                color={colors.textLight}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.navButtonText}>Back</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+      {/* Navigation Buttons - Only show for host */}
+      {isHost && (
+        <View style={styles.wizardNavigation}>
+          {/* Back/Home button */}
+          {currentStep === 0 ? (
+            // Home button on the first step
+            <TouchableOpacity
+              style={[styles.navButton, { backgroundColor: colors.secondary }]}
+              onPress={() => router.push("./")}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="home"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.navButtonText}>Home</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // Back button on subsequent steps
+            <TouchableOpacity
+              style={styles.navButton}
+              onPress={() => setCurrentStep(Math.max(0, currentStep - 1))}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Ionicons
+                  name="arrow-back"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.navButtonText}>Back</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
-        {/* Next/Start Game button */}
-        {currentStep < steps.length - 1 ? (
-          // Next button if not on the last step
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              // Apply opacity if advancement to the next step is not allowed
-              ((currentStep === 0 && !canAdvanceToMatches) ||
-                (currentStep === 1 && !canAdvanceToCommonMatch) ||
-                (currentStep === 2 && !canAdvanceToAssign)) && { opacity: 0.5 },
-            ]}
-            onPress={() => {
-              // If we're on the players step and there's a player name in the input, add it first
-              if (
-                currentStep === 0 &&
-                newPlayerName?.trim() &&
-                handleAddPlayer
-              ) {
-                handleAddPlayer();
-                // Small delay before advancing to ensure the player is added
-                setTimeout(() => {
+          {/* Next/Start Game button */}
+          {currentStep < steps.length - 1 ? (
+            // Next button if not on the last step
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                ((currentStep === 0 && !canAdvanceToMatches) ||
+                  (currentStep === 1 && !canAdvanceToCommonMatch) ||
+                  (currentStep === 2 && !canAdvanceToAssign)) && {
+                  opacity: 0.5,
+                },
+              ]}
+              onPress={() => {
+                // If we're on the players step and there's a player name in the input, add it first
+                if (
+                  currentStep === 0 &&
+                  newPlayerName?.trim() &&
+                  handleAddPlayer
+                ) {
+                  handleAddPlayer();
+                  // Small delay before advancing to ensure the player is added
+                  setTimeout(() => {
+                    setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
+                  }, 50);
+                } else {
+                  // Otherwise, just advance to the next step
                   setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
-                }, 50);
-              } else {
-                // Otherwise, just advance to the next step
-                setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
+                }
+              }}
+              disabled={
+                (currentStep === 0 && !canAdvanceToMatches) ||
+                (currentStep === 1 && !canAdvanceToCommonMatch) ||
+                (currentStep === 2 && !canAdvanceToAssign)
               }
-            }}
-            disabled={
-              // Disable next button if advancement conditions are not met
-              (currentStep === 0 && !canAdvanceToMatches) ||
-              (currentStep === 1 && !canAdvanceToCommonMatch) ||
-              (currentStep === 2 && !canAdvanceToAssign)
-            }
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.navButtonText}>Next</Text>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color={colors.textLight}
-                style={{ marginLeft: 8 }}
-              />
-            </View>
-          </TouchableOpacity>
-        ) : (
-          // Start Game button on the last step
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              { backgroundColor: colors.success },
-              !canStartGame && { opacity: 0.5 }, // Apply opacity if game cannot be started
-            ]}
-            onPress={handleStartGame} // Call the start game handler
-            disabled={!canStartGame} // Disable if game cannot be started
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.navButtonText}>Start Game</Text>
-              <Ionicons
-                name="play"
-                size={20}
-                color={colors.textLight}
-                style={{ marginLeft: 8 }}
-              />
-            </View>
-          </TouchableOpacity>
-        )}
-      </View>
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.navButtonText}>Next</Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // Start Game button on the last step
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                { backgroundColor: colors.success },
+                !canStartGame && { opacity: 0.5 },
+              ]}
+              onPress={handleStartGame}
+              disabled={!canStartGame}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.navButtonText}>Start Game</Text>
+                <Ionicons
+                  name="play"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 };

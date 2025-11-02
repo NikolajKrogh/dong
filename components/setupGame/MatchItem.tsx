@@ -10,9 +10,14 @@ import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 interface MatchItemProps {
   match: Match;
   handleRemoveMatch: (id: string) => void;
+  isHost?: boolean;
 }
 
-const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
+const MatchItem: React.FC<MatchItemProps> = ({
+  match,
+  handleRemoveMatch,
+  isHost = true,
+}) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
@@ -59,7 +64,6 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
       // 4. Fallback: Just show the raw string
       return match.startTime;
     } catch (e) {
-      console.log("Time formatting error:", e, "for time:", match.startTime);
       // If any error in parsing, just return the raw string
       return match.startTime;
     }
@@ -134,14 +138,16 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
             </View>
           )}
 
-          {/* Remove button */}
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => handleRemoveMatch(match.id)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close-circle" size={20} color={colors.danger} />
-          </TouchableOpacity>
+          {/* Remove button - only shown for host */}
+          {isHost && (
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => handleRemoveMatch(match.id)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={20} color={colors.danger} />
+            </TouchableOpacity>
+          )}
         </LinearGradient>
       </View>
     </View>

@@ -15,6 +15,15 @@ import {
 import { Player, Match } from "../store/store";
 import { LeagueEndpoint } from "../constants/leagues";
 import { useMatchData } from "../hooks/useMatchData";
+import {
+  subscribeToRoom,
+  syncMatchesToRoom,
+  syncCommonMatchToRoom,
+  syncAssignmentsToRoom,
+  syncCurrentStepToRoom,
+  syncGameStartedToRoom,
+  leaveRoom,
+} from "../utils/roomManager";
 
 interface SelectedMatchData {
   id: string;
@@ -30,6 +39,7 @@ interface SelectedMatchData {
  * leveraging store state + remote match data; finalizes by filtering matches and navigating to gameplay.
  */
 const SetupGameScreen = () => {
+  const { currentRoom, currentPlayerId } = useGameStore();
   const router = useRouter();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -52,6 +62,13 @@ const SetupGameScreen = () => {
   );
   /** Selected date (YYYY-MM-DD) for match filtering. */
   const [selectedDate, setSelectedDate] = useState("");
+  /** Current wizard step (0-3). */
+  const [currentStep, setCurrentStepInternal] = useState(0);
+
+  // Wrapper to log step changes
+  const setCurrentStep = (step: number) => {
+    setCurrentStepInternal(step);
+  };
 
   /**
    * Global game setup state and mutators sourced from the central store.
@@ -95,12 +112,252 @@ const SetupGameScreen = () => {
     isLoading,
   } = useMatchData(selectedDate);
 
+  /** Check if current user is the host */
+  const isHost = currentRoom?.hostId === currentPlayerId;
+
   /** Sync available leagues with API results. */
   useEffect(() => {
     if (apiLeagues && apiLeagues.length > 0) {
       setAvailableLeagues(apiLeagues);
     }
   }, [apiLeagues]);
+
+  /** Automatically add host as a player when room is created */
+  useEffect(() => {
+    if (
+      currentRoom &&
+      currentRoom.hostName &&
+      players.length === 0 &&
+      currentRoom.hostId
+    ) {
+      const hostPlayer: Player = {
+        id: currentRoom.hostId,
+        name: currentRoom.hostName,
+      };
+      setGlobalPlayers([hostPlayer]);
+      setGlobalPlayerAssignments({
+        [hostPlayer.id]: [],
+      });
+    }
+  }, [currentRoom]);
+
+  /** Track if we're currently syncing from Gun to prevent loops (use ref to avoid re-renders) */
+  const isSyncingFromGunRef = React.useRef(false);
+
+  /** Track subscribed room to prevent duplicate subscriptions */
+  const subscribedRoomRef = React.useRef<string | null>(null);
+
+  /** Track if user is host (use ref so subscription callback always has current value) */
+  const isHostRef = React.useRef(isHost);
+
+  /** Track if we've already navigated to gameProgress to prevent infinite loops */
+  const hasNavigatedToGameRef = React.useRef(false);
+
+  // Update ref whenever isHost changes
+  React.useEffect(() => {
+    isHostRef.current = isHost;
+  }, [isHost]);
+
+  /** Initialize guest step from room on first load */
+  useEffect(() => {
+    if (
+      !isHost &&
+      currentRoom?.currentStep !== undefined &&
+      currentRoom?.currentStep !== null
+    ) {
+      setCurrentStep(currentRoom.currentStep);
+    }
+  }, [isHost, currentRoom?.currentStep]);
+
+  /** Subscribe to room updates and sync players + game state in real-time */
+  useEffect(() => {
+    if (!currentRoom?.code) return;
+
+    // Prevent duplicate subscriptions to the same room
+    if (subscribedRoomRef.current === currentRoom.code) {
+      return;
+    }
+
+    subscribedRoomRef.current = currentRoom.code;
+
+    const unsubscribe = subscribeToRoom(currentRoom.code, (updatedRoom) => {
+      if (!updatedRoom) return;
+
+      // Set flag to prevent sync loops
+      isSyncingFromGunRef.current = true;
+
+      // Update the room in the store
+      useGameStore.getState().setCurrentRoom(updatedRoom);
+
+      // Get current players
+      const currentPlayers = useGameStore.getState().players;
+
+      // Convert room players to game players
+      const roomPlayers = updatedRoom.players.map((rp) => ({
+        id: rp.id,
+        name: rp.name,
+        drinksTaken: 0,
+      }));
+
+      // Sync all players from room to ensure consistency
+      // This handles both: initial sync when joining AND new players joining later
+      const playerIdsInRoom = new Set(roomPlayers.map((p) => p.id));
+      const playerIdsInGame = new Set(currentPlayers.map((p) => p.id));
+
+      // Find new players (in room but not in game)
+      const newPlayers = roomPlayers.filter(
+        (rp) => !playerIdsInGame.has(rp.id)
+      );
+
+      // Find removed players (in game but not in room)
+      const removedPlayers = currentPlayers.filter(
+        (cp) => !playerIdsInRoom.has(cp.id)
+      );
+
+      // If there are changes, update the player list
+      if (newPlayers.length > 0 || removedPlayers.length > 0) {
+
+        // Build the new player list: keep existing players that are still in room + add new ones
+        const updatedPlayers = [
+          ...currentPlayers.filter((cp) => playerIdsInRoom.has(cp.id)),
+          ...newPlayers,
+        ];
+
+        setGlobalPlayers(updatedPlayers);
+
+        // Initialize assignments for new players
+        const currentAssignments = useGameStore.getState().playerAssignments;
+        const newAssignments = { ...currentAssignments };
+
+        newPlayers.forEach((player) => {
+          if (!newAssignments[player.id]) {
+            newAssignments[player.id] = [];
+          }
+        });
+
+        // Remove assignments for removed players
+        removedPlayers.forEach((player) => {
+          delete newAssignments[player.id];
+        });
+
+        setGlobalPlayerAssignments(newAssignments);
+
+        // Show toast notification for new players only
+        if (newPlayers.length > 0) {
+          Toast.show({
+            type: "success",
+            text1: "Player Joined!",
+            text2: newPlayers.map((p) => p.name).join(", "),
+            position: "top",
+          });
+        }
+      }
+
+      // Sync game state (matches, common match, assignments)
+      if (updatedRoom.matches) {
+        try {
+          const syncedMatches = JSON.parse(updatedRoom.matches);
+          const currentMatches = useGameStore.getState().matches;
+
+          // Only update if different (avoid loops)
+          if (JSON.stringify(currentMatches) !== updatedRoom.matches) {
+            setGlobalMatches(syncedMatches);
+          }
+        } catch (e) {
+          console.error("Failed to parse matches:", e);
+        }
+      }
+
+      if (updatedRoom.commonMatchId !== undefined) {
+        const currentCommonId = useGameStore.getState().commonMatchId;
+        if (currentCommonId !== updatedRoom.commonMatchId) {
+          setGlobalCommonMatchId(updatedRoom.commonMatchId);
+          setSelectedCommonMatch(updatedRoom.commonMatchId);
+        }
+      }
+
+      if (updatedRoom.playerAssignments) {
+        try {
+          const syncedAssignments = JSON.parse(updatedRoom.playerAssignments);
+          const currentAssignments = useGameStore.getState().playerAssignments;
+
+          // Only update if different (avoid loops)
+          if (
+            JSON.stringify(currentAssignments) !== updatedRoom.playerAssignments
+          ) {
+            setGlobalPlayerAssignments(syncedAssignments);
+          }
+        } catch (e) {
+          console.error("Failed to parse assignments:", e);
+        }
+      }
+
+      // Sync current step (guests follow host)
+      if (updatedRoom.currentStep != null && !isHostRef.current) {
+        if (currentStep !== updatedRoom.currentStep) {
+          setCurrentStep(updatedRoom.currentStep);
+        }
+      }
+
+      // Check if game has started - navigate all players to gameProgress (only once)
+      if (
+        updatedRoom.gameStarted &&
+        !isHostRef.current &&
+        !hasNavigatedToGameRef.current
+      ) {
+        hasNavigatedToGameRef.current = true; // Prevent repeated navigation
+
+        // Guest: Don't filter matches - they should already be synced from host
+        // The host has already filtered and synced the correct matches to the room
+        router.push("/gameProgress");
+      }
+
+      // Clear flag after sync is complete
+      setTimeout(() => {
+        isSyncingFromGunRef.current = false;
+      }, 100);
+    });
+
+    return () => {
+      subscribedRoomRef.current = null;
+      hasNavigatedToGameRef.current = false; // Reset navigation flag for next time
+      unsubscribe();
+    };
+  }, [currentRoom?.code]);
+
+  /** Sync matches to room when they change (but not when syncing FROM room) */
+  useEffect(() => {
+    if (
+      !currentRoom?.code ||
+      matches.length === 0 ||
+      isSyncingFromGunRef.current
+    )
+      return;
+
+    syncMatchesToRoom(currentRoom.code, matches);
+  }, [matches, currentRoom?.code]);
+
+  /** Sync common match to room when it changes (but not when syncing FROM room) */
+  useEffect(() => {
+    if (!currentRoom?.code || isSyncingFromGunRef.current) return;
+
+    syncCommonMatchToRoom(currentRoom.code, commonMatchId);
+  }, [commonMatchId, currentRoom?.code]);
+
+  /** Sync assignments to room when they change (but not when syncing FROM room) */
+  useEffect(() => {
+    if (!currentRoom?.code || isSyncingFromGunRef.current) return;
+
+    syncAssignmentsToRoom(currentRoom.code, playerAssignments);
+  }, [playerAssignments, currentRoom?.code]);
+
+  /** Sync current step to room when host changes it (but not when syncing FROM room) */
+  useEffect(() => {
+    if (!currentRoom?.code || !isHost || isSyncingFromGunRef.current) {
+      return;
+    }
+    syncCurrentStepToRoom(currentRoom.code, currentStep);
+  }, [currentStep, currentRoom?.code, isHost]);
 
   /** Whether player step can advance (>=1 player). */
   const canAdvanceToMatches = players.length > 0;
@@ -121,6 +378,8 @@ const SetupGameScreen = () => {
       handleAddPlayer={handleAddPlayer}
       handleAddPlayerByName={handleAddPlayerByName}
       handleRemovePlayer={handleRemovePlayer}
+      roomCode={currentRoom?.code}
+      handleLeaveRoom={currentRoom ? handleLeaveRoom : undefined}
     />
   );
 
@@ -135,6 +394,7 @@ const SetupGameScreen = () => {
       handleAddMatch={handleAddMatch}
       handleRemoveMatch={handleRemoveMatch}
       setGlobalMatches={setGlobalMatches}
+      isHost={isHost}
     />
   );
 
@@ -144,6 +404,7 @@ const SetupGameScreen = () => {
       matches={matches}
       selectedCommonMatch={commonMatchId}
       handleSelectCommonMatch={handleSelectCommonMatch}
+      isHost={isHost}
     />
   );
 
@@ -158,6 +419,8 @@ const SetupGameScreen = () => {
       matchesPerPlayer={matchesPerPlayer}
       setMatchesPerPlayer={setMatchesPerPlayer}
       handleRandomAssignment={handleRandomAssignment}
+      currentPlayerId={currentPlayerId || undefined}
+      isHost={isHost}
     />
   );
 
@@ -285,6 +548,34 @@ const SetupGameScreen = () => {
   };
 
   /**
+   * Handle leaving the current room
+   */
+  const handleLeaveRoom = () => {
+    if (!currentRoom?.code || !currentPlayerId) return;
+
+    // Leave the room in Gun.js
+    leaveRoom(currentRoom.code, currentPlayerId);
+
+    // Clear local state
+    useGameStore.getState().setCurrentRoom(null);
+    useGameStore.getState().setCurrentPlayerId(null);
+
+    // Reset navigation flag
+    hasNavigatedToGameRef.current = false;
+
+    // Show toast
+    Toast.show({
+      type: "info",
+      text1: "Left Room",
+      text2: `You have left room ${currentRoom.code}`,
+      position: "bottom",
+    });
+
+    // Navigate back to home
+    router.push("/");
+  };
+
+  /**
    * Start game after validating players, matches, and selected common match.
    */
   const handleStartGame = () => {
@@ -325,6 +616,18 @@ const SetupGameScreen = () => {
         (commonMatchId && match.id === commonMatchId)
     );
     setGlobalMatches(filteredMatches);
+
+    // If in a room, sync filtered matches FIRST, then set gameStarted flag
+    if (currentRoom?.code) {
+      // Explicitly sync filtered matches before setting gameStarted
+      syncMatchesToRoom(currentRoom.code, filteredMatches);
+
+      // Small delay to ensure matches are synced before guests navigate
+      setTimeout(() => {
+        hasNavigatedToGameRef.current = true; // Prevent host from re-navigating on subscription update
+        syncGameStartedToRoom(currentRoom.code);
+      }, 200);
+    }
 
     router.push("/gameProgress");
   };
@@ -597,6 +900,9 @@ const SetupGameScreen = () => {
         canStartGame={canStartGame}
         newPlayerName={newPlayerName}
         handleAddPlayer={handleAddPlayer}
+        currentStep={currentStep}
+        setCurrentStep={setCurrentStep}
+        isHost={isHost}
       />
     </SafeAreaView>
   );

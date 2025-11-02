@@ -88,7 +88,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
    */
   const applyStateToStore = useCallback(
     (state: SyncedGameState) => {
-      console.log("🔄 Applying Gun state to Zustand store");
       setPlayers(state.players);
       setMatches(state.matches);
       setCommonMatchId(state.commonMatchId);
@@ -113,8 +112,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
       return;
     }
 
-    console.log("👂 Setting up game state sync for room:", roomCode);
-
     const unsubscribe = subscribeToGameState(roomCode, (state, status) => {
       setSyncStatus(status);
       if (state) {
@@ -127,7 +124,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
     setSyncStatus(initialStatus);
 
     return () => {
-      console.log("🔇 Cleaning up game state sync");
       unsubscribe();
     };
   }, [roomCode, applyStateToStore]);
@@ -149,12 +145,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
       );
 
       if (newPlayers.length > 0) {
-        console.log(
-          "👥 Auto-adding",
-          newPlayers.length,
-          "new room players to game"
-        );
-
         // Add each new player
         for (const newPlayer of newPlayers) {
           const gamePlayer: Player = {
@@ -187,8 +177,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
 
     setIsSyncing(true);
     try {
-      console.log("🎲 Initializing game state with room players...");
-
       // Convert room players to the format needed for game state
       const roomPlayers = currentRoom.players.map((p) => ({
         id: p.id,
@@ -202,11 +190,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
       );
       applyStateToStore(state);
       setSyncStatus("synced");
-      console.log(
-        "✅ Game state initialized with",
-        roomPlayers.length,
-        "players"
-      );
     } catch (error) {
       console.error("❌ Failed to initialize game state:", error);
       setSyncStatus("error");
@@ -225,7 +208,7 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
     try {
       // This would push current store state to Gun
       // For now, we rely on individual operations
-      console.log("🔄 Syncing store to Gun...");
+
       setSyncStatus("synced");
     } catch (error) {
       console.error("❌ Sync to Gun failed:", error);
@@ -243,7 +226,6 @@ export const useGameStateSync = (): UseGameStateSyncReturn => {
 
     setIsSyncing(true);
     try {
-      console.log("📥 Pulling from Gun...");
       const state = await getGameState(roomCode);
       if (state) {
         applyStateToStore(state);

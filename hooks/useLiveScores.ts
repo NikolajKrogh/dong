@@ -85,11 +85,9 @@ export function useLiveScores(
         "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?limit=1"
       );
       if (!testResponse.ok) {
-        console.log("Network connectivity check failed.");
         return; // Skip API calls if no connectivity
       }
     } catch (error) {
-      console.log("Network connectivity error:", error);
       return; // Skip API calls if connectivity check fails
     }
 
@@ -209,7 +207,6 @@ export function useLiveScores(
   const startPolling = useCallback(() => {
     if (isPolling || pollingIntervalRef.current) return; // Prevent multiple intervals
 
-    console.log("Starting live score polling...");
     setIsPolling(true);
 
     // Do an immediate fetch
@@ -224,7 +221,6 @@ export function useLiveScores(
    */
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
-      console.log("Stopping live score polling.");
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }

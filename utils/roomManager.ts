@@ -16,7 +16,6 @@ const isTestEnv =
 const localRoomCache = new Map<string, GunRoomData>();
 
 if (!isTestEnv) {
-  console.log("🎮 Room manager initialized with Gun P2P + local cache");
 }
 
 /**
@@ -70,12 +69,8 @@ export const createRoom = async (
     },
   };
 
-  console.log("🎲 Creating room with code:", roomCode);
-  console.log("📦 Room data to store:", roomData);
-
   // Store in local cache for instant access
   localRoomCache.set(roomCode, roomData);
-  console.log("✅ Room cached locally");
 
   // Store in Gun for P2P sync using proper callback handling
   return new Promise<GameRoom>((resolve) => {
@@ -93,8 +88,6 @@ export const createRoom = async (
     // Store host player
     roomRef.get("players").get(hostId).put(JSON.stringify(hostPlayer));
 
-    console.log("📡 Room data sent to Gun peers");
-
     // Return immediately (Gun syncs in background)
     setTimeout(() => {
       const room: GameRoom = {
@@ -108,7 +101,6 @@ export const createRoom = async (
         isLocked: false,
       };
 
-      console.log("✅ Room created and syncing via Gun");
       resolve(room);
     }, 100);
   });
@@ -123,21 +115,17 @@ export const joinRoom = async (
   playerName: string
 ): Promise<GameRoom | null> => {
   const normalizedCode = roomCode.toUpperCase();
-  console.log("🚪 Attempting to join room:", normalizedCode);
 
   return new Promise((resolve) => {
     let resolved = false;
     const roomRef = gun.get("rooms").get(normalizedCode);
 
-    // Listen for room data from Gun
-    const listener = roomRef.on((data: any, key: string) => {
+    // Try to join with room data
+    roomRef.get("id").once((id: any) => {
       if (resolved) return;
 
-      // Gun sends individual field updates, we need to collect them
-      console.log("📥 Received Gun data update:", key, data);
-
-      // Check if we have enough data to join
-      roomRef.get("id").once((id: any) => {
+      roomRef.get("hostId").once((hostId: any) => {
+        if (resolved) return;
         roomRef.get("hostId").once((hostId: any) => {
           roomRef.get("hostName").once((hostName: any) => {
             roomRef.get("createdAt").once((createdAt: any) => {
@@ -148,12 +136,9 @@ export const joinRoom = async (
                     return;
                   }
 
-                  console.log("✅ Got room data from Gun!");
-
                   // Check if room is locked
                   if (isLocked) {
                     console.error("❌ Room is locked");
-                    if (listener) listener.off();
                     resolved = true;
                     resolve(null);
                     return;
@@ -183,7 +168,6 @@ export const joinRoom = async (
                     // Check if room is full
                     if (players.length >= (maxPlayers || 10)) {
                       console.error("❌ Room is full");
-                      if (listener) listener.off();
                       resolved = true;
                       resolve(null);
                       return;
@@ -234,8 +218,6 @@ export const joinRoom = async (
                       isLocked: isLocked || false,
                     };
 
-                    console.log("✅ Successfully joined room:", room.code);
-                    if (listener) listener.off();
                     resolved = true;
                     resolve(room);
                   });
@@ -252,8 +234,6 @@ export const joinRoom = async (
       if (!resolved) {
         const cachedRoom = localRoomCache.get(normalizedCode);
         if (cachedRoom) {
-          console.log("✅ Found room in local cache (same device)");
-
           // Add player to cached room
           const newPlayer: RoomPlayer = {
             id: playerId,
@@ -279,24 +259,19 @@ export const joinRoom = async (
             isLocked: cachedRoom.isLocked,
           };
 
-          if (listener) listener.off();
           resolved = true;
           resolve(room);
         }
       }
     }, 100);
 
-    // Timeout - shorter in test environment
-    const timeoutMs = isTestEnv ? 1000 : 10000; // 1s for tests, 10s for production
+    // Timeout - reduced from 10s to 3s for better UX
+    const timeoutMs = isTestEnv ? 1000 : 3000; // 1s for tests, 3s for production
     setTimeout(() => {
       if (!resolved) {
         if (!isTestEnv) {
-          console.error("❌ Timeout: Room not found after 10s");
-          console.log(
-            "💡 Make sure the host created the room and both devices are connected to internet"
-          );
+          console.error("❌ Timeout: Room not found after 3s");
         }
-        if (listener) listener.off();
         resolved = true;
         resolve(null);
       }
@@ -309,20 +284,16 @@ export const joinRoom = async (
  */
 export const leaveRoom = (roomCode: string, playerId: string): void => {
   const normalizedCode = roomCode.toUpperCase();
-  const roomData = localRoomCache.get(normalizedCode);
 
+  // Remove from local cache
+  const roomData = localRoomCache.get(normalizedCode);
   if (roomData && roomData.players[playerId]) {
     delete roomData.players[playerId];
     localRoomCache.set(normalizedCode, roomData);
-    console.log("✅ Player left room:", normalizedCode);
   }
 
-  // Also try Gun (best effort)
-  try {
-    gun.get(`room:${normalizedCode}`).put({ data: JSON.stringify(roomData) });
-  } catch (error) {
-    // Ignore
-  }
+  // Remove player from Gun.js
+  gun.get("rooms").get(normalizedCode).get("players").get(playerId).put(null); // Set to null to remove
 };
 
 /**
@@ -335,19 +306,14 @@ export const subscribeToRoom = (
   const normalizedCode = roomCode.toUpperCase();
   const roomRef = gun.get("rooms").get(normalizedCode);
   let lastUpdate = 0;
+  const listeners: any[] = [];
 
-  console.log("👂 Subscribing to room updates:", normalizedCode);
-
-  // Listen to Gun updates
-  const listener = roomRef.on(() => {
-    // Debounce updates (Gun can fire rapidly)
+  // Helper to build and send room update
+  const buildRoomUpdate = () => {
     const now = Date.now();
-    if (now - lastUpdate < 500) return;
+    if (now - lastUpdate < 300) return; // Reduced debounce for faster updates
     lastUpdate = now;
 
-    console.log("📡 Room update detected from Gun");
-
-    // Fetch latest room data
     roomRef.get("id").once((id: any) => {
       if (!id) return;
 
@@ -358,23 +324,36 @@ export const subscribeToRoom = (
               roomRef.get("isLocked").once((isLocked: any) => {
                 roomRef.get("players").once((playersData: any) => {
                   const players: RoomPlayer[] = [];
+                  const seenPlayerIds = new Set<string>();
 
                   if (playersData) {
                     for (const pId in playersData) {
-                      // Skip Gun's metadata (stored in '_' key)
                       if (pId === "_") continue;
 
                       const playerData = playersData[pId];
+
+                      // Skip null/undefined (happens when player leaves)
+                      if (playerData === null || playerData === undefined) {
+                        continue;
+                      }
+
                       if (playerData) {
                         try {
-                          // Handle both object and string formats
                           const player =
                             typeof playerData === "string"
                               ? JSON.parse(playerData)
                               : playerData;
 
-                          // Validate it's a proper RoomPlayer object
                           if (player && player.id && player.name) {
+                            if (seenPlayerIds.has(player.id)) {
+                              console.warn(
+                                "⚠️ Duplicate player detected, skipping:",
+                                player.name,
+                                player.id
+                              );
+                              continue;
+                            }
+                            seenPlayerIds.add(player.id);
                             players.push(player);
                           } else {
                             console.warn(
@@ -383,7 +362,6 @@ export const subscribeToRoom = (
                             );
                           }
                         } catch (e) {
-                          // Skip invalid player data
                           console.warn("⚠️ Failed to parse player data:", e);
                         }
                       }
@@ -404,21 +382,84 @@ export const subscribeToRoom = (
                     ),
                   };
 
-                  // Update local cache
-                  localRoomCache.set(normalizedCode, roomData);
+                  roomRef.get("matches").once((matchesJson: any) => {
+                    roomRef.get("commonMatchId").once((commonMatchId: any) => {
+                      roomRef
+                        .get("playerAssignments")
+                        .once((assignmentsJson: any) => {
+                          roomRef
+                            .get("currentStep")
+                            .once((currentStep: any) => {
+                              roomRef
+                                .get("gameStarted")
+                                .once((gameStarted: any) => {
+                                  roomRef
+                                    .get("playerDrinks")
+                                    .once((playerDrinksJson: any) => {
+                                      if (matchesJson) {
+                                        roomData.matches = matchesJson;
+                                      }
+                                      if (commonMatchId) {
+                                        roomData.commonMatchId =
+                                          commonMatchId === ""
+                                            ? null
+                                            : commonMatchId;
+                                      }
+                                      if (assignmentsJson) {
+                                        roomData.playerAssignments =
+                                          assignmentsJson;
+                                      }
+                                      if (
+                                        currentStep !== undefined &&
+                                        currentStep !== null
+                                      ) {
+                                        roomData.currentStep = currentStep;
+                                      }
+                                      if (gameStarted) {
+                                        roomData.gameStarted = gameStarted;
+                                      }
+                                      if (playerDrinksJson) {
+                                        roomData.playerDrinks =
+                                          playerDrinksJson;
+                                      }
 
-                  const room: GameRoom = {
-                    id,
-                    code: normalizedCode,
-                    hostId,
-                    hostName: hostName || "Host",
-                    players,
-                    createdAt: createdAt || Date.now(),
-                    maxPlayers: maxPlayers || 10,
-                    isLocked: isLocked || false,
-                  };
+                                      localRoomCache.set(
+                                        normalizedCode,
+                                        roomData
+                                      );
 
-                  callback(room);
+                                      const room: GameRoom = {
+                                        id,
+                                        code: normalizedCode,
+                                        hostId,
+                                        hostName: hostName || "Host",
+                                        players,
+                                        createdAt: createdAt || Date.now(),
+                                        maxPlayers: maxPlayers || 10,
+                                        isLocked: isLocked || false,
+                                        matches: matchesJson,
+                                        commonMatchId:
+                                          commonMatchId === ""
+                                            ? null
+                                            : commonMatchId,
+                                        playerAssignments: assignmentsJson,
+                                        currentStep:
+                                          currentStep !== undefined &&
+                                          currentStep !== null
+                                            ? currentStep
+                                            : undefined,
+                                        gameStarted: gameStarted || undefined,
+                                        playerDrinks:
+                                          playerDrinksJson || undefined,
+                                      };
+
+                                      callback(room);
+                                    });
+                                });
+                            });
+                        });
+                    });
+                  });
                 });
               });
             });
@@ -426,12 +467,36 @@ export const subscribeToRoom = (
         });
       });
     });
-  });
+  };
+
+  // Listen to room-level changes
+  const roomListener = roomRef.on(buildRoomUpdate);
+  listeners.push(roomListener);
+
+  // ALSO listen specifically to player changes using .map()
+  const playersListener = roomRef
+    .get("players")
+    .map()
+    .on((playerData: any, playerId: string) => {
+      // Rebuild room when any player changes (including removals)
+      buildRoomUpdate();
+    });
+  listeners.push(playersListener);
+
+  // Listen specifically to playerDrinks changes
+  const playerDrinksListener = roomRef
+    .get("playerDrinks")
+    .on((playerDrinksData: any) => {
+      // Rebuild room when player drinks change
+      buildRoomUpdate();
+    });
+  listeners.push(playerDrinksListener);
 
   // Return cleanup function
   return () => {
-    console.log("🔇 Unsubscribing from room updates");
-    if (listener) listener.off();
+    listeners.forEach((listener) => {
+      if (listener && listener.off) listener.off();
+    });
   };
 };
 
@@ -445,7 +510,6 @@ export const lockRoom = (roomCode: string, isLocked: boolean): void => {
   if (roomData) {
     roomData.isLocked = isLocked;
     localRoomCache.set(normalizedCode, roomData);
-    console.log(`✅ Room ${isLocked ? "locked" : "unlocked"}:`, normalizedCode);
   }
 };
 
@@ -459,6 +523,139 @@ export const kickPlayer = (roomCode: string, playerId: string): void => {
   if (roomData && roomData.players[playerId]) {
     delete roomData.players[playerId];
     localRoomCache.set(normalizedCode, roomData);
-    console.log("✅ Player kicked from room:", playerId);
+  }
+};
+
+/**
+ * Sync matches to room (any player can update)
+ */
+export const syncMatchesToRoom = (roomCode: string, matches: any[]): void => {
+  const normalizedCode = roomCode.toUpperCase();
+
+  const matchesJson = JSON.stringify(matches);
+
+  // Update Gun
+  gun.get("rooms").get(normalizedCode).get("matches").put(matchesJson);
+
+  // Update local cache
+  const roomData = localRoomCache.get(normalizedCode);
+  if (roomData) {
+    roomData.matches = matchesJson;
+    localRoomCache.set(normalizedCode, roomData);
+  }
+};
+
+/**
+ * Sync common match ID to room (host only)
+ */
+export const syncCommonMatchToRoom = (
+  roomCode: string,
+  commonMatchId: string | null
+): void => {
+  const normalizedCode = roomCode.toUpperCase();
+
+  // Update Gun (use empty string for null since Gun doesn't handle null well)
+  gun
+    .get("rooms")
+    .get(normalizedCode)
+    .get("commonMatchId")
+    .put(commonMatchId || "");
+
+  // Update local cache
+  const roomData = localRoomCache.get(normalizedCode);
+  if (roomData) {
+    roomData.commonMatchId = commonMatchId;
+    localRoomCache.set(normalizedCode, roomData);
+  }
+};
+
+/**
+ * Sync player assignments to room (any player can update)
+ */
+export const syncAssignmentsToRoom = (
+  roomCode: string,
+  assignments: { [playerId: string]: string[] }
+): void => {
+  const normalizedCode = roomCode.toUpperCase();
+
+  const assignmentsJson = JSON.stringify(assignments);
+
+  // Update Gun
+  gun
+    .get("rooms")
+    .get(normalizedCode)
+    .get("playerAssignments")
+    .put(assignmentsJson);
+
+  // Update local cache
+  const roomData = localRoomCache.get(normalizedCode);
+  if (roomData) {
+    roomData.playerAssignments = assignmentsJson;
+    localRoomCache.set(normalizedCode, roomData);
+  }
+};
+
+/**
+ * Sync current wizard step to room (host only)
+ */
+export const syncCurrentStepToRoom = (
+  roomCode: string,
+  currentStep: number
+): void => {
+  const normalizedCode = roomCode.toUpperCase();
+
+  // Update Gun
+  gun.get("rooms").get(normalizedCode).get("currentStep").put(currentStep);
+
+  // Update local cache
+  const roomData = localRoomCache.get(normalizedCode);
+  if (roomData) {
+    roomData.currentStep = currentStep;
+    localRoomCache.set(normalizedCode, roomData);
+  }
+};
+
+/**
+ * Sync game started flag to room (host only)
+ * This triggers navigation to gameProgress for all players
+ */
+export const syncGameStartedToRoom = (roomCode: string): void => {
+  const normalizedCode = roomCode.toUpperCase();
+
+  // Update Gun
+  gun.get("rooms").get(normalizedCode).get("gameStarted").put(true);
+
+  // Update local cache
+  const roomData = localRoomCache.get(normalizedCode);
+  if (roomData) {
+    roomData.gameStarted = true;
+    localRoomCache.set(normalizedCode, roomData);
+  }
+};
+
+/**
+ * Sync player drink counts to room during gameplay
+ * All players can update their own drink counts
+ */
+export const syncPlayerDrinksToRoom = (
+  roomCode: string,
+  playerDrinks: { [playerId: string]: number }
+): void => {
+  const normalizedCode = roomCode.toUpperCase();
+
+  const playerDrinksJson = JSON.stringify(playerDrinks);
+
+  // Update Gun
+  gun
+    .get("rooms")
+    .get(normalizedCode)
+    .get("playerDrinks")
+    .put(playerDrinksJson);
+
+  // Update local cache
+  const roomData = localRoomCache.get(normalizedCode);
+  if (roomData) {
+    roomData.playerDrinks = playerDrinksJson;
+    localRoomCache.set(normalizedCode, roomData);
   }
 };

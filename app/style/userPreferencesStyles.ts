@@ -88,6 +88,12 @@ export const createUserPreferencesStyles = (
     sectionTitle: {
       ...baseSectionTitle,
     },
+    sectionDescription: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 12,
+      paddingLeft: 4,
+    },
     card: {
       ...baseCard,
     },
@@ -157,6 +163,71 @@ export const createUserPreferencesStyles = (
     onboardingButtonText: {
       ...baseButtonText,
       marginLeft: 8,
+    },
+    settingCard: {
+      ...baseCard,
+      marginBottom: 12,
+    },
+    settingRow: {
+      ...baseRow,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+    },
+    settingIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 12,
+    },
+    settingContent: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    settingLabel: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginBottom: 4,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    settingValue: {
+      fontSize: 16,
+      color: colors.textPrimary,
+      fontWeight: "500",
+    },
+    settingInput: {
+      fontSize: 16,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      marginBottom: 12,
+    },
+    buttonRow: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    button: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cancelButton: {
+      backgroundColor: colors.backgroundSubtle,
+    },
+    saveButton: {
+      backgroundColor: colors.primary,
+    },
+    buttonText: {
+      fontSize: 14,
+      fontWeight: "600",
     },
   });
 

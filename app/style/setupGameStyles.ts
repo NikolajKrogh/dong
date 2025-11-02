@@ -1427,6 +1427,24 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginBottom: 10,
       textAlign: "right",
     },
+    // Room Code Badge Styles - Compact inline design
+    roomCodeBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.primaryLight,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 20,
+      gap: 6,
+      borderWidth: 1,
+      borderColor: colors.primary + "30", // 30% opacity
+    },
+    roomCodeBadgeText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.primary,
+      letterSpacing: 1.5,
+    },
     playerEmptyListContainer: {
       alignItems: "center",
       justifyContent: "center",

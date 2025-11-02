@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import { View, Text, TouchableOpacity, FlatList, Animated } from "react-native";
-import { Match, Player } from "../../store/store";
+import { Match, Player, useGameStore } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
 import { useColors } from "../../app/style/theme";
+import { syncPlayerDrinksToRoom } from "../../utils/roomManager";
 
 /** Props for PlayersList. @interface */
 interface PlayersListProps {
@@ -207,6 +208,8 @@ const PlayersList: React.FC<PlayersListProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
+  const { currentRoom } = useGameStore();
+
   /**
    * Scale pulse animation for provided Animated.Value.
    * @param {Animated.Value} anim Animated value controlling scale.
@@ -283,6 +286,16 @@ const PlayersList: React.FC<PlayersListProps> = ({
       />
     );
   };
+
+  // Sync drinks consumed to Gun when players change
+  useEffect(() => {
+    if (!currentRoom?.code) return;
+    const playerDrinks: { [playerId: string]: number } = {};
+    players.forEach((player) => {
+      playerDrinks[player.id] = player.drinksTaken || 0;
+    });
+    syncPlayerDrinksToRoom(currentRoom.code, playerDrinks);
+  }, [players, currentRoom?.code]);
 
   return (
     <FlatList

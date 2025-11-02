@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
+  Alert,
 } from "react-native";
 import { Player } from "../../store/store";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
@@ -14,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { usePlayerSuggestions } from "../../hooks/usePlayerSuggestions";
 import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
+import { Share } from "react-native";
 
 /**
  * Props for the PlayerList component.
@@ -31,6 +33,10 @@ interface PlayerListProps {
   handleAddPlayerByName?: (name: string) => void;
   /** Callback to remove a player by their ID. */
   handleRemovePlayer: (playerId: string) => void;
+  /** Optional room code for multiplayer games. */
+  roomCode?: string | null;
+  /** Optional callback to leave the room. */
+  handleLeaveRoom?: () => void;
 }
 
 /**
@@ -48,6 +54,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
   handleAddPlayer,
   handleAddPlayerByName,
   handleRemovePlayer,
+  roomCode,
+  handleLeaveRoom,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -191,6 +199,22 @@ const PlayerList: React.FC<PlayerListProps> = ({
   };
 
   /**
+   * Share room code using native share dialog
+   */
+  const handleShareRoomCode = async () => {
+    if (roomCode) {
+      try {
+        await Share.share({
+          message: `Join my DONG game!\n\nRoom Code:\n${roomCode}`,
+          title: "Join DONG Game",
+        });
+      } catch (error) {
+        Alert.alert("Error", "Could not share room code");
+      }
+    }
+  };
+
+  /**
    * Gets a unique gradient for a player item based on its index.
    * @param {number} index The index of the player in the list.
    * @returns {readonly [string, string, ...string[]]} An array of color strings for the gradient.
@@ -226,11 +250,60 @@ const PlayerList: React.FC<PlayerListProps> = ({
         style={{
           flexDirection: "row",
           justifyContent: "space-between",
+          alignItems: "center",
           marginBottom: 15,
         }}
       >
         <Text style={styles.sectionTitle}>Players</Text>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {/* Room Code Share Button - Compact inline design */}
+          {roomCode && (
+            <>
+              <TouchableOpacity
+                style={styles.roomCodeBadge}
+                onPress={handleShareRoomCode}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="share-social-outline"
+                  size={14}
+                  color={colors.primary}
+                />
+                <Text style={styles.roomCodeBadgeText}>{roomCode}</Text>
+              </TouchableOpacity>
+              {/* Leave Room Button */}
+              {handleLeaveRoom && (
+                <TouchableOpacity
+                  onPress={handleLeaveRoom}
+                  style={{
+                    backgroundColor: colors.error,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="exit-outline"
+                    size={14}
+                    color={colors.white}
+                  />
+                  <Text
+                    style={{
+                      color: colors.white,
+                      fontSize: 12,
+                      fontWeight: "600",
+                    }}
+                  >
+                    Leave
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
           <Text style={styles.playerCount}>
             {players.length} {players.length === 1 ? "player" : "players"}
           </Text>

@@ -10,6 +10,9 @@ import {
   createRoom,
   joinRoom,
   leaveRoom,
+  syncMatchesToRoom,
+  syncCommonMatchToRoom,
+  syncAssignmentsToRoom,
 } from "../../utils/roomManager";
 
 describe("Room Manager", () => {
@@ -196,6 +199,72 @@ describe("Room Manager", () => {
       // That player should be the host
       expect(room.players[0].isHost).toBe(true);
       expect(room.players[0].id).toBe("host-single");
+    });
+  });
+
+  describe("Game State Syncing", () => {
+    describe("syncMatchesToRoom", () => {
+      it("should sync matches without throwing", () => {
+        const matches = [
+          {
+            id: "1",
+            homeTeam: "Team A",
+            awayTeam: "Team B",
+            homeGoals: 0,
+            awayGoals: 0,
+          },
+          {
+            id: "2",
+            homeTeam: "Team C",
+            awayTeam: "Team D",
+            homeGoals: 0,
+            awayGoals: 0,
+          },
+        ];
+
+        expect(() => {
+          syncMatchesToRoom("TEST12", matches);
+        }).not.toThrow();
+      });
+
+      it("should handle empty matches array", () => {
+        expect(() => {
+          syncMatchesToRoom("TEST12", []);
+        }).not.toThrow();
+      });
+    });
+
+    describe("syncCommonMatchToRoom", () => {
+      it("should sync common match ID without throwing", () => {
+        expect(() => {
+          syncCommonMatchToRoom("TEST12", "match-123");
+        }).not.toThrow();
+      });
+
+      it("should handle null common match ID", () => {
+        expect(() => {
+          syncCommonMatchToRoom("TEST12", null);
+        }).not.toThrow();
+      });
+    });
+
+    describe("syncAssignmentsToRoom", () => {
+      it("should sync assignments without throwing", () => {
+        const assignments = {
+          "player-1": ["match-1", "match-2"],
+          "player-2": ["match-1", "match-3"],
+        };
+
+        expect(() => {
+          syncAssignmentsToRoom("TEST12", assignments);
+        }).not.toThrow();
+      });
+
+      it("should handle empty assignments", () => {
+        expect(() => {
+          syncAssignmentsToRoom("TEST12", {});
+        }).not.toThrow();
+      });
     });
   });
 });

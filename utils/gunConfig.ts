@@ -41,7 +41,7 @@ const peers = isTestEnv
 // Initialize Gun instance
 const gun = Gun({
   peers,
-  radisk: false, // Disable file storage (not needed for React Native)
+  radisk: false, // Disable file storage (not needed for React Native or Jest)
   localStorage: false, // Disable browser localStorage (not available in RN)
   axe: false, // Disable validation for faster sync
 });
@@ -52,16 +52,11 @@ if (!isTestEnv) {
 
   gun.on("hi", (peer: any) => {
     peerCount++;
-    console.log(`✅ Gun connected to peer #${peerCount}`);
   });
 
   gun.on("bye", (peer: any) => {
     peerCount--;
-    console.log(`❌ Gun disconnected from peer. Remaining: ${peerCount}`);
   });
-
-  console.log("🔫 Gun initialized with peer relay servers");
-  console.log("📡 Connecting to peers...");
 }
 
 /**
@@ -86,7 +81,6 @@ export const testGunConnection = async (): Promise<boolean> => {
       // Read test data back
       gun.get(testKey).once((data: any) => {
         if (data && data.message === testData.message) {
-          console.log("✅ Gun.js connection successful!");
           resolve(true);
         } else {
           console.error("Gun read failed or data mismatch");

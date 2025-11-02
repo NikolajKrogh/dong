@@ -35,6 +35,13 @@ export interface GameRoom {
   createdAt: number;
   maxPlayers?: number;
   isLocked?: boolean;
+  // Game state syncing
+  matches?: string; // JSON stringified Match[]
+  commonMatchId?: string | null;
+  playerAssignments?: string; // JSON stringified { [playerId: string]: string[] }
+  currentStep?: number; // Current wizard step (0-3) - controlled by host
+  gameStarted?: boolean; // Flag to indicate game has started - triggers navigation to gameProgress
+  playerDrinks?: string; // JSON stringified { [playerId: string]: number } - drinks consumed during game
 }
 
 /**
@@ -49,4 +56,11 @@ export interface GunRoomData {
   maxPlayers: number;
   isLocked: boolean;
   players: { [playerId: string]: RoomPlayer };
+  // Game state syncing
+  matches?: string; // JSON stringified Match[]
+  commonMatchId?: string | null;
+  playerAssignments?: string; // JSON stringified { [playerId: string]: string[] }
+  currentStep?: number; // Current wizard step (0-3) - controlled by host
+  gameStarted?: boolean; // Flag to indicate game has started - triggers navigation to gameProgress
+  playerDrinks?: string; // JSON stringified { [playerId: string]: number } - drinks consumed during game
 }

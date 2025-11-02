@@ -11,6 +11,7 @@ import {
   RefreshControl,
   AppState,
   AppStateStatus,
+  Text,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore, Match } from "../store/store";
@@ -19,6 +20,11 @@ import { createGameProgressStyles } from "./style/gameProgressStyles";
 import { useColors } from "./style/theme";
 import Toast from "react-native-toast-message";
 import { useMemo } from "react";
+import {
+  subscribeToRoom,
+  syncMatchesToRoom,
+  syncPlayerDrinksToRoom,
+} from "../utils/roomManager";
 
 // Import components
 import TabNavigation from "../components/gameProgress/TabNavigation";
@@ -60,10 +66,10 @@ const GameProgressScreen = () => {
   const router = useRouter();
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
-  
+
   // Load persisted team logos when matches are available
   usePersistedTeamLogos();
-  
+
   const [activeTab, setActiveTab] = React.useState("matches"); // 'matches' or 'players'
   const [isAlertVisible, setIsAlertVisible] = React.useState(false);
   const [selectedMatchId, setSelectedMatchId] = React.useState<string | null>(
@@ -92,10 +98,15 @@ const GameProgressScreen = () => {
     resetState,
     soundEnabled,
     commonMatchNotificationsEnabled,
+    currentRoom,
+    setCurrentRoom,
   } = useGameStore();
 
   // State to track if the sound is currently playing
   const [isSoundPlaying, setIsSoundPlaying] = React.useState(false);
+
+  // Track if we're syncing from Gun to prevent loops
+  const isSyncingFromGunRef = React.useRef(false);
 
   /**
    * Plays goal sound if enabled, app active, and no other playback in progress.
@@ -189,6 +200,117 @@ const GameProgressScreen = () => {
       stopSound();
     };
   }, [appState]);
+
+  // Subscribe to room updates to sync game state in real-time during gameplay
+  useEffect(() => {
+    if (!currentRoom?.code) return;
+
+    const unsubscribe = subscribeToRoom(currentRoom.code, (updatedRoom) => {
+      if (!updatedRoom) return;
+
+      // Set flag to prevent sync loops
+      isSyncingFromGunRef.current = true;
+
+      // Update the room in the store
+      setCurrentRoom(updatedRoom);
+
+      // Sync matches from room
+      if (updatedRoom.matches) {
+        try {
+          const syncedMatches = JSON.parse(updatedRoom.matches);
+          const currentMatches = useGameStore.getState().matches;
+
+          // Only update if different to avoid unnecessary re-renders
+          if (JSON.stringify(currentMatches) !== updatedRoom.matches) {
+            setMatches(syncedMatches);
+          }
+        } catch (e) {
+          console.error("🎮 [GameProgress] Failed to parse matches:", e);
+        }
+      }
+
+      // Sync player drinks from room
+      let syncedPlayerDrinks: { [playerId: string]: number } = {};
+      if (updatedRoom.playerDrinks) {
+        try {
+          syncedPlayerDrinks = JSON.parse(updatedRoom.playerDrinks);
+        } catch (e) {
+          console.error("🎮 [GameProgress] Failed to parse player drinks:", e);
+        }
+      }
+
+      // Sync players from room
+      const roomPlayers = updatedRoom.players.map((rp) => ({
+        id: rp.id,
+        name: rp.name,
+        drinksTaken: syncedPlayerDrinks[rp.id] || 0, // Use synced drink count
+      }));
+
+      const currentPlayers = useGameStore.getState().players;
+      const playerIdsInRoom = new Set(roomPlayers.map((p) => p.id));
+
+      // Find removed players (in game but not in room anymore)
+      const removedPlayers = currentPlayers.filter(
+        (cp) => !playerIdsInRoom.has(cp.id)
+      );
+
+      // Merge room players with synced drink counts
+      const mergedPlayers = roomPlayers.map((rp) => {
+        return rp; // Use drink count from sync
+      });
+
+      // Check if drink counts have changed
+      const drinksChanged = mergedPlayers.some((mp) => {
+        const currentPlayer = currentPlayers.find((cp) => cp.id === mp.id);
+        return !currentPlayer || currentPlayer.drinksTaken !== mp.drinksTaken;
+      });
+
+      // Only update if there are changes
+      if (
+        removedPlayers.length > 0 ||
+        mergedPlayers.length !== currentPlayers.length ||
+        drinksChanged
+      ) {
+        setPlayers(mergedPlayers);
+      }
+
+      // Clear flag after sync is complete
+      setTimeout(() => {
+        isSyncingFromGunRef.current = false;
+      }, 100);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [currentRoom?.code, setCurrentRoom, setMatches, setPlayers]);
+
+  // Sync matches to room when they change (but not when syncing FROM room)
+  useEffect(() => {
+    if (
+      !currentRoom?.code ||
+      isSyncingFromGunRef.current ||
+      matches.length === 0
+    ) {
+      return;
+    }
+
+    syncMatchesToRoom(currentRoom.code, matches);
+  }, [currentRoom?.code, matches]);
+
+  // Sync player drinks to room when they change (but not when syncing FROM room)
+  useEffect(() => {
+    if (!currentRoom?.code || isSyncingFromGunRef.current) {
+      return;
+    }
+
+    // Build drinks object from players
+    const playerDrinks: { [playerId: string]: number } = {};
+    players.forEach((player) => {
+      playerDrinks[player.id] = player.drinksTaken || 0;
+    });
+    syncPlayerDrinksToRoom(currentRoom.code, playerDrinks);
+  }, [currentRoom?.code, players]);
 
   /** Show end-game confirmation modal. */
   const handleEndGame = () => {
@@ -634,6 +756,24 @@ const GameProgressScreen = () => {
       setRefreshing(false);
     }
   }, [fetchCurrentScores]);
+
+  // If we're in a room and matches haven't synced yet, show loading
+  if (currentRoom && matches.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "center", alignItems: "center" },
+          ]}
+        >
+          <Text style={{ color: colors.textPrimary, fontSize: 18 }}>
+            Loading game data...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
