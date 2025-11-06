@@ -32,6 +32,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   refreshing,
   lastUpdated,
   isPolling,
+  roomCode,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(
@@ -203,6 +204,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
               refreshing={refreshing}
               lastUpdated={lastUpdated}
               isPolling={isPolling}
+              roomCode={roomCode}
             />
           }
         />

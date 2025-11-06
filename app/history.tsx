@@ -2,36 +2,26 @@
  * @file history.tsx
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
-  Dimensions,
   ScrollView,
   ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useGameStore } from "../store/store";
 import { createHistoryStyles } from "./style/historyStyles";
-import { GameSession, PlayerStat } from "../components/history/historyTypes";
 import GameHistoryItem from "../components/history/GameHistoryItem";
 import GameDetailsModal from "../components/history/GameDetailsModal";
 import PlayerStatsList from "../components/history/PlayerStatsList";
 import OverallStats from "../components/history/OverallStats";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  calculateLifetimePlayerStats,
-  calculateTotalDrinks,
-  calculateTotalGoals,
-} from "../components/history/historyUtils";
 import { useColors } from "./style/theme";
-import SortHistoryModal, {
-  HistorySortField,
-  SortDirection,
-} from "../components/history/SortHistoryModal";
+import SortHistoryModal from "../components/history/SortHistoryModal";
+import useHistoryScreenLogic from "../hooks/useHistoryScreenLogic";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];
@@ -55,71 +45,27 @@ const TABS = ["Games", "Players", "Stats"];
  */
 const HistoryScreen = () => {
   const navigation = useNavigation();
-  const { history } = useGameStore();
-  const [selectedGame, setSelectedGame] = useState<GameSession | null>(null);
-  const [isDetailVisible, setIsDetailVisible] = useState(false);
-  const [playerStats, setPlayerStats] = useState<PlayerStat[]>([]);
-  const [activeTabIndex, setActiveTabIndex] = useState<number>(0);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Sorting state
-  const [sortField, setSortField] = useState<HistorySortField>("date");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [sortModalVisible, setSortModalVisible] = useState(false);
-
-  // Sort handler
-  const handleSortChange = (field: HistorySortField) => {
-    if (field === sortField) {
-      // Toggle direction if same field
-      setSortDirection(sortDirection === "desc" ? "asc" : "desc");
-    } else {
-      // New field, default to descending for all fields since we want highest values first
-      setSortField(field);
-      setSortDirection("desc");
-    }
-    setSortModalVisible(false);
-  };
-
-  // Remove gesture/animation related state and hooks
-  // const translateX = useSharedValue(0);
-
-  /** Recompute lifetime player statistics when history changes. */
-  useEffect(() => {
-    if (history.length > 0) {
-      const stats = calculateLifetimePlayerStats(history);
-      setPlayerStats(stats);
-    } else {
-      setPlayerStats([]);
-    }
-  }, [history]);
-
-  /**
-   * Switch the active tab.
-   * @param {number} tabIndex Index of the tab to activate (0 = Games, 1 = Players, 2 = Stats).
-   */
-  const switchTab = (tabIndex: number) => {
-    setActiveTabIndex(tabIndex);
-  };
-
-  /**
-   * Open the details modal for a selected game.
-   * @param {GameSession} game The game session whose details should be shown.
-   */
-  const viewGameDetails = (game: GameSession) => {
-    if (!game) {
-      console.warn("Attempted to open details for null game");
-      return;
-    }
-    setSelectedGame(game);
-    setIsDetailVisible(true);
-  };
-
-  /** Close the game details modal and clear the current selection. */
-  const closeDetails = () => {
-    setIsDetailVisible(false);
-    setSelectedGame(null); // Also clear the selected game when closing
-  };
+  const {
+    history,
+    playerStats,
+    sortedHistory,
+    selectedGame,
+    isDetailVisible,
+    activeTabIndex,
+    sortField,
+    sortDirection,
+    sortModalVisible,
+    hasGames,
+    hasPlayers,
+    loading,
+    error,
+    switchTab,
+    viewGameDetails,
+    closeDetails,
+    handleSortChange,
+    openSortModal,
+    closeSortModal,
+  } = useHistoryScreenLogic();
 
   const colors = useColors();
   const styles = useMemo(() => createHistoryStyles(colors), [colors]);
@@ -141,10 +87,6 @@ const HistoryScreen = () => {
     );
   }
 
-  // Determine if we have data to show
-  const hasGames = history.length > 0;
-  const hasPlayers = playerStats.length > 0;
-
   // --- Empty State Rendering ---
   if (!hasGames && !loading) {
     return (
@@ -157,7 +99,7 @@ const HistoryScreen = () => {
             <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Game History</Text>
-          <View style={styles.rightPlaceholder} />
+          <View />
         </View>
         <View style={styles.emptyStateContainer}>
           <Ionicons
@@ -175,36 +117,6 @@ const HistoryScreen = () => {
   }
 
   // Memoized sorted history
-  const sortedHistory = useMemo(() => {
-    return [...history].sort((a, b) => {
-      let comparison: number;
-
-      switch (sortField) {
-        case "date":
-          comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
-          break;
-        case "players":
-          comparison = b.players.length - a.players.length;
-          break;
-        case "drinks":
-          comparison =
-            calculateTotalDrinks(b.players) - calculateTotalDrinks(a.players);
-          break;
-        case "goals":
-          comparison =
-            calculateTotalGoals(b.matches) - calculateTotalGoals(a.matches);
-          break;
-        case "matches":
-          comparison = b.matches.length - a.matches.length;
-          break;
-        default:
-          comparison = 0;
-      }
-
-      return sortDirection === "desc" ? comparison : -comparison;
-    });
-  }, [history, sortField, sortDirection]);
-
   // --- Main Content Rendering ---
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -220,7 +132,7 @@ const HistoryScreen = () => {
         {activeTabIndex === 0 && (
           <TouchableOpacity
             style={styles.headerSortButton}
-            onPress={() => setSortModalVisible(true)}
+            onPress={openSortModal}
           >
             <Ionicons
               name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
@@ -238,7 +150,7 @@ const HistoryScreen = () => {
         visible={sortModalVisible}
         sortField={sortField}
         sortDirection={sortDirection}
-        onClose={() => setSortModalVisible(false)}
+        onClose={closeSortModal}
         onSortChange={handleSortChange}
       />
 

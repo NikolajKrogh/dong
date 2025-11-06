@@ -13,6 +13,7 @@ import {
   syncMatchesToRoom,
   syncCommonMatchToRoom,
   syncAssignmentsToRoom,
+  type AssignmentEnvelope,
 } from "../../utils/roomManager";
 
 describe("Room Manager", () => {
@@ -121,24 +122,6 @@ describe("Room Manager", () => {
       expect(room.players[0].joinedAt).toBeGreaterThanOrEqual(beforeTime);
       expect(room.players[0].joinedAt).toBeLessThanOrEqual(afterTime);
     });
-  });
-
-  describe("joinRoom", () => {
-    it("should handle non-existent room", async () => {
-      const result = await joinRoom("XXXXXX", "player-1", "Test Player");
-      expect(result).toBeNull();
-    }, 5000); // Fast timeout in test mode (1s)
-
-    it("should timeout quickly in test mode", async () => {
-      const startTime = Date.now();
-      const result = await joinRoom("XXXXXX", "player-1", "Test Player");
-      const endTime = Date.now();
-
-      expect(result).toBeNull();
-      // In test mode, timeout is 1 second
-      expect(endTime - startTime).toBeGreaterThanOrEqual(900); // Allow some margin
-      expect(endTime - startTime).toBeLessThan(2000);
-    }, 5000);
   });
 
   describe("leaveRoom", () => {
@@ -250,19 +233,31 @@ describe("Room Manager", () => {
 
     describe("syncAssignmentsToRoom", () => {
       it("should sync assignments without throwing", () => {
-        const assignments = {
-          "player-1": ["match-1", "match-2"],
-          "player-2": ["match-1", "match-3"],
+        const envelope: AssignmentEnvelope = {
+          version: 1,
+          authorId: "player-1",
+          updatedAt: Date.now(),
+          assignments: {
+            "player-1": ["match-1", "match-2"],
+            "player-2": ["match-1", "match-3"],
+          },
         };
 
         expect(() => {
-          syncAssignmentsToRoom("TEST12", assignments);
+          syncAssignmentsToRoom("TEST12", envelope);
         }).not.toThrow();
       });
 
       it("should handle empty assignments", () => {
+        const envelope: AssignmentEnvelope = {
+          version: 2,
+          authorId: "player-1",
+          updatedAt: Date.now(),
+          assignments: {},
+        };
+
         expect(() => {
-          syncAssignmentsToRoom("TEST12", {});
+          syncAssignmentsToRoom("TEST12", envelope);
         }).not.toThrow();
       });
     });

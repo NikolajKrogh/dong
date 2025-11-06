@@ -36,12 +36,14 @@ export interface GameRoom {
   maxPlayers?: number;
   isLocked?: boolean;
   // Game state syncing
-  matches?: string; // JSON stringified Match[]
+  matches?: string; // JSON stringified MatchesEnvelope
   commonMatchId?: string | null;
   playerAssignments?: string; // JSON stringified { [playerId: string]: string[] }
   currentStep?: number; // Current wizard step (0-3) - controlled by host
   gameStarted?: boolean; // Flag to indicate game has started - triggers navigation to gameProgress
-  playerDrinks?: string; // JSON stringified { [playerId: string]: number } - drinks consumed during game
+  playerDrinks?: string; // JSON stringified PlayerDrinksEnvelope - drinks consumed during game
+  matchesPerPlayer?: number;
+  setupSnapshot?: string; // JSON stringified setup snapshot managed by the host
 }
 
 /**
@@ -57,10 +59,12 @@ export interface GunRoomData {
   isLocked: boolean;
   players: { [playerId: string]: RoomPlayer };
   // Game state syncing
-  matches?: string; // JSON stringified Match[]
+  matches?: string; // JSON stringified MatchesEnvelope
   commonMatchId?: string | null;
   playerAssignments?: string; // JSON stringified { [playerId: string]: string[] }
   currentStep?: number; // Current wizard step (0-3) - controlled by host
   gameStarted?: boolean; // Flag to indicate game has started - triggers navigation to gameProgress
-  playerDrinks?: string; // JSON stringified { [playerId: string]: number } - drinks consumed during game
+  playerDrinks?: string; // JSON stringified PlayerDrinksEnvelope - drinks consumed during game
+  matchesPerPlayer?: number;
+  setupSnapshot?: string; // JSON stringified setup snapshot managed by the host
 }

@@ -1358,6 +1358,35 @@ export function createGameProgressStyles(colors: Colors) {
       fontSize: 12,
       color: colors.textMuted,
     },
+    roomCodeToggle: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      marginTop: 8,
+    },
+    roomCodeToggleText: {
+      fontSize: 12,
+      color: colors.textMuted,
+      marginLeft: 4,
+    },
+    roomCodeContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      backgroundColor: colors.primaryLight,
+      borderRadius: 8,
+      marginTop: 4,
+    },
+    roomCodeText: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: "600",
+      letterSpacing: 1,
+    },
   });
 }
 

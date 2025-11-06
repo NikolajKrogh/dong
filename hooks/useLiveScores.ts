@@ -72,6 +72,23 @@ export function useLiveScores(
   const previousScoresRef = useRef<Record<string, number>>({});
   const configuredLeagues = useGameStore((state) => state.configuredLeagues);
 
+  // Track latest inputs with refs so callbacks stay stable.
+  const matchesRef = useRef(matches);
+  const updateCallbackRef = useRef(updateCallback);
+  const configuredLeaguesRef = useRef(configuredLeagues);
+
+  useEffect(() => {
+    matchesRef.current = matches;
+  }, [matches]);
+
+  useEffect(() => {
+    updateCallbackRef.current = updateCallback;
+  }, [updateCallback]);
+
+  useEffect(() => {
+    configuredLeaguesRef.current = configuredLeagues;
+  }, [configuredLeagues]);
+
   /**
    * Fetch and process current scores for tracked matches.
    * @description Performs a connectivity check, queries each configured league, derives match state,
@@ -97,11 +114,12 @@ export function useLiveScores(
       const dateParam = formatDateForAPI(today.toISOString().split("T")[0]);
 
       // Create a map of match IDs to track which matches we're monitoring
-      const matchIdsToTrack = new Set(matches.map((m) => m.id));
+      const matchesSnapshot = matchesRef.current;
+      const matchIdsToTrack = new Set(matchesSnapshot.map((m) => m.id));
       if (matchIdsToTrack.size === 0) return; // Don't fetch if no matches are tracked
 
       // Use the user-configured leagues
-      const leagueEndpoints = configuredLeagues;
+      const leagueEndpoints = configuredLeaguesRef.current;
 
       // Fetch all leagues in parallel
       const responses = await Promise.all(
@@ -141,7 +159,7 @@ export function useLiveScores(
           const { id, homeScore, awayScore } = processedMatch;
 
           // Find the corresponding match in our app's state
-          const appMatch = matches.find((m) => m.id === id);
+          const appMatch = matchesSnapshot.find((m) => m.id === id);
           if (!appMatch) continue; // Should not happen if ID is tracked, but good check
 
           // Calculate total goals from the API data
@@ -180,16 +198,24 @@ export function useLiveScores(
         matchIdsWithNewGoals.forEach((matchId) => {
           // Find the latest processed data and the app's current state for this match
           const latestMatchData = updatedMatches.find((m) => m.id === matchId);
-          const currentAppMatch = matches.find((m) => m.id === matchId);
+          const currentAppMatch = matchesSnapshot.find((m) => m.id === matchId);
 
           if (latestMatchData && currentAppMatch) {
             // Check if home score increased compared to app state
             if (latestMatchData.homeScore > (currentAppMatch.homeGoals || 0)) {
-              updateCallback(matchId, "home", latestMatchData.homeScore);
+              updateCallbackRef.current(
+                matchId,
+                "home",
+                latestMatchData.homeScore
+              );
             }
             // Check if away score increased compared to app state
             if (latestMatchData.awayScore > (currentAppMatch.awayGoals || 0)) {
-              updateCallback(matchId, "away", latestMatchData.awayScore);
+              updateCallbackRef.current(
+                matchId,
+                "away",
+                latestMatchData.awayScore
+              );
             }
           }
         });
@@ -198,14 +224,16 @@ export function useLiveScores(
       console.error("Error fetching or processing scores:", error);
       // Silently fail for the user - we'll try again next polling interval
     }
-  }, [matches, updateCallback, configuredLeagues]);
+  }, []);
 
   /**
    * Start polling if not already active (immediate fetch + interval).
    * @description No effect when already polling.
    */
   const startPolling = useCallback(() => {
-    if (isPolling || pollingIntervalRef.current) return; // Prevent multiple intervals
+    if (pollingIntervalRef.current) {
+      return; // Already polling
+    }
 
     setIsPolling(true);
 
@@ -214,16 +242,18 @@ export function useLiveScores(
 
     // Set up the interval for subsequent fetches
     pollingIntervalRef.current = setInterval(fetchCurrentScores, intervalMs);
-  }, [isPolling, intervalMs, fetchCurrentScores]);
+  }, [fetchCurrentScores, intervalMs]);
 
   /**
    * Stop polling and clear the interval.
    */
   const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
+    if (!pollingIntervalRef.current) {
+      return;
     }
+
+    clearInterval(pollingIntervalRef.current);
+    pollingIntervalRef.current = null;
     setIsPolling(false);
   }, []);
 

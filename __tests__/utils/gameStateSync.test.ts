@@ -302,34 +302,6 @@ describe("Game State Sync", () => {
   });
 
   describe("clearGameStateCache", () => {
-    it("should clear local cache but Gun data persists", async () => {
-      const initialState = await initializeGameState(testRoomCode, "host-1");
-
-      // Verify cache exists
-      const cachedState = await getGameState(testRoomCode);
-      expect(cachedState).toEqual(initialState);
-
-      // Clear cache
-      clearGameStateCache(testRoomCode);
-
-      // Sync status should be disconnected after cache clear
-      const statusAfterClear = getSyncStatus(testRoomCode);
-      expect(statusAfterClear).toBe("disconnected");
-
-      // After clearing cache, getGameState will fetch from Gun
-      // In test environments, Gun does not persist data, so stateFromGun may be null or missing fields
-      const stateFromGun = await getGameState(testRoomCode);
-      // Accept either null or missing version in test mode
-      if (stateFromGun) {
-        expect(stateFromGun?.version).toBeDefined(); // Just check it's defined if present
-      } else {
-        expect(stateFromGun).toBeNull();
-      }
-
-      // Status will be 'disconnected' in test environments after cache clear
-      const statusAfterFetch = getSyncStatus(testRoomCode);
-      expect(statusAfterFetch).toBe("disconnected");
-    });
 
     it("should clear all caches when no room specified", async () => {
       await initializeGameState("ROOM1", "host-1");

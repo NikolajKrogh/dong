@@ -34,6 +34,8 @@ export interface MatchesGridProps {
   lastUpdated: Date | null;
   /** Whether live polling is active. */
   isPolling: boolean;
+  /** Optional room code to display in footer. */
+  roomCode?: string | null;
 }
 
 /**
@@ -100,4 +102,6 @@ export interface LastUpdatedFooterProps {
   lastUpdated: Date | null;
   /** True if automatic polling is active. */
   isPolling: boolean;
+  /** Optional room code to display. */
+  roomCode?: string | null;
 }

@@ -27,8 +27,10 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
   refreshing,
   lastUpdated,
   isPolling,
+  roomCode,
 }) => {
   const colors = useColors();
+  const [showRoomCode, setShowRoomCode] = React.useState(false);
   const styles = React.useMemo(
     () =>
       StyleSheet.create({
@@ -66,6 +68,35 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
           borderRadius: 3,
           backgroundColor: colors.success,
           marginLeft: 4,
+        },
+        roomCodeToggle: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          marginTop: 8,
+        },
+        roomCodeToggleText: {
+          fontSize: 12,
+          color: colors.textMuted,
+          marginLeft: 4,
+        },
+        roomCodeContainer: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingVertical: 8,
+          paddingHorizontal: 12,
+          backgroundColor: colors.primaryLight,
+          borderRadius: 16,
+          marginTop: 4,
+        },
+        roomCodeText: {
+          fontSize: 14,
+          color: colors.primary,
+          fontWeight: "600",
+          letterSpacing: 1,
         },
       }),
     [colors]
@@ -127,6 +158,36 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
         </Text>
         {isPolling && !refreshing && <View style={styles.liveDot} />}
       </TouchableOpacity>
+
+      {roomCode && (
+        <>
+          <TouchableOpacity
+            style={styles.roomCodeToggle}
+            onPress={() => setShowRoomCode(!showRoomCode)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={showRoomCode ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={colors.textMuted}
+            />
+            <Text style={styles.roomCodeToggleText}>
+              {showRoomCode ? "Hide" : "Show"} Room Code
+            </Text>
+          </TouchableOpacity>
+          {showRoomCode && (
+            <View style={styles.roomCodeContainer}>
+              <Ionicons
+                name="people-outline"
+                size={14}
+                color={colors.primary}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.roomCodeText}>{roomCode}</Text>
+            </View>
+          )}
+        </>
+      )}
     </View>
   );
 };

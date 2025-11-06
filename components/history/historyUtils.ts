@@ -37,15 +37,15 @@ export const calculateTotalDrinks = (players: Player[]): number => {
  */
 export const findTopDrinker = (players: Player[]): Player[] => {
   if (players.length === 0) return [];
-  
+
   const sortedPlayers = [...players].sort(
     (a, b) => (b.drinksTaken || 0) - (a.drinksTaken || 0)
   );
-  
+
   const highestDrinks = sortedPlayers[0].drinksTaken || 0;
-  
+
   return sortedPlayers.filter(
-    player => (player.drinksTaken || 0) === highestDrinks
+    (player) => (player.drinksTaken || 0) === highestDrinks
   );
 };
 
@@ -293,15 +293,19 @@ export const getPlayerHeadToHeadStats = (
 
   // Top drinker frequency
   player1Games.forEach((game) => {
-    const topDrinker = findTopDrinker(game.players);
-    if (topDrinker && topDrinker.name === player1Name) {
+    const topDrinkers = findTopDrinker(game.players);
+    if (
+      topDrinkers.some((candidate: Player) => candidate.name === player1Name)
+    ) {
       stats.player1TopDrinkerCount++;
     }
   });
 
   player2Games.forEach((game) => {
-    const topDrinker = findTopDrinker(game.players);
-    if (topDrinker && topDrinker.name === player2Name) {
+    const topDrinkers = findTopDrinker(game.players);
+    if (
+      topDrinkers.some((candidate: Player) => candidate.name === player2Name)
+    ) {
       stats.player2TopDrinkerCount++;
     }
   });
