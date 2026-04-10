@@ -44,3 +44,5 @@ android
 
 #config
 /app.config.ts
+
+.vscode/
