@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo } from "react";
-import { View, Text, TouchableOpacity, FlatList, Animated } from "react-native";
+import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
+
 import { Match, Player } from "../../store/store";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../AppIcon";
 import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
 import { useColors } from "../../app/style/theme";
 
@@ -37,8 +44,6 @@ interface PlayerCardProps {
   handleDrinkIncrement: (playerId: string) => void;
   /** Decrement handler. */
   handleDrinkDecrement: (playerId: string) => void;
-  /** Animates stat value change. */
-  animateValue: (anim: Animated.Value) => void;
 }
 
 /**
@@ -56,29 +61,41 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     percentComplete,
     handleDrinkIncrement,
     handleDrinkDecrement,
-    animateValue,
   }) => {
     const colors = useColors();
     const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
-    // Animation refs
-    const animValue = React.useRef(new Animated.Value(1)).current;
-    const progressAnim = React.useRef(new Animated.Value(0)).current;
-    const badgeAnim = React.useRef(new Animated.Value(1)).current;
+    const valueScale = useSharedValue(1);
+    const progressPercent = useSharedValue(0);
+    const badgeScale = useSharedValue(1);
     const prevOwedRef = React.useRef(owed);
+    const valueScaleStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ scale: valueScale.value }],
+      };
+    });
+    const progressStyle = useAnimatedStyle(() => {
+      return {
+        width: `${progressPercent.value}%`,
+      };
+    });
+    const badgeStyle = useAnimatedStyle(() => {
+      return {
+        transform: [{ scale: badgeScale.value }],
+      };
+    });
 
     /** Trigger consumed value scale animation. */
     const handleValueAnimation = () => {
-      animateValue(animValue);
+      valueScale.value = withSequence(
+        withTiming(1.2, { duration: 150 }),
+        withTiming(1, { duration: 150 }),
+      );
     };
 
     // Update progress animation when percentComplete changes
     useEffect(() => {
-      Animated.timing(progressAnim, {
-        toValue: percentComplete,
-        duration: 600,
-        useNativeDriver: false, // width animation not supported by native driver
-      }).start();
-    }, [percentComplete]);
+      progressPercent.value = withTiming(percentComplete, { duration: 600 });
+    }, [percentComplete, progressPercent]);
 
     // Animate badge when status changes (e.g., from owed to completed)
     useEffect(() => {
@@ -87,21 +104,20 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
         ((prevOwedRef.current > 0 && owed === 0) || // Was owing, now completed
           (prevOwedRef.current === 0 && owed > 0)) // Was completed, now owing
       ) {
-        Animated.sequence([
-          Animated.timing(badgeAnim, {
-            toValue: 1.2,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-          Animated.timing(badgeAnim, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true,
-          }),
-        ]).start();
+        badgeScale.value = withSequence(
+          withTiming(1.2, { duration: 200 }),
+          withTiming(1, { duration: 200 }),
+        );
       }
       prevOwedRef.current = owed; // Update the ref for the next comparison
-    }, [owed]);
+    }, [owed, badgeScale]);
+
+    let progressFillVariant = styles.progressDanger;
+    if (owed === 0) {
+      progressFillVariant = styles.progressCompleted;
+    } else if (owed <= 1) {
+      progressFillVariant = styles.progressWarning;
+    }
 
     return (
       <View style={styles.playerCard}>
@@ -112,7 +128,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
             style={[
               styles.statusBadge,
               owed === 0 ? styles.completedBadge : styles.pendingBadge,
-              { transform: [{ scale: badgeAnim }] },
+              badgeStyle,
             ]}
           >
             <Text
@@ -130,20 +146,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
         <View style={styles.progressContainer}>
           <View style={styles.progressBackground}>
             <Animated.View
-              style={[
-                styles.progressFill,
-                owed === 0
-                  ? styles.progressCompleted
-                  : owed <= 1
-                  ? styles.progressWarning
-                  : styles.progressDanger,
-                {
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ["0%", "100%"],
-                  }),
-                },
-              ]}
+              style={[styles.progressFill, progressFillVariant, progressStyle]}
             />
           </View>
         </View>
@@ -163,15 +166,10 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
                 handleValueAnimation();
               }}
             >
-              <Ionicons name="remove" size={18} color={colors.textLight} />
+              <AppIcon name="remove" size={18} color={colors.textLight} />
             </TouchableOpacity>
 
-            <Animated.View
-              style={[
-                styles.valueContainer,
-                { transform: [{ scale: animValue }] },
-              ]}
-            >
+            <Animated.View style={[styles.valueContainer, valueScaleStyle]}>
               <Text style={styles.controlValue}>{consumed.toFixed(1)}</Text>
               <Text style={styles.controlLabel}>Consumed</Text>
             </Animated.View>
@@ -183,13 +181,13 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
                 handleValueAnimation();
               }}
             >
-              <Ionicons name="add" size={18} color={colors.textLight} />
+              <AppIcon name="add" size={18} color={colors.textLight} />
             </TouchableOpacity>
           </View>
         </View>
       </View>
     );
-  }
+  },
 );
 
 /**
@@ -207,24 +205,6 @@ const PlayersList: React.FC<PlayersListProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
-  /**
-   * Scale pulse animation for provided Animated.Value.
-   * @param {Animated.Value} anim Animated value controlling scale.
-   */
-  const animateValue = (anim: Animated.Value) => {
-    Animated.sequence([
-      Animated.timing(anim, {
-        toValue: 1.2, // Scale up
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(anim, {
-        toValue: 1, // Scale back to normal
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
 
   /**
    * Compute drinks required for a player (common = 1x, assigned = 0.5x).
@@ -279,7 +259,6 @@ const PlayersList: React.FC<PlayersListProps> = ({
         percentComplete={percentComplete}
         handleDrinkIncrement={handleDrinkIncrement}
         handleDrinkDecrement={handleDrinkDecrement}
-        animateValue={animateValue}
       />
     );
   };
@@ -294,5 +273,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
     />
   );
 };
+
+PlayerCard.displayName = "PlayerCard";
 
 export default PlayersList;

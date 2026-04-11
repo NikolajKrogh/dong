@@ -19,7 +19,7 @@ export const formatDateForAPI = (dateString?: string): string => {
     // Log a warning if an invalid format is provided (optional)
     if (dateString) {
       console.warn(
-        `Invalid date format provided to formatDateForAPI: "${dateString}". Defaulting to today.`
+        `Invalid date format provided to formatDateForAPI: "${dateString}". Defaulting to today.`,
       );
     }
     const today = new Date();
@@ -135,7 +135,7 @@ export const convertTimeToMinutes = (timeString: string): number => {
     }
 
     return hours * 60 + minutes;
-  } catch (e) {
+  } catch {
     return -1;
   }
 };

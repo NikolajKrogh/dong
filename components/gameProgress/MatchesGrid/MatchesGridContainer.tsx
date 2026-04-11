@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, FlatList, Dimensions } from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, FlatList, useWindowDimensions } from "react-native";
 import { MatchesGridProps, SortField, SortDirection } from "./types";
 import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../hooks/useLiveScores";
@@ -11,6 +11,8 @@ import SortModal from "./SortModal";
 import MatchGridItem from "./MatchGridItem";
 import MatchListItem from "./MatchListItem";
 import LastUpdatedFooter from "./LastUpdatedFooter";
+
+const EMPTY_LIVE_MATCHES: MatchWithScore[] = [];
 
 /**
  * Main container that manages match rendering (grid or list), sorting, and integration of player assignments & live scores.
@@ -26,7 +28,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   commonMatchId,
   playerAssignments,
   openQuickActions,
-  liveMatches = [],
+  liveMatches = EMPTY_LIVE_MATCHES,
   refreshControl,
   onRefresh,
   refreshing,
@@ -36,7 +38,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   const colors = useColors();
   const styles = React.useMemo(
     () => createGameProgressStyles(colors),
-    [colors]
+    [colors],
   );
   // State to track layout mode
   const [useGridLayout, setUseGridLayout] = useState(false);
@@ -47,8 +49,11 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   const [sortModalVisible, setSortModalVisible] = useState(false);
 
   // Calculate number of columns based on screen width
-  const screenWidth = Dimensions.get("window").width;
-  const numColumns = useGridLayout ? (screenWidth > 600 ? 3 : 2) : 1;
+  const { width: screenWidth } = useWindowDimensions();
+  let numColumns = 1;
+  if (useGridLayout) {
+    numColumns = screenWidth > 600 ? 3 : 2;
+  }
 
   /**
    * Toggles between grid and list layout modes.
@@ -79,16 +84,18 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
    * @description Filters players based on assignment mapping unless the match is the common match (then includes all).
    * Result is sorted by player name for deterministic ordering.
    */
-  const getSortedPlayersForMatch = (match: Match): Player[] => {
-    return players
-      .filter(
-        (player) =>
-          match.id === commonMatchId ||
-          (playerAssignments[player.id] &&
-            playerAssignments[player.id].includes(match.id))
-      )
-      .sort((a, b) => a.name.localeCompare(b.name));
-  };
+  const getSortedPlayersForMatch = useCallback(
+    (match: Match): Player[] => {
+      return players
+        .filter(
+          (player) =>
+            match.id === commonMatchId ||
+            playerAssignments[player.id]?.includes(match.id),
+        )
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
+    [commonMatchId, playerAssignments, players],
+  );
 
   /**
    * Retrieves live score data for a given match ID if available.
@@ -137,8 +144,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
     commonMatchId,
     sortField,
     sortDirection,
-    players,
-    playerAssignments,
+    getSortedPlayersForMatch,
   ]);
 
   const renderItem = ({ item }: { item: Match }) => {

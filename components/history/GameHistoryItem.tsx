@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import AppIcon from "../AppIcon";
 import { GameSession } from "./historyTypes";
 import { createHistoryStyles } from "../../app/style/historyStyles";
 import { useColors } from "../../app/style/theme";
@@ -52,7 +52,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
     >
       {/* Game Header: Icon and Date */}
       <View style={styles.gameHeader}>
-        <Ionicons
+        <AppIcon
           name="calendar-outline"
           size={20}
           color={colors.primary}
@@ -65,7 +65,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
       <View style={styles.gameSummary}>
         {/* Players Stat */}
         <View style={styles.summaryItem}>
-          <Ionicons
+          <AppIcon
             name="people"
             size={20}
             color={colors.primary}
@@ -79,7 +79,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 
         {/* Drinks Stat */}
         <View style={styles.summaryItem}>
-          <Ionicons
+          <AppIcon
             name="beer"
             size={20}
             color={colors.primary}
@@ -91,7 +91,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 
         {/* Goals Stat */}
         <View style={styles.summaryItem}>
-          <Ionicons
+          <AppIcon
             name="football"
             size={20}
             color={colors.primary}
@@ -103,7 +103,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 
         {/* Matches Stat */}
         <View style={styles.summaryItem}>
-          <Ionicons
+          <AppIcon
             name="trophy"
             size={20}
             color={colors.primary}
@@ -116,10 +116,10 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
         </View>
       </View>
 
-            {/* Top Drinker Highlight */}
+      {/* Top Drinker Highlight */}
       {topDrinker.length > 0 && (
         <View style={styles.topDrinkerContainer}>
-          <Ionicons name="flame" size={18} color={colors.warning} />
+          <AppIcon name="flame" size={18} color={colors.warning} />
           <Text style={styles.topDrinkerText} numberOfLines={1}>
             {"Top Drinker" + (topDrinker.length > 1 ? "s" : "") + ": "}
             {topDrinker.map((player, index) => (

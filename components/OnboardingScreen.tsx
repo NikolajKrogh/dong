@@ -1,24 +1,8 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  SafeAreaView,
-  Pressable,
-  StyleSheet,
-  Image,
-} from "react-native";
-import {
-  GestureDetector,
-  Gesture,
-  Directions,
-} from "react-native-gesture-handler";
-import Animated, {
-  FadeIn,
-  FadeOut,
-  SlideInRight,
-  SlideOutLeft,
-} from "react-native-reanimated";
+import { View, Text, Pressable, StyleSheet, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useColors } from "../app/style/theme";
+import { PlatformGestureView } from "../platform";
 
 const onboardingSteps = [
   {
@@ -94,11 +78,7 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
           borderRadius: 10,
           marginHorizontal: 10,
           alignItems: "center",
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 3,
+          boxShadow: `0px 2px 6px ${colors.black}33`,
         },
         buttonText: {
           color: colors.white,
@@ -125,7 +105,7 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
           backgroundColor: colors.border,
         },
       }),
-    [colors]
+    [colors],
   );
   const [screenIndex, setScreenIndex] = useState(0);
   const data = onboardingSteps[screenIndex];
@@ -134,42 +114,31 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     if (screenIndex === onboardingSteps.length - 1) {
       onFinish();
     } else {
-      setScreenIndex(screenIndex + 1);
+      setScreenIndex((currentIndex) => currentIndex + 1);
     }
   };
 
   const onBack = () => {
     if (screenIndex > 0) {
-      setScreenIndex(screenIndex - 1);
+      setScreenIndex((currentIndex) => currentIndex - 1);
     }
   };
 
-  const swipes = Gesture.Simultaneous(
-    Gesture.Fling()
-      .runOnJS(true)
-      .direction(Directions.LEFT)
-      .onEnd(() => {
-        onContinue();
-      }),
-    Gesture.Fling()
-      .runOnJS(true)
-      .direction(Directions.RIGHT)
-      .onEnd(() => {
-        onBack();
-      })
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <GestureDetector gesture={swipes}>
+      <PlatformGestureView
+        kind="onboardingSwipe"
+        onSwipeLeft={onContinue}
+        onSwipeRight={onBack}
+      >
         <View style={styles.content}>
           {data.image && <Image source={data.image} style={styles.logo} />}
-          <Animated.View entering={FadeIn} exiting={FadeOut}>
+          <View>
             <Text style={styles.title}>{data.title}</Text>
-          </Animated.View>
-          <Animated.View entering={SlideInRight} exiting={SlideOutLeft}>
+          </View>
+          <View>
             <Text style={styles.description}>{data.description}</Text>
-          </Animated.View>
+          </View>
           <View style={styles.buttons}>
             <Pressable onPress={onFinish} style={styles.button}>
               <Text style={styles.buttonText}>Skip</Text>
@@ -179,11 +148,11 @@ const OnboardingScreen: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             </Pressable>
           </View>
         </View>
-      </GestureDetector>
+      </PlatformGestureView>
       <View style={styles.progressBarContainer}>
-        {onboardingSteps.map((_, index) => (
+        {onboardingSteps.map((step, index) => (
           <View
-            key={index}
+            key={step.title}
             style={[
               styles.progressDot,
               index === screenIndex ? styles.activeDot : styles.inactiveDot,

@@ -125,9 +125,9 @@ export interface HeadToHeadStats {
   player1AvgWithoutPlayer2: number;
   player2AvgWithPlayer1: number;
   player2AvgWithoutPlayer1: number;
-  timelineData: Array<{
+  timelineData: {
     date: string;
     player1Drinks: number;
     player2Drinks: number;
-  }>;
+  }[];
 }

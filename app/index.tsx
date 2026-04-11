@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,18 +6,26 @@ import {
   Modal,
   Image,
   ScrollView,
-  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
-import { Ionicons } from "@expo/vector-icons";
 import createStyles from "./style/indexStyles";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import LottieView from "lottie-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
+
+import AppIcon from "../components/AppIcon";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { useColors } from "./style/theme";
+import { PlatformAnimation } from "../platform";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -32,41 +40,234 @@ interface GameSession {
   players: Player[];
 }
 
+interface TopDrinkerInfo {
+  name: string;
+  drinks: number;
+}
+
+interface HomeSplashProps {
+  styles: ReturnType<typeof createStyles>;
+  onComplete: () => void;
+}
+
+interface CurrentGameCardProps {
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createStyles>;
+  matchesCount: number;
+  playersCount: number;
+  onContinue: () => void;
+  onCancel: () => void;
+}
+
+interface HistoryStatsCardProps {
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createStyles>;
+  historyLength: number;
+  topDrinkerInfo: TopDrinkerInfo | null;
+  totalDrinks: number;
+  onPress: () => void;
+}
+
+const getTotalDrinks = (gameHistory: GameSession[]) => {
+  return gameHistory.reduce(
+    (sum, game) =>
+      sum +
+      game.players.reduce(
+        (gameSum: number, player: Player) =>
+          gameSum + (player.drinksTaken || 0),
+        0,
+      ),
+    0,
+  );
+};
+
+const getTopDrinker = (gameHistory: GameSession[]): TopDrinkerInfo | null => {
+  const playerDrinks = new Map<string, number>();
+
+  gameHistory.forEach((game) => {
+    game.players.forEach((player) => {
+      const current = playerDrinks.get(player.name) || 0;
+      playerDrinks.set(player.name, current + (player.drinksTaken || 0));
+    });
+  });
+
+  let topPlayer = "";
+  let maxDrinks = 0;
+
+  playerDrinks.forEach((drinks, name) => {
+    if (drinks > maxDrinks) {
+      maxDrinks = drinks;
+      topPlayer = name;
+    }
+  });
+
+  return topPlayer ? { name: topPlayer, drinks: maxDrinks } : null;
+};
+
+const HomeSplash: React.FC<HomeSplashProps> = ({ styles, onComplete }) => {
+  const opacity = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  useEffect(() => {
+    opacity.value = withDelay(
+      3000,
+      withTiming(
+        0,
+        {
+          duration: 1000,
+          easing: Easing.out(Easing.quad),
+        },
+        (finished) => {
+          if (finished) {
+            runOnJS(onComplete)();
+          }
+        },
+      ),
+    );
+  }, [onComplete, opacity]);
+
+  return (
+    <Animated.View style={[styles.splashContainer, animatedStyle]}>
+      <PlatformAnimation
+        kind="splash"
+        source={require("../assets/lottie/dong_logo_animation.json")}
+        autoPlay
+        loop={false}
+        style={styles.splashAnimation}
+        fallback={
+          <Image
+            source={require("../assets/icons/logo_png/dong_logo.png")}
+            style={styles.splashAnimation}
+          />
+        }
+      />
+    </Animated.View>
+  );
+};
+
+const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
+  colors,
+  styles,
+  matchesCount,
+  playersCount,
+  onContinue,
+  onCancel,
+}) => {
+  return (
+    <View style={styles.sessionContainer}>
+      <Text style={styles.sessionTitle}>Current Game in Progress</Text>
+      <View style={styles.sessionInfoRow}>
+        <View style={styles.infoItem}>
+          <AppIcon name="people" size={22} color={colors.primary} />
+          <Text style={styles.infoText}>{playersCount} Players</Text>
+        </View>
+        <View style={styles.infoItem}>
+          <AppIcon name="football" size={22} color={colors.primary} />
+          <Text style={styles.infoText}>{matchesCount} Matches</Text>
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
+        <AppIcon name="play" size={22} color={colors.white} />
+        <Text style={styles.buttonText}>Continue Game</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+        <AppIcon name="close-circle-outline" size={22} color={colors.white} />
+        <Text style={styles.buttonText}>Cancel Game</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
+  colors,
+  styles,
+  historyLength,
+  topDrinkerInfo,
+  totalDrinks,
+  onPress,
+}) => {
+  return (
+    <TouchableOpacity
+      style={styles.statsContainer}
+      onPress={onPress}
+      activeOpacity={0.9}
+    >
+      <View style={styles.statsHeader}>
+        <View style={styles.titleWithIcon}>
+          <Text style={styles.statsTitle}>Game Stats</Text>
+          <AppIcon
+            name="chevron-forward"
+            size={18}
+            color={colors.primary}
+            style={styles.titleChevron}
+          />
+        </View>
+      </View>
+
+      <View style={styles.statsContent}>
+        <View style={styles.statItem}>
+          <View style={styles.iconContainer}>
+            <AppIcon name="calendar" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.statTextContainer}>
+            <Text style={styles.statLabel}>Games Played</Text>
+            <Text style={styles.statValue}>{historyLength}</Text>
+          </View>
+        </View>
+
+        {topDrinkerInfo && (
+          <View style={styles.statItem}>
+            <View style={styles.iconContainer}>
+              <AppIcon name="trophy" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.statTextContainer}>
+              <Text style={styles.statLabel}>Top Drinker</Text>
+              <Text
+                style={styles.statValue}
+              >{`${topDrinkerInfo.name} (${topDrinkerInfo.drinks.toFixed(1)})`}</Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.statItem}>
+          <View style={styles.iconContainer}>
+            <AppIcon name="beer" size={20} color={colors.primary} />
+          </View>
+          <View style={styles.statTextContainer}>
+            <Text style={styles.statLabel}>Total Drinks</Text>
+            <Text style={styles.statValue}>{totalDrinks.toFixed(1)}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 /**
  * HomeScreen component.
  * @description Main landing screen: shows logo, game-in-progress actions,
- * aggregate stats, onboarding on first launch, 
+ * aggregate stats, onboarding on first launch,
  * and splash animation (once per session).
  * @returns {React.ReactElement} Home screen UI.
  */
 const HomeScreen = () => {
   const router = useRouter();
   const colors = useColors();
-  const styles = createStyles(colors);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { players, matches, history, resetState } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
-  // Initialize splash visibility based on if it's already been shown in this session
-  const [isSplashVisible, setIsSplashVisible] = useState(!hasSplashBeenShown); // Splash screen state
-  const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
-  const splashAnimation = useRef<LottieView>(null);
-  const [fadeAnim] = useState(new Animated.Value(1)); // Initialize fade animation
-
-  // Handle splash animation and timing
-  useEffect(() => {
-    if (isSplashVisible) {
-      // Mark that we've shown the splash for this session
+  const [isSplashVisible, setIsSplashVisible] = useState(() => {
+    const shouldShow = !hasSplashBeenShown;
+    if (shouldShow) {
       hasSplashBeenShown = true;
-
-      const timeout = setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }).start(() => setIsSplashVisible(false));
-      }, 3000);
-      return () => clearTimeout(timeout);
     }
-  }, [isSplashVisible]);
+    return shouldShow;
+  });
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
@@ -79,22 +280,43 @@ const HomeScreen = () => {
     checkFirstLaunch();
   }, []);
 
+  const handleCloseSplash = useCallback(() => {
+    setIsSplashVisible(false);
+  }, []);
+
+  const handleFinishOnboarding = useCallback(() => {
+    setIsFirstLaunch(false);
+  }, []);
+
+  const handleContinueGame = useCallback(() => {
+    router.push("/gameProgress");
+  }, [router]);
+
+  const handleStartNewGame = useCallback(() => {
+    router.push("/setupGame");
+  }, [router]);
+
+  const handleOpenHistory = useCallback(() => {
+    router.push("/history");
+  }, [router]);
+
+  const handleOpenPreferences = useCallback(() => {
+    router.push("/userPreferences");
+  }, [router]);
+
+  const openCancelModal = useCallback(() => {
+    setIsConfirmModalVisible(true);
+  }, []);
+
+  const topDrinkerInfo = useMemo(() => getTopDrinker(history), [history]);
+  const totalDrinks = useMemo(() => getTotalDrinks(history), [history]);
+
   if (isSplashVisible) {
-    return (
-      <Animated.View style={[styles.splashContainer, { opacity: fadeAnim }]}>
-        <LottieView
-          ref={splashAnimation}
-          source={require("../assets/lottie/dong_logo_animation.json")}
-          autoPlay
-          loop={false}
-          style={styles.splashAnimation}
-        />
-      </Animated.View>
-    );
+    return <HomeSplash styles={styles} onComplete={handleCloseSplash} />;
   }
 
   if (isFirstLaunch) {
-    return <OnboardingScreen onFinish={() => setIsFirstLaunch(false)} />;
+    return <OnboardingScreen onFinish={handleFinishOnboarding} />;
   }
 
   const hasGameInProgress = players.length > 0 && matches.length > 0;
@@ -108,60 +330,11 @@ const HomeScreen = () => {
     setIsConfirmModalVisible(false);
   };
 
-  /**
-   * Get total drinks across history.
-   * @description Sums drinksTaken for every player in every session.
-   * @param {GameSession[]} gameHistory Game history array.
-   * @returns {number} Total drink count.
-   */
-  const getTotalDrinks = (gameHistory: GameSession[]) => {
-    return gameHistory.reduce(
-      (sum, game) =>
-        sum +
-        game.players.reduce(
-          (gameSum: number, player: Player) =>
-            gameSum + (player.drinksTaken || 0),
-          0
-        ),
-      0
-    );
-  };
-
-  /**
-   * Get top drinker across history.
-   * @description Aggregates per-player drink totals and returns highest.
-   * @param {GameSession[]} gameHistory Game history array.
-   * @returns {{name:string,drinks:number}|null} Top drinker info or null.
-   */
-  const getTopDrinker = (gameHistory: GameSession[]) => {
-    const playerDrinks = new Map<string, number>();
-
-    gameHistory.forEach((game) => {
-      game.players.forEach((player) => {
-        const current = playerDrinks.get(player.name) || 0;
-        playerDrinks.set(player.name, current + (player.drinksTaken || 0));
-      });
-    });
-
-    let topPlayer = "";
-    let maxDrinks = 0;
-
-    playerDrinks.forEach((drinks, name) => {
-      if (drinks > maxDrinks) {
-        maxDrinks = drinks;
-        topPlayer = name;
-      }
-    });
-    return topPlayer ? { name: topPlayer, drinks: maxDrinks } : null;
-  };
-
-  const topDrinkerInfo = getTopDrinker(history);
-
   return (
     <>
       <StatusBar
         style={colors.background === "#f5f5f5" ? "dark" : "light"}
-        backgroundColor={styles.safeArea.backgroundColor as string}
+        backgroundColor={styles.safeArea.backgroundColor}
       />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
@@ -176,124 +349,40 @@ const HomeScreen = () => {
           </View>
 
           {hasGameInProgress ? (
-            <View style={styles.sessionContainer}>
-              <Text style={styles.sessionTitle}>Current Game in Progress</Text>
-              <View style={styles.sessionInfoRow}>
-                <View style={styles.infoItem}>
-                  <Ionicons name="people" size={22} color={colors.primary} />
-                  <Text style={styles.infoText}>{players.length} Players</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <Ionicons name="football" size={22} color={colors.primary} />
-                  <Text style={styles.infoText}>{matches.length} Matches</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.continueButton}
-                onPress={() => router.push("/gameProgress")}
-              >
-                <Ionicons name="play" size={22} color={colors.white} />
-                <Text style={styles.buttonText}>Continue Game</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setIsConfirmModalVisible(true)}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={22}
-                  color={colors.white}
-                />
-                <Text style={styles.buttonText}>Cancel Game</Text>
-              </TouchableOpacity>
-            </View>
+            <CurrentGameCard
+              colors={colors}
+              styles={styles}
+              matchesCount={matches.length}
+              playersCount={players.length}
+              onContinue={handleContinueGame}
+              onCancel={openCancelModal}
+            />
           ) : (
             <TouchableOpacity
               style={styles.startButton}
-              onPress={() => router.push("/setupGame")}
+              onPress={handleStartNewGame}
             >
-              <Ionicons name="add-circle" size={22} color={colors.white} />
+              <AppIcon name="add-circle" size={22} color={colors.white} />
               <Text style={styles.buttonText}>Start New Game</Text>
             </TouchableOpacity>
           )}
 
-          {/* Stats Container */}
           {history.length > 0 && (
-            <TouchableOpacity
-              style={styles.statsContainer}
-              onPress={() => router.push("/history")}
-              activeOpacity={0.9}
-            >
-              <View style={styles.statsHeader}>
-                <View style={styles.titleWithIcon}>
-                  <Text style={styles.statsTitle}>Game Stats</Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={18}
-                    color={colors.primary}
-                    style={styles.titleChevron}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.statsContent}>
-                {/* Games Played */}
-                <View style={styles.statItem}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons
-                      name="calendar"
-                      size={20}
-                      color={colors.primary}
-                    />
-                  </View>
-                  <View style={styles.statTextContainer}>
-                    <Text style={styles.statLabel}>Games Played</Text>
-                    <Text style={styles.statValue}>{history.length}</Text>
-                  </View>
-                </View>
-
-                {/* Top Drinker */}
-                {topDrinkerInfo && (
-                  <View style={styles.statItem}>
-                    <View style={styles.iconContainer}>
-                      <Ionicons
-                        name="trophy"
-                        size={20}
-                        color={colors.primary}
-                      />
-                    </View>
-                    <View style={styles.statTextContainer}>
-                      <Text style={styles.statLabel}>Top Drinker</Text>
-                      <Text style={styles.statValue}>{`${
-                        topDrinkerInfo.name
-                      } (${topDrinkerInfo.drinks.toFixed(1)})`}</Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Total Drinks */}
-                <View style={styles.statItem}>
-                  <View style={styles.iconContainer}>
-                    <Ionicons name="beer" size={20} color={colors.primary} />
-                  </View>
-                  <View style={styles.statTextContainer}>
-                    <Text style={styles.statLabel}>Total Drinks</Text>
-                    <Text style={styles.statValue}>
-                      {getTotalDrinks(history).toFixed(1)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
+            <HistoryStatsCard
+              colors={colors}
+              styles={styles}
+              historyLength={history.length}
+              topDrinkerInfo={topDrinkerInfo}
+              totalDrinks={totalDrinks}
+              onPress={handleOpenHistory}
+            />
           )}
 
           <TouchableOpacity
             style={styles.userPreferencesButton}
-            onPress={() => router.push("/userPreferences")}
+            onPress={handleOpenPreferences}
           >
-            <Ionicons
+            <AppIcon
               name="person-circle-outline"
               size={28}
               color={colors.white}

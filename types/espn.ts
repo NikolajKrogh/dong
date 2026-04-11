@@ -3,23 +3,23 @@
  * @description Top-level shape containing leagues metadata and event entries.
  */
 export interface ESPNResponse {
-  leagues?: Array<{
+  leagues?: {
     id: string;
     uid?: string;
     name: string;
     abbreviation: string;
     slug?: string;
     midsizeName?: string;
-    logos?: Array<{
+    logos?: {
       href: string;
       width: number;
       height: number;
       alt: string;
       rel: string[];
       lastUpdated?: string;
-    }>;
-  }>;
-  events: Array<ESPNEvent>;
+    }[];
+  }[];
+  events: ESPNEvent[];
 }
 
 /**
@@ -32,7 +32,7 @@ export interface ESPNEvent {
   date?: string;
   name?: string;
   shortName?: string;
-  competitions?: Array<ESPNCompetition>;
+  competitions?: ESPNCompetition[];
   status?: {
     type?: {
       state?: string;
@@ -62,8 +62,8 @@ export interface ESPNCompetition {
       description?: string;
     };
   };
-  competitors?: Array<ESPNCompetitor>;
-  details?: Array<ESPNCompetitionDetail>;
+  competitors?: ESPNCompetitor[];
+  details?: ESPNCompetitionDetail[];
 }
 
 /**
@@ -78,10 +78,10 @@ export interface ESPNCompetitionDetail {
     name?: string;
   };
   scoringPlay?: boolean;
-  athletesInvolved?: Array<{
+  athletesInvolved?: {
     displayName?: string;
     shortName?: string;
-  }>;
+  }[];
   clock?: {
     displayValue?: string;
   };

@@ -2,14 +2,6 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { TeamWithLeague } from "../utils/matchUtils";
 
-interface LeagueData {
-  name: string;
-  matches: Array<{
-    team1: string;
-    team2: string;
-  }>;
-}
-
 /**
  * Load team lists from multiple league JSON sources.
  * @description Fetches several openfootball JSON files, derives unique teams with league attribution and exposes loading/error state.
@@ -64,8 +56,8 @@ export const useTeamData = () => {
             axios.get(url).then((res) => ({
               data: res.data,
               leagueName: leagueNames[index],
-            }))
-          )
+            })),
+          ),
         );
 
         // Process each response

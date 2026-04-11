@@ -1,9 +1,8 @@
 import { Stack } from "expo-router";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import RandomMatchesToast from "../components/setupGame/RandomMatchesToast";
 import { goalToastConfig } from "../components/gameProgress/GoalToast";
-import { Slot } from "expo-router";
+import { PlatformGestureRoot } from "../platform";
 
 const toastConfig = {
   // Setup Game toasts
@@ -19,7 +18,7 @@ const toastConfig = {
  */
 export default function Layout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <PlatformGestureRoot style={{ flex: 1 }}>
       <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="userPreferences"
@@ -29,6 +28,6 @@ export default function Layout() {
         <Stack.Screen name="_style" options={{ headerShown: false }} />
       </Stack>
       <Toast config={toastConfig as any} />
-    </GestureHandlerRootView>
+    </PlatformGestureRoot>
   );
 }

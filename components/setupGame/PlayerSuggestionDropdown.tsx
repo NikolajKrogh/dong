@@ -1,6 +1,12 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, TouchableOpacity } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+
+import AppIcon from "../AppIcon";
 import { PlayerSuggestion } from "../../hooks/usePlayerSuggestions";
 import { useColors } from "../../app/style/theme";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
@@ -80,17 +86,27 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
     if (!highlight.trim()) return <Text>{text}</Text>;
 
     const parts = text.split(new RegExp(`(${highlight})`, "gi"));
+    const lowerText = text.toLowerCase();
+    let nextSearchStart = 0;
+
     return (
       <Text>
-        {parts.map((part, index) =>
-          part.toLowerCase() === highlight.toLowerCase() ? (
-            <Text key={index} style={styles.highlightedText}>
+        {parts.map((part) => {
+          const lowerPart = part.toLowerCase();
+          const matchStart = lowerText.indexOf(lowerPart, nextSearchStart);
+          const keyStart = matchStart === -1 ? nextSearchStart : matchStart;
+          const key = `${part}-${keyStart}`;
+
+          nextSearchStart = keyStart + part.length;
+
+          return lowerPart === highlight.toLowerCase() ? (
+            <Text key={key} style={styles.highlightedText}>
               {part}
             </Text>
           ) : (
-            <Text key={index}>{part}</Text>
-          )
-        )}
+            <Text key={key}>{part}</Text>
+          );
+        })}
       </Text>
     );
   };
@@ -113,7 +129,7 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
           </View>
           <View style={styles.suggestionStats}>
             <View style={styles.statItem}>
-              <Ionicons
+              <AppIcon
                 name="game-controller-outline"
                 size={12}
                 color={colors.textMuted}
@@ -122,18 +138,14 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Ionicons
-                name="beer-outline"
-                size={12}
-                color={colors.textMuted}
-              />
+              <AppIcon name="beer-outline" size={12} color={colors.textMuted} />
               <Text style={styles.statText}>
                 {player.totalDrinks.toFixed(1)}
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Ionicons
+              <AppIcon
                 name="flash-outline"
                 size={12}
                 color={colors.textMuted}
@@ -171,8 +183,8 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
-  const fadeAnim = React.useRef(new Animated.Value(0)).current;
-  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
+  const fadeProgress = useSharedValue(0);
+  const scaleProgress = useSharedValue(0.95);
 
   const sortedSuggestions = React.useMemo(() => {
     if (!searchQuery.trim()) return suggestions;
@@ -200,48 +212,29 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
 
   React.useEffect(() => {
     if (visible && sortedSuggestions.length > 0) {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      fadeProgress.value = withTiming(1, { duration: 220 });
+      scaleProgress.value = withTiming(1, { duration: 250 });
     } else {
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.95,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
+      fadeProgress.value = withTiming(0, { duration: 180 });
+      scaleProgress.value = withTiming(0.95, { duration: 200 });
     }
-  }, [visible, sortedSuggestions.length]);
+  }, [visible, sortedSuggestions.length, fadeProgress, scaleProgress]);
+
+  const dropdownAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: fadeProgress.value,
+      transform: [{ scale: scaleProgress.value }],
+    };
+  });
 
   if (!visible || sortedSuggestions.length === 0) return null;
 
   return (
     <Animated.View
-      style={[
-        styles.playerSuggestionsDropdown,
-        {
-          opacity: fadeAnim,
-          transform: [{ scale: scaleAnim }],
-        },
-      ]}
+      style={[styles.playerSuggestionsDropdown, dropdownAnimatedStyle]}
     >
       <View style={styles.playerSuggestionsHeader}>
-        <Ionicons name="time-outline" size={14} color={colors.primary} />
+        <AppIcon name="time-outline" size={14} color={colors.primary} />
         <Text style={styles.playerSuggestionsHeaderText}>Recent Players</Text>
       </View>
       <View style={styles.playerSuggestionsList}>

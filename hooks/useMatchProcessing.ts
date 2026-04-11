@@ -18,7 +18,7 @@ export function useMatchProcessing(
   setHomeTeam: (team: string) => void,
   setAwayTeam: (team: string) => void,
   handleAddMatch: () => void,
-  setGlobalMatches?: (matches: Match[]) => void
+  setGlobalMatches?: (matches: Match[]) => void,
 ) {
   const [matchesToProcess, setMatchesToProcess] = useState<MatchData[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
@@ -42,7 +42,7 @@ export function useMatchProcessing(
       homeTeamRef.current = team;
       setHomeTeam(team);
     },
-    [setHomeTeam]
+    [setHomeTeam],
   );
 
   const setAwayTeamWithTracking = useCallback(
@@ -50,7 +50,7 @@ export function useMatchProcessing(
       awayTeamRef.current = team;
       setAwayTeam(team);
     },
-    [setAwayTeam]
+    [setAwayTeam],
   );
 
   // Keep matches ref updated with latest value
@@ -75,8 +75,8 @@ export function useMatchProcessing(
               (existing.homeTeam === match.team1 &&
                 existing.awayTeam === match.team2) ||
               (existing.homeTeam === match.team2 &&
-                existing.awayTeam === match.team1)
-          )
+                existing.awayTeam === match.team1),
+          ),
       );
 
       if (uniqueMatches.length === 0) return;
@@ -107,7 +107,7 @@ export function useMatchProcessing(
       setIsProcessing(false);
       setCurrentIndex(-1);
     },
-    [setGlobalMatches, matchesRef]
+    [setGlobalMatches, matchesRef],
   );
 
   /**
@@ -143,7 +143,7 @@ export function useMatchProcessing(
           (existing.homeTeam === match.team1 &&
             existing.awayTeam === match.team2) ||
           (existing.homeTeam === match.team2 &&
-            existing.awayTeam === match.team1)
+            existing.awayTeam === match.team1),
       );
 
       if (matchExists) {
@@ -157,7 +157,7 @@ export function useMatchProcessing(
       const waitForStateUpdate = async (
         description: string,
         condition: () => boolean,
-        maxWait = 2000
+        maxWait = 2000,
       ) => {
         const startTime = Date.now();
         while (Date.now() - startTime < maxWait) {
@@ -181,7 +181,7 @@ export function useMatchProcessing(
         () =>
           homeTeamRef.current === match.team1 &&
           awayTeamRef.current === match.team2,
-        500 // Allow a bit more time just in case
+        500, // Allow a bit more time just in case
       );
 
       // Add the match
@@ -191,7 +191,7 @@ export function useMatchProcessing(
       const success = await waitForStateUpdate(
         "match to be added",
         () => matchesRef.current.length > initialMatchCount,
-        1500
+        1500,
       );
 
       if (success) {
@@ -214,6 +214,8 @@ export function useMatchProcessing(
     currentIndex,
     matchesToProcess,
     handleAddMatch,
+    setHomeTeam,
+    setAwayTeam,
     setHomeTeamWithTracking,
     setAwayTeamWithTracking,
     isProcessing,
@@ -239,14 +241,14 @@ export function useMatchProcessing(
       // Guard against overlapping invocations
       if (isProcessing) {
         console.warn(
-          "Match processing is already in progress, ignoring new request"
+          "Match processing is already in progress, ignoring new request",
         );
         return;
       }
 
       // Filter valid matches
       const validMatches = filteredMatches.filter(
-        (match) => match.team1 && match.team2
+        (match) => match.team1 && match.team2,
       );
 
       if (validMatches.length === 0) {
@@ -262,8 +264,8 @@ export function useMatchProcessing(
               (existing.homeTeam === match.team1 &&
                 existing.awayTeam === match.team2) ||
               (existing.homeTeam === match.team2 &&
-                existing.awayTeam === match.team1)
-          )
+                existing.awayTeam === match.team1),
+          ),
       );
 
       if (uniqueMatches.length === 0) {
@@ -292,7 +294,7 @@ export function useMatchProcessing(
       setIsProcessing(true);
       setCurrentIndex(0);
     },
-    [matchesRef, processBatchDirectly, setGlobalMatches]
+    [isProcessing, processBatchDirectly, setGlobalMatches],
   );
 
   return {
