@@ -1,15 +1,10 @@
 <!--
 Sync Impact Report
-Version change: template -> 1.0.0
+Version change: 1.0.0 -> 1.1.0
 Modified principles:
-- Template principle 1 -> I. Cross-Platform First
-- Template principle 2 -> II. Server-Authoritative Shared State
-- Template principle 3 -> III. Event-Backed Game History
-- Template principle 4 -> IV. Supabase-First, Custom Backend by Exception
-- Template principle 5 -> V. Story-First Delivery With Verifiable Gates
+- V. Story-First Delivery With Verifiable Gates -> V. Story-First Delivery With Required Coverage
 Added sections:
-- Product & Architecture Constraints
-- Delivery Workflow & Review Process
+- VI. Skill-First AI Execution
 Removed sections:
 - None
 Templates requiring updates:
@@ -17,6 +12,9 @@ Templates requiring updates:
 - ✅ .specify/templates/spec-template.md
 - ✅ .specify/templates/tasks-template.md
 - ✅ README.md
+- ✅ .github/copilot-instructions.md
+- ✅ .github/agents/speckit.plan.agent.md
+- ✅ .github/agents/speckit.implement.agent.md
 - ✅ .specify/templates/commands/*.md (directory not present; no action required)
 Follow-up TODOs:
 - None
@@ -63,14 +61,29 @@ client or direct Supabase access cannot safely provide. Duplicate CRUD layers
 MUST be justified in the plan. Rationale: this keeps the system affordable,
 operable, and simpler to evolve.
 
-### V. Story-First Delivery With Verifiable Gates
+### V. Story-First Delivery With Required Coverage
 
 Work MUST be sliced into independently deliverable user stories, and each story
 MUST include Gherkin-style acceptance criteria and explicit edge-case coverage.
+Every new feature MUST ship with unit tests that cover its new behavior before
+merge. Any substantial UI change, including a new end-to-end flow, major
+navigation change, or material interaction redesign, MUST add at least one
+end-to-end test covering the primary user journey on the affected platform(s).
 Changes that affect auth, multiplayer, persistence, or platform behavior MUST
-include automated tests at the correct level before merge. Rationale: a large
-roadmap only remains manageable when each slice is demonstrable, reviewable, and
-verifiable on its own.
+still include the highest-leverage automated tests at the correct level.
+Rationale: a large roadmap only remains manageable when each slice is
+demonstrable, reviewable, and protected against regressions at both logic and
+journey level.
+
+### VI. Skill-First AI Execution
+
+Any AI agent used for research, planning, implementation, or review MUST check
+whether a repository, platform, or domain skill applies before proceeding. When
+a relevant skill exists, the agent MUST load and follow that skill before
+producing analysis, plans, code, or review feedback. If no suitable skill
+exists, the agent MAY continue under the default workflow but MUST not imply
+that a skill review occurred. Rationale: task-specific skills capture proven
+workflows and constraints, reducing inconsistent or shallow AI output.
 
 ## Product & Architecture Constraints
 
@@ -93,11 +106,21 @@ verifiable on its own.
 - Every specification MUST describe platform impact, auth or guest impact,
   shared-state impact, migration or backfill impact, and test strategy whenever
   those concerns apply.
+- Every specification MUST declare required automated coverage: unit tests for
+  all new feature behavior, and end-to-end coverage whenever a change materially
+  alters a primary UI journey, navigation pattern, or cross-screen interaction.
 - Every implementation plan MUST pass Constitution Check before Phase 0 research
   closes and again after Phase 1 design is drafted.
 - Tasks MUST be grouped by user story and include concrete file paths.
-  Foundational tasks MAY exist only when they unblock all stories.
-- Pull request review MUST verify acceptance criteria coverage, test evidence,
+  Foundational tasks MAY exist only when they unblock all stories. Stories that
+  add new feature behavior MUST include unit-test tasks, and stories with
+  substantial UI changes MUST include end-to-end test tasks.
+- AI-assisted research, planning, implementation, and review MUST identify
+  applicable repository, platform, or domain skills before work begins. If no
+  skill applies, that decision MUST be stated explicitly in the working notes,
+  plan, or review context.
+- Pull request review MUST verify acceptance criteria coverage, required unit
+  tests for every new feature, end-to-end coverage for substantial UI changes,
   backend or RLS boundary changes, and runtime or developer documentation
   updates when behavior changes.
 - Releases that modify persisted data or multiplayer flows MUST include rollback
@@ -116,4 +139,4 @@ verifiable on its own.
   and pull-request time. Any unresolved violation MUST be recorded explicitly in
   Complexity Tracking or blocked until resolved.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-10 | **Last Amended**: 2026-04-10
+**Version**: 1.1.0 | **Ratified**: 2026-04-10 | **Last Amended**: 2026-04-11

@@ -64,4 +64,6 @@ eas build --platform android --profile development
 
 ### Contributing
 
-Contributions are welcome! Feel free to submit pull requests or open issues to improve the application.
+Contributions are welcome. New features MUST include unit tests, and
+substantial UI changes MUST include end-to-end coverage for the primary user
+journey. Run `npm test` and `npm run lint` before opening a pull request.

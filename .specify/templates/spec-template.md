@@ -88,6 +88,18 @@
 - **Identity Model**: [Describe authenticated host, registered user, and guest behavior when relevant]
 - **Migration / Backfill**: [Describe persisted data migration, import, or backward-compatibility needs]
 
+## Delivery & Automation Impact _(mandatory)_
+
+<!--
+  ACTION REQUIRED: Complete this section for every feature. Every new feature
+  MUST define unit-test coverage. Features with substantial UI changes MUST
+  also define the required end-to-end coverage and the primary user journey.
+-->
+
+- **Unit Test Coverage**: [Describe the new behavior that must be covered by unit tests]
+- **E2E Test Coverage**: [State whether the UI impact is substantial enough to require end-to-end coverage; if yes, identify the primary journey and affected platforms]
+- **Applicable Skills**: [List repository/platform/domain skills AI contributors MUST check before research or implementation, or state "None identified"]
+
 ## Requirements _(mandatory)_
 
 <!--

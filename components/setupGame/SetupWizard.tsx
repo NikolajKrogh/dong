@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import AppIcon, { AppIconName } from "../AppIcon";
 
 /**
  * Props for setup wizard.
@@ -21,10 +21,10 @@ import { useRouter } from "expo-router";
  * @property handleAddPlayer Optional helper to append `newPlayerName` before navigating forward from Players.
  */
 interface SetupWizardProps {
-  renderPlayersStep: () => React.ReactNode;
-  renderMatchesStep: () => React.ReactNode;
-  renderCommonMatchStep: () => React.ReactNode;
-  renderAssignStep: () => React.ReactNode;
+  playersStep: React.ReactNode;
+  matchesStep: React.ReactNode;
+  commonMatchStep: React.ReactNode;
+  assignStep: React.ReactNode;
   handleStartGame: () => void;
   canAdvanceToMatches: boolean;
   canAdvanceToCommonMatch: boolean;
@@ -41,10 +41,10 @@ interface SetupWizardProps {
  * @returns {React.ReactElement} Wizard element.
  */
 const SetupWizard: React.FC<SetupWizardProps> = ({
-  renderPlayersStep,
-  renderMatchesStep,
-  renderCommonMatchStep,
-  renderAssignStep,
+  playersStep,
+  matchesStep,
+  commonMatchStep,
+  assignStep,
   handleStartGame,
   canAdvanceToMatches,
   canAdvanceToCommonMatch,
@@ -61,13 +61,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   // Step meta (label + icon)
   const steps: {
     name: string;
-    icon:
-      | "person-add-outline"
-      | "game-controller-outline"
-      | "tv-outline"
-      | "git-network";
+    icon: AppIconName;
   }[] = [
-    { name: "Players", icon: "person-add-outline" },
+    { name: "Players", icon: "add-circle" },
     { name: "Matches", icon: "game-controller-outline" },
     { name: "Common", icon: "tv-outline" },
     { name: "Assign", icon: "git-network" },
@@ -103,7 +99,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 (index === 3 && !canAdvanceToAssign)
               }
             >
-              <Ionicons
+              <AppIcon
                 name={step.icon}
                 size={24}
                 color={
@@ -131,10 +127,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         showsVerticalScrollIndicator={true}
       >
         {/* Conditionally render the content for the current step */}
-        {currentStep === 0 && renderPlayersStep()}
-        {currentStep === 1 && renderMatchesStep()}
-        {currentStep === 2 && renderCommonMatchStep()}
-        {currentStep === 3 && renderAssignStep()}
+        {currentStep === 0 && playersStep}
+        {currentStep === 1 && matchesStep}
+        {currentStep === 2 && commonMatchStep}
+        {currentStep === 3 && assignStep}
       </ScrollView>
 
       {/* Navigation Buttons */}
@@ -147,7 +143,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
             onPress={() => router.push("./")}
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons
+              <AppIcon
                 name="home"
                 size={20}
                 color={colors.textLight}
@@ -163,7 +159,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
             onPress={() => setCurrentStep(Math.max(0, currentStep - 1))} // Go to the previous step
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Ionicons
+              <AppIcon
                 name="arrow-back"
                 size={20}
                 color={colors.textLight}
@@ -211,7 +207,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={styles.navButtonText}>Next</Text>
-              <Ionicons
+              <AppIcon
                 name="arrow-forward"
                 size={20}
                 color={colors.textLight}
@@ -232,7 +228,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
           >
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text style={styles.navButtonText}>Start Game</Text>
-              <Ionicons
+              <AppIcon
                 name="play"
                 size={20}
                 color={colors.textLight}

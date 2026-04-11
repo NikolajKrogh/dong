@@ -1,11 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
-import DatePicker from "react-native-date-picker";
-import { Ionicons } from "@expo/vector-icons";
-import { TeamWithLeague } from "../../utils/matchUtils";
-import { LeagueEndpoint } from "../../constants/leagues";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+
+import AppIcon from "../AppIcon";
+import { MatchData } from "../../utils/matchUtils";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
+import {
+  formatDateIsoValue,
+  parseDateIsoValue,
+  parseTimeIsoValue,
+  PlatformDatePicker,
+  PlatformTimePicker,
+} from "../../platform";
 
 /**
  * Props for match filter component.
@@ -36,12 +47,8 @@ interface MatchFilterProps {
   handleAddAllFilteredMatches: () => void;
   isTimeFilterActive: boolean;
   isDateFilterActive: boolean;
-  filteredMatches: any[];
-  filteredTeamsData: TeamWithLeague[];
+  filteredMatches: MatchData[];
   isLoading?: boolean;
-  availableLeagues: LeagueEndpoint[];
-  selectedLeagues: LeagueEndpoint[];
-  handleLeagueChange: (league: LeagueEndpoint) => void;
 }
 
 /**
@@ -69,55 +76,32 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isStartTimePickerOpen, setIsStartTimePickerOpen] = useState(false);
   const [isEndTimePickerOpen, setIsEndTimePickerOpen] = useState(false);
-  const [rotateAnim] = useState(new Animated.Value(0));
+  const rotateProgress = useSharedValue(0);
 
-  const [localDateFilterActive, setLocalDateFilterActive] =
-    useState(isDateFilterActive);
-  const [localTimeFilterActive, setLocalTimeFilterActive] =
-    useState(isTimeFilterActive);
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotateProgress.value * 180}deg` }],
+  }));
 
-  useEffect(() => {
-    setLocalDateFilterActive(isDateFilterActive);
-  }, [isDateFilterActive]);
-
-  useEffect(() => {
-    setLocalTimeFilterActive(isTimeFilterActive);
-  }, [isTimeFilterActive]);
-
-  useEffect(() => {
-    setLocalDateFilterActive(selectedDate.length > 0);
-  }, [selectedDate]);
-
-  useEffect(() => {
-    const hasValidTime = startTime.length > 0 && endTime.length > 0;
-    setLocalTimeFilterActive(hasValidTime);
-  }, [startTime, endTime]);
-
-  // Animation for the dropdown icon
   const toggleExpand = () => {
     const newState = !showTimeFilter;
     setShowTimeFilter(newState);
-
-    Animated.timing(rotateAnim, {
-      toValue: newState ? 1 : 0,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
+    rotateProgress.value = withTiming(newState ? 1 : 0, { duration: 250 });
   };
 
-  const rotate = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "180deg"],
-  });
-
+  const localDateFilterActive = isDateFilterActive || selectedDate.length > 0;
+  const localTimeFilterActive =
+    isTimeFilterActive || (startTime.length > 0 && endTime.length > 0);
   const isAnyFilterActive = localDateFilterActive || localTimeFilterActive;
+  const selectedDateValue = parseDateIsoValue(selectedDate, new Date());
   const formattedDate = selectedDate
-    ? new Date(selectedDate).toLocaleDateString("en-US", {
+    ? selectedDateValue.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
       })
     : "Select Date";
+  const startTimeValue = parseTimeIsoValue(startTime, new Date());
+  const endTimeValue = parseTimeIsoValue(endTime, new Date());
 
   return (
     <View style={styles.filterCard}>
@@ -128,7 +112,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
       >
         <View style={styles.filterCardContent}>
           <View style={styles.filterTitleContainer}>
-            <Ionicons
+            <AppIcon
               name="options-outline"
               size={22}
               color={colors.primaryFocus}
@@ -141,7 +125,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               <View style={styles.filterBadgesContainer}>
                 {localDateFilterActive && (
                   <View style={styles.filterBadge}>
-                    <Ionicons
+                    <AppIcon
                       name="calendar"
                       size={16}
                       color={colors.primaryFocus}
@@ -153,7 +137,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 )}
                 {localTimeFilterActive && (
                   <View style={styles.filterBadge}>
-                    <Ionicons
+                    <AppIcon
                       name="time"
                       size={16}
                       color={colors.primaryFocus}
@@ -168,10 +152,8 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               <Text style={styles.noFiltersText}>No active filters</Text>
             )}
 
-            <Animated.View
-              style={[styles.indicatorContainer, { transform: [{ rotate }] }]}
-            >
-              <Ionicons
+            <Animated.View style={[styles.indicatorContainer, indicatorStyle]}>
+              <AppIcon
                 name="chevron-down"
                 size={20}
                 color={colors.textSecondary}
@@ -193,7 +175,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               onPress={() => setIsDatePickerOpen(true)}
               activeOpacity={0.7}
             >
-              <Ionicons
+              <AppIcon
                 name="calendar-outline"
                 size={18}
                 color={
@@ -211,14 +193,12 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 {isLoading && " (Loading...)"}
               </Text>
             </TouchableOpacity>
-            <DatePicker
-              modal
-              mode="date"
+            <PlatformDatePicker
               open={isDatePickerOpen}
-              date={new Date(selectedDate || Date.now())}
+              date={selectedDateValue}
               onConfirm={(date) => {
                 setIsDatePickerOpen(false);
-                setSelectedDate(date.toISOString().split("T")[0]);
+                setSelectedDate(formatDateIsoValue(date));
               }}
               onCancel={() => setIsDatePickerOpen(false)}
             />
@@ -235,7 +215,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 onPress={() => setIsStartTimePickerOpen(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons
+                <AppIcon
                   name="time-outline"
                   size={18}
                   color={
@@ -265,7 +245,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 onPress={() => setIsEndTimePickerOpen(true)}
                 activeOpacity={0.7}
               >
-                <Ionicons
+                <AppIcon
                   name="time-outline"
                   size={18}
                   color={
@@ -285,11 +265,9 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 </Text>
               </TouchableOpacity>
 
-              <DatePicker
-                modal
-                mode="time"
+              <PlatformTimePicker
                 open={isStartTimePickerOpen}
-                date={new Date()}
+                date={startTimeValue}
                 onConfirm={(date) => {
                   setIsStartTimePickerOpen(false);
                   setStartTime(date.toTimeString().slice(0, 5));
@@ -297,11 +275,9 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                 onCancel={() => setIsStartTimePickerOpen(false)}
               />
 
-              <DatePicker
-                modal
-                mode="time"
+              <PlatformTimePicker
                 open={isEndTimePickerOpen}
-                date={new Date()}
+                date={endTimeValue}
                 onConfirm={(date) => {
                   setIsEndTimePickerOpen(false);
                   setEndTime(date.toTimeString().slice(0, 5));
@@ -313,7 +289,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
 
           <View style={styles.resultsSummary}>
             <View style={styles.matchCountContainer}>
-              <Ionicons
+              <AppIcon
                 name="football-outline"
                 size={16}
                 color={colors.primaryFocus}
@@ -332,7 +308,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               disabled={!isAnyFilterActive}
               activeOpacity={0.7}
             >
-              <Ionicons name="add-circle" size={16} color={colors.white} />
+              <AppIcon name="add-circle" size={16} color={colors.white} />
               <Text style={styles.filterActionButtonText}>Add Matches</Text>
             </TouchableOpacity>
           </View>

@@ -20,7 +20,8 @@
 **Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
 **Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
 **Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Testing**: [required unit, integration, and e2e coverage or NEEDS CLARIFICATION]  
+**Applicable Skills**: [repository/platform/domain skills to load before research or implementation, or NONE IDENTIFIED]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
@@ -39,8 +40,13 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
   needs, and RLS or security review scope.
 - Work remains sliced into independently deliverable user stories with
   Gherkin-style acceptance criteria.
-- The test plan covers changed auth, persistence, multiplayer sync, and
-  platform behavior wherever those areas are affected.
+- The test plan defines unit coverage for every new feature and end-to-end
+  coverage for every substantial UI change, alongside changed auth,
+  persistence, multiplayer sync, and platform behavior wherever those areas are
+  affected.
+- Applicable repository, platform, or domain skills are identified before
+  research or implementation begins, or the plan explicitly records that no
+  suitable skill applies.
 
 ## Project Structure
 

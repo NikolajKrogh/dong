@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
+import AppIcon from "../../AppIcon";
 import { useTeamLogo } from "../../../hooks/useTeamLogo";
 import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
 import { useColors } from "../../../app/style/theme";
@@ -15,17 +15,23 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
-  
+
   // Get team logos with async fallback support
   const homeTeamLogo = useTeamLogo(match.homeTeam);
   const awayTeamLogo = useTeamLogo(match.awayTeam);
-  
+
   // Determine the status string ('FT', 'HT', '45'', '?') from live data
   const displayStatus = liveMatch?.minutesPlayed || "?";
   // Check if the status indicates a finished or half-time state
   const isFinishedOrHalfTime = displayStatus === "FT" || displayStatus === "HT";
   // Check the live flag from the API data
   const isCurrentlyLive = liveMatch?.isLive || false;
+  const statusDisplay =
+    isFinishedOrHalfTime || isCurrentlyLive ? (
+      <Text style={styles.minutesPlayedText}>{displayStatus}</Text>
+    ) : (
+      <Text style={styles.vsText}>-</Text>
+    );
 
   // Use live match data if available, otherwise use local state
   const homeScore = liveMatch ? liveMatch.homeScore : match.homeGoals || 0;
@@ -67,7 +73,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
 
     return (
       <View style={styles.playerBadgeContainer}>
-        {visiblePlayers.map((player, index) => (
+        {visiblePlayers.map((player) => (
           <View key={player.id} style={styles.playerBadge}>
             <Text style={styles.playerBadgeText}>
               {player.name.split(" ")[0]}
@@ -82,7 +88,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
         )}
       </View>
     );
-  }, [assignedPlayers]);
+  }, [assignedPlayers, styles]);
 
   return (
     <TouchableOpacity
@@ -108,14 +114,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           <View style={styles.scoresContainer}>
             <Text style={styles.gridScoreText}>{homeScore}</Text>
 
-            {/* Show match status: FT/HT > Live Time > '-' */}
-            {isFinishedOrHalfTime ? (
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show FT or HT
-            ) : isCurrentlyLive ? (
-              <Text style={styles.minutesPlayedText}>{displayStatus}</Text> // Show live minutes
-            ) : (
-              <Text style={styles.vsText}>-</Text> // Fallback
-            )}
+            {statusDisplay}
 
             <Text style={styles.gridScoreText}>{awayScore}</Text>
           </View>
@@ -133,11 +132,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
         {/* Stats row remains the same */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Ionicons
-              name="people-outline"
-              size={13}
-              color={colors.textMuted}
-            />
+            <AppIcon name="people-outline" size={13} color={colors.textMuted} />
             <Text style={styles.statValue}>{playerDisplayText}</Text>
           </View>
         </View>

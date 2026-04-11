@@ -1,15 +1,15 @@
 import React, { useMemo } from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { MatchItemProps } from "./types";
+import AppIcon from "../../AppIcon";
 import { useTeamLogo } from "../../../hooks/useTeamLogo";
 import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
 import { useColors } from "../../../app/style/theme";
 
 /**
  * MatchListItem component.
- * @description Renders a single match in list form: team logos, live/finished status (minutes, FT, HT), 
- * current scores, and assigned players (condensed into badges). 
+ * @description Renders a single match in list form: team logos, live/finished status (minutes, FT, HT),
+ * current scores, and assigned players (condensed into badges).
  * Highlights the common match and triggers quick action modal on press.
  * @param props Component props.
  */
@@ -22,17 +22,25 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
-  
+
   // Get team logos with async fallback support
   const homeTeamLogo = useTeamLogo(match.homeTeam);
   const awayTeamLogo = useTeamLogo(match.awayTeam);
-  
+
   // Determine the status string ('FT', 'HT', '45'', '?') from live data
   const displayStatus = liveMatch?.minutesPlayed || "?";
   // Check if the status indicates a finished or half-time state
   const isFinishedOrHalfTime = displayStatus === "FT" || displayStatus === "HT";
   // Check the live flag from the API data
   const isCurrentlyLive = liveMatch?.isLive || false;
+  const statusDisplay =
+    isFinishedOrHalfTime || isCurrentlyLive ? (
+      <Text style={[styles.minutesPlayedText, styles.matchList_StatusText]}>
+        {displayStatus}
+      </Text>
+    ) : (
+      <Text style={[styles.vsText, styles.matchList_VSFallbackText]}>-</Text>
+    );
 
   // Use live match data if available, otherwise use local state
   const homeScore = liveMatch ? liveMatch.homeScore : match.homeGoals || 0;
@@ -76,7 +84,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         )}
       </View>
     );
-  }, [assignedPlayers]);
+  }, [assignedPlayers, styles]);
 
   return (
     <TouchableOpacity
@@ -96,10 +104,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         <View style={styles.logosRow}>
           {/* Home team: Logo on LEFT */}
           <View style={styles.matchList_HomeLogoWrapper}>
-            <Image
-              source={homeTeamLogo}
-              style={styles.matchList_LogoImage}
-            />
+            <Image source={homeTeamLogo} style={styles.matchList_LogoImage} />
           </View>
 
           <View
@@ -108,23 +113,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
             <Text style={[styles.gridScoreText, styles.matchList_ScoreText]}>
               {homeScore}
             </Text>
-            {isFinishedOrHalfTime ? (
-              <Text
-                style={[styles.minutesPlayedText, styles.matchList_StatusText]}
-              >
-                {displayStatus}
-              </Text>
-            ) : isCurrentlyLive ? (
-              <Text
-                style={[styles.minutesPlayedText, styles.matchList_StatusText]}
-              >
-                {displayStatus}
-              </Text>
-            ) : (
-              <Text style={[styles.vsText, styles.matchList_VSFallbackText]}>
-                -
-              </Text>
-            )}
+            {statusDisplay}
             <Text style={[styles.gridScoreText, styles.matchList_ScoreText]}>
               {awayScore}
             </Text>
@@ -132,21 +121,14 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 
           {/* Away team: Logo on RIGHT */}
           <View style={styles.matchList_AwayLogoWrapper}>
-            <Image
-              source={awayTeamLogo}
-              style={styles.matchList_LogoImage}
-            />
+            <Image source={awayTeamLogo} style={styles.matchList_LogoImage} />
           </View>
         </View>
 
         {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Ionicons
-              name="people-outline"
-              size={13}
-              color={colors.textMuted}
-            />
+            <AppIcon name="people-outline" size={13} color={colors.textMuted} />
             <Text style={styles.statValue}>{playerDisplayText}</Text>
           </View>
         </View>

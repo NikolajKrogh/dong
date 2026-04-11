@@ -68,7 +68,13 @@ describe("GoalToast Component Logic", () => {
     };
     const toastElement = renderToast(props);
     const scoreSection = toastElement.props.children[0];
+    const [homeText, scoreView, awayText] = scoreSection.props.children;
 
+    expect(homeText.props.children).toBe("Man City");
+    expect(scoreView.props.children.props.children).toBe("2-2");
+    expect(awayText.props.children).toBe("Liverpool");
+    expect(homeText.props.style).toMatchObject({ fontWeight: "normal" });
+    expect(awayText.props.style).toMatchObject({ fontWeight: "bold" });
   });
 
   it("should use fallback parsing when regex fails", () => {
@@ -157,7 +163,7 @@ describe("GoalToast Component Logic", () => {
       team: "home" | "away",
       isLiveUpdate: boolean,
       newTotal?: number,
-      otherTeamScore?: number
+      otherTeamScore?: number,
     ): string => {
       let homeScore = match.homeGoals || 0;
       let awayScore = match.awayGoals || 0;
@@ -277,7 +283,7 @@ describe("GoalToast Component Logic", () => {
       "Live Update: Home Team - $scenario",
       ({ match, team, newTotal, expected }) => {
         expect(calculateToastScore(match, team, true, newTotal)).toBe(expected);
-      }
+      },
     );
 
     it.each([
@@ -306,7 +312,7 @@ describe("GoalToast Component Logic", () => {
       "Live Update: Away Team - $scenario",
       ({ match, team, newTotal, expected }) => {
         expect(calculateToastScore(match, team, true, newTotal)).toBe(expected);
-      }
+      },
     );
   });
 });
