@@ -13,8 +13,6 @@ interface HeaderProps {
   title: string;
   /** Callback when back button pressed. */
   onBack: () => void;
-  /** Optional extra top padding. */
-  paddingTop?: number;
 }
 
 /**
@@ -23,7 +21,7 @@ interface HeaderProps {
  * @param {HeaderProps} props Component props.
  * @returns {JSX.Element} Header UI.
  */
-const Header: React.FC<HeaderProps> = ({ title, onBack, paddingTop = 0 }) => {
+const Header: React.FC<HeaderProps> = ({ title, onBack }) => {
   const colors = useColors();
   const { headerStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
@@ -31,7 +29,6 @@ const Header: React.FC<HeaderProps> = ({ title, onBack, paddingTop = 0 }) => {
   );
   return (
     <View style={{ backgroundColor: colors.surface }}>
-      {paddingTop ? <View style={{ height: paddingTop }} /> : null}
       <View style={headerStyles.header}>
         <TouchableOpacity onPress={onBack} style={headerStyles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />

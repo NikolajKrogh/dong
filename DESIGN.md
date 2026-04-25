@@ -330,3 +330,47 @@ The app is mobile-first. There is no centralized breakpoint token system yet, so
 - **Some layout behavior is hard-coded to viewport width**: history tab panes and a few modal layouts use direct `Dimensions` values instead of reusable layout tokens.
 - **Selected ribbons and glow states are decorative exceptions**: rotated ribbons and strong selected-card shadows are state-specific treatments rather than universal primitives.
 - **A few component colors are local accents**: away-team orange, medal colors, and some owed-state borders are purposeful contextual accents, not primary brand colors.
+
+## Tamagui Shell Primitives
+
+The application shell is built on Tamagui-backed primitives exported from `components/ui/`. These wrap the design language tokens and provide consistent structure across screens.
+
+### Token bridge
+
+- `app/style/tamaguiTokens.ts` maps the DONG palette into `createTokens` format (color, space, size, radius, zIndex).
+- `app/style/tamaguiThemes.ts` defines `lightTheme` and `darkTheme` objects with ~30 semantic keys consumed by Tamagui components.
+- `tamagui.config.ts` assembles the final Tamagui config from tokens and themes.
+
+### Provider
+
+- `TamaguiAppProvider` reads the persisted theme from `useGameStore` and wraps children in `TamaguiProvider` with the matching theme name.
+- Mounted once in `app/_layout.tsx`, above the gesture root, router stack, and toast host.
+
+### Shared primitives
+
+| Primitive | Base | Purpose |
+| --- | --- | --- |
+| `ShellScreen` | `styled(YStack)` | Full-screen wrapper with `flex: 1` and theme background. `padded` variant adds horizontal padding. |
+| `ShellSection` | `styled(YStack)` | Vertical group with optional title (uppercase, muted). Used for settings sections and content groups. |
+| `ShellCard` | `styled(YStack)` | Surface card with border, shadow, and radius. `elevated` variant adds stronger shadow. `compact` variant reduces padding. Supports `onPress` natively. |
+| `ShellActionButton` | `styled(XStack)` | Action button with `variant` (primary/success/danger/secondary/surface), `size` (small/large), and `disabled`. Label is optional for icon-only usage. |
+
+### Adoption pattern
+
+When migrating a screen to the shell:
+
+1. Wrap the screen root in `ShellScreen` (usually `padded={false}` when the screen manages its own SafeAreaView).
+2. Replace `View style={commonStyles.section}` + section title `Text` with `ShellSection title="..."`.
+3. Replace `View style={commonStyles.card}` with `ShellCard` (or `ShellCard elevated` for emphasis).
+4. Replace `TouchableOpacity` action buttons with `ShellActionButton variant="..." label="..."`.
+5. Add `jest.mock("../../components/ui", ...)` in tests to prevent loading the full Tamagui config chain. Mock each primitive as a simple `View`/`Text` with a `testID`.
+
+### Screens migrated
+
+- `app/_layout.tsx` — root shell with `TamaguiAppProvider`
+- `app/index.tsx` — home screen with `ShellScreen`, `ShellCard`, `ShellActionButton`
+- `app/userPreferences.tsx` — preferences with `ShellScreen`
+- `components/preferences/AppearanceSettings.tsx` — `ShellSection` + `ShellCard`
+- `components/preferences/SoundNotificationSettings.tsx` — `ShellSection` + `ShellCard`
+- `components/preferences/OnboardingButton.tsx` — `ShellSection`
+- `components/preferences/LeagueSettings.tsx` — `ShellSection` + `ShellCard`

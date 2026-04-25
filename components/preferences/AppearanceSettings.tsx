@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
 import { useGameStore } from "../../store/store";
 import { useColors } from "../../app/style/theme";
+import { ShellSection, ShellCard } from "../ui";
 
 /**
  * AppearanceSettings component
@@ -29,7 +30,7 @@ import { useColors } from "../../app/style/theme";
 const AppearanceSettings: React.FC = () => {
   const { theme, setTheme } = useGameStore();
   const colors = useColors();
-  const { commonStyles, settingsStyles: styles } = React.useMemo(
+  const { settingsStyles: styles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
     [colors]
   );
@@ -42,10 +43,9 @@ const AppearanceSettings: React.FC = () => {
     setTheme(enabled ? "dark" : "light");
 
   return (
-    <View style={commonStyles.section}>
-      <Text style={commonStyles.sectionTitle}>Appearance</Text>
-      <View style={commonStyles.card}>
-        <View style={styles.preferenceRow}>
+    <ShellSection title="Appearance" marginBottom="$3">
+      <ShellCard compact>
+        <View style={[styles.preferenceRow, styles.preferenceRowLast]}>
           <View style={styles.labelContainer}>
             <Ionicons
               name="moon-outline"
@@ -66,8 +66,8 @@ const AppearanceSettings: React.FC = () => {
             ios_backgroundColor={colors.switchTrackOff}
           />
         </View>
-      </View>
-    </View>
+      </ShellCard>
+    </ShellSection>
   );
 };
 

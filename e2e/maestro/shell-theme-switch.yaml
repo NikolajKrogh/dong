@@ -1,0 +1,23 @@
+appId: host.exp.Exponent
+---
+- openLink: exp://127.0.0.1:8081
+- extendedWaitUntil:
+    visible: Open preferences
+    timeout: 15000
+- tapOn: Open preferences
+- extendedWaitUntil:
+    visible: Settings
+    timeout: 15000
+- assertVisible: "Current theme:"
+- runFlow:
+    when:
+      visible: "Current theme: Light"
+    commands:
+      - tapOn: "Toggle dark mode"
+      - assertVisible: "Current theme: Dark"
+- runFlow:
+    when:
+      visible: "Current theme: Dark"
+    commands:
+      - tapOn: "Toggle dark mode"
+      - assertVisible: "Current theme: Light"
