@@ -9,17 +9,6 @@ export const createUserPreferencesStyles = (
     backgroundColor: colors.background,
   };
 
-  const baseCard: ViewStyle = {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    overflow: "hidden",
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2.5,
-    elevation: 2,
-  };
-
   const baseButton: ViewStyle = {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -34,16 +23,6 @@ export const createUserPreferencesStyles = (
     color: colors.textLight,
     fontWeight: "600",
     fontSize: 16,
-  };
-
-  const baseSectionTitle: TextStyle = {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textMuted,
-    marginBottom: 8,
-    paddingLeft: 4,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
   };
 
   const baseRow: ViewStyle = {
@@ -82,15 +61,6 @@ export const createUserPreferencesStyles = (
     contentContainer: {
       padding: 16,
     },
-    section: {
-      marginBottom: 24,
-    },
-    sectionTitle: {
-      ...baseSectionTitle,
-    },
-    card: {
-      ...baseCard,
-    },
   });
 
   const headerStyles = StyleSheet.create({
@@ -119,8 +89,13 @@ export const createUserPreferencesStyles = (
   const settingsStyles = StyleSheet.create({
     preferenceRow: {
       ...baseRow,
+      paddingVertical: 14,
+      paddingHorizontal: 0,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLighter,
+    },
+    preferenceRowLast: {
+      borderBottomWidth: 0,
     },
     labelContainer: {
       flexDirection: "row",
@@ -149,9 +124,8 @@ export const createUserPreferencesStyles = (
     },
     onboardingButton: {
       ...baseButton,
-      marginHorizontal: 16,
-      marginTop: 16,
-      paddingVertical: 14,
+      marginTop: 8,
+      paddingVertical: 12,
       borderRadius: 10,
     },
     onboardingButtonText: {

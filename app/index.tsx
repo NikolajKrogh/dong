@@ -26,6 +26,7 @@ import AppIcon from "../components/AppIcon";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { useColors } from "./style/theme";
 import { PlatformAnimation } from "../platform";
+import { ShellScreen, ShellCard, ShellActionButton } from "../components/ui";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -156,7 +157,7 @@ const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
   onCancel,
 }) => {
   return (
-    <View style={styles.sessionContainer}>
+    <ShellCard elevated style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
       <Text style={styles.sessionTitle}>Current Game in Progress</Text>
       <View style={styles.sessionInfoRow}>
         <View style={styles.infoItem}>
@@ -169,16 +170,21 @@ const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
         </View>
       </View>
 
-      <TouchableOpacity style={styles.continueButton} onPress={onContinue}>
-        <AppIcon name="play" size={22} color={colors.white} />
-        <Text style={styles.buttonText}>Continue Game</Text>
-      </TouchableOpacity>
+      <ShellActionButton
+        variant="success"
+        label="Continue Game"
+        icon={<AppIcon name="play" size={22} color={colors.white} />}
+        onPress={onContinue}
+      />
 
-      <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-        <AppIcon name="close-circle-outline" size={22} color={colors.white} />
-        <Text style={styles.buttonText}>Cancel Game</Text>
-      </TouchableOpacity>
-    </View>
+      <ShellActionButton
+        variant="danger"
+        label="Cancel Game"
+        icon={<AppIcon name="close-circle-outline" size={22} color={colors.white} />}
+        onPress={onCancel}
+        style={{ marginTop: 12 }}
+      />
+    </ShellCard>
   );
 };
 
@@ -191,10 +197,10 @@ const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
   onPress,
 }) => {
   return (
-    <TouchableOpacity
-      style={styles.statsContainer}
+    <ShellCard
+      elevated
       onPress={onPress}
-      activeOpacity={0.9}
+      style={{ marginHorizontal: 16, marginTop: 16 }}
     >
       <View style={styles.statsHeader}>
         <View style={styles.titleWithIcon}>
@@ -243,7 +249,7 @@ const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </ShellCard>
   );
 };
 
@@ -336,91 +342,96 @@ const HomeScreen = () => {
         style={colors.background === "#f5f5f5" ? "dark" : "light"}
         backgroundColor={styles.safeArea.backgroundColor}
       />
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.headerContainer}>
-            <Image
-              source={require("../assets/icons/logo_png/dong_logo.png")}
-              style={styles.logo}
-            />
-          </View>
-
-          {hasGameInProgress ? (
-            <CurrentGameCard
-              colors={colors}
-              styles={styles}
-              matchesCount={matches.length}
-              playersCount={players.length}
-              onContinue={handleContinueGame}
-              onCancel={openCancelModal}
-            />
-          ) : (
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={handleStartNewGame}
-            >
-              <AppIcon name="add-circle" size={22} color={colors.white} />
-              <Text style={styles.buttonText}>Start New Game</Text>
-            </TouchableOpacity>
-          )}
-
-          {history.length > 0 && (
-            <HistoryStatsCard
-              colors={colors}
-              styles={styles}
-              historyLength={history.length}
-              topDrinkerInfo={topDrinkerInfo}
-              totalDrinks={totalDrinks}
-              onPress={handleOpenHistory}
-            />
-          )}
-
-          <TouchableOpacity
-            style={styles.userPreferencesButton}
-            onPress={handleOpenPreferences}
+      <ShellScreen padded={false}>
+        <SafeAreaView style={{ flex: 1 }}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
           >
-            <AppIcon
-              name="person-circle-outline"
-              size={28}
-              color={colors.white}
-            />
-          </TouchableOpacity>
-        </ScrollView>
+            <View style={styles.headerContainer}>
+              <Image
+                source={require("../assets/icons/logo_png/dong_logo.png")}
+                style={styles.logo}
+              />
+            </View>
 
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={isConfirmModalVisible}
-          onRequestClose={() => setIsConfirmModalVisible(false)}
-        >
-          <View style={styles.centeredView}>
-            <View style={styles.modalView}>
-              <Text style={styles.modalTitle}>Cancel Game</Text>
-              <Text style={styles.modalText}>
-                Are you sure you want to cancel the current game? This action
-                cannot be undone.
-              </Text>
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.buttonCancel]}
-                  onPress={() => setIsConfirmModalVisible(false)}
-                >
-                  <Text style={styles.textStyle}>No, Keep Game</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.buttonConfirm]}
-                  onPress={handleCancelGame}
-                >
-                  <Text style={styles.textStyle}>Yes, Cancel Game</Text>
-                </TouchableOpacity>
+            {hasGameInProgress ? (
+              <CurrentGameCard
+                colors={colors}
+                styles={styles}
+                matchesCount={matches.length}
+                playersCount={players.length}
+                onContinue={handleContinueGame}
+                onCancel={openCancelModal}
+              />
+            ) : (
+              <ShellActionButton
+                variant="success"
+                label="Start New Game"
+                icon={<AppIcon name="add-circle" size={22} color={colors.white} />}
+                onPress={handleStartNewGame}
+                style={{ marginHorizontal: 16, marginTop: 16 }}
+              />
+            )}
+
+            {history.length > 0 && (
+              <HistoryStatsCard
+                colors={colors}
+                styles={styles}
+                historyLength={history.length}
+                topDrinkerInfo={topDrinkerInfo}
+                totalDrinks={totalDrinks}
+                onPress={handleOpenHistory}
+              />
+            )}
+
+            <ShellActionButton
+              variant="surface"
+              size="small"
+              icon={
+                <AppIcon
+                  name="person-circle-outline"
+                  size={28}
+                  color={colors.white}
+                />
+              }
+              onPress={handleOpenPreferences}
+              style={styles.userPreferencesButton}
+            />
+          </ScrollView>
+
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={isConfirmModalVisible}
+            onRequestClose={() => setIsConfirmModalVisible(false)}
+          >
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+                <Text style={styles.modalTitle}>Cancel Game</Text>
+                <Text style={styles.modalText}>
+                  Are you sure you want to cancel the current game? This action
+                  cannot be undone.
+                </Text>
+                <View style={styles.modalButtons}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.buttonCancel]}
+                    onPress={() => setIsConfirmModalVisible(false)}
+                  >
+                    <Text style={styles.textStyle}>No, Keep Game</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.buttonConfirm]}
+                    onPress={handleCancelGame}
+                  >
+                    <Text style={styles.textStyle}>Yes, Cancel Game</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </Modal>
-      </SafeAreaView>
+          </Modal>
+        </SafeAreaView>
+      </ShellScreen>
     </>
   );
 };

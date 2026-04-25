@@ -3,6 +3,7 @@ import { View, Text, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
 import { useColors } from "../../app/style/theme";
+import { ShellSection, ShellCard } from "../ui";
 
 /**
  * Props for sound + notification settings.
@@ -32,15 +33,13 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
   setCommonMatchNotificationsEnabled,
 }) => {
   const colors = useColors();
-  const { commonStyles, settingsStyles } = React.useMemo(
+  const { settingsStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
     [colors]
   );
   return (
-    <View style={commonStyles.section}>
-      <Text style={commonStyles.sectionTitle}>Sound & Notifications</Text>
-
-      <View style={commonStyles.card}>
+    <ShellSection title="Sound & Notifications" marginBottom="$3">
+      <ShellCard compact>
         <View style={settingsStyles.preferenceRow}>
           <View style={settingsStyles.labelContainer}>
             <Ionicons
@@ -63,7 +62,12 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
           />
         </View>
 
-        <View style={settingsStyles.preferenceRow}>
+        <View
+          style={[
+            settingsStyles.preferenceRow,
+            settingsStyles.preferenceRowLast,
+          ]}
+        >
           <View style={settingsStyles.labelContainer}>
             <Ionicons
               name="football-outline"
@@ -88,8 +92,8 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
             ios_backgroundColor={colors.switchTrackOff}
           />
         </View>
-      </View>
-    </View>
+      </ShellCard>
+    </ShellSection>
   );
 };
 

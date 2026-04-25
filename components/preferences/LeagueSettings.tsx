@@ -4,6 +4,7 @@ import { LeagueEndpoint } from "../../constants/leagues";
 import { Ionicons } from "@expo/vector-icons";
 import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
 import { useColors } from "../../app/style/theme";
+import { ShellSection, ShellCard } from "../ui";
 
 interface LeagueSettingsProps {
   configuredLeagues: LeagueEndpoint[];
@@ -19,14 +20,21 @@ const SettingsRow: React.FC<{
   onPress: () => void;
   iconName: keyof typeof Ionicons.glyphMap;
   valueIsSecondary?: boolean;
-}> = ({ label, value, onPress, iconName, valueIsSecondary }) => {
+  isLast?: boolean;
+}> = ({ label, value, onPress, iconName, valueIsSecondary, isLast }) => {
   const colors = useColors();
   const { settingsStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
     [colors]
   );
   return (
-    <TouchableOpacity onPress={onPress} style={settingsStyles.preferenceRow}>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[
+        settingsStyles.preferenceRow,
+        isLast ? settingsStyles.preferenceRowLast : null,
+      ]}
+    >
       <View style={settingsStyles.labelContainer}>
         {/* @ts-ignore */}
         <Ionicons
@@ -58,17 +66,11 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
   defaultSelectedLeagues,
   onSetDefaultLeaguesPress,
 }) => {
-  const colors = useColors();
-  const { commonStyles } = React.useMemo(
-    () => createUserPreferencesStyles(colors),
-    [colors]
-  );
   const configuredLeagueCount = configuredLeagues.length;
 
   return (
-    <View style={commonStyles.section}>
-      <Text style={commonStyles.sectionTitle}>League Configuration</Text>
-      <View style={commonStyles.card}>
+    <ShellSection title="League Configuration" marginBottom="$3">
+      <ShellCard compact>
         <SettingsRow
           label="Remove Leagues"
           iconName="trash-outline"
@@ -92,9 +94,10 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
           }
           onPress={onSetDefaultLeaguesPress}
           valueIsSecondary={defaultSelectedLeagues.length === 0}
+          isLast
         />
-      </View>
-    </View>
+      </ShellCard>
+    </ShellSection>
   );
 };
 

@@ -1,8 +1,9 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
 import { useColors } from "../../app/style/theme";
+import { ShellSection } from "../ui";
 
 /**
  * Props for onboarding button.
@@ -21,12 +22,12 @@ interface OnboardingButtonProps {
  */
 const OnboardingButton: React.FC<OnboardingButtonProps> = ({ onPress }) => {
   const colors = useColors();
-  const { commonStyles, settingsStyles } = React.useMemo(
+  const { settingsStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
     [colors]
   );
   return (
-    <View style={commonStyles.section}>
+    <ShellSection marginBottom={0}>
       <TouchableOpacity
         style={settingsStyles.onboardingButton}
         onPress={onPress}
@@ -34,7 +35,7 @@ const OnboardingButton: React.FC<OnboardingButtonProps> = ({ onPress }) => {
         <Ionicons name="help-circle-outline" size={22} color={colors.primary} />
         <Text style={settingsStyles.onboardingButtonText}>View Onboarding</Text>
       </TouchableOpacity>
-    </View>
+    </ShellSection>
   );
 };
 
