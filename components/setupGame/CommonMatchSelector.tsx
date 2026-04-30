@@ -1,11 +1,19 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Image, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Match } from "../../store/store";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import React, { useState } from "react";
+import {
+  Image,
+  Modal,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { isWideLayout as isWideViewport } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
+import { Match } from "../../store/store";
+import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 /**
  * Props for common match selector.
@@ -31,9 +39,11 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
   selectedCommonMatch,
   handleSelectCommonMatch,
 }) => {
+  const { width } = useWindowDimensions();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const isWideLayout = isWideViewport(width);
 
   /** Toggle info modal visibility. */
   const toggleModal = () => {
@@ -90,99 +100,114 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
           </Text>
         </View>
       ) : (
-        matches.map((item) => {
-          const isSelected = selectedCommonMatch === item.id;
-          const homeTeamLogo = getTeamLogoWithFallback(item.homeTeam);
-          const awayTeamLogo = getTeamLogoWithFallback(item.awayTeam);
+        <View
+          testID="CommonMatchList"
+          style={[
+            styles.commonMatchList,
+            isWideLayout && styles.commonMatchListWide,
+          ]}
+        >
+          {matches.map((item) => {
+            const isSelected = selectedCommonMatch === item.id;
+            const homeTeamLogo = getTeamLogoWithFallback(item.homeTeam);
+            const awayTeamLogo = getTeamLogoWithFallback(item.awayTeam);
 
-          return (
-            <View key={item.id} style={styles.matchItemWrapper}>
-              <TouchableOpacity
-                onPress={() => handleSelectCommonMatch(item.id)}
-                activeOpacity={0.6}
+            return (
+              <View
+                key={item.id}
+                testID="CommonMatchCard"
                 style={[
-                  styles.matchCard,
-                  isSelected && styles.selectedMatchCard,
+                  styles.matchItemWrapper,
+                  isWideLayout && styles.commonMatchCardWide,
                 ]}
               >
-                <LinearGradient
-                  colors={[
-                    isSelected ? colors.primaryLight : colors.primaryLighter,
-                    colors.surface,
+                <TouchableOpacity
+                  onPress={() => handleSelectCommonMatch(item.id)}
+                  activeOpacity={0.6}
+                  style={[
+                    styles.matchCard,
+                    isSelected && styles.selectedMatchCard,
                   ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={styles.matchCardGradient}
                 >
-                  {/* Teams container */}
-                  <View style={styles.matchTeamsContainer}>
-                    {/* Home team column */}
-                    <View style={styles.matchTeamColumn}>
-                      <View style={styles.logoContainer}>
-                        {homeTeamLogo ? (
-                          <Image
-                            source={homeTeamLogo}
-                            style={styles.teamLogo}
-                          />
-                        ) : (
-                          <View style={styles.teamLogoPlaceholder}>
-                            <Text style={styles.teamLogoPlaceholderText}>
-                              {item.homeTeam.charAt(0)}
-                            </Text>
-                          </View>
-                        )}
+                  <LinearGradient
+                    colors={[
+                      isSelected ? colors.primaryLight : colors.primaryLighter,
+                      colors.surface,
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.matchCardGradient}
+                  >
+                    {/* Teams container */}
+                    <View style={styles.matchTeamsContainer}>
+                      {/* Home team column */}
+                      <View style={styles.matchTeamColumn}>
+                        <View style={styles.logoContainer}>
+                          {homeTeamLogo ? (
+                            <Image
+                              source={homeTeamLogo}
+                              style={styles.teamLogo}
+                            />
+                          ) : (
+                            <View style={styles.teamLogoPlaceholder}>
+                              <Text style={styles.teamLogoPlaceholderText}>
+                                {item.homeTeam.charAt(0)}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          style={styles.teamName}
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                        >
+                          {item.homeTeam}
+                        </Text>
                       </View>
-                      <Text
-                        style={styles.teamName}
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                      >
-                        {item.homeTeam}
-                      </Text>
-                    </View>
 
-                    {/* VS column */}
-                    <View style={styles.vsDivider}>
-                      <Text style={styles.vsText}>VS</Text>
-                    </View>
-
-                    {/* Away team column */}
-                    <View style={styles.matchTeamColumn}>
-                      <View style={styles.logoContainer}>
-                        {awayTeamLogo ? (
-                          <Image
-                            source={awayTeamLogo}
-                            style={styles.teamLogo}
-                          />
-                        ) : (
-                          <View style={styles.teamLogoPlaceholder}>
-                            <Text style={styles.teamLogoPlaceholderText}>
-                              {item.awayTeam.charAt(0)}
-                            </Text>
-                          </View>
-                        )}
+                      {/* VS column */}
+                      <View style={styles.vsDivider}>
+                        <Text style={styles.vsText}>VS</Text>
                       </View>
-                      <Text
-                        style={styles.teamName}
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                      >
-                        {item.awayTeam}
-                      </Text>
-                    </View>
-                  </View>
 
-                  {/* Selection indicator */}
-                  {isSelected && (
-                    <View style={styles.selectedRibbon}>
-                      <Text style={styles.selectedRibbonText}>COMMON</Text>
+                      {/* Away team column */}
+                      <View style={styles.matchTeamColumn}>
+                        <View style={styles.logoContainer}>
+                          {awayTeamLogo ? (
+                            <Image
+                              source={awayTeamLogo}
+                              style={styles.teamLogo}
+                            />
+                          ) : (
+                            <View style={styles.teamLogoPlaceholder}>
+                              <Text style={styles.teamLogoPlaceholderText}>
+                                {item.awayTeam.charAt(0)}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          style={styles.teamName}
+                          numberOfLines={2}
+                          ellipsizeMode="tail"
+                        >
+                          {item.awayTeam}
+                        </Text>
+                      </View>
                     </View>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          );
-        })
+
+                    {/* Selection indicator */}
+                    {isSelected && (
+                      <View style={styles.selectedRibbon}>
+                        <Text style={styles.selectedRibbonText}>COMMON</Text>
+                      </View>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </View>
       )}
     </View>
   );

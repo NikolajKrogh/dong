@@ -1,15 +1,16 @@
-import React, { ReactNode, useMemo } from "react";
+import React, { ReactNode, useMemo, useState } from "react";
 import {
-  View,
+  LayoutChangeEvent,
   Text,
   TouchableOpacity,
   useWindowDimensions,
+  View,
 } from "react-native";
 
-import AppIcon, { AppIconName } from "../AppIcon";
 import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
 import { useColors } from "../../app/style/theme";
 import { PlatformSwipeTabs } from "../../platform";
+import AppIcon, { AppIconName } from "../AppIcon";
 
 /**
  * Props for the TabNavigation component.
@@ -48,8 +49,11 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
   const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
+  const [containerWidth, setContainerWidth] = useState(0);
   const tabs = ["matches", "players"];
   const activeIndex = Math.max(tabs.indexOf(activeTab), 0);
+  const pageWidth = containerWidth > 0 ? containerWidth : width;
 
   /**
    * Animates to a new tab and updates active tab state.
@@ -69,15 +73,31 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
     return tab === "matches" ? "football" : "people";
   };
 
+  const handleLayout = (event: LayoutChangeEvent) => {
+    const nextWidth = Math.round(event.nativeEvent.layout.width);
+
+    if (nextWidth > 0 && nextWidth !== containerWidth) {
+      setContainerWidth(nextWidth);
+    }
+  };
+
   return (
-    <View style={styles.tabNavContainer}>
-      <View style={styles.tabBarContainer}>
-        <View style={styles.tabBar}>
+    <View style={styles.tabNavContainer} onLayout={handleLayout}>
+      <View
+        testID="GameProgressTabBarContainer"
+        style={[
+          styles.tabBarContainer,
+          isWideLayout && styles.tabBarContainerWide,
+        ]}
+      >
+        <View style={[styles.tabBar, isWideLayout && styles.tabBarWide]}>
           {tabs.map((tab) => (
             <TouchableOpacity
+              testID="GameProgressTabButton"
               key={tab}
               style={[
                 styles.tabButton,
+                isWideLayout && styles.tabButtonWide,
                 activeTab === tab && styles.activeTabButton,
               ]}
               onPress={() => handleTabChange(tab)}
@@ -107,7 +127,7 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
         <PlatformSwipeTabs
           activeIndex={activeIndex}
           onIndexChange={(index) => setActiveTab(tabs[index] ?? tabs[0])}
-          pageWidth={width}
+          pageWidth={pageWidth}
           pageStyle={styles.tabPage}
           containerStyle={{ flex: 1 }}
           refreshControl={refreshControl}

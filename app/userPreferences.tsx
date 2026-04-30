@@ -1,21 +1,22 @@
-import React, { useState } from "react";
-import { ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { useGameStore } from "../store/store";
+import React, { useState } from "react";
+import { ScrollView, useWindowDimensions } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { LeagueEndpoint } from "../constants/leagues";
+import { useGameStore } from "../store/store";
 
-import Header from "../components/preferences/Header";
-import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
-import LeagueSettings from "../components/preferences/LeagueSettings";
-import OnboardingButton from "../components/preferences/OnboardingButton";
 import AddLeagueModal from "../components/preferences/AddLeagueModal";
-import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
-import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
 import AppearanceSettings from "../components/preferences/AppearanceSettings";
-import { useColors } from "./style/theme";
+import Header from "../components/preferences/Header";
+import LeagueSettings from "../components/preferences/LeagueSettings";
+import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
+import OnboardingButton from "../components/preferences/OnboardingButton";
+import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
+import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
 import { ShellScreen } from "../components/ui";
+import { isWideLayout } from "./style/responsive";
+import { useColors } from "./style/theme";
 
 /**
  * User preferences screen for configuring notifications, leagues, appearance, and onboarding.
@@ -25,6 +26,7 @@ import { ShellScreen } from "../components/ui";
  */
 const UserPreferencesScreen = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const {
     soundEnabled,
     setSoundEnabled,
@@ -39,6 +41,7 @@ const UserPreferencesScreen = () => {
   } = useGameStore();
 
   const colors = useColors();
+  const wideLayout = isWideLayout(width);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showAddLeagueModal, setShowAddLeagueModal] = useState(false);
   const [showManageLeaguesModal, setShowManageLeaguesModal] = useState(false);
@@ -62,7 +65,7 @@ const UserPreferencesScreen = () => {
     setLeaguesForAddingModal((prevSelected) =>
       prevSelected.some((l) => l.code === league.code)
         ? prevSelected.filter((l) => l.code !== league.code)
-        : [...prevSelected, league]
+        : [...prevSelected, league],
     );
   };
 
@@ -85,11 +88,16 @@ const UserPreferencesScreen = () => {
   }
 
   return (
-    <ShellScreen padded={false}>
+    <ShellScreen
+      padded={false}
+      centerContent={wideLayout}
+      contentMaxWidth={wideLayout ? 960 : undefined}
+    >
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <Header title="Settings" onBack={goBack} />
 
         <ScrollView
+          testID="UserPreferencesContent"
           style={{ flex: 1, backgroundColor: colors.backgroundLight }}
           contentContainerStyle={{
             paddingHorizontal: 12,

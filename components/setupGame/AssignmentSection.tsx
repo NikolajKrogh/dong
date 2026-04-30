@@ -1,18 +1,20 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Modal,
-  Image,
-} from "react-native";
-import { Player, Match } from "../../store/store";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import React, { useState } from "react";
+import {
+  FlatList,
+  Image,
+  Modal,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { isWideLayout as isWideViewport } from "../../app/style/responsive";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
+import { Match, Player } from "../../store/store";
+import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 /**
  * Props for the AssignmentSection component.
@@ -62,11 +64,13 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   setMatchesPerPlayer,
   handleRandomAssignment,
 }) => {
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const baseStyles = React.useMemo(
     () => createSetupGameStyles(colors),
-    [colors]
+    [colors],
   );
+  const isWideLayout = isWideViewport(width);
   /** State to control the visibility of the manual assignment info modal. */
   const [isModalVisible, setIsModalVisible] = useState(false);
   /** State to control the visibility of the random assignment info modal. */
@@ -98,9 +102,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     setCollapsedPlayers((prev) => {
       const updated = { ...prev };
       players.forEach((player) => {
-        if (updated[player.id] === undefined) {
-          updated[player.id] = true;
-        }
+        updated[player.id] ??= true;
       });
       return updated;
     });
@@ -176,7 +178,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
    * Common match is excluded from the manual assignment section as it's assigned to all players.
    */
   const nonCommonMatches = matches.filter(
-    (match) => match.id !== commonMatchId
+    (match) => match.id !== commonMatchId,
   );
 
   /**
@@ -192,7 +194,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   const renderCompactMatchItem = (
     match: Match,
     playerId: string,
-    index: number
+    index: number,
   ) => {
     const isSelected = playerAssignments[playerId]?.includes(match.id);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
@@ -428,7 +430,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                   style={baseStyles.counterButton}
                   onPress={() =>
                     setMatchesPerPlayer(
-                      Math.min(matchesPerPlayer + 1, matches.length - 1)
+                      Math.min(matchesPerPlayer + 1, matches.length - 1),
                     )
                   }
                 >
@@ -499,44 +501,54 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
             </View>
           </Modal>
 
-          {players.map((player) => (
-            <View
-              key={player.id}
-              style={[
-                baseStyles.assignmentContainer,
-                baseStyles.playerContainer,
-              ]}
-            >
-              <TouchableOpacity
-                style={baseStyles.playerHeader}
-                onPress={() => togglePlayerCollapse(player.id)}
-                activeOpacity={0.7}
+          <View
+            testID="AssignmentPlayersGrid"
+            style={[
+              baseStyles.assignmentPlayersGrid,
+              isWideLayout && baseStyles.assignmentPlayersGridWide,
+            ]}
+          >
+            {players.map((player) => (
+              <View
+                key={player.id}
+                testID="AssignmentPlayerCard"
+                style={[
+                  baseStyles.assignmentContainer,
+                  baseStyles.playerContainer,
+                  isWideLayout && baseStyles.assignmentPlayerCardWide,
+                ]}
               >
-                <View style={baseStyles.playerHeaderLeft}>
-                  <Ionicons
-                    name={
-                      collapsedPlayers[player.id]
-                        ? "chevron-forward"
-                        : "chevron-down"
-                    }
-                    size={18}
-                    color={colors.primary}
-                    style={baseStyles.chevronIcon}
-                  />
-                  <Text style={baseStyles.playerAssignmentName}>
-                    {player.name}
-                  </Text>
-                </View>
-                <View style={baseStyles.playerBadge}>
-                  <Text style={baseStyles.playerBadgeText}>
-                    {getAssignmentCount(player.id)}/{nonCommonMatches.length}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-              {!collapsedPlayers[player.id] &&
-                renderMatches(player, nonCommonMatches)}
-            </View>
-          ))}
+                <TouchableOpacity
+                  style={baseStyles.playerHeader}
+                  onPress={() => togglePlayerCollapse(player.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={baseStyles.playerHeaderLeft}>
+                    <Ionicons
+                      name={
+                        collapsedPlayers[player.id]
+                          ? "chevron-forward"
+                          : "chevron-down"
+                      }
+                      size={18}
+                      color={colors.primary}
+                      style={baseStyles.chevronIcon}
+                    />
+                    <Text style={baseStyles.playerAssignmentName}>
+                      {player.name}
+                    </Text>
+                  </View>
+                  <View style={baseStyles.playerBadge}>
+                    <Text style={baseStyles.playerBadgeText}>
+                      {getAssignmentCount(player.id)}/{nonCommonMatches.length}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                {!collapsedPlayers[player.id] &&
+                  renderMatches(player, nonCommonMatches)}
+              </View>
+            ))}
+          </View>
         </View>
       )}
     </View>

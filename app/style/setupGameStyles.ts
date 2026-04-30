@@ -1,4 +1,4 @@
-import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
+import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import type { useColors } from "./theme";
 
 // --- Base Styles ---
@@ -39,7 +39,7 @@ const makeBaseButton = (): ViewStyle => ({
 });
 
 const makeBaseButtonText = (
-  colors: ReturnType<typeof useColors>
+  colors: ReturnType<typeof useColors>,
 ): TextStyle => ({
   color: colors.textLight,
   fontWeight: "600",
@@ -48,7 +48,7 @@ const makeBaseButtonText = (
 });
 
 const makeBaseSectionTitle = (
-  colors: ReturnType<typeof useColors>
+  colors: ReturnType<typeof useColors>,
 ): TextStyle => ({
   fontSize: 16,
   fontWeight: "bold",
@@ -57,7 +57,7 @@ const makeBaseSectionTitle = (
 });
 
 const makeBaseModalView = (
-  colors: ReturnType<typeof useColors>
+  colors: ReturnType<typeof useColors>,
 ): ViewStyle => ({
   margin: 20,
   backgroundColor: colors.surface,
@@ -89,10 +89,22 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
+    tabContainerWide: {
+      alignSelf: "center",
+      width: "100%",
+      maxWidth: 640,
+      borderRadius: 18,
+      paddingHorizontal: 8,
+      marginBottom: 12,
+    },
     tab: {
       paddingVertical: 8,
       paddingHorizontal: 15,
       borderRadius: 20,
+    },
+    tabWide: {
+      flex: 1,
+      alignItems: "center",
     },
     activeTab: {
       backgroundColor: colors.primary,
@@ -220,6 +232,25 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     matchItemWrapper: {
       // Used for layout, no specific visual style from palette
       marginBottom: 8,
+    },
+    matchItemWrapperWide: {
+      width: "100%",
+      maxWidth: 560,
+      alignSelf: "center",
+    },
+    commonMatchList: {
+      gap: 8,
+    },
+    commonMatchListWide: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "stretch",
+      gap: 16,
+    },
+    commonMatchCardWide: {
+      width: "48%",
+      marginBottom: 0,
     },
     counter: {
       flexDirection: "row",
@@ -370,10 +401,36 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       padding: 8,
       paddingBottom: 80, // For potential floating action buttons
     },
+    matchListLayout: {
+      gap: 16,
+    },
+    matchListWideLayout: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 24,
+    },
+    matchListControls: {
+      width: "100%",
+    },
+    matchListControlsWide: {
+      width: 360,
+      flexShrink: 0,
+    },
+    matchListResults: {
+      flex: 1,
+      minWidth: 0,
+    },
+    matchListResultsWide: {
+      alignSelf: "stretch",
+    },
     playersListContent: {
       // Used by FlatList
       padding: 8,
       paddingBottom: 80,
+    },
+    playersListWideRow: {
+      justifyContent: "space-between",
+      gap: 12,
     },
     matchGridItem: {
       ...makeBaseCard(colors),
@@ -419,6 +476,16 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       display: "flex", // Default for RN, can be removed
       flexDirection: "column",
     },
+    wizardWideLayout: {
+      flexDirection: "row",
+      alignItems: "stretch",
+      width: "100%",
+      maxWidth: 1120,
+      minWidth: 0,
+      alignSelf: "center",
+      gap: 24,
+      padding: 24,
+    },
     stepIndicatorContainer: {
       flexDirection: "row",
       justifyContent: "center",
@@ -427,6 +494,27 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
+    },
+    stepIndicatorWide: {
+      width: 220,
+      flexDirection: "column",
+      alignItems: "stretch",
+      justifyContent: "flex-start",
+      paddingVertical: 24,
+      paddingHorizontal: 16,
+      borderBottomWidth: 0,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 16,
+    },
+    wizardMainPanel: {
+      flex: 1,
+      minWidth: 0,
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      overflow: "hidden",
     },
     currentStepLabel: {
       fontSize: 18,
@@ -442,8 +530,25 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderRadius: 20,
       backgroundColor: colors.backgroundSubtle,
     },
+    stepButtonWide: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
     activeStepButton: {
       backgroundColor: colors.primary,
+    },
+    stepButtonLabel: {
+      color: colors.textMuted,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    stepButtonLabelActive: {
+      color: colors.textLight,
     },
     stepText: {
       color: colors.textMuted,
@@ -458,6 +563,13 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       width: 30,
       backgroundColor: colors.borderLight,
       marginHorizontal: 8,
+    },
+    stepConnectorWide: {
+      width: 2,
+      height: 24,
+      marginHorizontal: 0,
+      marginVertical: 8,
+      alignSelf: "center",
     },
     activeStepConnector: {
       backgroundColor: colors.primary,
@@ -475,10 +587,19 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
     },
+    wizardNavigationWide: {
+      justifyContent: "flex-end",
+      gap: 12,
+      paddingHorizontal: 24,
+      paddingVertical: 20,
+    },
     navButton: {
       ...makeBaseButton(),
       backgroundColor: colors.primary,
       paddingVertical: 10, // Override baseButton if needed
+    },
+    navButtonWide: {
+      minWidth: 148,
     },
     navButtonText: {
       ...makeBaseButtonText(colors),
@@ -1391,6 +1512,10 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       elevation: 2, // Keep consistent elevation
       overflow: "hidden", // For rounded corners with content
     },
+    playerItemWide: {
+      flex: 1,
+      minWidth: 0,
+    },
     playerItemEven: {
       backgroundColor: colors.primaryLighter,
     },
@@ -1850,6 +1975,23 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
 
     chevronIcon: {
       marginRight: 8,
+    },
+
+    assignmentPlayersGrid: {
+      gap: 12,
+    },
+
+    assignmentPlayersGridWide: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 16,
+    },
+
+    assignmentPlayerCardWide: {
+      width: "48%",
+      marginVertical: 0,
     },
 
     gridContainer: {

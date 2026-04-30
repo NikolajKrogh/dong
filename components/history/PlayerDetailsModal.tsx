@@ -1,5 +1,12 @@
 import React, { useMemo } from "react";
-import { View, Text, Modal, ScrollView, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Modal,
+  ScrollView,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
 import { createHistoryStyles } from "../../app/style/historyStyles";
@@ -27,7 +34,12 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   gameHistory,
 }) => {
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
+  const styles = useMemo(
+    () => createHistoryStyles(colors, { screenWidth: width, isWideLayout }),
+    [colors, isWideLayout, width],
+  );
   if (!player) return null;
 
   // Find all games this player participated in
@@ -55,7 +67,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalCenteredView}>
-        <View style={styles.modalView}>
+        <View style={[styles.modalView, isWideLayout && styles.modalViewWide]}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Player Details</Text>
@@ -67,7 +79,10 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
           {/* Modal Content */}
           <ScrollView
             style={styles.modalScrollView}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              isWideLayout && styles.listContentWide,
+            ]}
           >
             {/* Player Name and Overview */}
             <View style={styles.playerDetailsHeader}>

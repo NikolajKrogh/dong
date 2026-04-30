@@ -46,6 +46,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
 
   return (
     <TouchableOpacity
+      testID={`HistoryGameItem-${game.id}`}
       style={styles.gameItem}
       onPress={() => onDetailsPress(game)}
       activeOpacity={0.7} // Add feedback on press

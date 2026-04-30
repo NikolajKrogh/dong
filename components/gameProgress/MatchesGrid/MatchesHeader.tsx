@@ -1,5 +1,11 @@
 import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchesHeaderProps } from "./types";
 import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
@@ -26,8 +32,11 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
+
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, isWideLayout && styles.headerWide]}>
       <Text style={styles.headerTitle}>Matches</Text>
 
       <View style={styles.headerButtons}>

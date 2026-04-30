@@ -3,7 +3,14 @@
  * @description Modal component for sorting history items by various criteria such as date, player count, drinks, etc.
  */
 import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "../../app/style/theme";
 
@@ -50,6 +57,8 @@ const SortHistoryModal: React.FC<SortHistoryModalProps> = ({
   onSortChange,
 }) => {
   const colors = useColors();
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
   const styles = React.useMemo(
     () =>
       StyleSheet.create({
@@ -60,7 +69,7 @@ const SortHistoryModal: React.FC<SortHistoryModalProps> = ({
           alignItems: "center",
         },
         modalContent: {
-          width: "80%",
+          width: Math.min(width - 32, isWideLayout ? 520 : width * 0.8),
           backgroundColor: colors.surface,
           borderRadius: 10,
           padding: 16,
@@ -90,7 +99,7 @@ const SortHistoryModal: React.FC<SortHistoryModalProps> = ({
           color: colors.textSecondary,
         },
       }),
-    [colors]
+    [colors, isWideLayout, width],
   );
 
   /**
@@ -101,6 +110,7 @@ const SortHistoryModal: React.FC<SortHistoryModalProps> = ({
    */
   const renderSortOption = (field: HistorySortField, label: string) => (
     <TouchableOpacity
+      testID={`HistorySortOption-${field}`}
       style={styles.sortOption}
       onPress={() => onSortChange(field)}
     >
@@ -127,7 +137,7 @@ const SortHistoryModal: React.FC<SortHistoryModalProps> = ({
         activeOpacity={1}
         onPress={onClose}
       >
-        <View style={styles.modalContent}>
+        <View testID="HistorySortModalContent" style={styles.modalContent}>
           <Text style={styles.modalTitle}>Sort History</Text>
           {renderSortOption("date", "Date")}
           {renderSortOption("players", "Number of Players")}

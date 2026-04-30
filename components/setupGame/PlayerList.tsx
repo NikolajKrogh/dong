@@ -1,18 +1,20 @@
-import React, { useRef, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Animated,
-} from "react-native";
-import { Player } from "../../store/store";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  FlatList,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { isWideLayout as isWideViewport } from "../../app/style/responsive";
+import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
 import { usePlayerSuggestions } from "../../hooks/usePlayerSuggestions";
+import { Player } from "../../store/store";
 import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
 
 /**
@@ -33,6 +35,26 @@ interface PlayerListProps {
   handleRemovePlayer: (playerId: string) => void;
 }
 
+interface PlayerListEmptyStateProps {
+  styles: ReturnType<typeof createSetupGameStyles>;
+  iconColor: string;
+}
+
+const PlayerListEmptyState = ({
+  styles,
+  iconColor,
+}: PlayerListEmptyStateProps) => {
+  return (
+    <View style={styles.playerEmptyListContainer}>
+      <Ionicons name="people-outline" size={48} color={iconColor} />
+      <Text style={styles.emptyListTitleText}>No players added yet!</Text>
+      <Text style={styles.emptyListSubtitleText}>
+        Add players by typing their name in the input above.
+      </Text>
+    </View>
+  );
+};
+
 /**
  * A component that manages the list of players for a game.
  * It handles adding, removing, and displaying players, and includes a smart
@@ -49,8 +71,10 @@ const PlayerList: React.FC<PlayerListProps> = ({
   handleAddPlayerByName,
   handleRemovePlayer,
 }) => {
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const isWideLayout = isWideViewport(width);
   const inputRef = useRef<TextInput>(null);
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -62,7 +86,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
   // Filter out suggestions for players who are already in the current game.
   const availableSuggestions = playerSuggestions.filter(
-    (suggestion) => !players.some((player) => player.name === suggestion.name)
+    (suggestion) => !players.some((player) => player.name === suggestion.name),
   );
 
   useEffect(() => {
@@ -179,7 +203,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
-      })
+      }),
     );
 
     Animated.parallel(animations).start(() => {
@@ -196,7 +220,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
    * @returns {readonly [string, string, ...string[]]} An array of color strings for the gradient.
    */
   const getPlayerGradient = (
-    index: number
+    index: number,
   ): readonly [string, string, ...string[]] => {
     const gradients: readonly (readonly [string, string, ...string[]])[] = [
       ["#FF416C", "#FF4B2B"] as const,
@@ -280,8 +304,10 @@ const PlayerList: React.FC<PlayerListProps> = ({
       </View>
 
       <FlatList
+        key={isWideLayout ? "players-wide" : "players-compact"}
         data={players}
         keyExtractor={(item) => item.id}
+        numColumns={isWideLayout ? 2 : 1}
         renderItem={({ item, index }) => {
           const fadeAnim = fadeAnims.current[item.id] || new Animated.Value(1);
           fadeAnims.current[item.id] = fadeAnim;
@@ -290,6 +316,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
             <Animated.View
               style={[
                 styles.playerItemContainer,
+                isWideLayout && styles.playerItemWide,
                 {
                   opacity: fadeAnim,
                   transform: [{ scale: fadeAnim }],
@@ -316,21 +343,17 @@ const PlayerList: React.FC<PlayerListProps> = ({
             </Animated.View>
           );
         }}
-        ListEmptyComponent={() => (
-          <View style={styles.playerEmptyListContainer}>
-            <Ionicons
-              name="people-outline"
-              size={48}
-              color={colors.neutralGray}
-            />
-            <Text style={styles.emptyListTitleText}>No players added yet!</Text>
-            <Text style={styles.emptyListSubtitleText}>
-              Add players by typing their name in the input above.
-            </Text>
-          </View>
-        )}
+        ListEmptyComponent={
+          <PlayerListEmptyState
+            styles={styles}
+            iconColor={colors.neutralGray}
+          />
+        }
         scrollEnabled={false}
         contentContainerStyle={styles.playersListContent}
+        columnWrapperStyle={
+          isWideLayout ? styles.playersListWideRow : undefined
+        }
       />
 
       {players.length > 0 && (

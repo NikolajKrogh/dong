@@ -1,6 +1,27 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
+const mockUseWindowDimensions = jest.fn(() => ({
+  width: 390,
+  height: 844,
+  scale: 1,
+  fontScale: 1,
+}));
+
+jest.mock("react-native", () => {
+  const ReactNative = jest.requireActual("react-native");
+
+  return new Proxy(ReactNative, {
+    get(target, prop, receiver) {
+      if (prop === "useWindowDimensions") {
+        return () => mockUseWindowDimensions();
+      }
+
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+});
+
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
@@ -77,19 +98,30 @@ jest.mock("../../components/ui", () => ({
   ShellScreen: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellScreen", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellScreen", ...props },
+      children,
+    );
   },
   ShellSection: ({ children, title, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellSection", ...props },
+    return R.createElement(
+      RN.View,
+      { testID: "ShellSection", ...props },
       title ? R.createElement(RN.Text, null, title) : null,
-      children);
+      children,
+    );
   },
   ShellCard: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellCard", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellCard", ...props },
+      children,
+    );
   },
 }));
 
@@ -97,12 +129,24 @@ jest.mock("../../components/OnboardingScreen", () => () => null);
 
 jest.mock("../../components/preferences/AddLeagueModal", () => () => null);
 jest.mock("../../components/preferences/ManageLeaguesModal", () => () => null);
-jest.mock("../../components/preferences/SelectDefaultLeaguesModal", () => () => null);
+jest.mock(
+  "../../components/preferences/SelectDefaultLeaguesModal",
+  () => () => null,
+);
 
 describe("UserPreferences shell adoption", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseWindowDimensions.mockReturnValue({
+      width: 390,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    });
+  });
+
   it("renders Header, AppearanceSettings, SoundNotificationSettings, LeagueSettings, and OnboardingButton", () => {
-    const Screen =
-      require("../../app/userPreferences").default;
+    const Screen = require("../../app/userPreferences").default;
 
     const renderer = TestRenderer.create(React.createElement(Screen));
 
@@ -119,9 +163,39 @@ describe("UserPreferences shell adoption", () => {
     renderer.unmount();
   });
 
+  it("keeps the shared shell unconstrained on phone-sized viewports", () => {
+    const Screen = require("../../app/userPreferences").default;
+
+    const renderer = TestRenderer.create(React.createElement(Screen));
+    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
+
+    expect(shell.props.centerContent).toBe(false);
+    expect(shell.props.contentMaxWidth).toBeUndefined();
+
+    renderer.unmount();
+  });
+
+  it("centers the shared shell on desktop-wide viewports", () => {
+    mockUseWindowDimensions.mockReturnValue({
+      width: 1280,
+      height: 900,
+      scale: 1,
+      fontScale: 1,
+    });
+
+    const Screen = require("../../app/userPreferences").default;
+
+    const renderer = TestRenderer.create(React.createElement(Screen));
+    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
+
+    expect(shell.props.centerContent).toBe(true);
+    expect(shell.props.contentMaxWidth).toBe(960);
+
+    renderer.unmount();
+  });
+
   it("renders SafeAreaView as root wrapper", () => {
-    const Screen =
-      require("../../app/userPreferences").default;
+    const Screen = require("../../app/userPreferences").default;
 
     const renderer = TestRenderer.create(React.createElement(Screen));
 

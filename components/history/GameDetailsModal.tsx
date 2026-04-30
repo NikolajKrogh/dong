@@ -6,6 +6,7 @@ import {
   Modal,
   ScrollView,
   Image,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
@@ -106,7 +107,12 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   game,
 }) => {
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
+  const styles = useMemo(
+    () => createHistoryStyles(colors, { screenWidth: width, isWideLayout }),
+    [colors, isWideLayout, width],
+  );
   // If no game data is provided, don't render the modal.
   if (!game) return null;
 
@@ -114,6 +120,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   const totalGoals = calculateTotalGoals(game.matches);
   // Total drinks consumed in the selected game session.
   const totalDrinks = calculateTotalDrinks(game.players);
+  const sortedPlayers = [...game.players].sort(
+    (leftPlayer, rightPlayer) =>
+      (rightPlayer.drinksTaken || 0) - (leftPlayer.drinksTaken || 0),
+  );
 
   return (
     <Modal
@@ -123,7 +133,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalCenteredView}>
-        <View style={styles.modalView}>
+        <View
+          testID="GameDetailsModalView"
+          style={[styles.modalView, isWideLayout && styles.modalViewWide]}
+        >
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Game Details</Text>
@@ -135,7 +148,10 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
           {/* Modal Content */}
           <ScrollView
             style={styles.modalScrollView}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              isWideLayout && styles.listContentWide,
+            ]}
           >
             {/* Date Display */}
             <Text style={styles.modalDate}>{formatModalDate(game.date)}</Text>
@@ -197,10 +213,8 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 <Text style={styles.modalSectionTitle}>Players</Text>
               </View>
               {/* Sort players by drinks taken (descending) and map to display */}
-              {game.players
-                .sort((a, b) => (b.drinksTaken || 0) - (a.drinksTaken || 0))
-                .map((player, index) => (
-                  <View key={index} style={styles.modalPlayerCard}>
+              {sortedPlayers.map((player) => (
+                  <View key={player.id} style={styles.modalPlayerCard}>
                     {/* Player Info (Icon and Name) */}
                     <View style={styles.modalPlayerInfo}>
                       <Ionicons
@@ -239,9 +253,9 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                 <Text style={styles.modalSectionTitle}>Matches</Text>
               </View>
               {/* Map through matches to display scorecards */}
-              {game.matches.map((match, index) => (
+              {game.matches.map((match) => (
                 <ModalMatchCard
-                  key={index}
+                  key={match.id}
                   match={match}
                   isCommon={game.commonMatchId === match.id}
                   styles={styles}

@@ -1,29 +1,47 @@
 import { defineConfig, devices } from "@playwright/test";
 import { defineBddConfig } from "playwright-bdd";
+import {
+  DESKTOP_WIDE_VIEWPORT,
+  PHONE_SIZED_VIEWPORT,
+} from "./e2e/steps/fixtures";
 
 const testDir = defineBddConfig({
   features: "e2e/features/**/*.feature",
   steps: "e2e/steps/**/*.steps.ts",
 });
 
+const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? "8081");
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${webPort}`;
+
 export default defineConfig({
   testDir,
   timeout: 30_000,
   retries: 0,
   use: {
-    baseURL: "http://localhost:8081",
+    baseURL,
     headless: true,
     screenshot: "only-on-failure",
   },
   projects: [
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "chromium-phone",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: PHONE_SIZED_VIEWPORT,
+      },
+    },
+    {
+      name: "chromium-desktop",
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: DESKTOP_WIDE_VIEWPORT,
+      },
     },
   ],
   webServer: {
-    command: "npx expo start --web --port 8081",
-    port: 8081,
+    command: `npx expo start --web --port ${webPort}`,
+    port: webPort,
     reuseExistingServer: true,
   },
 });

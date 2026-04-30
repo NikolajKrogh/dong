@@ -50,3 +50,4 @@ android
 /app.config.ts
 
 .vscode/
+.features-gen/

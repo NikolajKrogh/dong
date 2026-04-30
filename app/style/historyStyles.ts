@@ -1,6 +1,5 @@
 import {
   StyleSheet,
-  Dimensions,
   TextStyle,
   ViewStyle,
   ImageStyle,
@@ -8,7 +7,10 @@ import {
 import type { lightColors as Light, darkColors as Dark } from "./theme";
 type Colors = typeof Light | typeof Dark;
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+interface HistoryLayoutOptions {
+  screenWidth?: number;
+  isWideLayout?: boolean;
+}
 
 // --- Base Styles ---
 const makeBaseCard = (colors: Colors): ViewStyle => ({
@@ -68,7 +70,10 @@ const makeBaseHeader = (colors: Colors): ViewStyle => ({
   borderBottomWidth: 1,
   borderBottomColor: colors.borderSubtle,
 });
-export function createHistoryStyles(colors: Colors) {
+export function createHistoryStyles(
+  colors: Colors,
+  layout: HistoryLayoutOptions = {},
+) {
   const baseCard = makeBaseCard(colors);
   const baseText = makeBaseText(colors);
   const textTitle = makeTextTitle(colors);
@@ -76,6 +81,7 @@ export function createHistoryStyles(colors: Colors) {
   const textLabel = makeTextLabel(colors);
   const baseHeader = makeBaseHeader(colors);
   const sortButton = headerSortButton;
+  const screenWidth = layout.screenWidth ?? 390;
 
   return StyleSheet.create({
     // --- Layout & Containers ---
@@ -88,6 +94,11 @@ export function createHistoryStyles(colors: Colors) {
     },
     listContent: {
       padding: 16,
+    },
+    listContentWide: {
+      width: "100%",
+      maxWidth: 1120,
+      alignSelf: "center",
     },
     section: {
       marginBottom: 24,
@@ -109,13 +120,18 @@ export function createHistoryStyles(colors: Colors) {
       shadowRadius: 2,
       elevation: 2,
     },
+    tabsContainerWide: {
+      width: "100%",
+      maxWidth: 1120,
+      alignSelf: "center",
+    },
     tabContentWrapper: {
       flex: 1,
       flexDirection: "row",
-      width: SCREEN_WIDTH * 3, // Assuming 3 tabs
+      width: screenWidth * 3, // Assuming 3 tabs
     },
     tabContent: {
-      width: SCREEN_WIDTH,
+      width: screenWidth,
       flex: 1,
     },
 
@@ -126,6 +142,12 @@ export function createHistoryStyles(colors: Colors) {
       justifyContent: "space-between",
       paddingVertical: 12,
       elevation: 2,
+    } as ViewStyle,
+    pageHeaderWide: {
+      width: "100%",
+      maxWidth: 1120,
+      alignSelf: "center",
+      paddingHorizontal: 20,
     } as ViewStyle,
     headerBackButton: {
       // Back button in pageHeader
@@ -140,6 +162,10 @@ export function createHistoryStyles(colors: Colors) {
     headerSortButton: {
       ...sortButton,
     },
+    rightPlaceholder: {
+      width: 44,
+      height: 44,
+    } as ViewStyle,
 
     // --- Tabs ---
     tab: {
@@ -681,7 +707,7 @@ export function createHistoryStyles(colors: Colors) {
     modalView: {
       backgroundColor: colors.surface,
       borderRadius: 20,
-      width: "90%",
+      width: Math.min(screenWidth - 32, screenWidth * 0.92),
       maxHeight: "90%",
       shadowColor: colors.black,
       shadowOffset: { width: 0, height: 2 },
@@ -689,6 +715,10 @@ export function createHistoryStyles(colors: Colors) {
       shadowRadius: 4,
       elevation: 5,
       overflow: "hidden",
+    } as ViewStyle,
+    modalViewWide: {
+      width: Math.min(screenWidth - 48, 960),
+      maxHeight: "88%",
     } as ViewStyle,
     modalHeader: {
       ...baseHeader,

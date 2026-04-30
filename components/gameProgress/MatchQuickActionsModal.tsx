@@ -10,11 +10,11 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  Dimensions,
   StyleSheet,
   SafeAreaView,
   Animated,
   Image,
+  useWindowDimensions,
 } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 import { Match, Player } from "../../store/store";
@@ -47,7 +47,6 @@ interface MatchQuickActionsModalProps {
   liveMatches: MatchWithScore[];
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const useThemed = () => useColors();
 
 /**
@@ -176,7 +175,7 @@ function polarToCartesian(
   radius: number,
   angleInDegrees: number
 ) {
-  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180;
   return {
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians),
@@ -336,7 +335,28 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   handleGoalDecrement,
 }) => {
   const colors = useThemed();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isWideLayout = screenWidth >= 1024;
+  let playerColumnCount = 1;
+
+  if (isWideLayout) {
+    playerColumnCount = 3;
+  } else if (screenWidth >= 720) {
+    playerColumnCount = 2;
+  }
+
+  const modalWidth = Math.min(screenWidth - 32, isWideLayout ? 960 : 420);
+  const styles = useMemo(
+    () =>
+      createStyles(
+        colors,
+        modalWidth,
+        screenHeight,
+        isWideLayout,
+        playerColumnCount,
+      ),
+    [colors, isWideLayout, modalWidth, playerColumnCount, screenHeight],
+  );
   const [activeTab, setActiveTab] = useState("overview");
 
   // Animation values for UI elements
@@ -398,7 +418,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     return players.filter(
       (p) =>
         match.id === commonMatchId ||
-        (playerAssignments[p.id] && playerAssignments[p.id].includes(match.id))
+        playerAssignments[p.id]?.includes(match.id)
     );
   }, [match, players, commonMatchId, playerAssignments]);
 
@@ -511,15 +531,15 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
    * @returns {Player[][]} 2D array; each sub-array is a column of players.
    */
   const playerColumns = useMemo(() => {
-    const result: Player[][] = [[], [], []];
+    const result: Player[][] = Array.from({ length: playerColumnCount }, () => []);
 
     affectedPlayers.forEach((player, index) => {
-      const columnIndex = index % 3;
+      const columnIndex = index % playerColumnCount;
       result[columnIndex].push(player);
     });
 
     return result;
-  }, [affectedPlayers]);
+  }, [affectedPlayers, playerColumnCount]);
 
   // If no match is selected or the modal is not visible, render nothing.
   if (!match || !isVisible) return null;
@@ -824,7 +844,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                               <View style={styles.scorerContainer}>
                                 {homeTeamScorers.map((scorer, index) => (
                                   <Text
-                                    key={`home-${index}`}
+                                    key={`home-${scorer.name}-${scorer.time}-${scorer.teamId}`}
                                     style={styles.scorerText}
                                   >
                                     {scorer.name} {scorer.time}
@@ -842,7 +862,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                               <View style={styles.scorerContainer}>
                                 {awayTeamScorers.map((scorer, index) => (
                                   <Text
-                                    key={`away-${index}`}
+                                    key={`away-${scorer.name}-${scorer.time}-${scorer.teamId}`}
                                     style={styles.scorerText}
                                   >
                                     {scorer.name} {scorer.time}
@@ -878,7 +898,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                             (column, columnIndex) =>
                               column.length > 0 && (
                                 <View
-                                  key={`column-${columnIndex}`}
+                                  key={column.map((player) => player.id).join("-") || `empty-${columnIndex}`}
                                   style={styles.playerColumn}
                                 >
                                   {column.map((player) => (
@@ -1029,7 +1049,13 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 };
 
 /** Style creator for the MatchQuickActionsModal and its sub-components. */
-const createStyles = (colors: ReturnType<typeof useColors>) =>
+const createStyles = (
+  colors: ReturnType<typeof useColors>,
+  modalWidth: number,
+  screenHeight: number,
+  isWideLayout: boolean,
+  playerColumnCount: number,
+) =>
   StyleSheet.create({
     overlayTouchable: {
       position: "absolute",
@@ -1044,11 +1070,11 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      padding: 16,
+      padding: isWideLayout ? 24 : 16,
     },
     modalContainer: {
-      width: SCREEN_WIDTH * 0.85,
-      maxWidth: 400,
+      width: modalWidth,
+      maxWidth: isWideLayout ? 960 : 420,
       backgroundColor: colors.surface,
       borderRadius: 16,
       overflow: "hidden",
@@ -1058,6 +1084,7 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       shadowRadius: 6,
       elevation: 5,
       zIndex: 1001,
+      maxHeight: Math.min(screenHeight * 0.84, isWideLayout ? 760 : 680),
     },
     modalInnerContainer: {
       width: "100%",
@@ -1130,7 +1157,7 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     // Tab container
     tabContainer: {
       flexDirection: "row",
-      justifyContent: "space-around",
+      justifyContent: isWideLayout ? "center" : "space-around",
       width: "100%",
       marginBottom: 12,
     },
@@ -1262,14 +1289,15 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     },
     // Player section - super compact layout
     compactContainer: {
-      flexDirection: "row",
+      flexDirection: playerColumnCount === 1 ? "column" : "row",
       width: "100%",
       marginBottom: 12,
       justifyContent: "flex-start",
     },
     playerColumn: {
-      flex: 1,
-      marginHorizontal: 2,
+      flex: playerColumnCount === 1 ? undefined : 1,
+      width: playerColumnCount === 1 ? "100%" : undefined,
+      marginHorizontal: playerColumnCount === 1 ? 0 : 2,
     },
     compactPlayerCard: {
       backgroundColor: colors.backgroundSubtle,
