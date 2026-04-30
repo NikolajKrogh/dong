@@ -1,5 +1,5 @@
-import { StyleSheet, ViewStyle, TextStyle, ImageStyle } from "react-native";
-import type { lightColors as Light, darkColors as Dark } from "./theme";
+import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
+import type { darkColors as Dark, lightColors as Light } from "./theme";
 type Colors = typeof Light | typeof Dark;
 // --- Color Palette ---
 
@@ -174,7 +174,8 @@ export default function createStyles(colors: Colors) {
     },
     scrollContainer: {
       flexGrow: 1,
-      paddingBottom: 30,
+      paddingHorizontal: 16,
+      paddingBottom: 96,
     },
     smallButtonText: {
       color: colors.textLight,

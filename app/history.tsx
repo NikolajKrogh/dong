@@ -2,35 +2,39 @@
  * @file history.tsx
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
+import { useNavigation } from "@react-navigation/native";
 import React, { useCallback, useMemo, useReducer } from "react";
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
+  FlatList,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { useGameStore } from "../store/store";
-import { createHistoryStyles } from "./style/historyStyles";
-import { GameSession, PlayerStat } from "../components/history/historyTypes";
-import AppIcon from "../components/AppIcon";
-import GameHistoryItem from "../components/history/GameHistoryItem";
-import GameDetailsModal from "../components/history/GameDetailsModal";
-import PlayerStatsList from "../components/history/PlayerStatsList";
-import OverallStats from "../components/history/OverallStats";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AppIcon from "../components/AppIcon";
+import GameDetailsModal from "../components/history/GameDetailsModal";
+import GameHistoryItem from "../components/history/GameHistoryItem";
+import HistoryHeader from "../components/history/HistoryHeader";
+import { GameSession, PlayerStat } from "../components/history/historyTypes";
 import {
   calculateLifetimePlayerStats,
   calculateTotalDrinks,
   calculateTotalGoals,
 } from "../components/history/historyUtils";
-import { useColors } from "./style/theme";
+import OverallStats from "../components/history/OverallStats";
+import PlayerStatsList from "../components/history/PlayerStatsList";
 import SortHistoryModal, {
   HistorySortField,
   SortDirection,
 } from "../components/history/SortHistoryModal";
+import { ShellScreen } from "../components/ui";
+import { useGameStore } from "../store/store";
+import { createHistoryStyles } from "./style/historyStyles";
+import { isWideLayout } from "./style/responsive";
+import { useColors } from "./style/theme";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];
@@ -131,6 +135,8 @@ const historyViewReducer = (
  */
 const HistoryScreen = () => {
   const navigation = useNavigation();
+  const { width } = useWindowDimensions();
+  const wideLayout = isWideLayout(width);
   const { history } = useGameStore();
   const [viewState, dispatch] = useReducer(
     historyViewReducer,
@@ -181,7 +187,14 @@ const HistoryScreen = () => {
   };
 
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  const styles = useMemo(
+    () =>
+      createHistoryStyles(colors, {
+        screenWidth: width,
+        isWideLayout: wideLayout,
+      }),
+    [colors, wideLayout, width],
+  );
 
   const playerStats = useMemo<PlayerStat[]>(() => {
     return history.length > 0 ? calculateLifetimePlayerStats(history) : [];
@@ -250,27 +263,29 @@ const HistoryScreen = () => {
   if (!hasGames && !loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.pageHeader}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.headerBackButton}
-          >
-            <AppIcon name="arrow-back" size={24} color={colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Game History</Text>
-          <View style={styles.rightPlaceholder} />
-        </View>
-        <View style={styles.emptyStateContainer}>
-          <AppIcon
-            name="calendar-outline"
-            size={60}
-            color={colors.neutralGray}
+        <ShellScreen
+          padded={false}
+          centerContent={wideLayout}
+          contentMaxWidth={wideLayout ? 1120 : undefined}
+        >
+          <HistoryHeader
+            onBack={() => navigation.goBack()}
+            showSortButton={false}
+            sortDirection="desc"
+            onOpenSortModal={() => undefined}
           />
-          <Text style={styles.emptyStateText}>
-            No game history yet. Play some games to see your stats and history
-            here!
-          </Text>
-        </View>
+          <View style={styles.emptyStateContainer}>
+            <AppIcon
+              name="calendar-outline"
+              size={60}
+              color={colors.neutralGray}
+            />
+            <Text style={styles.emptyStateText}>
+              No game history yet. Play some games to see your stats and history
+              here!
+            </Text>
+          </View>
+        </ShellScreen>
       </SafeAreaView>
     );
   }
@@ -278,112 +293,110 @@ const HistoryScreen = () => {
   // --- Main Content Rendering ---
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header with integrated sort controls */}
-      <View style={styles.pageHeader}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.headerBackButton}
+      <ShellScreen
+        padded={false}
+        centerContent={wideLayout}
+        contentMaxWidth={wideLayout ? 1120 : undefined}
+      >
+        <HistoryHeader
+          onBack={() => navigation.goBack()}
+          showSortButton={activeTabIndex === 0}
+          sortDirection={sortDirection}
+          onOpenSortModal={() =>
+            dispatch({ type: "toggleSortModal", visible: true })
+          }
+        />
+
+        {/* Sort Modal */}
+        <SortHistoryModal
+          visible={sortModalVisible}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onClose={() => dispatch({ type: "toggleSortModal", visible: false })}
+          onSortChange={handleSortChange}
+        />
+
+        {/* Tab Navigation Buttons */}
+        <View
+          style={[styles.tabsContainer, wideLayout && styles.tabsContainerWide]}
         >
-          <AppIcon name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Game History</Text>
-        {activeTabIndex === 0 && (
-          <TouchableOpacity
-            style={styles.headerSortButton}
-            onPress={() => dispatch({ type: "toggleSortModal", visible: true })}
-          >
-            <AppIcon
-              name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
-              size={20}
-              color={colors.primary}
-              style={{ marginRight: 4 }}
-            />
-            <AppIcon name="funnel-outline" size={20} color={colors.primary} />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Sort Modal */}
-      <SortHistoryModal
-        visible={sortModalVisible}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        onClose={() => dispatch({ type: "toggleSortModal", visible: false })}
-        onSortChange={handleSortChange}
-      />
-
-      {/* Tab Navigation Buttons */}
-      <View style={styles.tabsContainer}>
-        {TABS.map((tabName, index) => (
-          <TouchableOpacity
-            key={tabName}
-            style={[styles.tab, activeTabIndex === index && styles.activeTab]}
-            onPress={() => switchTab(index)}
-          >
-            <View style={styles.iconRow}>
-              <AppIcon
-                name={TAB_ICONS[index]}
-                size={18}
-                color={
-                  activeTabIndex === index ? colors.primary : colors.textMuted
-                }
-              />
-              <Text
-                style={[
-                  styles.tabText,
-                  activeTabIndex === index && styles.activeTabText,
-                ]}
-              >
-                {tabName}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Tab Content Area */}
-      <View style={{ flex: 1 }}>
-        <View style={{ flex: 1 }}>
-          {activeTabIndex === 0 && (
-            <View style={styles.tabContent}>
-              <FlatList
-                data={sortedHistory}
-                keyExtractor={(item) => item.id}
-                renderItem={renderGameItem}
-                contentContainerStyle={styles.listContent}
-                key={`games-list-${sortField}-${sortDirection}`}
-              />
-            </View>
-          )}
-
-          {activeTabIndex === 1 && (
-            <View style={styles.tabContent}>
-              {hasPlayers ? (
-                <ScrollView key="players-scroll">
-                  <PlayerStatsList playerStats={playerStats} />
-                </ScrollView>
-              ) : (
-                <View style={styles.emptyTabContent}>
-                  <AppIcon
-                    name="people-outline"
-                    size={40}
-                    color={colors.neutralGray}
-                  />
-                  <Text style={styles.emptyStateText}>No player data yet.</Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {activeTabIndex === 2 && (
-            <View style={styles.tabContent}>
-              <ScrollView key="stats-scroll">
-                <OverallStats history={history} />
-              </ScrollView>
-            </View>
-          )}
+          {TABS.map((tabName, index) => (
+            <TouchableOpacity
+              key={tabName}
+              testID={`HistoryTab-${tabName}`}
+              style={[styles.tab, activeTabIndex === index && styles.activeTab]}
+              onPress={() => switchTab(index)}
+            >
+              <View style={styles.iconRow}>
+                <AppIcon
+                  name={TAB_ICONS[index]}
+                  size={18}
+                  color={
+                    activeTabIndex === index ? colors.primary : colors.textMuted
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTabIndex === index && styles.activeTabText,
+                  ]}
+                >
+                  {tabName}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
-      </View>
+
+        {/* Tab Content Area */}
+        <View style={{ flex: 1 }}>
+          <View style={{ flex: 1 }}>
+            {activeTabIndex === 0 && (
+              <View style={styles.tabContent}>
+                <FlatList
+                  data={sortedHistory}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderGameItem}
+                  contentContainerStyle={[
+                    styles.listContent,
+                    wideLayout && styles.listContentWide,
+                  ]}
+                  key={`games-list-${sortField}-${sortDirection}`}
+                />
+              </View>
+            )}
+
+            {activeTabIndex === 1 && (
+              <View style={styles.tabContent}>
+                {hasPlayers ? (
+                  <ScrollView key="players-scroll">
+                    <PlayerStatsList playerStats={playerStats} />
+                  </ScrollView>
+                ) : (
+                  <View style={styles.emptyTabContent}>
+                    <AppIcon
+                      name="people-outline"
+                      size={40}
+                      color={colors.neutralGray}
+                    />
+                    <Text style={styles.emptyStateText}>
+                      No player data yet.
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {activeTabIndex === 2 && (
+              <View style={styles.tabContent}>
+                <ScrollView key="stats-scroll">
+                  <OverallStats history={history} />
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </View>
+      </ShellScreen>
 
       {/* Game Details Modal - Render conditionally */}
       {isDetailVisible && selectedGame && (

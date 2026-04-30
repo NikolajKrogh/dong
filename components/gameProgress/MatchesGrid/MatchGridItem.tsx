@@ -95,6 +95,8 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
       style={styles.gridItem}
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
     >
       {/* Common indicator */}
       {match.id === commonMatchId && <View style={styles.commonIndicator} />}

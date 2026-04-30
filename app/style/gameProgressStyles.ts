@@ -109,6 +109,16 @@ export function createGameProgressStyles(colors: Colors) {
     listContainer: {
       padding: 10,
     },
+    playersListContentWide: {
+      width: "100%",
+      maxWidth: 1120,
+      alignSelf: "center",
+      paddingHorizontal: 16,
+      paddingBottom: 96,
+    },
+    playersListRow: {
+      gap: 12,
+    },
 
     // ============ Tab Navigation Styles ============
     tabContainer: {
@@ -168,6 +178,12 @@ export function createGameProgressStyles(colors: Colors) {
       paddingHorizontal: 12,
       paddingVertical: 8,
       marginBottom: 4,
+    },
+    headerWide: {
+      width: "100%",
+      maxWidth: 1120,
+      alignSelf: "center",
+      paddingHorizontal: 16,
     },
     headerTitle: {
       fontSize: 18,
@@ -703,6 +719,10 @@ export function createGameProgressStyles(colors: Colors) {
       ...baseCard,
       padding: 16,
       marginBottom: 12,
+    },
+    playerCardWide: {
+      flex: 1,
+      minWidth: 0,
     },
     cardHeader: {
       flexDirection: "row",
@@ -1296,6 +1316,13 @@ export function createGameProgressStyles(colors: Colors) {
     gridRow: {
       flex: 1,
       justifyContent: "space-between",
+      gap: 12,
+    },
+    gridContainerWide: {
+      width: "100%",
+      maxWidth: 1120,
+      alignSelf: "center",
+      paddingHorizontal: 16,
     },
 
     // ============ Tab Navigation Local Styles ============
@@ -1316,6 +1343,11 @@ export function createGameProgressStyles(colors: Colors) {
       marginHorizontal: 16,
       marginVertical: 12,
     },
+    tabBarContainerWide: {
+      width: "100%",
+      maxWidth: 560,
+      alignSelf: "center",
+    },
     tabBar: {
       flexDirection: "row",
       backgroundColor: colors.surface,
@@ -1327,6 +1359,9 @@ export function createGameProgressStyles(colors: Colors) {
       elevation: 2,
       overflow: "hidden",
     },
+    tabBarWide: {
+      alignSelf: "center",
+    },
     tabButton: {
       flex: 1,
       flexDirection: "row",
@@ -1334,6 +1369,9 @@ export function createGameProgressStyles(colors: Colors) {
       justifyContent: "center",
       paddingVertical: 12,
       backgroundColor: colors.surface,
+    },
+    tabButtonWide: {
+      paddingVertical: 14,
     },
     activeTabButton: {
       backgroundColor: colors.primaryLight,

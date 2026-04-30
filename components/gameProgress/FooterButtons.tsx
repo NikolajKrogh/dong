@@ -1,19 +1,15 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Modal,
-  Dimensions,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  Animated,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { useColors } from "../../app/style/theme";
-
-// Get screen dimensions
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 /**
  * Props for FooterButtons.
@@ -41,7 +37,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   const colors = useColors();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
-  const rotation = useState(new Animated.Value(0))[0];
+  const [rotation] = useState(() => new Animated.Value(0));
 
   /** Toggle expandable menu visibility with rotation animation. */
   const toggleMenu = () => {
@@ -93,15 +89,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
           onPress={closeMenu}
         >
           {/* Menu content */}
-          <View
-            style={[
-              styles.menuContainer,
-              {
-                left: SCREEN_WIDTH * 0.05,
-                bottom: SCREEN_HEIGHT * 0.1,
-              },
-            ]}
-          >
+          <View style={styles.menuContainer}>
             <View style={styles.expandableMenu}>
               <TouchableOpacity style={styles.menuItem} onPress={goToHome}>
                 <Ionicons
@@ -146,7 +134,12 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
       {/* Menu toggle button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={toggleMenu}
+          accessibilityRole="button"
+          accessibilityLabel="Open game actions"
+        >
           <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
             <Ionicons name="add" size={24} color={colors.white} />
           </Animated.View>
@@ -163,9 +156,12 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
     },
     modalOverlay: {
       flex: 1,
+      justifyContent: "flex-end",
+      paddingBottom: 74,
+      paddingHorizontal: 24,
     },
     menuContainer: {
-      position: "absolute",
+      alignSelf: "flex-start",
     },
     expandableMenu: {
       backgroundColor: colors.surface,

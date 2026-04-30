@@ -1,9 +1,18 @@
 import React from "react";
-import { YStack, Text, styled, GetProps } from "tamagui";
+import { GetProps, Text, YStack, styled } from "tamagui";
 
 const ShellSectionFrame = styled(YStack, {
   gap: "$2",
   marginBottom: "$4",
+  width: "100%",
+
+  variants: {
+    centered: {
+      true: {
+        alignSelf: "center",
+      },
+    },
+  } as const,
 });
 
 const ShellSectionTitle = styled(Text, {
@@ -14,15 +23,17 @@ const ShellSectionTitle = styled(Text, {
 
 type ShellSectionProps = GetProps<typeof ShellSectionFrame> & {
   title?: string;
+  maxWidth?: number;
 };
 
 export function ShellSection({
   title,
   children,
+  maxWidth,
   ...props
 }: ShellSectionProps) {
   return (
-    <ShellSectionFrame {...props}>
+    <ShellSectionFrame maxWidth={maxWidth} {...props}>
       {title ? <ShellSectionTitle>{title}</ShellSectionTitle> : null}
       {children}
     </ShellSectionFrame>

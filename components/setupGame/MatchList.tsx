@@ -1,30 +1,32 @@
 import React, { FC, useCallback, useEffect, useMemo } from "react";
 import {
-  View,
-  Text,
-  FlatList,
   ActivityIndicator,
+  FlatList,
+  Text,
   TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
-import { Match, useGameStore } from "../../store/store";
-import AppIcon from "../AppIcon";
+import { isWideLayout as isWideViewport } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
-import MatchFilter from "./MatchFilter";
-import TeamSelectionRow from "./TeamSelectionRow";
-import MatchItem from "./MatchItem";
-import LeagueFilter from "./LeagueFilter";
 import { useMatchData } from "../../hooks/useMatchData";
-import { useTeamData } from "../../hooks/useTeamData";
-import { filterMatchesByDateAndTime } from "../../hooks/useTeamFiltering";
 import {
   normalizeMatchTeamName,
   useMatchListFilters,
 } from "../../hooks/useMatchListFilters";
 import { useMatchProcessing } from "../../hooks/useMatchProcessing";
+import { useTeamData } from "../../hooks/useTeamData";
+import { filterMatchesByDateAndTime } from "../../hooks/useTeamFiltering";
 import { PlatformAnimation } from "../../platform";
+import { Match, useGameStore } from "../../store/store";
+import AppIcon from "../AppIcon";
+import LeagueFilter from "./LeagueFilter";
+import MatchFilter from "./MatchFilter";
+import MatchItem from "./MatchItem";
+import TeamSelectionRow from "./TeamSelectionRow";
 
 /**
  * @interface MatchListProps
@@ -79,8 +81,10 @@ const MatchList: FC<MatchListProps> = ({
   handleRemoveMatch,
   setGlobalMatches,
 }) => {
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
+  const isWideLayout = isWideViewport(width);
   const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore();
   const {
     isLoading: isTeamLoading,
@@ -305,74 +309,100 @@ const MatchList: FC<MatchListProps> = ({
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Matches</Text>
 
-      <LeagueFilter
-        availableLeagues={availableLeagues}
-        selectedLeagues={selectedLeagues}
-        handleLeagueChange={handleLeagueChange}
-      />
-
-      <MatchFilter
-        selectedDate={selectedDate}
-        startTime={startTime}
-        endTime={endTime}
-        setSelectedDate={setSelectedDate}
-        setStartTime={setStartTime}
-        setEndTime={setEndTime}
-        handleAddAllFilteredMatches={handleAddAllFilteredMatches}
-        isTimeFilterActive={isTimeFilterActive}
-        isDateFilterActive={isDateFilterActive}
-        filteredMatches={filteredMatches}
-        isLoading={isLoading}
-      />
-
-      {content}
-
-      {processingState.isProcessing && (
-        <View style={styles.processingIndicator}>
-          <Text>
-            Processing matches: {processingState.matchesAdded} added,{" "}
-            {processingState.matchesSkipped} skipped
-          </Text>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      )}
-
-      <FlatList
-        data={matches}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMatchItem}
-        ListEmptyComponent={
-          <View style={styles.matchEmptyListContainer}>
-            <AppIcon
-              name="football-outline"
-              size={48}
-              color={colors.textMuted}
-            />
-            <Text style={styles.emptyListTitleText}>No matches added yet!</Text>
-            <Text style={styles.emptyListSubtitleText}>
-              Use the filters above to find matches, or the team selectors to
-              add your first match.
-            </Text>
-          </View>
-        }
-        scrollEnabled={false}
-        contentContainerStyle={styles.matchesGridContainer}
-      />
-
-      {matches.length > 0 && (
-        <TouchableOpacity
-          style={styles.clearAllButton}
-          onPress={handleClearAllMatches}
+      <View
+        testID="MatchListLayout"
+        style={[
+          styles.matchListLayout,
+          isWideLayout && styles.matchListWideLayout,
+        ]}
+      >
+        <View
+          testID="MatchListControls"
+          style={[
+            styles.matchListControls,
+            isWideLayout && styles.matchListControlsWide,
+          ]}
         >
-          <AppIcon
-            name="trash-outline"
-            size={16}
-            color={colors.textLight}
-            style={{ marginRight: 5 }}
+          <LeagueFilter
+            availableLeagues={availableLeagues}
+            selectedLeagues={selectedLeagues}
+            handleLeagueChange={handleLeagueChange}
           />
-          <Text style={styles.clearAllButtonText}>Clear All Matches</Text>
-        </TouchableOpacity>
-      )}
+
+          <MatchFilter
+            selectedDate={selectedDate}
+            startTime={startTime}
+            endTime={endTime}
+            setSelectedDate={setSelectedDate}
+            setStartTime={setStartTime}
+            setEndTime={setEndTime}
+            handleAddAllFilteredMatches={handleAddAllFilteredMatches}
+            isTimeFilterActive={isTimeFilterActive}
+            isDateFilterActive={isDateFilterActive}
+            filteredMatches={filteredMatches}
+            isLoading={isLoading}
+          />
+
+          {content}
+
+          {processingState.isProcessing && (
+            <View style={styles.processingIndicator}>
+              <Text>
+                Processing matches: {processingState.matchesAdded} added,{" "}
+                {processingState.matchesSkipped} skipped
+              </Text>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          )}
+        </View>
+
+        <View
+          testID="MatchListResults"
+          style={[
+            styles.matchListResults,
+            isWideLayout && styles.matchListResultsWide,
+          ]}
+        >
+          <FlatList
+            data={matches}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMatchItem}
+            ListEmptyComponent={
+              <View style={styles.matchEmptyListContainer}>
+                <AppIcon
+                  name="football-outline"
+                  size={48}
+                  color={colors.textMuted}
+                />
+                <Text style={styles.emptyListTitleText}>
+                  No matches added yet!
+                </Text>
+                <Text style={styles.emptyListSubtitleText}>
+                  Use the filters above to find matches, or the team selectors
+                  to add your first match.
+                </Text>
+              </View>
+            }
+            scrollEnabled={false}
+            contentContainerStyle={styles.matchesGridContainer}
+          />
+
+          {matches.length > 0 && (
+            <TouchableOpacity
+              style={styles.clearAllButton}
+              onPress={handleClearAllMatches}
+            >
+              <AppIcon
+                name="trash-outline"
+                size={16}
+                color={colors.textLight}
+                style={{ marginRight: 5 }}
+              />
+              <Text style={styles.clearAllButtonText}>Clear All Matches</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
     </View>
   );
 };

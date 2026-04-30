@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "brandkit": {
+      "source": "leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/brandkit/SKILL.md",
+      "computedHash": "735007879f5110aeae1e981a53fe74a12afde70347f9773dacd50e4697a091bf"
+    }
+  }
+}

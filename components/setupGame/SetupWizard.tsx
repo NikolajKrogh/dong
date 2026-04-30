@@ -1,9 +1,23 @@
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { isWideLayout } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
-import { useRouter } from "expo-router";
 import AppIcon, { AppIconName } from "../AppIcon";
+
+const STEP_DEFINITIONS: { name: string; icon: AppIconName }[] = [
+  { name: "Players", icon: "add-circle" },
+  { name: "Matches", icon: "game-controller-outline" },
+  { name: "Common", icon: "tv-outline" },
+  { name: "Assign", icon: "git-network" },
+];
 
 /**
  * Props for setup wizard.
@@ -55,188 +69,205 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
 }) => {
   // Active step index
   const [currentStep, setCurrentStep] = useState(0);
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
-
-  // Step meta (label + icon)
-  const steps: {
-    name: string;
-    icon: AppIconName;
-  }[] = [
-    { name: "Players", icon: "add-circle" },
-    { name: "Matches", icon: "game-controller-outline" },
-    { name: "Common", icon: "tv-outline" },
-    { name: "Assign", icon: "git-network" },
-  ];
+  const wideLayout = isWideLayout(width);
   const router = useRouter();
 
-  return (
-    <View style={styles.wizardContainer}>
-      {/* Progress Indicator */}
-      <View style={styles.stepIndicatorContainer}>
-        {steps.map((step, index) => (
-          <React.Fragment key={step.name}>
-            <TouchableOpacity
-              style={[
-                styles.stepButton,
-                currentStep >= index && styles.activeStepButton,
-              ]}
-              onPress={() => {
-                // Logic to allow navigation to a step if prerequisites are met
-                if (
-                  (index === 1 && canAdvanceToMatches) ||
-                  (index === 2 && canAdvanceToCommonMatch) ||
-                  (index === 3 && canAdvanceToAssign) ||
-                  index === 0 // Always allow navigation to the first step
-                ) {
-                  setCurrentStep(index);
-                }
-              }}
-              disabled={
-                // Disable step buttons if prerequisites are not met
-                (index === 1 && !canAdvanceToMatches) ||
-                (index === 2 && !canAdvanceToCommonMatch) ||
-                (index === 3 && !canAdvanceToAssign)
-              }
-            >
-              <AppIcon
-                name={step.icon}
-                size={24}
-                color={
-                  currentStep >= index ? colors.textLight : colors.textMuted
-                }
-              />
-            </TouchableOpacity>
+  const stepAvailability = [
+    true,
+    canAdvanceToMatches,
+    canAdvanceToCommonMatch,
+    canAdvanceToAssign,
+  ];
+  const stepPanels = [playersStep, matchesStep, commonMatchStep, assignStep];
+  const canAdvanceFromCurrentStep = stepAvailability[currentStep + 1] ?? true;
+  const isFirstStep = currentStep === 0;
+  const isFinalStep = currentStep === STEP_DEFINITIONS.length - 1;
+  const currentStepContent = stepPanels[currentStep] ?? null;
 
-            {/* Render connector lines between steps */}
-            {index < steps.length - 1 && (
-              <View
+  const handleNextPress = () => {
+    if (currentStep === 0 && newPlayerName?.trim() && handleAddPlayer) {
+      handleAddPlayer();
+      setTimeout(() => {
+        setCurrentStep(Math.min(STEP_DEFINITIONS.length - 1, currentStep + 1));
+      }, 50);
+      return;
+    }
+
+    setCurrentStep(Math.min(STEP_DEFINITIONS.length - 1, currentStep + 1));
+  };
+
+  return (
+    <View
+      testID="SetupWizardRoot"
+      style={[styles.wizardContainer, wideLayout && styles.wizardWideLayout]}
+    >
+      {/* Progress Indicator */}
+      <View
+        testID="SetupWizardSteps"
+        style={[
+          styles.stepIndicatorContainer,
+          wideLayout && styles.stepIndicatorWide,
+        ]}
+      >
+        {STEP_DEFINITIONS.map((step, index) => {
+          const canNavigateToStep = stepAvailability[index] ?? false;
+
+          return (
+            <React.Fragment key={step.name}>
+              <TouchableOpacity
                 style={[
-                  styles.stepConnector,
-                  currentStep > index && styles.activeStepConnector, // Connector color changes if the step is passed
+                  styles.stepButton,
+                  wideLayout && styles.stepButtonWide,
+                  currentStep >= index && styles.activeStepButton,
                 ]}
-              />
-            )}
-          </React.Fragment>
-        ))}
+                onPress={() => {
+                  if (canNavigateToStep) {
+                    setCurrentStep(index);
+                  }
+                }}
+                disabled={!canNavigateToStep}
+              >
+                <AppIcon
+                  name={step.icon}
+                  size={24}
+                  color={
+                    currentStep >= index ? colors.textLight : colors.textMuted
+                  }
+                />
+                {wideLayout ? (
+                  <Text
+                    style={[
+                      styles.stepButtonLabel,
+                      currentStep >= index && styles.stepButtonLabelActive,
+                    ]}
+                  >
+                    {step.name}
+                  </Text>
+                ) : null}
+              </TouchableOpacity>
+
+              {/* Render connector lines between steps */}
+              {index < STEP_DEFINITIONS.length - 1 && (
+                <View
+                  style={[
+                    styles.stepConnector,
+                    wideLayout && styles.stepConnectorWide,
+                    currentStep > index && styles.activeStepConnector, // Connector color changes if the step is passed
+                  ]}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
       </View>
 
-      {/* Step Content - Now scrollable */}
-      <ScrollView
-        style={styles.stepContentScroll}
-        showsVerticalScrollIndicator={true}
-      >
-        {/* Conditionally render the content for the current step */}
-        {currentStep === 0 && playersStep}
-        {currentStep === 1 && matchesStep}
-        {currentStep === 2 && commonMatchStep}
-        {currentStep === 3 && assignStep}
-      </ScrollView>
+      <View style={styles.wizardMainPanel}>
+        {/* Step Content - Now scrollable */}
+        <ScrollView
+          style={styles.stepContentScroll}
+          showsVerticalScrollIndicator={true}
+        >
+          {currentStepContent}
+        </ScrollView>
 
-      {/* Navigation Buttons */}
-      <View style={styles.wizardNavigation}>
-        {/* Back/Home button */}
-        {currentStep === 0 ? (
-          // Home button on the first step
-          <TouchableOpacity
-            style={[styles.navButton, { backgroundColor: colors.secondary }]}
-            onPress={() => router.push("./")}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <AppIcon
-                name="home"
-                size={20}
-                color={colors.textLight}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.navButtonText}>Home</Text>
-            </View>
-          </TouchableOpacity>
-        ) : (
-          // Back button on subsequent steps
-          <TouchableOpacity
-            style={styles.navButton}
-            onPress={() => setCurrentStep(Math.max(0, currentStep - 1))} // Go to the previous step
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <AppIcon
-                name="arrow-back"
-                size={20}
-                color={colors.textLight}
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.navButtonText}>Back</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        {/* Navigation Buttons */}
+        <View
+          testID="SetupWizardNavigation"
+          style={[
+            styles.wizardNavigation,
+            wideLayout && styles.wizardNavigationWide,
+          ]}
+        >
+          {/* Back/Home button */}
+          {isFirstStep ? (
+            // Home button on the first step
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                wideLayout && styles.navButtonWide,
+                { backgroundColor: colors.secondary },
+              ]}
+              onPress={() => router.push("./")}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <AppIcon
+                  name="home"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.navButtonText}>Home</Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // Back button on subsequent steps
+            <TouchableOpacity
+              style={[styles.navButton, wideLayout && styles.navButtonWide]}
+              onPress={() => setCurrentStep(Math.max(0, currentStep - 1))} // Go to the previous step
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <AppIcon
+                  name="arrow-back"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.navButtonText}>Back</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
-        {/* Next/Start Game button */}
-        {currentStep < steps.length - 1 ? (
-          // Next button if not on the last step
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              // Apply opacity if advancement to the next step is not allowed
-              ((currentStep === 0 && !canAdvanceToMatches) ||
-                (currentStep === 1 && !canAdvanceToCommonMatch) ||
-                (currentStep === 2 && !canAdvanceToAssign)) && { opacity: 0.5 },
-            ]}
-            onPress={() => {
-              // If we're on the players step and there's a player name in the input, add it first
-              if (
-                currentStep === 0 &&
-                newPlayerName?.trim() &&
-                handleAddPlayer
-              ) {
-                handleAddPlayer();
-                // Small delay before advancing to ensure the player is added
-                setTimeout(() => {
-                  setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
-                }, 50);
-              } else {
-                // Otherwise, just advance to the next step
-                setCurrentStep(Math.min(steps.length - 1, currentStep + 1));
-              }
-            }}
-            disabled={
-              // Disable next button if advancement conditions are not met
-              (currentStep === 0 && !canAdvanceToMatches) ||
-              (currentStep === 1 && !canAdvanceToCommonMatch) ||
-              (currentStep === 2 && !canAdvanceToAssign)
-            }
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.navButtonText}>Next</Text>
-              <AppIcon
-                name="arrow-forward"
-                size={20}
-                color={colors.textLight}
-                style={{ marginLeft: 8 }}
-              />
-            </View>
-          </TouchableOpacity>
-        ) : (
-          // Start Game button on the last step
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              { backgroundColor: colors.success },
-              !canStartGame && { opacity: 0.5 }, // Apply opacity if game cannot be started
-            ]}
-            onPress={handleStartGame} // Call the start game handler
-            disabled={!canStartGame} // Disable if game cannot be started
-          >
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.navButtonText}>Start Game</Text>
-              <AppIcon
-                name="play"
-                size={20}
-                color={colors.textLight}
-                style={{ marginLeft: 8 }}
-              />
-            </View>
-          </TouchableOpacity>
-        )}
+          {/* Next/Start Game button */}
+          {isFinalStep ? (
+            // Start Game button on the last step
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                wideLayout && styles.navButtonWide,
+                { backgroundColor: colors.success },
+                !canStartGame && { opacity: 0.5 }, // Apply opacity if game cannot be started
+              ]}
+              onPress={handleStartGame} // Call the start game handler
+              disabled={!canStartGame} // Disable if game cannot be started
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.navButtonText}>Start Game</Text>
+                <AppIcon
+                  name="play"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
+            </TouchableOpacity>
+          ) : (
+            // Next button if not on the last step
+            <TouchableOpacity
+              style={[
+                styles.navButton,
+                wideLayout && styles.navButtonWide,
+                !canAdvanceFromCurrentStep && {
+                  opacity: 0.5,
+                },
+              ]}
+              onPress={handleNextPress}
+              disabled={!canAdvanceFromCurrentStep}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.navButtonText}>Next</Text>
+                <AppIcon
+                  name="arrow-forward"
+                  size={20}
+                  color={colors.textLight}
+                  style={{ marginLeft: 8 }}
+                />
+              </View>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );

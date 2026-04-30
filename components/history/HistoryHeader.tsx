@@ -3,21 +3,25 @@
  * @description Header component for the history view that contains sorting controls.
  */
 import React from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, TouchableOpacity, Text, useWindowDimensions } from "react-native";
+import AppIcon from "../AppIcon";
+import { createHistoryStyles } from "../../app/style/historyStyles";
 import { useColors } from "../../app/style/theme";
-import { HistorySortField, SortDirection } from "./SortHistoryModal";
+import { SortDirection } from "./SortHistoryModal";
 
 /**
  * Props for the HistoryHeader component
- * @property {HistorySortField} sortField Currently active sort field
+ * @property {() => void} onBack Handler for the back action
+ * @property {boolean} showSortButton Whether to show the sort action
  * @property {SortDirection} sortDirection Current sort direction (ascending/descending)
- * @property {(visible: boolean) => void} setSortModalVisible Handler to show/hide the sort modal
+ * @property {() => void} onOpenSortModal Handler to show the sort modal
  */
 interface HistoryHeaderProps {
-  sortField: HistorySortField;
+  title?: string;
+  onBack: () => void;
+  showSortButton: boolean;
   sortDirection: SortDirection;
-  setSortModalVisible: (visible: boolean) => void;
+  onOpenSortModal: () => void;
 }
 
 /**
@@ -28,47 +32,52 @@ interface HistoryHeaderProps {
  * @returns Header component with sort controls
  */
 const HistoryHeader: React.FC<HistoryHeaderProps> = ({
-  sortField,
+  title = "Game History",
+  onBack,
+  showSortButton,
   sortDirection,
-  setSortModalVisible,
+  onOpenSortModal,
 }) => {
   const colors = useColors();
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
   const styles = React.useMemo(
-    () =>
-      StyleSheet.create({
-        container: {
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          paddingVertical: 8,
-          backgroundColor: colors.surface,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.borderLighter,
-        },
-        sortButton: {
-          flexDirection: "row",
-          alignItems: "center",
-          padding: 8,
-        },
-      }),
-    [colors]
+    () => createHistoryStyles(colors, { screenWidth: width, isWideLayout }),
+    [colors, isWideLayout, width],
   );
 
   return (
-    <View style={styles.container}>
+    <View
+      testID="HistoryHeaderContainer"
+      style={[styles.pageHeader, isWideLayout && styles.pageHeaderWide]}
+    >
       <TouchableOpacity
-        style={styles.sortButton}
-        onPress={() => setSortModalVisible(true)}
+        testID="HistoryHeaderBackButton"
+        style={styles.headerBackButton}
+        onPress={onBack}
       >
-        <Ionicons
-          name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
-          size={20}
-          color={colors.primary}
-          style={{ marginRight: 4 }}
-        />
-        <Ionicons name="funnel-outline" size={20} color={colors.primary} />
+        <AppIcon name="arrow-back" size={24} color={colors.textPrimary} />
       </TouchableOpacity>
+
+      <Text style={styles.headerTitle}>{title}</Text>
+
+      {showSortButton ? (
+        <TouchableOpacity
+          testID="HistoryHeaderSortButton"
+          style={styles.headerSortButton}
+          onPress={onOpenSortModal}
+        >
+          <AppIcon
+            name={sortDirection === "asc" ? "arrow-up" : "arrow-down"}
+            size={20}
+            color={colors.primary}
+            style={{ marginRight: 4 }}
+          />
+          <AppIcon name="funnel-outline" size={20} color={colors.primary} />
+        </TouchableOpacity>
+      ) : (
+        <View testID="HistoryHeaderPlaceholder" style={styles.rightPlaceholder} />
+      )}
     </View>
   );
 };

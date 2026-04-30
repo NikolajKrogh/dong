@@ -1,18 +1,16 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  View,
+  Image,
+  Modal,
+  ScrollView,
   Text,
   TouchableOpacity,
-  Modal,
-  Image,
-  ScrollView,
+  useWindowDimensions,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useGameStore } from "../store/store";
-import createStyles from "./style/indexStyles";
-import { StatusBar } from "expo-status-bar";
-import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Animated, {
   Easing,
   runOnJS,
@@ -21,12 +19,16 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useGameStore } from "../store/store";
+import createStyles from "./style/indexStyles";
 
 import AppIcon from "../components/AppIcon";
 import OnboardingScreen from "../components/OnboardingScreen";
-import { useColors } from "./style/theme";
+import { ShellActionButton, ShellCard, ShellScreen } from "../components/ui";
 import { PlatformAnimation } from "../platform";
-import { ShellScreen, ShellCard, ShellActionButton } from "../components/ui";
+import { isWideLayout } from "./style/responsive";
+import { useColors } from "./style/theme";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -157,7 +159,11 @@ const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
   onCancel,
 }) => {
   return (
-    <ShellCard elevated style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 16 }}>
+    <ShellCard
+      elevated
+      testID="home-current-game-card"
+      style={{ marginTop: 16, marginBottom: 16 }}
+    >
       <Text style={styles.sessionTitle}>Current Game in Progress</Text>
       <View style={styles.sessionInfoRow}>
         <View style={styles.infoItem}>
@@ -180,7 +186,9 @@ const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
       <ShellActionButton
         variant="danger"
         label="Cancel Game"
-        icon={<AppIcon name="close-circle-outline" size={22} color={colors.white} />}
+        icon={
+          <AppIcon name="close-circle-outline" size={22} color={colors.white} />
+        }
         onPress={onCancel}
         style={{ marginTop: 12 }}
       />
@@ -200,7 +208,8 @@ const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
     <ShellCard
       elevated
       onPress={onPress}
-      style={{ marginHorizontal: 16, marginTop: 16 }}
+      testID="home-history-stats-card"
+      style={{ marginTop: 16 }}
     >
       <View style={styles.statsHeader}>
         <View style={styles.titleWithIcon}>
@@ -262,8 +271,10 @@ const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
  */
 const HomeScreen = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const wideLayout = isWideLayout(width);
   const { players, matches, history, resetState } = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(() => {
@@ -342,7 +353,11 @@ const HomeScreen = () => {
         style={colors.background === "#f5f5f5" ? "dark" : "light"}
         backgroundColor={styles.safeArea.backgroundColor}
       />
-      <ShellScreen padded={false}>
+      <ShellScreen
+        padded={false}
+        centerContent={wideLayout}
+        contentMaxWidth={wideLayout ? 960 : undefined}
+      >
         <SafeAreaView style={{ flex: 1 }}>
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
@@ -368,9 +383,13 @@ const HomeScreen = () => {
               <ShellActionButton
                 variant="success"
                 label="Start New Game"
-                icon={<AppIcon name="add-circle" size={22} color={colors.white} />}
+                testID="home-start-game-button"
+                icon={
+                  <AppIcon name="add-circle" size={22} color={colors.white} />
+                }
                 onPress={handleStartNewGame}
-                style={{ marginHorizontal: 16, marginTop: 16 }}
+                widthMode={wideLayout ? "wide" : undefined}
+                style={{ marginTop: 16 }}
               />
             )}
 
@@ -388,6 +407,8 @@ const HomeScreen = () => {
             <ShellActionButton
               variant="surface"
               size="small"
+              testID="open-preferences-button"
+              widthMode="fit"
               icon={
                 <AppIcon
                   name="person-circle-outline"

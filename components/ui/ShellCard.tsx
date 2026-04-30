@@ -1,10 +1,12 @@
 import React from "react";
-import { YStack, styled, GetProps } from "tamagui";
+import { GetProps, YStack, styled } from "tamagui";
 
 const ShellCardFrame = styled(YStack, {
   backgroundColor: "$surface",
   borderRadius: "$3",
   padding: "$4",
+  width: "100%",
+  minWidth: 0,
   borderWidth: 1,
   borderColor: "$borderColor",
   shadowColor: "$borderColor",
@@ -23,6 +25,16 @@ const ShellCardFrame = styled(YStack, {
     compact: {
       true: {
         padding: "$3",
+      },
+    },
+    widthMode: {
+      content: {
+        maxWidth: 720,
+        alignSelf: "center",
+      },
+      wide: {
+        maxWidth: 960,
+        alignSelf: "center",
       },
     },
   } as const,

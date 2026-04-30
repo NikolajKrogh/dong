@@ -1,18 +1,21 @@
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import { useRouter } from "expo-router";
-import { useGameStore, Player, Match } from "../store/store";
+import {
+  AssignmentSection,
+  CommonMatchSelector,
+  MatchList,
+  SetupGamePlayerList,
+  SetupWizard,
+} from "../components";
+import { ShellScreen } from "../components/ui";
+import { Match, Player, useGameStore } from "../store/store";
+import { createRandomAssignments } from "../utils/setupGameAssignments";
+import { isWideLayout } from "./style/responsive";
 import createSetupGameStyles from "./style/setupGameStyles";
 import { useColors } from "./style/theme";
-import { createRandomAssignments } from "../utils/setupGameAssignments";
-import {
-  SetupGamePlayerList,
-  MatchList,
-  AssignmentSection,
-  SetupWizard,
-  CommonMatchSelector,
-} from "../components";
 
 /**
  * Game setup wizard: players, matches, common match selection, and assignments.
@@ -22,8 +25,10 @@ import {
  */
 const SetupGameScreen = () => {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const wideLayout = isWideLayout(width);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -228,56 +233,62 @@ const SetupGameScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <SetupWizard
-        playersStep={
-          <SetupGamePlayerList
-            players={players}
-            newPlayerName={newPlayerName}
-            setNewPlayerName={setNewPlayerName}
-            handleAddPlayer={handleAddPlayer}
-            handleAddPlayerByName={handleAddPlayerByName}
-            handleRemovePlayer={handleRemovePlayer}
-          />
-        }
-        matchesStep={
-          <MatchList
-            matches={matches}
-            homeTeam={homeTeam}
-            awayTeam={awayTeam}
-            setHomeTeam={setHomeTeam}
-            setAwayTeam={setAwayTeam}
-            handleAddMatch={handleAddMatch}
-            handleRemoveMatch={handleRemoveMatch}
-            setGlobalMatches={setGlobalMatches}
-          />
-        }
-        commonMatchStep={
-          <CommonMatchSelector
-            matches={matches}
-            selectedCommonMatch={commonMatchId}
-            handleSelectCommonMatch={handleSelectCommonMatch}
-          />
-        }
-        assignStep={
-          <AssignmentSection
-            players={players}
-            matches={matches}
-            commonMatchId={commonMatchId}
-            playerAssignments={playerAssignments}
-            toggleMatchAssignment={toggleMatchAssignment}
-            matchesPerPlayer={matchesPerPlayer}
-            setMatchesPerPlayer={setMatchesPerPlayer}
-            handleRandomAssignment={handleRandomAssignment}
-          />
-        }
-        handleStartGame={handleStartGame}
-        canAdvanceToMatches={canAdvanceToMatches}
-        canAdvanceToCommonMatch={canAdvanceToCommonMatch}
-        canAdvanceToAssign={canAdvanceToAssign}
-        canStartGame={canStartGame}
-        newPlayerName={newPlayerName}
-        handleAddPlayer={handleAddPlayer}
-      />
+      <ShellScreen
+        padded={false}
+        centerContent={wideLayout}
+        contentMaxWidth={wideLayout ? 1120 : undefined}
+      >
+        <SetupWizard
+          playersStep={
+            <SetupGamePlayerList
+              players={players}
+              newPlayerName={newPlayerName}
+              setNewPlayerName={setNewPlayerName}
+              handleAddPlayer={handleAddPlayer}
+              handleAddPlayerByName={handleAddPlayerByName}
+              handleRemovePlayer={handleRemovePlayer}
+            />
+          }
+          matchesStep={
+            <MatchList
+              matches={matches}
+              homeTeam={homeTeam}
+              awayTeam={awayTeam}
+              setHomeTeam={setHomeTeam}
+              setAwayTeam={setAwayTeam}
+              handleAddMatch={handleAddMatch}
+              handleRemoveMatch={handleRemoveMatch}
+              setGlobalMatches={setGlobalMatches}
+            />
+          }
+          commonMatchStep={
+            <CommonMatchSelector
+              matches={matches}
+              selectedCommonMatch={commonMatchId}
+              handleSelectCommonMatch={handleSelectCommonMatch}
+            />
+          }
+          assignStep={
+            <AssignmentSection
+              players={players}
+              matches={matches}
+              commonMatchId={commonMatchId}
+              playerAssignments={playerAssignments}
+              toggleMatchAssignment={toggleMatchAssignment}
+              matchesPerPlayer={matchesPerPlayer}
+              setMatchesPerPlayer={setMatchesPerPlayer}
+              handleRandomAssignment={handleRandomAssignment}
+            />
+          }
+          handleStartGame={handleStartGame}
+          canAdvanceToMatches={canAdvanceToMatches}
+          canAdvanceToCommonMatch={canAdvanceToCommonMatch}
+          canAdvanceToAssign={canAdvanceToAssign}
+          canStartGame={canStartGame}
+          newPlayerName={newPlayerName}
+          handleAddPlayer={handleAddPlayer}
+        />
+      </ShellScreen>
     </SafeAreaView>
   );
 };

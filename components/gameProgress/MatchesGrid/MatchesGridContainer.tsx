@@ -40,8 +40,6 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
     () => createGameProgressStyles(colors),
     [colors],
   );
-  // State to track layout mode
-  const [useGridLayout, setUseGridLayout] = useState(false);
   // State for sorting options
   const [sortField, setSortField] = useState<SortField>("homeTeam");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -50,16 +48,30 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
 
   // Calculate number of columns based on screen width
   const { width: screenWidth } = useWindowDimensions();
+  const isWideLayout = screenWidth >= 1024;
+  const [layoutPreference, setLayoutPreference] = useState<
+    "auto" | "grid" | "list"
+  >("auto");
+  const useGridLayout =
+    layoutPreference === "auto"
+      ? isWideLayout
+      : layoutPreference === "grid";
   let numColumns = 1;
   if (useGridLayout) {
-    numColumns = screenWidth > 600 ? 3 : 2;
+    numColumns = isWideLayout ? 3 : screenWidth > 600 ? 3 : 2;
   }
 
   /**
    * Toggles between grid and list layout modes.
    */
   const toggleLayoutMode = () => {
-    setUseGridLayout(!useGridLayout);
+    setLayoutPreference((currentPreference) => {
+      if (currentPreference === "auto") {
+        return isWideLayout ? "list" : "grid";
+      }
+
+      return currentPreference === "grid" ? "list" : "grid";
+    });
   };
 
   /**
@@ -201,7 +213,10 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
           keyExtractor={(item) => item.id}
           numColumns={useGridLayout ? numColumns : 1}
           renderItem={renderItem}
-          contentContainerStyle={styles.gridContainer}
+          contentContainerStyle={[
+            styles.gridContainer,
+            isWideLayout && styles.gridContainerWide,
+          ]}
           columnWrapperStyle={useGridLayout ? styles.gridRow : undefined}
           ListFooterComponent={
             <LastUpdatedFooter

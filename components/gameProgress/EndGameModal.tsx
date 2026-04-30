@@ -5,8 +5,8 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
-  Dimensions,
   SafeAreaView,
+  useWindowDimensions,
 } from "react-native";
 import { useColors } from "../../app/style/theme";
 
@@ -23,8 +23,6 @@ interface EndGameModalProps {
   onConfirm: () => void;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-
 /**
  * Confirmation modal for ending the active game session.
  * @component
@@ -38,7 +36,13 @@ const EndGameModal: React.FC<EndGameModalProps> = ({
   onConfirm,
 }) => {
   const colors = useColors();
-  const modalStyles = React.useMemo(() => createStyles(colors), [colors]);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isWideLayout = screenWidth >= 1024;
+  const modalStyles = React.useMemo(
+    () => createStyles(colors, screenWidth, screenHeight, isWideLayout),
+    [colors, isWideLayout, screenHeight, screenWidth],
+  );
+
   return (
     <SafeAreaView style={{ flex: 0 }}>
       <Modal
@@ -88,7 +92,12 @@ const EndGameModal: React.FC<EndGameModalProps> = ({
   );
 };
 
-const createStyles = (colors: ReturnType<typeof useColors>) =>
+const createStyles = (
+  colors: ReturnType<typeof useColors>,
+  screenWidth: number,
+  screenHeight: number,
+  isWideLayout: boolean,
+) =>
   StyleSheet.create({
     overlayTouchable: {
       position: "absolute",
@@ -102,9 +111,10 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
+      padding: 16,
     },
     modalContainer: {
-      width: SCREEN_WIDTH * 0.85,
+      width: Math.min(screenWidth - 32, isWideLayout ? 520 : screenWidth * 0.85),
       backgroundColor: colors.surface,
       borderRadius: 20,
       padding: 20,
@@ -117,7 +127,7 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       shadowOpacity: 0.25,
       shadowRadius: 4,
       elevation: 5,
-      maxHeight: SCREEN_HEIGHT * 0.6,
+      maxHeight: Math.min(screenHeight * 0.7, 420),
     },
     modalTitle: {
       fontSize: 20,
@@ -132,7 +142,7 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       color: colors.textSecondary,
     },
     modalButtons: {
-      flexDirection: "row",
+      flexDirection: isWideLayout ? "row" : "column",
       justifyContent: "space-around",
       width: "100%",
     },
@@ -140,8 +150,10 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       borderRadius: 20,
       padding: 10,
       elevation: 2,
-      marginHorizontal: 5,
+      marginHorizontal: isWideLayout ? 5 : 0,
+      marginTop: isWideLayout ? 0 : 8,
       minWidth: 120,
+      width: isWideLayout ? undefined : "100%",
     },
     buttonCancel: {
       backgroundColor: colors.secondary,

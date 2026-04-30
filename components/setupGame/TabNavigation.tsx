@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import {
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { isWideLayout as isWideViewport } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
 
@@ -12,12 +18,22 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   setActiveTab,
 }) => {
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const isWideLayout = isWideViewport(width);
   return (
-    <View style={styles.tabContainer}>
+    <View
+      testID="SetupTabNavigationRoot"
+      style={[styles.tabContainer, isWideLayout && styles.tabContainerWide]}
+    >
       <TouchableOpacity
-        style={[styles.tab, activeTab === "players" && styles.activeTab]}
+        testID="SetupTabNavigationTab"
+        style={[
+          styles.tab,
+          isWideLayout && styles.tabWide,
+          activeTab === "players" && styles.activeTab,
+        ]}
         onPress={() => setActiveTab("players")}
       >
         <Text
@@ -31,7 +47,12 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.tab, activeTab === "matches" && styles.activeTab]}
+        testID="SetupTabNavigationTab"
+        style={[
+          styles.tab,
+          isWideLayout && styles.tabWide,
+          activeTab === "matches" && styles.activeTab,
+        ]}
         onPress={() => setActiveTab("matches")}
       >
         <Text
@@ -45,7 +66,12 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.tab, activeTab === "assign" && styles.activeTab]}
+        testID="SetupTabNavigationTab"
+        style={[
+          styles.tab,
+          isWideLayout && styles.tabWide,
+          activeTab === "assign" && styles.activeTab,
+        ]}
         onPress={() => setActiveTab("assign")}
       >
         <Text

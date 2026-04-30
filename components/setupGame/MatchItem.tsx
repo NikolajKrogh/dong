@@ -1,11 +1,18 @@
-import React from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Match } from "../../store/store";
-import AppIcon from "../AppIcon";
+import React from "react";
+import {
+  Image,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { isWideLayout as isWideViewport } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
+import { Match } from "../../store/store";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import AppIcon from "../AppIcon";
 
 interface MatchItemProps {
   match: Match;
@@ -13,8 +20,10 @@ interface MatchItemProps {
 }
 
 const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
+  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const isWideLayout = isWideViewport(width);
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
   const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
 
@@ -42,7 +51,7 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
       }
 
       // 3. Third try: Check if we can extract time from ESPN format
-      const espnMatch = match.startTime.match(/T(\d{2}:\d{2})Z/);
+      const espnMatch = /T(\d{2}:\d{2})Z/.exec(match.startTime);
       if (espnMatch?.[1]) {
         // Convert from UTC to local time
         const [hours, minutes] = espnMatch[1].split(":").map(Number);
@@ -66,7 +75,13 @@ const MatchItem: React.FC<MatchItemProps> = ({ match, handleRemoveMatch }) => {
   };
 
   return (
-    <View style={styles.matchItemWrapper}>
+    <View
+      testID="SetupMatchItemWrapper"
+      style={[
+        styles.matchItemWrapper,
+        isWideLayout && styles.matchItemWrapperWide,
+      ]}
+    >
       <View style={styles.matchCard}>
         <LinearGradient
           colors={[colors.primaryLighter, colors.surface]}

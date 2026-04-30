@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo } from "react";
-import { View, Text, TouchableOpacity, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  FlatList,
+  useWindowDimensions,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -44,6 +50,8 @@ interface PlayerCardProps {
   handleDrinkIncrement: (playerId: string) => void;
   /** Decrement handler. */
   handleDrinkDecrement: (playerId: string) => void;
+  /** Whether the current viewport uses the wide layout branch. */
+  isWideLayout: boolean;
 }
 
 /**
@@ -61,6 +69,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     percentComplete,
     handleDrinkIncrement,
     handleDrinkDecrement,
+    isWideLayout,
   }) => {
     const colors = useColors();
     const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
@@ -120,7 +129,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     }
 
     return (
-      <View style={styles.playerCard}>
+      <View style={[styles.playerCard, isWideLayout && styles.playerCardWide]}>
         {/* Player name and completion status */}
         <View style={styles.cardHeader}>
           <Text style={styles.playerName}>{player.name}</Text>
@@ -205,6 +214,8 @@ const PlayersList: React.FC<PlayersListProps> = ({
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
 
   /**
    * Compute drinks required for a player (common = 1x, assigned = 0.5x).
@@ -259,6 +270,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
         percentComplete={percentComplete}
         handleDrinkIncrement={handleDrinkIncrement}
         handleDrinkDecrement={handleDrinkDecrement}
+        isWideLayout={isWideLayout}
       />
     );
   };
@@ -267,9 +279,14 @@ const PlayersList: React.FC<PlayersListProps> = ({
     <FlatList
       data={players}
       keyExtractor={(item) => item.id}
+      numColumns={isWideLayout ? 2 : 1}
       showsVerticalScrollIndicator={false}
       renderItem={renderItem}
-      contentContainerStyle={styles.listContainer}
+      columnWrapperStyle={isWideLayout ? styles.playersListRow : undefined}
+      contentContainerStyle={[
+        styles.listContainer,
+        isWideLayout && styles.playersListContentWide,
+      ]}
     />
   );
 };

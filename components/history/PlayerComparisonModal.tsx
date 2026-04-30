@@ -1,5 +1,12 @@
 import React, { useMemo } from "react";
-import { View, Text, Modal, ScrollView, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Modal,
+  ScrollView,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
 import { createHistoryStyles } from "../../app/style/historyStyles";
@@ -40,7 +47,12 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
   gameHistory,
 }) => {
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
+  const { width } = useWindowDimensions();
+  const isWideLayout = width >= 1024;
+  const styles = useMemo(
+    () => createHistoryStyles(colors, { screenWidth: width, isWideLayout }),
+    [colors, isWideLayout, width],
+  );
   if (!player1 || !player2) return null;
 
   const stats = getPlayerHeadToHeadStats(
@@ -57,7 +69,7 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalCenteredView}>
-        <View style={styles.modalView}>
+        <View style={[styles.modalView, isWideLayout && styles.modalViewWide]}>
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Player Comparison</Text>
@@ -69,7 +81,10 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
           {/* Modal Content */}
           <ScrollView
             style={styles.modalScrollView}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              isWideLayout && styles.listContentWide,
+            ]}
           >
             {/* Header with player names */}
             <View style={styles.comparisonHeader}>

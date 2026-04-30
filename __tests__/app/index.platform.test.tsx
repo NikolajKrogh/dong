@@ -1,6 +1,25 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
+const mockUseWindowDimensions = jest.fn(() => ({
+  width: 390,
+  height: 844,
+  scale: 1,
+  fontScale: 1,
+}));
+
+jest.mock("react-native", () => {
+  return {
+    View: "View",
+    Text: "Text",
+    TouchableOpacity: "TouchableOpacity",
+    Modal: "Modal",
+    Image: "Image",
+    ScrollView: "ScrollView",
+    useWindowDimensions: () => mockUseWindowDimensions(),
+  };
+});
+
 const mockPlatformAnimation = jest.fn(() => null);
 
 jest.mock("../../platform", () => ({
@@ -49,6 +68,29 @@ jest.mock("expo-status-bar", () => ({
   StatusBar: () => null,
 }));
 
+jest.mock("react-native-reanimated", () => ({
+  __esModule: true,
+  default: {
+    View: "View",
+  },
+  Easing: {
+    out: jest.fn((value) => value),
+    quad: "quad",
+  },
+  runOnJS: (callback: (...args: any[]) => unknown) => callback,
+  useAnimatedStyle: () => ({}),
+  useSharedValue: (value: unknown) => ({ value }),
+  withDelay: (_delay: number, value: unknown) => value,
+  withTiming: (
+    value: unknown,
+    _config: unknown,
+    callback?: (finished: boolean) => void,
+  ) => {
+    callback?.(true);
+    return value;
+  },
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -64,37 +106,61 @@ jest.mock("../../components/OnboardingScreen", () => {
   const RN = require("react-native");
   const R = require("react");
   return ({ onFinish }: { onFinish: () => void }) =>
-    R.createElement(RN.View, { testID: "onboarding" },
-      R.createElement(RN.Text, null, "Onboarding"));
+    R.createElement(
+      RN.View,
+      { testID: "onboarding" },
+      R.createElement(RN.Text, null, "Onboarding"),
+    );
 });
 
 jest.mock("../../components/ui", () => ({
   ShellScreen: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellScreen", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellScreen", ...props },
+      children,
+    );
   },
   ShellCard: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellCard", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellCard", ...props },
+      children,
+    );
   },
   ShellSection: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellSection", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellSection", ...props },
+      children,
+    );
   },
   ShellActionButton: ({ label, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellActionButton", ...props },
-      label ? R.createElement(RN.Text, null, label) : null);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellActionButton", ...props },
+      label ? R.createElement(RN.Text, null, label) : null,
+    );
   },
 }));
 
 describe("HomeScreen platform adoption", () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    mockUseWindowDimensions.mockReturnValue({
+      width: 390,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    });
     mockPlatformAnimation.mockClear();
     mockStoreState.players = [];
     mockStoreState.matches = [];
@@ -119,7 +185,9 @@ describe("HomeScreen platform adoption", () => {
       {},
     );
     // No ShellScreen during splash
-    const shellScreens = renderer.root.findAllByProps({ testID: "ShellScreen" });
+    const shellScreens = renderer.root.findAllByProps({
+      testID: "ShellScreen",
+    });
     expect(shellScreens).toHaveLength(0);
 
     TestRenderer.act(() => {
@@ -134,7 +202,9 @@ describe("HomeScreen platform adoption", () => {
 
     const renderer = TestRenderer.create(React.createElement(HomeScreen));
 
-    const buttons = renderer.root.findAllByProps({ testID: "ShellActionButton" });
+    const buttons = renderer.root.findAllByProps({
+      testID: "home-start-game-button",
+    });
     // Check for "Start New Game" label via the nested text element
     const allText = renderer.root.findAllByType("Text" as any);
     const textContents = allText.map((t: any) => t.props.children).flat();
@@ -152,7 +222,9 @@ describe("HomeScreen platform adoption", () => {
 
     const renderer = TestRenderer.create(React.createElement(HomeScreen));
 
-    const cards = renderer.root.findAllByProps({ testID: "ShellCard" });
+    const cards = renderer.root.findAllByProps({
+      testID: "home-current-game-card",
+    });
     expect(cards.length).toBeGreaterThan(0);
 
     // Find all text nodes to verify button labels
@@ -161,6 +233,37 @@ describe("HomeScreen platform adoption", () => {
     const textContents = allText.map((t: any) => t.props.children).flat();
     expect(textContents).toContain("Continue Game");
     expect(textContents).toContain("Cancel Game");
+
+    renderer.unmount();
+  });
+
+  it("keeps the home shell unconstrained on phone-sized viewports", () => {
+    const HomeScreen = require("../../app/index").default;
+
+    const renderer = TestRenderer.create(React.createElement(HomeScreen));
+    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
+
+    expect(shell.props.centerContent).toBe(false);
+    expect(shell.props.contentMaxWidth).toBeUndefined();
+
+    renderer.unmount();
+  });
+
+  it("centers the home shell on desktop-wide viewports", () => {
+    mockUseWindowDimensions.mockReturnValue({
+      width: 1280,
+      height: 900,
+      scale: 1,
+      fontScale: 1,
+    });
+
+    const HomeScreen = require("../../app/index").default;
+
+    const renderer = TestRenderer.create(React.createElement(HomeScreen));
+    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
+
+    expect(shell.props.centerContent).toBe(true);
+    expect(shell.props.contentMaxWidth).toBe(960);
 
     renderer.unmount();
   });

@@ -1,10 +1,12 @@
 import React from "react";
-import { XStack, Text, styled, GetProps } from "tamagui";
+import { GetProps, Text, XStack, styled } from "tamagui";
 
 const ShellActionButtonFrame = styled(XStack, {
   alignItems: "center",
   justifyContent: "center",
   gap: "$2",
+  width: "100%",
+  minWidth: 0,
   paddingVertical: "$3",
   paddingHorizontal: "$4",
   borderRadius: "$3",
@@ -33,6 +35,20 @@ const ShellActionButtonFrame = styled(XStack, {
         paddingHorizontal: "$5",
       },
     },
+    widthMode: {
+      content: {
+        maxWidth: 420,
+        alignSelf: "center",
+      },
+      wide: {
+        maxWidth: 560,
+        alignSelf: "center",
+      },
+      fit: {
+        width: "auto",
+        alignSelf: "flex-start",
+      },
+    },
     disabled: {
       true: {
         opacity: 0.5,
@@ -50,6 +66,8 @@ const ShellActionButtonLabel = styled(Text, {
   color: "$textLight",
   fontSize: 16,
   fontWeight: "600",
+  flexShrink: 1,
+  textAlign: "center",
 
   variants: {
     surfaceText: {
@@ -72,11 +90,7 @@ export function ShellActionButton({
   ...props
 }: ShellActionButtonProps) {
   return (
-    <ShellActionButtonFrame
-      variant={variant}
-      onPress={onPress}
-      {...props}
-    >
+    <ShellActionButtonFrame variant={variant} onPress={onPress} {...props}>
       {icon}
       {label ? (
         <ShellActionButtonLabel surfaceText={variant === "surface"}>
