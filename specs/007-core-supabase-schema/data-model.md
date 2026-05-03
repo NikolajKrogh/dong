@@ -45,12 +45,12 @@ Implementation note: use a text column with a check constraint for `gameplay_eve
 
 Durable application-owned identity row keyed to Supabase Auth.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Primary key, also foreign key to `auth.users.id` |
-| `preferred_display_name` | `text` | Nullable, future-friendly for profiles and setup defaults |
-| `created_at` | `timestamptz` | Default `now()` |
-| `updated_at` | `timestamptz` | Default `now()` |
+| Field                    | Type          | Notes                                                     |
+| ------------------------ | ------------- | --------------------------------------------------------- |
+| `id`                     | `uuid`        | Primary key, also foreign key to `auth.users.id`          |
+| `preferred_display_name` | `text`        | Nullable, future-friendly for profiles and setup defaults |
+| `created_at`             | `timestamptz` | Default `now()`                                           |
+| `updated_at`             | `timestamptz` | Default `now()`                                           |
 
 **Relationships**
 
@@ -65,17 +65,17 @@ Durable application-owned identity row keyed to Supabase Auth.
 
 Authoritative room and lifecycle record for a multiplayer game.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Primary key |
-| `host_account_id` | `uuid` | Foreign key to `accounts.id` |
-| `join_code` | `text` | Short uppercase code used by participants to join |
-| `state` | `session_state` | `joinable`, `in_progress`, or `completed` |
-| `common_match_id` | `uuid` | Nullable reference to the shared common match |
-| `last_event_sequence` | `bigint` | Monotonic per-session event counter, default `0` |
-| `created_at` | `timestamptz` | Default `now()` |
-| `started_at` | `timestamptz` | Nullable |
-| `completed_at` | `timestamptz` | Nullable |
+| Field                 | Type            | Notes                                             |
+| --------------------- | --------------- | ------------------------------------------------- |
+| `id`                  | `uuid`          | Primary key                                       |
+| `host_account_id`     | `uuid`          | Foreign key to `accounts.id`                      |
+| `join_code`           | `text`          | Short uppercase code used by participants to join |
+| `state`               | `session_state` | `joinable`, `in_progress`, or `completed`         |
+| `common_match_id`     | `uuid`          | Nullable reference to the shared common match     |
+| `last_event_sequence` | `bigint`        | Monotonic per-session event counter, default `0`  |
+| `created_at`          | `timestamptz`   | Default `now()`                                   |
+| `started_at`          | `timestamptz`   | Nullable                                          |
+| `completed_at`        | `timestamptz`   | Nullable                                          |
 
 **Relationships**
 
@@ -93,16 +93,16 @@ Authoritative room and lifecycle record for a multiplayer game.
 
 Session-scoped member record for either a durable account or a guest.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Primary key |
-| `session_id` | `uuid` | Foreign key to `game_sessions.id` |
-| `account_id` | `uuid` | Nullable foreign key to `accounts.id`; null for guests |
-| `display_name` | `text` | Session-facing display name |
-| `membership_type` | `participant_membership_type` | `registered` or `guest` |
-| `current_drink_total` | `numeric(6,1)` | Current session snapshot, default `0` |
-| `guest_rejoin_token_hash` | `text` | Nullable for registered participants; required for guests |
-| `created_at` | `timestamptz` | Default `now()` |
+| Field                     | Type                          | Notes                                                     |
+| ------------------------- | ----------------------------- | --------------------------------------------------------- |
+| `id`                      | `uuid`                        | Primary key                                               |
+| `session_id`              | `uuid`                        | Foreign key to `game_sessions.id`                         |
+| `account_id`              | `uuid`                        | Nullable foreign key to `accounts.id`; null for guests    |
+| `display_name`            | `text`                        | Session-facing display name                               |
+| `membership_type`         | `participant_membership_type` | `registered` or `guest`                                   |
+| `current_drink_total`     | `numeric(6,1)`                | Current session snapshot, default `0`                     |
+| `guest_rejoin_token_hash` | `text`                        | Nullable for registered participants; required for guests |
+| `created_at`              | `timestamptz`                 | Default `now()`                                           |
 
 **Relationships**
 
@@ -122,18 +122,18 @@ Session-scoped member record for either a durable account or a guest.
 
 Tracked fixture inside a session, including current score snapshot and provider linkage.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Primary key |
-| `session_id` | `uuid` | Foreign key to `game_sessions.id` |
-| `source_provider` | `text` | External feed source such as `espn` |
-| `source_match_id` | `text` | Nullable external identifier for later live-score sync |
-| `home_team_name` | `text` | Required |
-| `away_team_name` | `text` | Required |
-| `kickoff_at` | `timestamptz` | Nullable |
-| `home_score` | `integer` | Current score snapshot, default `0` |
-| `away_score` | `integer` | Current score snapshot, default `0` |
-| `created_at` | `timestamptz` | Default `now()` |
+| Field             | Type          | Notes                                                  |
+| ----------------- | ------------- | ------------------------------------------------------ |
+| `id`              | `uuid`        | Primary key                                            |
+| `session_id`      | `uuid`        | Foreign key to `game_sessions.id`                      |
+| `source_provider` | `text`        | External feed source such as `espn`                    |
+| `source_match_id` | `text`        | Nullable external identifier for later live-score sync |
+| `home_team_name`  | `text`        | Required                                               |
+| `away_team_name`  | `text`        | Required                                               |
+| `kickoff_at`      | `timestamptz` | Nullable                                               |
+| `home_score`      | `integer`     | Current score snapshot, default `0`                    |
+| `away_score`      | `integer`     | Current score snapshot, default `0`                    |
+| `created_at`      | `timestamptz` | Default `now()`                                        |
 
 **Relationships**
 
@@ -150,12 +150,12 @@ Tracked fixture inside a session, including current score snapshot and provider 
 
 Join table for participant-to-match responsibility within a session.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `session_id` | `uuid` | Session owner for the assignment |
-| `participant_id` | `uuid` | Participant in the same session |
-| `match_id` | `uuid` | Match in the same session |
-| `created_at` | `timestamptz` | Default `now()` |
+| Field            | Type          | Notes                            |
+| ---------------- | ------------- | -------------------------------- |
+| `session_id`     | `uuid`        | Session owner for the assignment |
+| `participant_id` | `uuid`        | Participant in the same session  |
+| `match_id`       | `uuid`        | Match in the same session        |
+| `created_at`     | `timestamptz` | Default `now()`                  |
 
 **Key and relationships**
 
@@ -172,16 +172,16 @@ Join table for participant-to-match responsibility within a session.
 
 Immutable append-only audit record for shared-state changes that affect history.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `id` | `uuid` | Primary key |
-| `session_id` | `uuid` | Foreign key to `game_sessions.id` |
-| `sequence_number` | `bigint` | Monotonic per-session order |
-| `actor_participant_id` | `uuid` | Participant who initiated the event |
-| `event_type` | `text` | Constrained to known gameplay event values |
-| `idempotency_key` | `text` | Client-generated command key, scoped to the session |
-| `payload` | `jsonb` | Immutable event body |
-| `created_at` | `timestamptz` | Default `now()` |
+| Field                  | Type          | Notes                                               |
+| ---------------------- | ------------- | --------------------------------------------------- |
+| `id`                   | `uuid`        | Primary key                                         |
+| `session_id`           | `uuid`        | Foreign key to `game_sessions.id`                   |
+| `sequence_number`      | `bigint`      | Monotonic per-session order                         |
+| `actor_participant_id` | `uuid`        | Participant who initiated the event                 |
+| `event_type`           | `text`        | Constrained to known gameplay event values          |
+| `idempotency_key`      | `text`        | Client-generated command key, scoped to the session |
+| `payload`              | `jsonb`       | Immutable event body                                |
+| `created_at`           | `timestamptz` | Default `now()`                                     |
 
 **Relationships**
 
@@ -215,13 +215,13 @@ Immutable append-only audit record for shared-state changes that affect history.
 ## Relationship Summary
 
 - `auth.users` 1:1 `accounts`
-- `accounts` 1:* `game_sessions` as hosts
-- `game_sessions` 1:* `participants`
-- `game_sessions` 1:* `matches`
-- `game_sessions` 1:* `gameplay_events`
-- `participants` *:* `matches` through `assignments`
+- `accounts` 1:\* `game_sessions` as hosts
+- `game_sessions` 1:\* `participants`
+- `game_sessions` 1:\* `matches`
+- `game_sessions` 1:\* `gameplay_events`
+- `participants` _:_ `matches` through `assignments`
 - `game_sessions` 0:1 `matches` as `common_match_id`
-- `participants` 1:* `gameplay_events` as actors
+- `participants` 1:\* `gameplay_events` as actors
 
 ## State Transitions
 

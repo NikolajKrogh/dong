@@ -49,11 +49,11 @@ Example MCP configuration:
 
 ```json
 {
-	"mcpServers": {
-		"supabase": {
-			"url": "https://mcp.supabase.com/mcp?project_ref=qccvlhblytuedgmlqfef&features=database,development,docs"
-		}
-	}
+  "mcpServers": {
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?project_ref=qccvlhblytuedgmlqfef&features=database,development,docs"
+    }
+  }
 }
 ```
 
@@ -84,7 +84,6 @@ Run the database tests (pgTAP):
 ```bash
 npm run db:test
 ```
-
 
 2. Start the app in development mode:
 

@@ -166,12 +166,12 @@ Phase 1 + Phase 2 + Phase 3 (US1) delivers a verifiable authenticated host sessi
 
 ## Summary
 
-| Phase | Story | Tasks | Parallel Opportunities |
-| --- | --- | --- | --- |
-| 1 — Setup | — | T001–T005 (5) | T002, T003, T004 |
-| 2 — Foundational | — | T006–T011 (6) | T008, T009, T010 |
-| 3 — US1 Host Session | P1 | T012–T017 (6) | T013+T014, T015+T016 |
-| 4 — US2 Session Setup | P1 | T018–T027 (10) | T019, T020, T021; T024+T025+T026 |
-| 5 — US3 Audit History | P2 | T028–T035 (8) | T029+T030, T031+T032; T033+T034 |
-| 6 — Polish | — | T036–T038 (3) | T036, T037, T038 |
-| **Total** | | **38** | |
+| Phase                 | Story | Tasks          | Parallel Opportunities           |
+| --------------------- | ----- | -------------- | -------------------------------- |
+| 1 — Setup             | —     | T001–T005 (5)  | T002, T003, T004                 |
+| 2 — Foundational      | —     | T006–T011 (6)  | T008, T009, T010                 |
+| 3 — US1 Host Session  | P1    | T012–T017 (6)  | T013+T014, T015+T016             |
+| 4 — US2 Session Setup | P1    | T018–T027 (10) | T019, T020, T021; T024+T025+T026 |
+| 5 — US3 Audit History | P2    | T028–T035 (8)  | T029+T030, T031+T032; T033+T034  |
+| 6 — Polish            | —     | T036–T038 (3)  | T036, T037, T038                 |
+| **Total**             |       | **38**         |                                  |

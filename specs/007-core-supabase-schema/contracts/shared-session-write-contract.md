@@ -8,12 +8,12 @@ Actual SQL function names may vary during implementation, but the semantic contr
 
 ## Identity Contexts
 
-| Context | Identity Source | Contract Expectations |
-| --- | --- | --- |
-| Authenticated host | `auth.uid()` mapped to `public.accounts.id` | Can create a session, join as the host participant, persist setup, append history-affecting events, and complete the session |
+| Context                              | Identity Source                                                    | Contract Expectations                                                                                                                                |
+| ------------------------------------ | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authenticated host                   | `auth.uid()` mapped to `public.accounts.id`                        | Can create a session, join as the host participant, persist setup, append history-affecting events, and complete the session                         |
 | Authenticated registered participant | `auth.uid()` mapped to `public.accounts.id` plus a participant row | Can join an existing session as a registered participant and later perform only the event actions explicitly allowed by follow-up authorization work |
-| Guest participant | Join code plus guest rejoin token | Can join or reclaim a session-scoped participant record without a durable account |
-| Service role or DB test harness | Supabase service role or pgTAP helper context | Fixture setup only; not the user-facing write path |
+| Guest participant                    | Join code plus guest rejoin token                                  | Can join or reclaim a session-scoped participant record without a durable account                                                                    |
+| Service role or DB test harness      | Supabase service role or pgTAP helper context                      | Fixture setup only; not the user-facing write path                                                                                                   |
 
 ## Core Write Commands
 
