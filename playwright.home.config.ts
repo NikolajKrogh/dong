@@ -10,6 +10,7 @@ const baseURL =
 
 export default defineConfig({
   testDir: "e2e/playwright",
+  testMatch: /home-shell-flow\.spec\.ts$/,
   timeout: 30_000,
   retries: 0,
   use: {

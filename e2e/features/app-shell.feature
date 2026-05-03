@@ -3,7 +3,7 @@ Feature: Application Shell Launch
   Background:
     Given the app is running on web
 
-  Scenario: Shell launches with the default light theme
+  Scenario: Shell launches after hydration and onboarding
     When the home screen loads
     Then the shell background should be visible
     And the "Start New Game" action should be visible
@@ -69,6 +69,17 @@ Feature: Application Shell Launch
     Given the browser viewport is desktop-wide
     When the user navigates to setup
     Then the "SetupWizardRoot" element should be horizontally centered
+
+  Scenario Outline: Setup journey reaches gameplay with representative datasets
+    When the user navigates to setup
+    And the user completes the "<dataset>" setup journey
+    Then the "Matches" action should be visible
+    And the "Players" action should be visible
+
+    Examples:
+      | dataset   |
+      | default   |
+      | alternate |
 
   Scenario: Gameplay flow stays usable on a phone-sized viewport
     Given a game is in progress

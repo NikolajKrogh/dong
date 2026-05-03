@@ -292,6 +292,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
         </View>
 
         <TouchableOpacity
+          accessibilityLabel="Add Player"
+          testID="SetupAddPlayerButton"
           style={[
             styles.playerAddButton,
             !newPlayerName.trim() && styles.playerAddButtonDisabled,
