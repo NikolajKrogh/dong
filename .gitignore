@@ -51,3 +51,8 @@ android
 
 .vscode/
 .features-gen/
+
+# Supabase local workspace
+.supabase/
+supabase/.env.local
+*.env.local
