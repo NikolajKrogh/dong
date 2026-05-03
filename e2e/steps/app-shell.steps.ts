@@ -1,5 +1,12 @@
 import { expect, type Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
+import {
+  PERSISTED_STORE_KEY,
+  createSetupJourneyDatasets,
+  waitForBrowserFlowReady,
+  type SetupJourneyDataset,
+  type SetupJourneyMatchInput,
+} from "./browser-flow.helpers";
 
 const { Given, When, Then } = createBdd();
 
@@ -13,15 +20,6 @@ const DESKTOP_WIDE_VIEWPORT = {
   height: 1024,
 };
 
-const PERSISTED_STORE_KEY = "dong-storage";
-
-const HOME_READY_MARKERS = [
-  "Start New Game",
-  "Continue Game",
-  "Current Game in Progress",
-  "Game Stats",
-];
-
 const setViewportAndReload = async (
   page: Page,
   viewport: { width: number; height: number },
@@ -29,26 +27,6 @@ const setViewportAndReload = async (
   await page.setViewportSize(viewport);
   await page.reload();
   await page.waitForLoadState("networkidle");
-};
-
-const waitForHomeReady = async (page: Page) => {
-  await page.waitForLoadState("networkidle");
-
-  const skipButton = page.getByText("Skip");
-  const onboardingVisible = await skipButton
-    .isVisible({ timeout: 500 })
-    .catch(() => false);
-
-  if (onboardingVisible) {
-    await skipButton.click();
-  }
-
-  await page.waitForFunction(
-    (markers) =>
-      markers.some((marker) => document.body?.innerText?.includes(marker)),
-    HOME_READY_MARKERS,
-    { timeout: 10_000 },
-  );
 };
 
 const expectHorizontallyCentered = async (
@@ -86,6 +64,140 @@ const setAppearanceTheme = async (page: Page, useDarkTheme: boolean) => {
 const escapeRegExp = (value: string) =>
   value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
+const expectFirstVisibleMatch = async (
+  locator: ReturnType<Page["getByText"]>,
+) => {
+  const matchCount = await locator.count();
+
+  for (let index = 0; index < matchCount; index += 1) {
+    const candidate = locator.nth(index);
+
+    if (await candidate.isVisible().catch(() => false)) {
+      await expect(candidate).toBeVisible();
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const [defaultSetupJourneyDataset, alternateSetupJourneyDataset] =
+  createSetupJourneyDatasets();
+
+const SETUP_JOURNEY_DATASETS: Record<string, SetupJourneyDataset> = {
+  default: defaultSetupJourneyDataset,
+  alternate: alternateSetupJourneyDataset,
+};
+
+const getSetupJourneyDataset = (datasetName: string) => {
+  const dataset = SETUP_JOURNEY_DATASETS[datasetName];
+
+  if (!dataset) {
+    throw new Error(
+      `Unknown setup journey dataset "${datasetName}". Available datasets: ${Object.keys(SETUP_JOURNEY_DATASETS).join(", ")}`,
+    );
+  }
+
+  return dataset;
+};
+
+const selectTeamFromModal = async (
+  page: Page,
+  searchPlaceholder: string,
+  teamName: string,
+) => {
+  const searchInput = page.getByPlaceholder(searchPlaceholder);
+  await expect(searchInput).toBeVisible();
+  await searchInput.fill(teamName);
+
+  const exactTeamOption = page.getByText(teamName, { exact: true }).first();
+
+  if ((await exactTeamOption.count()) > 0) {
+    await exactTeamOption.click();
+    return;
+  }
+
+  const addTeamButton = page
+    .getByText(new RegExp(`^Add "${escapeRegExp(teamName)}"( as new team)?$`))
+    .first();
+
+  await expect(addTeamButton).toBeVisible();
+  await addTeamButton.click();
+};
+
+const addSetupPlayer = async (page: Page, playerName: string) => {
+  const playerNameInput = page.getByPlaceholder("Enter player name");
+
+  await playerNameInput.fill(playerName);
+  await playerNameInput.press("Enter");
+  await expect(page.getByText(playerName, { exact: true })).toBeVisible();
+};
+
+const addSetupMatch = async (page: Page, match: SetupJourneyMatchInput) => {
+  await page.getByText("Home Team", { exact: true }).click();
+  await selectTeamFromModal(page, "Search home", match.homeTeam);
+
+  await page.getByText("Away Team", { exact: true }).click();
+  await selectTeamFromModal(page, "Search away", match.awayTeam);
+
+  await page.getByTestId("SetupAddMatchButton").click();
+};
+
+const completeSetupJourney = async (
+  page: Page,
+  dataset: SetupJourneyDataset,
+) => {
+  const setupWizardNavigation = page.getByTestId("SetupWizardNavigation");
+
+  await expect(page.getByPlaceholder("Enter player name")).toBeVisible();
+
+  for (const playerName of dataset.playerNames) {
+    await addSetupPlayer(page, playerName);
+  }
+
+  const nextButton = setupWizardNavigation.getByText("Next", { exact: true });
+  await expect(nextButton).toBeVisible();
+  await nextButton.click();
+
+  await expect(page.getByText("Home Team", { exact: true })).toBeVisible();
+
+  for (const match of dataset.matches) {
+    await addSetupMatch(page, match);
+  }
+
+  await expect(nextButton).toBeVisible();
+  await nextButton.click();
+  await expect(page.getByTestId("CommonMatchCard").first()).toBeVisible();
+
+  const commonMatch = dataset.matches[dataset.commonMatchIndex];
+
+  if (!commonMatch) {
+    throw new Error(
+      `Setup journey dataset has an invalid commonMatchIndex: ${dataset.commonMatchIndex}`,
+    );
+  }
+
+  const commonMatchCard = page
+    .getByTestId("CommonMatchCard")
+    .filter({ hasText: commonMatch.homeTeam })
+    .filter({ hasText: commonMatch.awayTeam })
+    .first();
+
+  await expect(commonMatchCard).toBeVisible();
+  await commonMatchCard.click();
+
+  await expect(nextButton).toBeVisible();
+  await nextButton.click();
+
+  const startGameButton = setupWizardNavigation.getByText("Start Game", {
+    exact: true,
+  });
+
+  await expect(startGameButton).toBeVisible();
+  await startGameButton.click();
+  await expect(page.getByTestId("GameProgressTabBarContainer")).toBeVisible();
+};
+
 Given("the app is running on web", async ({ page, baseURL }) => {
   await page.addInitScript(() => {
     globalThis.localStorage.setItem("hasLaunched", "true");
@@ -102,13 +214,22 @@ Given("the browser viewport is desktop-wide", async ({ page }) => {
 });
 
 When("the home screen loads", async ({ page }) => {
-  await waitForHomeReady(page);
+  await waitForBrowserFlowReady(page);
 });
 
 When("the user navigates to setup", async ({ page }) => {
+  await waitForBrowserFlowReady(page);
   await page.getByText("Start New Game").click();
-  await page.waitForLoadState("networkidle");
+  await expect(page.getByPlaceholder("Enter player name")).toBeVisible();
 });
+
+When(
+  "the user completes the {string} setup journey",
+  async ({ page }, datasetName: string) => {
+    const dataset = getSetupJourneyDataset(datasetName);
+    await completeSetupJourney(page, dataset);
+  },
+);
 
 Then("the shell background should be visible", async ({ page }) => {
   const body = page.locator("body");
@@ -130,14 +251,19 @@ Then(
   "the {string} action should be visible",
   async ({ page }, label: string) => {
     const exactLabel = new RegExp(`^${escapeRegExp(label)}$`);
-    const action = page.getByRole("button", { name: exactLabel }).first();
+    const action = page.getByRole("button", { name: exactLabel });
 
-    if ((await action.count()) > 0) {
-      await expect(action).toBeVisible();
+    if (await expectFirstVisibleMatch(action)) {
       return;
     }
 
-    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+    const textAction = page.getByText(label, { exact: true });
+
+    if (await expectFirstVisibleMatch(textAction)) {
+      return;
+    }
+
+    throw new Error(`Could not find a visible action labeled "${label}"`);
   },
 );
 
@@ -239,7 +365,7 @@ Given("the user has game history", async ({ page }) => {
 });
 
 Given("the user navigates to preferences", async ({ page, baseURL }) => {
-  await waitForHomeReady(page);
+  await waitForBrowserFlowReady(page);
   await page.goto(`${baseURL ?? "http://localhost:8081"}/userPreferences`);
   await page.waitForLoadState("networkidle");
 });
@@ -262,7 +388,7 @@ When("the user navigates back to home", async ({ page }) => {
 });
 
 When("the user opens the active game", async ({ page }) => {
-  await waitForHomeReady(page);
+  await waitForBrowserFlowReady(page);
   await page.getByText("Continue Game").click();
   await page.waitForLoadState("networkidle");
 });

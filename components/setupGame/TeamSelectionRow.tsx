@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
   FlatList,
   Modal,
   SafeAreaView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
-import { Ionicons } from "@expo/vector-icons";
 
 /**
  * Represents a selectable team option including optional league metadata.
@@ -106,7 +106,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   useEffect(() => {
     if (homeSearchTerm) {
       const filtered = homeTeamOptions.filter((item) =>
-        item.value.toLowerCase().includes(homeSearchTerm.toLowerCase())
+        item.value.toLowerCase().includes(homeSearchTerm.toLowerCase()),
       );
       setFilteredHomeOptions(filtered);
     } else {
@@ -121,7 +121,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   useEffect(() => {
     if (awaySearchTerm) {
       const filtered = awayTeamOptions.filter((item) =>
-        item.value.toLowerCase().includes(awaySearchTerm.toLowerCase())
+        item.value.toLowerCase().includes(awaySearchTerm.toLowerCase()),
       );
       setFilteredAwayOptions(filtered);
     } else {
@@ -208,7 +208,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
             >
               {homeTeam || "Home Team"}
             </Text>
-            {homeTeam && (
+            {!!homeTeam && (
               <TouchableOpacity
                 style={styles.teamClearButton}
                 onPress={(e) => {
@@ -261,7 +261,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
             >
               {awayTeam || "Away Team"}
             </Text>
-            {awayTeam && (
+            {!!awayTeam && (
               <TouchableOpacity
                 style={styles.teamClearButton}
                 onPress={(e) => {
@@ -282,6 +282,8 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
 
         {/* Add Match Button */}
         <TouchableOpacity
+          accessibilityLabel="Add Match"
+          testID="SetupAddMatchButton"
           style={[
             styles.matchAddButton,
             isAddButtonDisabled && styles.matchAddButtonDisabled,
@@ -338,7 +340,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
               ListEmptyComponent={
                 <View style={styles.emptyListContainer}>
                   <Text style={styles.emptyListText}>No teams found</Text>
-                  {homeSearchTerm.trim() && (
+                  {!!homeSearchTerm.trim() && (
                     <TouchableOpacity
                       style={styles.addNewButton}
                       onPress={handleAddHomeTeam}
@@ -408,7 +410,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
               ListEmptyComponent={
                 <View style={styles.emptyListContainer}>
                   <Text style={styles.emptyListText}>No teams found</Text>
-                  {awaySearchTerm.trim() && (
+                  {!!awaySearchTerm.trim() && (
                     <TouchableOpacity
                       style={styles.addNewButton}
                       onPress={handleAddAwayTeam}
