@@ -15,6 +15,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-03
 - N/A for this feature; no persisted data model changes (multiplayer)
 - TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1, `react-native-safe-area-context`, `react-native-toast-message`, Zustand 5 (multiplayer)
 - N/A; this feature does not change persisted app data (multiplayer)
+- TypeScript 5.3.3 Expo workspace plus SQL migrations executed via Supabase CLI against local Supabase Postgres + Supabase CLI, Supabase Auth/Postgres local stack, pgTAP database tests, `basejump-supabase_test_helpers` for authenticated DB test contexts, existing Expo SDK 52 / React Native 0.76.9 workspace (128-us21-create-the-core-supabase-schema-for-accounts-sessions-participants-matches-assignments-and-events)
+- New top-level `supabase/` workspace for SQL migrations and database tests; Supabase Postgres becomes the canonical multiplayer store while the existing locally persisted session snapshot remains the temporary local cache until client integration ships (128-us21-create-the-core-supabase-schema-for-accounts-sessions-participants-matches-assignments-and-events)
 
 - TypeScript 5.3.3 in an Expo SDK 52 / React Native 0.76.9 workspace + Expo Router 4, React 18.3.1, Zustand 5, AsyncStorage, `expo-av`, `react-native-date-picker`, `react-native-ui-datepicker`, `lottie-react-native`, `react-native-gesture-handler`, `react-native-reanimated`, Jest-Expo 52 (111-add-platform-abstractions)
 - Existing Zustand + AsyncStorage persistence remains unchanged; no new storage for this feature (111-add-platform-abstractions)
@@ -37,9 +39,9 @@ npm test; npm run lint
 Markdown documentation artifact inside a TypeScript 5.3.3 / Expo SDK 52 workspace: Follow standard conventions
 
 ## Recent Changes
+- 128-us21-create-the-core-supabase-schema-for-accounts-sessions-participants-matches-assignments-and-events: Added TypeScript 5.3.3 Expo workspace plus SQL migrations executed via Supabase CLI against local Supabase Postgres + Supabase CLI, Supabase Auth/Postgres local stack, pgTAP database tests, `basejump-supabase_test_helpers` for authenticated DB test contexts, existing Expo SDK 52 / React Native 0.76.9 workspace
 - multiplayer: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1, `react-native-safe-area-context`, `react-native-toast-message`, Zustand 5
 - multiplayer: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1, `react-native-safe-area-context`, `react-native-toast-message`, Zustand 5
-- multiplayer: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, Tamagui 1.141.5, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1, `react-native-safe-area-context`, `react-native-toast-message`, Zustand 5
 
 
 
