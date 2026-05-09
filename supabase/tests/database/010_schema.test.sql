@@ -2,7 +2,7 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(30);
+SELECT plan(34);
 SELECT ok(
         to_regclass('public.accounts') IS NOT NULL,
         'accounts table exists'
@@ -69,6 +69,52 @@ SELECT is(
         ),
         'timestamp with time zone',
         'accounts.updated_at is timestamptz'
+    );
+SELECT ok(
+        to_regclass('public.profiles') IS NOT NULL,
+        'profiles table exists'
+    );
+SELECT is(
+        (
+            SELECT string_agg(
+                    column_name || ':' || (
+                        CASE
+                            WHEN data_type = 'USER-DEFINED' THEN udt_name
+                            ELSE data_type
+                        END
+                    ) || ':' || is_nullable,
+                    ','
+                    ORDER BY ordinal_position
+                )
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+                AND table_name = 'profiles'
+        ),
+        'account_id:uuid:NO,display_name:text:NO,avatar_url:text:YES,bio:text:YES,created_at:timestamp with time zone:NO,updated_at:timestamp with time zone:NO',
+        'profiles columns, types, and nullability match expectations'
+    );
+SELECT ok(
+        to_regclass('public.settings') IS NOT NULL,
+        'settings table exists'
+    );
+SELECT is(
+        (
+            SELECT string_agg(
+                    column_name || ':' || (
+                        CASE
+                            WHEN data_type = 'USER-DEFINED' THEN udt_name
+                            ELSE data_type
+                        END
+                    ) || ':' || is_nullable,
+                    ','
+                    ORDER BY ordinal_position
+                )
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+                AND table_name = 'settings'
+        ),
+        'account_id:uuid:NO,settings_data:jsonb:NO,created_at:timestamp with time zone:NO,updated_at:timestamp with time zone:NO',
+        'settings columns, types, and nullability match expectations'
     );
 SELECT ok(
         to_regclass('public.game_sessions') IS NOT NULL,
