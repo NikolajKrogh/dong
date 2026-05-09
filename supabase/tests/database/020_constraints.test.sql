@@ -2,7 +2,7 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(15);
+SELECT plan(27);
 SELECT ok(
         EXISTS (
             SELECT 1
@@ -21,6 +21,44 @@ SELECT ok(
                 AND confrelid = 'auth.users'::regclass
         ),
         'accounts.id references auth.users(id)'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.profiles'::regclass
+                AND contype = 'p'
+        ),
+        'profiles has a primary key'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.profiles'::regclass
+                AND contype = 'f'
+                AND confrelid = 'public.accounts'::regclass
+        ),
+        'profiles.account_id references accounts(id)'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.settings'::regclass
+                AND contype = 'p'
+        ),
+        'settings has a primary key'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.settings'::regclass
+                AND contype = 'f'
+                AND confrelid = 'public.accounts'::regclass
+        ),
+        'settings.account_id references accounts(id)'
     );
 SELECT is(
         (
@@ -50,6 +88,20 @@ SELECT is(
         'registered,guest',
         'participant_membership_type enum contains expected values'
     );
+SELECT is(
+        (
+            SELECT string_agg(
+                    e.enumlabel,
+                    ','
+                    ORDER BY e.enumsortorder
+                )
+            FROM pg_enum e
+                JOIN pg_type t ON t.oid = e.enumtypid
+            WHERE t.typname = 'friendship_status'
+        ),
+        'pending,accepted,declined,canceled',
+        'friendship_status enum contains expected values'
+    );
 SELECT ok(
         EXISTS (
             SELECT 1
@@ -69,6 +121,39 @@ SELECT ok(
                 AND pg_get_constraintdef(oid) = 'CHECK (((completed_at IS NULL) OR (state = ''completed''::session_state)))'
         ),
         'game_sessions has the completed_at lifecycle check constraint'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.friendships'::regclass
+                AND contype = 'f'
+                AND confrelid = 'public.accounts'::regclass
+                AND conkey = ARRAY [2]::smallint []
+        ),
+        'friendships.requester_account_id references accounts(id)'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.friendships'::regclass
+                AND contype = 'f'
+                AND confrelid = 'public.accounts'::regclass
+                AND conkey = ARRAY [3]::smallint []
+        ),
+        'friendships.addressee_account_id references accounts(id)'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+                AND tablename = 'friendships'
+                AND indexname = 'ux_friendships_account_pair'
+                AND indexdef LIKE 'CREATE UNIQUE INDEX%LEAST(requester_account_id, addressee_account_id), GREATEST(requester_account_id, addressee_account_id)%'
+        ),
+        'friendships has a unique unordered account-pair index'
     );
 CREATE TEMP TABLE phase45_constraint_context AS WITH host_one_auth AS (
     INSERT INTO auth.users (
@@ -274,6 +359,14 @@ event_seed AS (
 )
 SELECT (
         SELECT id
+        FROM host_one_account
+    ) AS host_one_account_id,
+    (
+        SELECT id
+        FROM host_two_account
+    ) AS host_two_account_id,
+    (
+        SELECT id
         FROM session_one
     ) AS session_one_id,
     (
@@ -304,6 +397,128 @@ CREATE TEMP TABLE phase45_constraint_results (
     name text PRIMARY KEY,
     passed boolean NOT NULL
 );
+INSERT INTO public.profiles (account_id, display_name)
+VALUES (
+        (
+            SELECT registered_account_id
+            FROM phase45_constraint_context
+        ),
+        'Registered Profile'
+    );
+INSERT INTO public.settings (account_id, settings_data)
+VALUES (
+        (
+            SELECT registered_account_id
+            FROM phase45_constraint_context
+        ),
+        '{"notifications":true}'::jsonb
+    );
+INSERT INTO public.friendships (
+        requester_account_id,
+        addressee_account_id,
+        status,
+        responded_at
+    )
+VALUES (
+        (
+            SELECT host_one_account_id
+            FROM phase45_constraint_context
+        ),
+        (
+            SELECT registered_account_id
+            FROM phase45_constraint_context
+        ),
+        'accepted',
+        now()
+    );
+DO $$ BEGIN BEGIN
+INSERT INTO public.profiles (account_id, display_name)
+VALUES (
+        (
+            SELECT registered_account_id
+            FROM phase45_constraint_context
+        ),
+        'Duplicate Profile'
+    );
+INSERT INTO phase45_constraint_results
+VALUES ('duplicate_profile_rejected', FALSE);
+EXCEPTION
+WHEN unique_violation THEN
+INSERT INTO phase45_constraint_results
+VALUES ('duplicate_profile_rejected', TRUE);
+END;
+END;
+$$;
+DO $$ BEGIN BEGIN
+INSERT INTO public.settings (account_id, settings_data)
+VALUES (
+        (
+            SELECT registered_account_id
+            FROM phase45_constraint_context
+        ),
+        '{"notifications":false}'::jsonb
+    );
+INSERT INTO phase45_constraint_results
+VALUES ('duplicate_settings_rejected', FALSE);
+EXCEPTION
+WHEN unique_violation THEN
+INSERT INTO phase45_constraint_results
+VALUES ('duplicate_settings_rejected', TRUE);
+END;
+END;
+$$;
+DO $$ BEGIN BEGIN
+INSERT INTO public.friendships (
+        requester_account_id,
+        addressee_account_id,
+        status
+    )
+VALUES (
+        (
+            SELECT registered_account_id
+            FROM phase45_constraint_context
+        ),
+        (
+            SELECT host_one_account_id
+            FROM phase45_constraint_context
+        ),
+        'pending'
+    );
+INSERT INTO phase45_constraint_results
+VALUES ('duplicate_friendship_pair_rejected', FALSE);
+EXCEPTION
+WHEN unique_violation THEN
+INSERT INTO phase45_constraint_results
+VALUES ('duplicate_friendship_pair_rejected', TRUE);
+END;
+END;
+$$;
+DO $$ BEGIN BEGIN
+INSERT INTO public.friendships (
+        requester_account_id,
+        addressee_account_id,
+        status
+    )
+VALUES (
+        (
+            SELECT host_two_account_id
+            FROM phase45_constraint_context
+        ),
+        (
+            SELECT host_two_account_id
+            FROM phase45_constraint_context
+        ),
+        'pending'
+    );
+INSERT INTO phase45_constraint_results
+VALUES ('self_friendship_rejected', FALSE);
+EXCEPTION
+WHEN check_violation THEN
+INSERT INTO phase45_constraint_results
+VALUES ('self_friendship_rejected', TRUE);
+END;
+END;
+$$;
 DO $$ BEGIN BEGIN
 INSERT INTO public.participants (
         session_id,
@@ -565,6 +780,38 @@ SELECT ok(
             WHERE name = 'duplicate_registered_participant'
         ),
         'duplicate registered participant is rejected'
+    );
+SELECT ok(
+        (
+            SELECT passed
+            FROM phase45_constraint_results
+            WHERE name = 'duplicate_profile_rejected'
+        ),
+        'duplicate profile rows for the same account are rejected'
+    );
+SELECT ok(
+        (
+            SELECT passed
+            FROM phase45_constraint_results
+            WHERE name = 'duplicate_settings_rejected'
+        ),
+        'duplicate settings rows for the same account are rejected'
+    );
+SELECT ok(
+        (
+            SELECT passed
+            FROM phase45_constraint_results
+            WHERE name = 'duplicate_friendship_pair_rejected'
+        ),
+        'duplicate unordered friendship pairs are rejected'
+    );
+SELECT ok(
+        (
+            SELECT passed
+            FROM phase45_constraint_results
+            WHERE name = 'self_friendship_rejected'
+        ),
+        'friendships between the same account are rejected'
     );
 SELECT ok(
         (
