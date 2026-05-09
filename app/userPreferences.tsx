@@ -10,6 +10,7 @@ import AddLeagueModal from "../components/preferences/AddLeagueModal";
 import AppearanceSettings from "../components/preferences/AppearanceSettings";
 import Header from "../components/preferences/Header";
 import LeagueSettings from "../components/preferences/LeagueSettings";
+import LegacyHistoryImportSection from "../components/preferences/LegacyHistoryImportSection";
 import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
 import OnboardingButton from "../components/preferences/OnboardingButton";
 import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
@@ -128,6 +129,8 @@ const UserPreferencesScreen = () => {
               setShowSelectDefaultLeaguesModal(true)
             }
           />
+
+          <LegacyHistoryImportSection />
 
           <OnboardingButton onPress={() => setShowOnboarding(true)} />
         </ScrollView>

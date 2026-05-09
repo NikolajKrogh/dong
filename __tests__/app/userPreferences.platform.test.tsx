@@ -128,6 +128,20 @@ jest.mock("../../components/ui", () => ({
 jest.mock("../../components/OnboardingScreen", () => () => null);
 
 jest.mock("../../components/preferences/AddLeagueModal", () => () => null);
+jest.mock(
+  "../../components/preferences/LegacyHistoryImportSection",
+  () => () => {
+    const RN = require("react-native");
+    const R = require("react");
+
+    return R.createElement(
+      RN.View,
+      { testID: "LegacyHistoryImportSection" },
+      R.createElement(RN.Text, null, "History Import"),
+      R.createElement(RN.Text, null, "Import Local History"),
+    );
+  },
+);
 jest.mock("../../components/preferences/ManageLeaguesModal", () => () => null);
 jest.mock(
   "../../components/preferences/SelectDefaultLeaguesModal",
@@ -145,7 +159,7 @@ describe("UserPreferences shell adoption", () => {
     });
   });
 
-  it("renders Header, AppearanceSettings, SoundNotificationSettings, LeagueSettings, and OnboardingButton", () => {
+  it("renders Header, AppearanceSettings, SoundNotificationSettings, LeagueSettings, LegacyHistoryImportSection, and OnboardingButton", () => {
     const Screen = require("../../app/userPreferences").default;
 
     const renderer = TestRenderer.create(React.createElement(Screen));
@@ -158,6 +172,7 @@ describe("UserPreferences shell adoption", () => {
     expect(textContents).toContain("Appearance");
     expect(textContents).toContain("Sound & Notifications");
     expect(textContents).toContain("League Configuration");
+    expect(textContents).toContain("History Import");
     expect(textContents).toContain("View Onboarding");
 
     renderer.unmount();

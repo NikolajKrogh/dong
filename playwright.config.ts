@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 import { defineBddConfig } from "playwright-bdd";
 import {
+  LEGACY_HISTORY_IMPORT_ANON_KEY,
+  LEGACY_HISTORY_IMPORT_PUBLISHABLE_KEY,
+  LEGACY_HISTORY_IMPORT_SUPABASE_URL,
+} from "./e2e/steps/browser-flow.helpers";
+import {
   DESKTOP_WIDE_VIEWPORT,
   PHONE_SIZED_VIEWPORT,
 } from "./e2e/steps/fixtures";
@@ -43,5 +48,16 @@ export default defineConfig({
     command: `npx expo start --web --port ${webPort}`,
     port: webPort,
     reuseExistingServer: true,
+    env: {
+      EXPO_PUBLIC_SUPABASE_URL:
+        process.env.EXPO_PUBLIC_SUPABASE_URL ??
+        LEGACY_HISTORY_IMPORT_SUPABASE_URL,
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+        process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+        LEGACY_HISTORY_IMPORT_PUBLISHABLE_KEY,
+      EXPO_PUBLIC_SUPABASE_ANON_KEY:
+        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+        LEGACY_HISTORY_IMPORT_ANON_KEY,
+    },
   },
 });

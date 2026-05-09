@@ -1,6 +1,41 @@
 import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+
+import type {
+  ImportLegacyHistoryRpcRequest,
+  ImportLegacyHistoryRpcResponse,
+  LegacyLocalSessionSnapshot,
+} from "../../types/legacyHistoryImport";
 
 export const PERSISTED_STORE_KEY = "dong-storage" as const;
+
+export const LEGACY_HISTORY_IMPORT_SUPABASE_URL =
+  "http://127.0.0.1:55321" as const;
+
+export const LEGACY_HISTORY_IMPORT_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" as const;
+
+export const LEGACY_HISTORY_IMPORT_PUBLISHABLE_KEY =
+  "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH" as const;
+
+export const LEGACY_HISTORY_IMPORT_AUTH_STORAGE_KEY =
+  `sb-${new URL(LEGACY_HISTORY_IMPORT_SUPABASE_URL).hostname.split(".")[0]}-auth-token` as const;
+
+export const LEGACY_HISTORY_IMPORT_USER_ID =
+  "11111111-1111-1111-1111-111111111111" as const;
+
+export const LEGACY_HISTORY_IMPORT_USER_EMAIL =
+  "legacy-import@example.com" as const;
+
+let legacyHistoryImportRpcCallCount = 0;
+let legacyHistoryImportRpcLastRequest: ImportLegacyHistoryRpcRequest | null =
+  null;
+
+export const getLegacyHistoryImportRpcCallCount = () =>
+  legacyHistoryImportRpcCallCount;
+
+export const getLegacyHistoryImportRpcLastRequest = () =>
+  legacyHistoryImportRpcLastRequest;
 
 export const HOME_READY_MARKERS = [
   "Start New Game",
@@ -49,6 +84,122 @@ export interface BrowserFlowPersistedState {
   };
   version: 0;
 }
+
+export const createLegacyHistoryImportSessions =
+  (): LegacyLocalSessionSnapshot[] => [
+    {
+      id: "legacy-session-a",
+      date: "2026-05-01T19:00:00.000Z",
+      players: [
+        { id: "alex-session-a", name: "Alex Example", drinksTaken: 2 },
+        { id: "jordan-session-a", name: "Jordan Guest", drinksTaken: 1 },
+      ],
+      matches: [
+        {
+          id: "legacy-match-a-1",
+          homeTeam: "Arsenal",
+          awayTeam: "Chelsea",
+          homeGoals: 2,
+          awayGoals: 1,
+        },
+      ],
+      commonMatchId: "legacy-match-a-1",
+      playerAssignments: {
+        "alex-session-a": ["legacy-match-a-1"],
+        "jordan-session-a": ["legacy-match-a-1"],
+      },
+      matchesPerPlayer: 1,
+    },
+    {
+      id: "legacy-session-b",
+      date: "2026-05-03T19:00:00.000Z",
+      players: [
+        { id: "alex-session-b", name: "Alex Example", drinksTaken: 4 },
+        { id: "jordan-session-b", name: "Jordan Guest", drinksTaken: 3 },
+      ],
+      matches: [
+        {
+          id: "legacy-match-b-1",
+          homeTeam: "Liverpool",
+          awayTeam: "Everton",
+          homeGoals: 3,
+          awayGoals: 2,
+        },
+      ],
+      commonMatchId: "legacy-match-b-1",
+      playerAssignments: {
+        "alex-session-b": ["legacy-match-b-1"],
+        "jordan-session-b": ["legacy-match-b-1"],
+      },
+      matchesPerPlayer: 1,
+    },
+  ];
+
+export const buildLegacyHistoryImportPersistedState = (
+  sessions: LegacyLocalSessionSnapshot[],
+): BrowserFlowPersistedState => ({
+  state: {
+    players: [],
+    matches: [],
+    commonMatchId: null,
+    playerAssignments: {},
+    matchesPerPlayer: 1,
+    history: sessions,
+    theme: "light",
+  },
+  version: 0,
+});
+
+export const buildLegacyHistoryImportAuthSession = () => ({
+  access_token:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.legacy-import-access-token",
+  refresh_token: "legacy-import-refresh-token",
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  token_type: "bearer",
+  user: {
+    id: LEGACY_HISTORY_IMPORT_USER_ID,
+    aud: "authenticated",
+    role: "authenticated",
+    email: LEGACY_HISTORY_IMPORT_USER_EMAIL,
+    app_metadata: {},
+    user_metadata: {},
+    identities: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+});
+
+export const buildLegacyHistoryImportAuthUser = () => ({
+  id: LEGACY_HISTORY_IMPORT_USER_ID,
+  aud: "authenticated",
+  role: "authenticated",
+  email: LEGACY_HISTORY_IMPORT_USER_EMAIL,
+  app_metadata: {},
+  user_metadata: {},
+  identities: [],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+export const buildLegacyHistoryImportResponse = (
+  request: ImportLegacyHistoryRpcRequest,
+): ImportLegacyHistoryRpcResponse => ({
+  accountId: LEGACY_HISTORY_IMPORT_USER_ID,
+  importState: "completed",
+  claimedLocalParticipantId: request.claimedLocalParticipantId,
+  summary: {
+    importedCount: request.sessions.length,
+    skippedCount: 0,
+    failedCount: 0,
+  },
+  sessions: request.sessions.map((session) => ({
+    sourceLocalSessionId: session.sourceLocalSessionId,
+    sourceFingerprint: `fingerprint-${session.sourceLocalSessionId}`,
+    state: "imported",
+    cloudSessionId: `cloud-${session.sourceLocalSessionId}`,
+  })),
+});
 
 export const createSetupJourneyDataset = (
   overrides: Partial<SetupJourneyDataset> = {},
@@ -142,4 +293,64 @@ export const waitForBrowserFlowReady = async (
     markers,
     { timeout: 10_000 },
   );
+};
+
+export const mockLegacyHistoryImportServices = async (page: Page) => {
+  legacyHistoryImportRpcCallCount = 0;
+  legacyHistoryImportRpcLastRequest = null;
+
+  await page.route("**/auth/v1/user", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildLegacyHistoryImportAuthUser()),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/import_legacy_history", async (route) => {
+    const request = route.request();
+    const body = request.postDataJSON() as ImportLegacyHistoryRpcRequest;
+
+    legacyHistoryImportRpcCallCount += 1;
+    legacyHistoryImportRpcLastRequest = body;
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildLegacyHistoryImportResponse(body)),
+    });
+  });
+};
+
+export const expectLegacyHistoryImportToRemainDisabled = async (page: Page) => {
+  const importButton = page.getByTestId("LegacyHistoryImportButton");
+
+  await expect(importButton).toHaveAttribute("aria-disabled", "true");
+  await expect(importButton).toContainText("Import Complete");
+};
+
+export const seedLegacyHistoryImportState = async (page: Page) => {
+  const persistedState = buildLegacyHistoryImportPersistedState(
+    createLegacyHistoryImportSessions(),
+  );
+  const authSession = buildLegacyHistoryImportAuthSession();
+
+  await page.evaluate(
+    ({ storageKey, state, authStorageKey, session }) => {
+      globalThis.localStorage.setItem(
+        storageKey,
+        JSON.stringify({ state, version: 0 }),
+      );
+      globalThis.localStorage.setItem(authStorageKey, JSON.stringify(session));
+    },
+    {
+      storageKey: PERSISTED_STORE_KEY,
+      state: persistedState.state,
+      authStorageKey: LEGACY_HISTORY_IMPORT_AUTH_STORAGE_KEY,
+      session: authSession,
+    },
+  );
+
+  await page.reload();
+  await waitForBrowserFlowReady(page);
 };

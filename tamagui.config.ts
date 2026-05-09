@@ -1,6 +1,6 @@
 import { createTamagui } from "tamagui";
+import { darkTheme, lightTheme } from "./app/style/tamaguiThemes";
 import { tokens } from "./app/style/tamaguiTokens";
-import { lightTheme, darkTheme } from "./app/style/tamaguiThemes";
 
 const config = createTamagui({
   tokens,
@@ -14,7 +14,9 @@ const config = createTamagui({
 export type AppConfig = typeof config;
 
 declare module "tamagui" {
-  interface TamaguiCustomConfig extends AppConfig {}
+  interface TamaguiCustomConfig extends AppConfig {
+    readonly __configBrand?: never;
+  }
 }
 
 export default config;
