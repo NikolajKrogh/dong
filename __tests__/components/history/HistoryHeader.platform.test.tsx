@@ -1,6 +1,5 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { TouchableOpacity, View } from "react-native";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -110,7 +109,10 @@ describe("HistoryHeader responsive layout", () => {
       testID: "HistoryHeaderPlaceholder",
     });
 
-    expect(container.props.style).toEqual([{}, { testStyle: "pageHeaderWide" }]);
+    expect(container.props.style).toEqual([
+      {},
+      { testStyle: "pageHeaderWide" },
+    ]);
     expect(placeholder.props.style).toEqual({ testStyle: "rightPlaceholder" });
   });
 });

@@ -1,8 +1,8 @@
-import { StyleSheet, ViewStyle, TextStyle } from "react-native";
+import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { useColors } from "./theme";
 
 export const createUserPreferencesStyles = (
-  colors: ReturnType<typeof useColors>
+  colors: ReturnType<typeof useColors>,
 ) => {
   const baseContainer: ViewStyle = {
     flex: 1,
@@ -810,6 +810,160 @@ export const createUserPreferencesStyles = (
     },
   });
 
+  const legacyHistoryImportStyles = StyleSheet.create({
+    description: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    summaryRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 12,
+    },
+    summaryLabel: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    summaryValue: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    statusPanel: {
+      marginTop: 14,
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: colors.backgroundSubtle,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    statusText: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+    },
+    statusTextSuccess: {
+      color: colors.success,
+    },
+    statusTextError: {
+      color: colors.danger,
+    },
+    warningText: {
+      marginTop: 12,
+      fontSize: 13,
+      lineHeight: 18,
+      color: colors.warning,
+    },
+    resultSummaryRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: 10,
+    },
+    resultSummaryLabel: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    resultSummaryValue: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    buttonContainer: {
+      marginTop: 16,
+    },
+    modalSafeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    modalHeader: {
+      ...baseRow,
+      minHeight: 56,
+      paddingVertical: 10,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    modalHeaderTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginLeft: 8,
+    },
+    modalCloseButton: {
+      padding: 8,
+    },
+    modalContent: {
+      flex: 1,
+      paddingHorizontal: 16,
+      paddingTop: 16,
+      paddingBottom: 24,
+    },
+    modalDescription: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+      marginBottom: 16,
+    },
+    claimantOptionRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 14,
+      paddingHorizontal: 14,
+      marginBottom: 10,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    claimantOptionRowDisabled: {
+      opacity: 0.6,
+      backgroundColor: colors.backgroundSubtle,
+    },
+    claimantOptionContent: {
+      flex: 1,
+      marginRight: 12,
+    },
+    claimantOptionName: {
+      fontSize: 16,
+      fontWeight: "600",
+      color: colors.textPrimary,
+    },
+    claimantOptionMeta: {
+      marginTop: 4,
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    claimantOptionWarning: {
+      marginTop: 6,
+      fontSize: 12,
+      lineHeight: 17,
+      color: colors.warning,
+    },
+    modalEmptyState: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+    },
+    modalEmptyTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      marginBottom: 8,
+      textAlign: "center",
+    },
+    modalEmptyMessage: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+  });
+
   return {
     commonStyles,
     headerStyles,
@@ -817,6 +971,7 @@ export const createUserPreferencesStyles = (
     addLeagueModalStyles,
     manageLeaguesModalStyles,
     selectDefaultLeaguesModalStyles,
+    legacyHistoryImportStyles,
   } as const;
 };
 
