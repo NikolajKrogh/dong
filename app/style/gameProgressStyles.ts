@@ -1,11 +1,11 @@
 import {
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-  ImageStyle,
   Dimensions,
+  ImageStyle,
+  StyleSheet,
+  TextStyle,
+  ViewStyle,
 } from "react-native";
-import type { lightColors as Light, darkColors as Dark } from "./theme";
+import type { darkColors as Dark, lightColors as Light } from "./theme";
 type Colors = typeof Light | typeof Dark;
 
 export function createGameProgressStyles(colors: Colors) {
@@ -1345,19 +1345,21 @@ export function createGameProgressStyles(colors: Colors) {
     },
     tabBarContainerWide: {
       width: "100%",
-      maxWidth: 560,
+      maxWidth: 680,
       alignSelf: "center",
     },
     tabBar: {
       flexDirection: "row",
-      backgroundColor: colors.surface,
-      borderRadius: 8,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      padding: 6,
       shadowColor: colors.textPrimary,
       shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
+      shadowOpacity: 0.08,
+      shadowRadius: 4,
       elevation: 2,
-      overflow: "hidden",
     },
     tabBarWide: {
       alignSelf: "center",
@@ -1367,30 +1369,38 @@ export function createGameProgressStyles(colors: Colors) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
+      borderRadius: 14,
+      minHeight: 48,
+      paddingHorizontal: 18,
       paddingVertical: 12,
       backgroundColor: colors.surface,
     },
     tabButtonWide: {
-      paddingVertical: 14,
+      minHeight: 56,
+      paddingHorizontal: 24,
+      paddingVertical: 16,
     },
     activeTabButton: {
       backgroundColor: colors.primaryLight,
     },
     tabButtonText: {
-      fontSize: 15,
+      fontSize: 16,
+      fontWeight: "600",
       color: colors.textMuted,
       marginLeft: 8,
     },
     activeTabButtonText: {
       color: colors.primary,
-      fontWeight: "500",
+      fontWeight: "700",
     },
     tabBadge: {
-      backgroundColor: colors.backgroundLight,
-      borderRadius: 12,
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      marginLeft: 6,
+      minWidth: 26,
+      backgroundColor: colors.surface,
+      borderRadius: 13,
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      marginLeft: 8,
+      alignItems: "center",
     },
     tabBadgeText: {
       fontSize: 12,

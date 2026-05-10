@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
-import { MatchItemProps } from "./types";
-import AppIcon from "../../AppIcon";
-import { useTeamLogo } from "../../../hooks/useTeamLogo";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
 import { useColors } from "../../../app/style/theme";
+import { useTeamLogo } from "../../../hooks/useTeamLogo";
+import AppIcon from "../../AppIcon";
+import { MatchItemProps } from "./types";
 
 const MatchGridItem: React.FC<MatchItemProps> = ({
   match,
@@ -92,6 +92,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
 
   return (
     <TouchableOpacity
+      testID={`GameProgressMatchCard-${match.id}`}
       style={styles.gridItem}
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}

@@ -63,12 +63,38 @@ Feature: Application Shell Launch
     And the "Common" action should be visible
     And the "Assign" action should be visible
     And the setup player name input should be visible
+    And the setup player input should match desktop search height
     And the "Next" action should be visible
 
   Scenario: Setup flow keeps the wizard frame centered on a desktop-wide viewport
     Given the browser viewport is desktop-wide
     When the user navigates to setup
     Then the "SetupWizardRoot" element should be horizontally centered
+
+  Scenario: Recent players suggestions stay visible above the empty players state on a desktop-wide viewport
+    Given the user has game history
+    And the browser viewport is desktop-wide
+    When the user navigates to setup
+    And the user types "A" into the setup player input
+    Then the recent players dropdown should be visible
+    And the recent players dropdown should sit above the empty players state
+    When the user selects the "Alice" recent player suggestion
+    Then the setup player "Alice" should be visible
+
+  Scenario: Setup match empty state stays below the desktop controls
+    Given the browser viewport is desktop-wide
+    When the user navigates to setup
+    And the user adds the setup player "Alex"
+    And the user advances to the matches step
+    Then the matches empty state should be below the setup match controls
+
+  Scenario: Added setup matches stay below the desktop controls
+    Given the browser viewport is desktop-wide
+    When the user navigates to setup
+    And the user adds the setup player "Alex"
+    And the user advances to the matches step
+    And the user adds the setup match between "Brighton & Hove Albion" and "Wolverhampton Wanderers"
+    Then the setup matches list should stay below the desktop controls
 
   Scenario Outline: Setup journey reaches gameplay with representative datasets
     When the user navigates to setup
@@ -104,6 +130,13 @@ Feature: Application Shell Launch
     And the browser viewport is desktop-wide
     When the user opens the active game
     Then the "GameProgressTabBarContainer" element should be horizontally centered
+    And the desktop gameplay tab bar should not feel cramped
+
+  Scenario: Gameplay content fits within a desktop-wide viewport
+    Given a game is in progress
+    And the browser viewport is desktop-wide
+    When the user opens the active game
+    Then the desktop gameplay layout should fit within the viewport
 
   Scenario: History sorting stays usable on a phone-sized viewport
     Given the user has game history

@@ -112,7 +112,7 @@ export const PlatformSwipeTabs: React.FC<PlatformSwipeTabsProps> = ({
   if (!canSwipe) {
     return (
       <View style={containerStyle}>
-        <View style={pageStyle}>
+        <View style={[pageStyle, { width: pageWidth }]}>
           {renderContent(
             pages[activeIndex] ?? null,
             activeIndex,

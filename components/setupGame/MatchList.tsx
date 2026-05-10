@@ -4,12 +4,10 @@ import {
   FlatList,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
-import { isWideLayout as isWideViewport } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
 import { useMatchData } from "../../hooks/useMatchData";
@@ -81,10 +79,8 @@ const MatchList: FC<MatchListProps> = ({
   handleRemoveMatch,
   setGlobalMatches,
 }) => {
-  const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
-  const isWideLayout = isWideViewport(width);
   const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore();
   const {
     isLoading: isTeamLoading,
@@ -309,20 +305,8 @@ const MatchList: FC<MatchListProps> = ({
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>Matches</Text>
 
-      <View
-        testID="MatchListLayout"
-        style={[
-          styles.matchListLayout,
-          isWideLayout && styles.matchListWideLayout,
-        ]}
-      >
-        <View
-          testID="MatchListControls"
-          style={[
-            styles.matchListControls,
-            isWideLayout && styles.matchListControlsWide,
-          ]}
-        >
+      <View testID="MatchListLayout" style={styles.matchListLayout}>
+        <View testID="MatchListControls" style={styles.matchListControls}>
           <LeagueFilter
             availableLeagues={availableLeagues}
             selectedLeagues={selectedLeagues}
@@ -356,19 +340,16 @@ const MatchList: FC<MatchListProps> = ({
           )}
         </View>
 
-        <View
-          testID="MatchListResults"
-          style={[
-            styles.matchListResults,
-            isWideLayout && styles.matchListResultsWide,
-          ]}
-        >
+        <View testID="MatchListResults" style={styles.matchListResults}>
           <FlatList
             data={matches}
             keyExtractor={(item) => item.id}
             renderItem={renderMatchItem}
             ListEmptyComponent={
-              <View style={styles.matchEmptyListContainer}>
+              <View
+                testID="MatchListEmptyState"
+                style={styles.matchEmptyListContainer}
+              >
                 <AppIcon
                   name="football-outline"
                   size={48}

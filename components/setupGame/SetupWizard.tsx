@@ -169,6 +169,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         <ScrollView
           style={styles.stepContentScroll}
           showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
         >
           {currentStepContent}
         </ScrollView>

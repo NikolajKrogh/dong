@@ -1,15 +1,15 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 
-import AppIcon from "../AppIcon";
-import { PlayerSuggestion } from "../../hooks/usePlayerSuggestions";
-import { useColors } from "../../app/style/theme";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
+import { useColors } from "../../app/style/theme";
+import { PlayerSuggestion } from "../../hooks/usePlayerSuggestions";
+import AppIcon from "../AppIcon";
 
 /**
  * Props for the PlayerSuggestionDropdown component.
@@ -185,6 +185,7 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const fadeProgress = useSharedValue(0);
   const scaleProgress = useSharedValue(0.95);
+  const maxHeightProgress = useSharedValue(0);
 
   const sortedSuggestions = React.useMemo(() => {
     if (!searchQuery.trim()) return suggestions;
@@ -214,24 +215,42 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
     if (visible && sortedSuggestions.length > 0) {
       fadeProgress.value = withTiming(1, { duration: 220 });
       scaleProgress.value = withTiming(1, { duration: 250 });
+      maxHeightProgress.value = withTiming(400, { duration: 250 });
     } else {
       fadeProgress.value = withTiming(0, { duration: 180 });
       scaleProgress.value = withTiming(0.95, { duration: 200 });
+      maxHeightProgress.value = withTiming(0, { duration: 200 });
     }
-  }, [visible, sortedSuggestions.length, fadeProgress, scaleProgress]);
+  }, [
+    visible,
+    sortedSuggestions.length,
+    fadeProgress,
+    scaleProgress,
+    maxHeightProgress,
+  ]);
 
   const dropdownAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: fadeProgress.value,
       transform: [{ scale: scaleProgress.value }],
+      maxHeight: maxHeightProgress.value,
     };
   });
 
-  if (!visible || sortedSuggestions.length === 0) return null;
-
+  // Never return null — keeping the component mounted prevents Android from
+  // dismissing the keyboard when the dropdown first becomes visible (a new
+  // native view mounting adjacent to the focused TextInput triggers a
+  // relayout that Android's IME interprets as a focus loss).
+  // maxHeight/marginTop animate to 0 when hidden so no layout space is taken.
   return (
     <Animated.View
-      style={[styles.playerSuggestionsDropdown, dropdownAnimatedStyle]}
+      testID="PlayerSuggestionsDropdown"
+      style={[
+        styles.playerSuggestionsDropdown,
+        Platform.OS === "android" && styles.playerSuggestionsDropdownAndroid,
+        dropdownAnimatedStyle,
+      ]}
+      pointerEvents={visible && sortedSuggestions.length > 0 ? "auto" : "none"}
     >
       <View style={styles.playerSuggestionsHeader}>
         <AppIcon name="time-outline" size={14} color={colors.primary} />

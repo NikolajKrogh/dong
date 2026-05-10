@@ -106,6 +106,7 @@ describe("SetupWizard responsive layout", () => {
     const navigation = renderer.root.findByProps({
       testID: "SetupWizardNavigation",
     });
+    const contentScroll = renderer.root.findByType("ScrollView");
 
     expect(root.props.style).toEqual(
       expect.arrayContaining([mockStyles.wizardContainer]),
@@ -119,6 +120,7 @@ describe("SetupWizard responsive layout", () => {
     expect(navigation.props.style).not.toEqual(
       expect.arrayContaining([mockStyles.wizardNavigationWide]),
     );
+    expect(contentScroll.props.keyboardShouldPersistTaps).toBe("handled");
   });
 
   it("switches to a split layout on desktop-wide viewports", () => {

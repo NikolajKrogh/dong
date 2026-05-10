@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Match, useGameStore } from "../store/store";
-import { formatDateForAPI } from "../utils/matchUtils";
 import {
-  ESPNResponse,
-  ESPNCompetitor,
   ESPNCompetitionDetail,
+  ESPNCompetitor,
+  ESPNResponse,
 } from "../types/espn";
+import { formatDateForAPI } from "../utils/matchUtils";
 import { cacheTeamLogo } from "../utils/teamLogos";
 
 /**
@@ -61,9 +61,9 @@ export function useLiveScores(
   updateCallback: (
     matchId: string,
     team: "home" | "away",
-    newGoals: number
+    newGoals: number,
   ) => void, // Updated signature
-  intervalMs = 60000 // Poll every minute by default
+  intervalMs = 60000, // Poll every minute by default
 ) {
   const [liveMatches, setLiveMatches] = useState<MatchWithScore[]>([]);
   const [isPolling, setIsPolling] = useState(false);
@@ -82,7 +82,7 @@ export function useLiveScores(
     try {
       // Using a reliable endpoint for connectivity check
       const testResponse = await fetch(
-        "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?limit=1"
+        "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?limit=1",
       );
       if (!testResponse.ok) {
         console.log("Network connectivity check failed.");
@@ -109,9 +109,9 @@ export function useLiveScores(
       const responses = await Promise.all(
         leagueEndpoints.map((league) =>
           fetch(
-            `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`
-          )
-        )
+            `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`,
+          ),
+        ),
       );
 
       const updatedMatches: MatchWithScore[] = [];
@@ -124,7 +124,7 @@ export function useLiveScores(
         // Skip failed requests
         if (!response.ok) {
           console.error(
-            `Failed to fetch ${leagueEndpoints[i].name}: ${response.status}`
+            `Failed to fetch ${leagueEndpoints[i].name}: ${response.status}`,
           );
           continue;
         }
@@ -202,22 +202,30 @@ export function useLiveScores(
     }
   }, [matches, updateCallback, configuredLeagues]);
 
+  const fetchCurrentScoresRef = useRef(fetchCurrentScores);
+
+  useEffect(() => {
+    fetchCurrentScoresRef.current = fetchCurrentScores;
+  }, [fetchCurrentScores]);
+
   /**
    * Start polling if not already active (immediate fetch + interval).
    * @description No effect when already polling.
    */
   const startPolling = useCallback(() => {
-    if (isPolling || pollingIntervalRef.current) return; // Prevent multiple intervals
+    if (pollingIntervalRef.current) return;
 
     console.log("Starting live score polling...");
     setIsPolling(true);
 
     // Do an immediate fetch
-    fetchCurrentScores();
+    void fetchCurrentScoresRef.current();
 
     // Set up the interval for subsequent fetches
-    pollingIntervalRef.current = setInterval(fetchCurrentScores, intervalMs);
-  }, [isPolling, intervalMs, fetchCurrentScores]);
+    pollingIntervalRef.current = setInterval(() => {
+      void fetchCurrentScoresRef.current();
+    }, intervalMs);
+  }, [intervalMs]);
 
   /**
    * Stop polling and clear the interval.
@@ -274,7 +282,7 @@ function parseStatistics(competitor: ESPNCompetitor): MatchStatistics {
   // Helper function to safely get statistics by name
   const getStat = (name: string): number => {
     const stat = stats.find(
-      (s) => s.name?.toLowerCase() === name.toLowerCase()
+      (s) => s.name?.toLowerCase() === name.toLowerCase(),
     );
     if (!stat) return 0;
 
@@ -321,10 +329,10 @@ const processApiMatch = (event: any): MatchWithScore | null => {
 
     // Find home and away competitor data
     const homeTeamData = competition.competitors?.find(
-      (c: any) => c.homeAway === "home"
+      (c: any) => c.homeAway === "home",
     );
     const awayTeamData = competition.competitors?.find(
-      (c: any) => c.homeAway === "away"
+      (c: any) => c.homeAway === "away",
     );
 
     // Ensure both teams' data is found

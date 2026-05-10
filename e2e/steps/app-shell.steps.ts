@@ -52,6 +52,35 @@ const expectHorizontallyCentered = async (
   );
 };
 
+const getRequiredBox = async (locator: ReturnType<Page["getByTestId"]>) => {
+  await expect(locator).toBeVisible();
+
+  const box = await locator.boundingBox();
+
+  expect(box).not.toBeNull();
+
+  return box ?? { x: 0, y: 0, width: 0, height: 0 };
+};
+
+const expectLocatorWithinViewport = async (
+  page: Page,
+  locator: ReturnType<Page["locator"]> | ReturnType<Page["getByTestId"]>,
+  padding = 0,
+) => {
+  const viewport = page.viewportSize();
+  const box = await getRequiredBox(locator);
+
+  expect(viewport).not.toBeNull();
+  expect(box.x).toBeGreaterThanOrEqual(padding);
+  expect(box.y).toBeGreaterThanOrEqual(padding);
+  expect(box.x + box.width).toBeLessThanOrEqual(
+    (viewport?.width ?? 0) - padding,
+  );
+  expect(box.y + box.height).toBeLessThanOrEqual(
+    (viewport?.height ?? 0) - padding,
+  );
+};
+
 const setAppearanceTheme = async (page: Page, useDarkTheme: boolean) => {
   const themeSwitch = page.getByRole("switch").first();
   const isDarkTheme = await themeSwitch.isChecked();
@@ -224,6 +253,17 @@ When("the user navigates to setup", async ({ page }) => {
 });
 
 When(
+  "the user types {string} into the setup player input",
+  async ({ page }, playerName: string) => {
+    const playerNameInput = page.getByPlaceholder("Enter player name");
+
+    await expect(playerNameInput).toBeVisible();
+    await playerNameInput.click();
+    await playerNameInput.fill(playerName);
+  },
+);
+
+When(
   "the user completes the {string} setup journey",
   async ({ page }, datasetName: string) => {
     const dataset = getSetupJourneyDataset(datasetName);
@@ -239,6 +279,17 @@ Then("the shell background should be visible", async ({ page }) => {
 Then("the setup player name input should be visible", async ({ page }) => {
   await expect(page.getByPlaceholder("Enter player name")).toBeVisible();
 });
+
+Then(
+  "the setup player input should match desktop search height",
+  async ({ page }) => {
+    const inputStack = page.getByTestId("PlayerInputStack");
+    const inputBox = await getRequiredBox(inputStack);
+
+    expect(inputBox.height).toBeGreaterThanOrEqual(48);
+    expect(inputBox.height).toBeLessThanOrEqual(56);
+  },
+);
 
 Then(
   "the {string} element should be horizontally centered",
@@ -271,6 +322,99 @@ Then(
   "the {string} section should be visible",
   async ({ page }, label: string) => {
     await expect(page.getByText(label)).toBeVisible();
+  },
+);
+
+Then("the recent players dropdown should be visible", async ({ page }) => {
+  await expect(page.getByTestId("PlayerSuggestionsDropdown")).toBeVisible();
+  await expect(page.getByText("Recent Players", { exact: true })).toBeVisible();
+});
+
+Then(
+  "the recent players dropdown should sit above the empty players state",
+  async ({ page }) => {
+    const dropdown = page.getByTestId("PlayerSuggestionsDropdown");
+    const emptyState = page.getByTestId("PlayerListEmptyState");
+    const dropdownBox = await getRequiredBox(dropdown);
+    const emptyStateBox = await getRequiredBox(emptyState);
+
+    expect(dropdownBox.y + dropdownBox.height).toBeLessThanOrEqual(
+      emptyStateBox.y + 2,
+    );
+  },
+);
+
+When(
+  "the user selects the {string} recent player suggestion",
+  async ({ page }, playerName: string) => {
+    const dropdown = page.getByTestId("PlayerSuggestionsDropdown");
+
+    await dropdown.getByText(playerName, { exact: true }).click();
+  },
+);
+
+Then(
+  "the setup player {string} should be visible",
+  async ({ page }, playerName: string) => {
+    await expect(page.getByText(playerName, { exact: true })).toBeVisible();
+  },
+);
+
+When(
+  "the user adds the setup player {string}",
+  async ({ page }, playerName: string) => {
+    await addSetupPlayer(page, playerName);
+  },
+);
+
+When(
+  "the user adds the setup match between {string} and {string}",
+  async ({ page }, homeTeam: string, awayTeam: string) => {
+    await addSetupMatch(page, { homeTeam, awayTeam });
+  },
+);
+
+When("the user advances to the matches step", async ({ page }) => {
+  const nextButton = page
+    .getByTestId("SetupWizardNavigation")
+    .getByText("Next", { exact: true });
+
+  await expect(nextButton).toBeVisible();
+  await nextButton.click();
+  await expect(page.getByText("Home Team", { exact: true })).toBeVisible();
+});
+
+Then(
+  "the matches empty state should be below the setup match controls",
+  async ({ page }) => {
+    const controls = page.getByTestId("MatchListControls");
+    const emptyState = page.getByTestId("MatchListEmptyState");
+    const controlsBox = await getRequiredBox(controls);
+    const emptyStateBox = await getRequiredBox(emptyState);
+
+    await expect(
+      page.getByText("Choose Leagues", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Match Schedule", { exact: true }),
+    ).toBeVisible();
+    expect(emptyStateBox.y).toBeGreaterThanOrEqual(
+      controlsBox.y + controlsBox.height - 1,
+    );
+  },
+);
+
+Then(
+  "the setup matches list should stay below the desktop controls",
+  async ({ page }) => {
+    const controls = page.getByTestId("MatchListControls");
+    const firstMatchCard = page.getByTestId("SetupMatchItemWrapper").first();
+    const controlsBox = await getRequiredBox(controls);
+    const firstMatchCardBox = await getRequiredBox(firstMatchCard);
+
+    expect(firstMatchCardBox.y).toBeGreaterThanOrEqual(
+      controlsBox.y + controlsBox.height - 1,
+    );
   },
 );
 
@@ -462,6 +606,50 @@ Then("the history details modal should be visible", async ({ page }) => {
     detailsModal.getByText("Liverpool", { exact: true }),
   ).toBeVisible();
 });
+
+Then(
+  "the desktop gameplay layout should fit within the viewport",
+  async ({ page }) => {
+    await expectLocatorWithinViewport(
+      page,
+      page.getByTestId("GameProgressTabBarContainer"),
+    );
+    await expectLocatorWithinViewport(
+      page,
+      page.locator('[data-testid^="GameProgressMatchCard-"]').first(),
+    );
+    await expectLocatorWithinViewport(
+      page,
+      page.getByTestId("GameProgressMenuButton"),
+    );
+
+    const playersTab = page
+      .getByTestId("GameProgressTabButton")
+      .filter({ hasText: "Players" })
+      .first();
+
+    await expect(playersTab).toBeVisible();
+    await playersTab.click();
+    await expectLocatorWithinViewport(
+      page,
+      page.locator('[data-testid^="GameProgressPlayerCard-"]').first(),
+    );
+  },
+);
+
+Then(
+  "the desktop gameplay tab bar should not feel cramped",
+  async ({ page }) => {
+    const tabBar = page.getByTestId("GameProgressTabBarContainer");
+    const tabButtons = page.getByTestId("GameProgressTabButton");
+    const tabBarBox = await getRequiredBox(tabBar);
+    const firstTabBox = await getRequiredBox(tabButtons.first());
+
+    expect(tabBarBox.width).toBeGreaterThanOrEqual(600);
+    expect(firstTabBox.width).toBeGreaterThanOrEqual(250);
+    expect(firstTabBox.height).toBeGreaterThanOrEqual(52);
+  },
+);
 
 When("the user switches to light theme", async ({ page }) => {
   await setAppearanceTheme(page, false);

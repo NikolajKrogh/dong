@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo } from "react";
 import {
-  View,
+  FlatList,
   Text,
   TouchableOpacity,
-  FlatList,
   useWindowDimensions,
+  View,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -13,10 +13,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Match, Player } from "../../store/store";
-import AppIcon from "../AppIcon";
 import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
 import { useColors } from "../../app/style/theme";
+import { Match, Player } from "../../store/store";
+import AppIcon from "../AppIcon";
 
 /** Props for PlayersList. @interface */
 interface PlayersListProps {
@@ -129,7 +129,10 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     }
 
     return (
-      <View style={[styles.playerCard, isWideLayout && styles.playerCardWide]}>
+      <View
+        testID={`GameProgressPlayerCard-${player.id}`}
+        style={[styles.playerCard, isWideLayout && styles.playerCardWide]}
+      >
         {/* Player name and completion status */}
         <View style={styles.cardHeader}>
           <Text style={styles.playerName}>{player.name}</Text>
@@ -277,6 +280,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
 
   return (
     <FlatList
+      testID="GameProgressPlayersList"
       data={players}
       keyExtractor={(item) => item.id}
       numColumns={isWideLayout ? 2 : 1}

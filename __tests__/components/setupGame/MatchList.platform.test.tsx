@@ -192,7 +192,7 @@ jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
 }));
 
-const renderMatchList = () => {
+const renderMatchList = (overrides: Record<string, unknown> = {}) => {
   const MatchList = require("../../../components/setupGame/MatchList").default;
 
   return TestRenderer.create(
@@ -213,6 +213,7 @@ const renderMatchList = () => {
       handleAddMatch: jest.fn(),
       handleRemoveMatch: jest.fn(),
       setGlobalMatches: jest.fn(),
+      ...overrides,
     }),
   );
 };
@@ -254,21 +255,12 @@ describe("MatchList platform adoption", () => {
     const controls = renderer.root.findByProps({ testID: "MatchListControls" });
     const results = renderer.root.findByProps({ testID: "MatchListResults" });
 
-    expect(layout.props.style).toEqual(
-      expect.arrayContaining([mockStyles.matchListLayout]),
-    );
-    expect(layout.props.style).not.toEqual(
-      expect.arrayContaining([mockStyles.matchListWideLayout]),
-    );
-    expect(controls.props.style).not.toEqual(
-      expect.arrayContaining([mockStyles.matchListControlsWide]),
-    );
-    expect(results.props.style).not.toEqual(
-      expect.arrayContaining([mockStyles.matchListResultsWide]),
-    );
+    expect(layout.props.style).toEqual(mockStyles.matchListLayout);
+    expect(controls.props.style).toEqual(mockStyles.matchListControls);
+    expect(results.props.style).toEqual(mockStyles.matchListResults);
   });
 
-  it("switches to a split controls and results layout on desktop-wide viewports", () => {
+  it("keeps added matches below the controls on desktop-wide viewports", () => {
     mockMatchDataState.isLoading = false;
     mockUseWindowDimensions.mockReturnValue({
       width: 1280,
@@ -282,23 +274,31 @@ describe("MatchList platform adoption", () => {
     const controls = renderer.root.findByProps({ testID: "MatchListControls" });
     const results = renderer.root.findByProps({ testID: "MatchListResults" });
 
-    expect(layout.props.style).toEqual(
-      expect.arrayContaining([
-        mockStyles.matchListLayout,
-        mockStyles.matchListWideLayout,
-      ]),
-    );
-    expect(controls.props.style).toEqual(
-      expect.arrayContaining([
-        mockStyles.matchListControls,
-        mockStyles.matchListControlsWide,
-      ]),
-    );
-    expect(results.props.style).toEqual(
-      expect.arrayContaining([
-        mockStyles.matchListResults,
-        mockStyles.matchListResultsWide,
-      ]),
-    );
+    expect(layout.props.style).toEqual(mockStyles.matchListLayout);
+    expect(controls.props.style).toEqual(mockStyles.matchListControls);
+    expect(results.props.style).toEqual(mockStyles.matchListResults);
+  });
+
+  it("keeps the empty state below the controls on desktop-wide viewports before matches are added", () => {
+    mockMatchDataState.isLoading = false;
+    mockUseWindowDimensions.mockReturnValue({
+      width: 1280,
+      height: 900,
+      scale: 1,
+      fontScale: 1,
+    });
+
+    const renderer = renderMatchList({
+      matches: [],
+      homeTeam: "",
+      awayTeam: "",
+    });
+    const layout = renderer.root.findByProps({ testID: "MatchListLayout" });
+    const controls = renderer.root.findByProps({ testID: "MatchListControls" });
+    const results = renderer.root.findByProps({ testID: "MatchListResults" });
+
+    expect(layout.props.style).toEqual(mockStyles.matchListLayout);
+    expect(controls.props.style).toEqual(mockStyles.matchListControls);
+    expect(results.props.style).toEqual(mockStyles.matchListResults);
   });
 });

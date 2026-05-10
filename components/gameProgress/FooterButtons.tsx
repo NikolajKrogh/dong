@@ -135,6 +135,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
       {/* Menu toggle button */}
       <View style={styles.footer}>
         <TouchableOpacity
+          testID="GameProgressMenuButton"
           style={styles.menuButton}
           onPress={toggleMenu}
           accessibilityRole="button"

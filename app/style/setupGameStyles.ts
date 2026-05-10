@@ -1451,33 +1451,41 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
 
     // Player List specific styles (already well-defined, applying palette)
     playerInputContainer: {
-      // This was duplicated, ensuring one definition
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
       height: 50,
       backgroundColor: colors.backgroundLight,
+      borderWidth: 1,
+      borderColor: colors.border,
       borderRadius: 10,
-      // borderWidth: 0, // Already default
-      paddingHorizontal: 15,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      paddingHorizontal: 10,
+    },
+    playerInputContainerFocused: {
+      borderColor: colors.primaryFocus,
+      backgroundColor: colors.surface,
+    },
+    playerInputStack: {
+      flex: 1,
+      minWidth: 0,
+      position: "relative",
+    },
+    playerInputStackActive: {
+      zIndex: 10,
     },
     playerInputIcon: {
-      marginRight: 10,
+      marginRight: 8,
       color: colors.textMuted, // Icon color
     },
     playerTextInput: {
-      ...makeBaseInput(colors), // Apply base and override
       flex: 1,
       height: "100%",
-      borderWidth: 0, // Handled by container
-      backgroundColor: "transparent", // Handled by container
-      paddingHorizontal: 0, // Remove base padding
-      color: colors.textSecondary, // Ensure text color
+      borderWidth: 0,
+      backgroundColor: "transparent",
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: colors.textSecondary,
+      fontSize: 14,
     },
     playerAddButton: {
       ...makeBaseButton(),
@@ -1586,6 +1594,9 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       flexDirection: "row",
       marginBottom: 12,
       alignItems: "center",
+    },
+    playerInputRow: {
+      alignItems: "flex-start",
     },
     teamInputWrapper: {
       flex: 1, // Allow inputs to take available space
@@ -2011,20 +2022,24 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginBottom: 12,
     },
     playerSuggestionsDropdown: {
-      position: "absolute",
-      top: "100%",
-      left: 0,
-      right: 0,
       backgroundColor: colors.surface,
       borderRadius: 16,
-      marginTop: 2,
+      marginTop: 4,
       shadowColor: colors.black,
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.2,
       shadowRadius: 12,
       elevation: 10,
-      zIndex: 1000,
       overflow: "hidden",
+    },
+    playerSuggestionsDropdownAndroid: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      width: "100%",
+      zIndex: 20,
+      elevation: 20,
     },
     playerSuggestionsList: {
       paddingBottom: 4,

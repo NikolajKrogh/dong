@@ -45,7 +45,7 @@ const PlayerListEmptyState = ({
   iconColor,
 }: PlayerListEmptyStateProps) => {
   return (
-    <View style={styles.playerEmptyListContainer}>
+    <View testID="PlayerListEmptyState" style={styles.playerEmptyListContainer}>
       <Ionicons name="people-outline" size={48} color={iconColor} />
       <Text style={styles.emptyListTitleText}>No players added yet!</Text>
       <Text style={styles.emptyListSubtitleText}>
@@ -88,6 +88,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
   const availableSuggestions = playerSuggestions.filter(
     (suggestion) => !players.some((player) => player.name === suggestion.name),
   );
+  const showPlayerSuggestions =
+    showSuggestions && availableSuggestions.length > 0;
 
   useEffect(() => {
     players.forEach((player) => {
@@ -103,7 +105,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
    */
   const handleInputFocus = () => {
     setIsInputFocused(true);
-    if (hasHistory) {
+    if (hasHistory && newPlayerName.trim().length > 0) {
       setShowSuggestions(true);
     }
   };
@@ -261,31 +263,37 @@ const PlayerList: React.FC<PlayerListProps> = ({
         </View>
       </View>
 
-      <View style={styles.inputRow}>
-        <View style={[styles.playerInputContainer, { zIndex: 1000 }]}>
-          <Ionicons
-            name="person-outline"
-            size={20}
-            color={colors.textSecondary}
-            style={styles.playerInputIcon}
-          />
-          <TextInput
-            ref={inputRef}
-            style={styles.playerTextInput}
-            placeholder="Enter player name"
-            placeholderTextColor={colors.textPlaceholder}
-            value={newPlayerName}
-            onChangeText={handleTextChange}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            returnKeyType="done"
-            onSubmitEditing={addPlayerAndFocus}
-          />
+      <View style={[styles.inputRow, styles.playerInputRow]}>
+        <View testID="PlayerInputStack" style={styles.playerInputStack}>
+          <View
+            style={[
+              styles.playerInputContainer,
+              isInputFocused && styles.playerInputContainerFocused,
+            ]}
+          >
+            <Ionicons
+              name="person-outline"
+              size={20}
+              color={colors.textSecondary}
+              style={styles.playerInputIcon}
+            />
+            <TextInput
+              ref={inputRef}
+              style={styles.playerTextInput}
+              placeholder="Enter player name"
+              placeholderTextColor={colors.textPlaceholder}
+              value={newPlayerName}
+              onChangeText={handleTextChange}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              returnKeyType="done"
+              onSubmitEditing={addPlayerAndFocus}
+            />
+          </View>
 
-          {/* Player Suggestion Dropdown */}
           <PlayerSuggestionDropdown
             suggestions={availableSuggestions}
-            visible={showSuggestions && availableSuggestions.length > 0}
+            visible={showPlayerSuggestions}
             onSelectPlayer={handleSelectSuggestion}
             searchQuery={newPlayerName}
           />

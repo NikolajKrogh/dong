@@ -12,12 +12,21 @@ class MockAnimatedValue {
   constructor(public value: number) {}
 }
 
+const mockUsePlayerSuggestions = jest.fn(() => ({
+  playerSuggestions: [],
+  hasHistory: false,
+}));
+
 const mockStyles = {
   tabContent: { testStyle: "tabContent" },
   sectionTitle: { testStyle: "sectionTitle" },
   playerCount: { testStyle: "playerCount" },
   inputRow: { testStyle: "inputRow" },
+  playerInputRow: { testStyle: "playerInputRow" },
   playerInputContainer: { testStyle: "playerInputContainer" },
+  playerInputContainerFocused: { testStyle: "playerInputContainerFocused" },
+  playerInputStack: { testStyle: "playerInputStack" },
+  playerInputStackActive: { testStyle: "playerInputStackActive" },
   playerInputIcon: { testStyle: "playerInputIcon" },
   playerTextInput: { testStyle: "playerTextInput" },
   playerAddButton: { testStyle: "playerAddButton" },
@@ -75,10 +84,8 @@ jest.mock("expo-linear-gradient", () => ({
 }));
 
 jest.mock("../../../hooks/usePlayerSuggestions", () => ({
-  usePlayerSuggestions: () => ({
-    playerSuggestions: [],
-    hasHistory: false,
-  }),
+  usePlayerSuggestions: (searchQuery: string) =>
+    mockUsePlayerSuggestions(searchQuery),
 }));
 
 jest.mock("../../../components/setupGame/PlayerSuggestionDropdown", () => {
@@ -129,6 +136,10 @@ const renderPlayerList = () => {
 describe("PlayerList responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUsePlayerSuggestions.mockReturnValue({
+      playerSuggestions: [],
+      hasHistory: false,
+    });
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
@@ -160,5 +171,39 @@ describe("PlayerList responsive layout", () => {
     expect(list.props.columnWrapperStyle).toEqual(
       mockStyles.playersListWideRow,
     );
+  });
+
+  it("keeps recent player suggestions hidden on focus until the user types on phone-sized viewports", () => {
+    mockUsePlayerSuggestions.mockReturnValue({
+      playerSuggestions: [
+        {
+          name: "Charlie",
+          gamesPlayed: 3,
+          totalDrinks: 4,
+          lastPlayed: "2026-05-01T19:00:00.000Z",
+          averageDrinksPerGame: 1.5,
+        },
+      ],
+      hasHistory: true,
+    });
+
+    const renderer = renderPlayerList();
+    const input = renderer.root.findByType("TextInput");
+    const dropdown = () =>
+      renderer.root.findByProps({ testID: "PlayerSuggestionDropdown" });
+
+    expect(dropdown().props.visible).toBe(false);
+
+    TestRenderer.act(() => {
+      input.props.onFocus();
+    });
+
+    expect(dropdown().props.visible).toBe(false);
+
+    TestRenderer.act(() => {
+      input.props.onChangeText("A");
+    });
+
+    expect(dropdown().props.visible).toBe(true);
   });
 });
