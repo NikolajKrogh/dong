@@ -1,25 +1,14 @@
 import React from "react";
 import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams } from "expo-router";
 
 import AuthHeader from "../../components/auth/AuthHeader";
-import PasswordResetForm from "../../components/auth/PasswordResetForm";
+import ChangePasswordForm from "../../components/auth/ChangePasswordForm";
 import { ShellScreen } from "../../components/ui";
-import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
 import { useColors } from "../style/theme";
 
-const PasswordResetScreen = () => {
+const ChangePasswordScreen = () => {
   const colors = useColors();
-  const searchParams = useLocalSearchParams();
-  const returnTo = normalizeAccountFlowReturnTo(
-    (searchParams as { returnTo?: string | string[] }).returnTo,
-  );
-  const recoveryCodeValue = (searchParams as { code?: string | string[] })
-    .code;
-  const recoveryCode = Array.isArray(recoveryCodeValue)
-    ? recoveryCodeValue[0]
-    : recoveryCodeValue ?? null;
 
   return (
     <ShellScreen padded={false} centerContent contentMaxWidth={720}>
@@ -35,10 +24,7 @@ const PasswordResetScreen = () => {
             keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
           >
-            <PasswordResetForm
-              returnTo={returnTo}
-              recoveryCode={recoveryCode}
-            />
+            <ChangePasswordForm />
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -46,4 +32,4 @@ const PasswordResetScreen = () => {
   );
 };
 
-export default PasswordResetScreen;
+export default ChangePasswordScreen;

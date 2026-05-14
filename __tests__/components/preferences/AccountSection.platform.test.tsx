@@ -24,6 +24,24 @@ jest.mock("../../../hooks/useAccountAuth", () => {
 
 const mockUseAccountAuth = jest.mocked(useAccountAuth);
 
+jest.mock("tamagui", () => {
+  const RN = require("react-native");
+  const ReactLocal = require("react");
+  return {
+    Text: ({ children, onPress, testID }: any) =>
+      ReactLocal.createElement(RN.Text, { onPress, testID }, children),
+    XStack: ({ children, onPress, testID }: any) =>
+      ReactLocal.createElement(RN.View, { onPress, testID }, children),
+    YStack: ({ children, onPress, testID }: any) =>
+      ReactLocal.createElement(RN.View, { testID }, children),
+    styled: (_Comp: any, _styles: any) => {
+      const Wrapped = ({ children, onPress, testID }: any) =>
+        ReactLocal.createElement(RN.View, { onPress, testID }, children);
+      return Wrapped;
+    },
+  };
+});
+
 jest.mock("../../../components/ui", () => ({
   ShellSection: ({ children, title }: any) => {
     const RN = require("react-native");
@@ -76,12 +94,15 @@ describe("AccountSection", () => {
   it("shows a sign-in entry point when no account is active", () => {
     mockUseAccountAuth.mockReturnValue({
       account: null,
+      changePassword: jest.fn(),
+      deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
       session: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
+      verifySignupOtp: jest.fn(),
       status: "signedOut",
       user: null,
     } as never);
@@ -116,12 +137,15 @@ describe("AccountSection", () => {
   it("routes account setup back to the account flow when display name is missing", () => {
     mockUseAccountAuth.mockReturnValue({
       account: { preferredDisplayName: null },
+      changePassword: jest.fn(),
+      deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
       session: { user: { id: "host-1" } },
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
+      verifySignupOtp: jest.fn(),
       status: "needsDisplayName",
       user: { id: "host-1" },
     } as never);
@@ -146,12 +170,15 @@ describe("AccountSection", () => {
 
     mockUseAccountAuth.mockReturnValue({
       account: { preferredDisplayName: "Captain" },
+      changePassword: jest.fn(),
+      deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
       session: { user: { id: "host-1" } },
       signIn: jest.fn(),
       signOut,
       signUp: jest.fn(),
+      verifySignupOtp: jest.fn(),
       status: "ready",
       user: { id: "host-1" },
     } as never);

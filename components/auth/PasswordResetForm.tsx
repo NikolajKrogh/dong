@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, TextInput } from "react-native";
+import { Text, XStack, YStack } from "tamagui";
 
 import { useColors } from "../../app/style/theme";
 import {
@@ -22,23 +23,36 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
   const { completePasswordRecovery, requestPasswordReset, status } = useAccountAuth();
   const normalizedReturnTo = normalizeAccountFlowReturnTo(returnTo);
   const normalizedRecoveryCode = recoveryCode?.trim() || null;
+
   const [email, setEmail] = useState("");
-  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(
-    null,
-  );
+  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null);
   const [recoveryConfirmationMessage, setRecoveryConfirmationMessage] =
     useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [hasEstablishedRecoverySession, setHasEstablishedRecoverySession] =
-    useState(false);
+  const [hasEstablishedRecoverySession, setHasEstablishedRecoverySession] = useState(false);
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCompletedRecovery, setHasCompletedRecovery] = useState(false);
 
+  const confirmPasswordRef = useRef<TextInput>(null);
+
   const isRecoveryMode =
     hasCompletedRecovery || hasEstablishedRecoverySession || status === "recoveringPassword";
+
+  const inputStyles = StyleSheet.create({
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      backgroundColor: colors.surface,
+    },
+  });
 
   useEffect(() => {
     if (!normalizedRecoveryCode || isRecoveryMode) {
@@ -55,10 +69,7 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
         const { error } = await getSupabaseClient().auth.exchangeCodeForSession(
           normalizedRecoveryCode,
         );
-
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
       } catch (error) {
         if (isActive) {
           setErrorMessage(
@@ -68,7 +79,6 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
           );
           setIsRecoveringSession(false);
         }
-
         return;
       }
 
@@ -79,52 +89,8 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
     };
 
     void exchangeRecoveryCode();
-
-    return () => {
-      isActive = false;
-    };
+    return () => { isActive = false; };
   }, [isRecoveryMode, normalizedRecoveryCode]);
-
-  const styles = React.useMemo(
-    () =>
-      StyleSheet.create({
-        container: {
-          gap: 16,
-        },
-        title: {
-          fontSize: 24,
-          fontWeight: "700",
-          color: colors.textPrimary,
-        },
-        subtitle: {
-          fontSize: 15,
-          color: colors.textSecondary,
-        },
-        input: {
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 10,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          fontSize: 16,
-          color: colors.textPrimary,
-          backgroundColor: colors.surface,
-        },
-        message: {
-          fontSize: 14,
-          color: colors.textSecondary,
-        },
-        error: {
-          fontSize: 14,
-          color: colors.danger,
-        },
-        link: {
-          color: colors.primary,
-          fontWeight: "600",
-        },
-      }),
-    [colors],
-  );
 
   const handleSubmit = async () => {
     setErrorMessage(null);
@@ -172,19 +138,26 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
     }
   };
 
+  const returnToSignIn = () => {
+    router.replace(buildAccountAuthRoute("/auth", normalizedReturnTo) as never);
+  };
+
   if (isRecoveringSession) {
     return (
       <ShellCard elevated>
-        <View style={styles.container}>
-          <View style={{ gap: 8 }}>
-            <Text style={styles.title}>Reset your password</Text>
-            <Text style={styles.subtitle}>
+        <YStack gap="$4">
+          <YStack gap="$2">
+            <Text fontSize={22} fontWeight="700" color="$textPrimary">
+              Reset your password
+            </Text>
+            <Text fontSize={15} color="$textSecondary">
               Completing your recovery link and preparing the password form.
             </Text>
-          </View>
-
-          <Text style={styles.message}>Please wait while we open the recovery link.</Text>
-        </View>
+          </YStack>
+          <Text fontSize={14} color="$textSecondary">
+            Please wait while we open the recovery link.
+          </Text>
+        </YStack>
       </ShellCard>
     );
   }
@@ -192,108 +165,138 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
   if (isRecoveryMode) {
     return (
       <ShellCard elevated>
-        <View style={styles.container}>
-          <View style={{ gap: 8 }}>
-            <Text style={styles.title}>Set a new password</Text>
-            <Text style={styles.subtitle}>
+        <YStack gap="$4">
+          <YStack gap="$2">
+            <Text fontSize={22} fontWeight="700" color="$textPrimary">
+              Set a new password
+            </Text>
+            <Text fontSize={15} color="$textSecondary">
               Choose a password for your account and confirm it below.
             </Text>
-          </View>
+          </YStack>
 
-          {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+          {errorMessage ? (
+            <Text fontSize={14} color="$danger">{errorMessage}</Text>
+          ) : null}
           {recoveryConfirmationMessage ? (
-            <Text style={styles.message}>{recoveryConfirmationMessage}</Text>
+            <Text fontSize={14} color="$textSecondary">{recoveryConfirmationMessage}</Text>
           ) : null}
 
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="New password"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            style={styles.input}
-            value={newPassword}
-            onChangeText={setNewPassword}
-          />
+          <YStack gap="$1.5">
+            <Text fontSize={13} fontWeight="600" color="$textMuted">
+              New password
+            </Text>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textMuted}
+              returnKeyType="next"
+              secureTextEntry
+              style={inputStyles.input}
+              value={newPassword}
+              onChangeText={setNewPassword}
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            />
+          </YStack>
 
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="Confirm new password"
-            placeholderTextColor={colors.textMuted}
-            secureTextEntry
-            style={styles.input}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
+          <YStack gap="$1.5">
+            <Text fontSize={13} fontWeight="600" color="$textMuted">
+              Confirm new password
+            </Text>
+            <TextInput
+              ref={confirmPasswordRef}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textMuted}
+              returnKeyType="done"
+              secureTextEntry
+              style={inputStyles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              onSubmitEditing={() => void handleRecoverySubmit()}
+            />
+          </YStack>
 
           <ShellActionButton
             disabled={isSubmitting}
             label={isSubmitting ? "Updating…" : "Update password"}
-            onPress={() => {
-              void handleRecoverySubmit();
-            }}
+            onPress={() => void handleRecoverySubmit()}
           />
 
-          <Pressable
-            onPress={() => {
-              router.replace(
-                buildAccountAuthRoute("/auth", normalizedReturnTo) as never,
-              );
-            }}
-          >
-            <Text style={styles.link}>Return to sign in</Text>
-          </Pressable>
-        </View>
+          <XStack justifyContent="center">
+            <Text
+              fontSize={14}
+              color="$primary"
+              fontWeight="600"
+              pressStyle={{ opacity: 0.7 }}
+              onPress={returnToSignIn}
+            >
+              Return to sign in
+            </Text>
+          </XStack>
+        </YStack>
       </ShellCard>
     );
   }
 
   return (
     <ShellCard elevated>
-      <View style={styles.container}>
-        <View style={{ gap: 8 }}>
-          <Text style={styles.title}>Reset your password</Text>
-          <Text style={styles.subtitle}>
+      <YStack gap="$4">
+        <YStack gap="$2">
+          <Text fontSize={22} fontWeight="700" color="$textPrimary">
+            Reset your password
+          </Text>
+          <Text fontSize={15} color="$textSecondary">
             Enter the email address for your account and we will send a recovery
             link.
           </Text>
-        </View>
+        </YStack>
 
-        <TextInput
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          placeholder="Email address"
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-        />
+        <YStack gap="$1.5">
+          <Text fontSize={13} fontWeight="600" color="$textMuted">
+            Email address
+          </Text>
+          <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            placeholder="you@example.com"
+            placeholderTextColor={colors.textMuted}
+            returnKeyType="done"
+            style={inputStyles.input}
+            value={email}
+            onChangeText={setEmail}
+            onSubmitEditing={() => void handleSubmit()}
+          />
+        </YStack>
 
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+        {errorMessage ? (
+          <Text fontSize={14} color="$danger">{errorMessage}</Text>
+        ) : null}
         {confirmationMessage ? (
-          <Text style={styles.message}>{confirmationMessage}</Text>
+          <Text fontSize={14} color="$textSecondary">{confirmationMessage}</Text>
         ) : null}
 
         <ShellActionButton
           disabled={isSubmitting}
           label={isSubmitting ? "Sending…" : "Send recovery email"}
-          onPress={() => {
-            void handleSubmit();
-          }}
+          onPress={() => void handleSubmit()}
         />
 
-        <Pressable
-          onPress={() => {
-            router.replace(
-                buildAccountAuthRoute("/auth", normalizedReturnTo) as never,
-            );
-          }}
-        >
-          <Text style={styles.link}>Return to sign in</Text>
-        </Pressable>
-      </View>
+        <XStack justifyContent="center">
+          <Text
+            fontSize={14}
+            color="$primary"
+            fontWeight="600"
+            pressStyle={{ opacity: 0.7 }}
+            onPress={returnToSignIn}
+          >
+            Return to sign in
+          </Text>
+        </XStack>
+      </YStack>
     </ShellCard>
   );
 };

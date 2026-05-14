@@ -1,18 +1,17 @@
-import * as Linking from "expo-linking";
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
 import type {
   AuthChangeEvent,
   Session,
   SupabaseClient,
   User,
 } from "@supabase/supabase-js";
+import * as Linking from "expo-linking";
+import React, { createContext, useContext, useEffect, useState } from "react";
 
-import { getSupabaseClient, hasSupabasePublicConfig } from "../utils/supabaseClient";
+import {
+  getSupabaseClient,
+  getSupabasePublicConfig,
+  hasSupabasePublicConfig,
+} from "../utils/supabaseClient";
 
 const ACCOUNT_SELECT_COLUMNS =
   "id, preferred_display_name, created_at, updated_at";
@@ -44,14 +43,21 @@ export interface AccountAuthContextValue {
   user: User | null;
   account: Account | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    returnTo?: string | null,
+  ) => Promise<void>;
+  verifySignupOtp: (email: string, token: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveDisplayName: (displayName: string) => Promise<void>;
+  changePassword: (newPassword: string) => Promise<void>;
   requestPasswordReset: (
     email: string,
     returnTo?: string | null,
   ) => Promise<void>;
   completePasswordRecovery: (newPassword: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AccountAuthContext = createContext<AccountAuthContextValue | null>(null);
@@ -81,21 +87,39 @@ export const normalizeAccountFlowReturnTo = (
 };
 
 export const buildAccountAuthRoute = (
-  route: "/auth" | "/auth/onboarding" | "/auth/reset-password",
+  route:
+    | "/auth"
+    | "/auth/onboarding"
+    | "/auth/reset-password"
+    | "/auth/change-password",
   returnTo?: string | null,
+  extraParams?: Record<string, string>,
 ): string => {
   const normalizedReturnTo = normalizeAccountFlowReturnTo(returnTo);
-
-  return normalizedReturnTo
-    ? `${route}?returnTo=${encodeURIComponent(normalizedReturnTo)}`
-    : route;
+  const params: string[] = [];
+  if (normalizedReturnTo) {
+    params.push(`returnTo=${encodeURIComponent(normalizedReturnTo)}`);
+  }
+  if (extraParams) {
+    for (const [key, value] of Object.entries(extraParams)) {
+      if (value) params.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+    }
+  }
+  return params.length > 0 ? `${route}?${params.join("&")}` : route;
 };
+
+export const buildAccountAuthRedirectUrl = (
+  route:
+    | "/auth"
+    | "/auth/onboarding"
+    | "/auth/reset-password"
+    | "/auth/change-password",
+  returnTo?: string | null,
+) => Linking.createURL(buildAccountAuthRoute(route, returnTo));
 
 const mapAccountRow = (row: AccountRow): Account => ({
   id: row.id,
-  preferredDisplayName: normalizeAccountDisplayName(
-    row.preferred_display_name,
-  ),
+  preferredDisplayName: normalizeAccountDisplayName(row.preferred_display_name),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -173,7 +197,9 @@ export const saveAccountDisplayName = async (
     .single();
 
   if (updateError || !updatedAccount) {
-    throw updateError ?? new Error("Unable to update the account display name.");
+    throw (
+      updateError ?? new Error("Unable to update the account display name.")
+    );
   }
 
   return mapAccountRow(updatedAccount as AccountRow);
@@ -273,12 +299,14 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     void restoreSession();
 
     const { data } = client.auth.onAuthStateChange((event, nextSession) => {
-      void syncAuthenticatedSession(nextSession, false, event).catch((error) => {
-        console.error(error);
-        if (isMounted) {
-          setSignedOutState(setStatus, setSession, setUser, setAccount);
-        }
-      });
+      void syncAuthenticatedSession(nextSession, false, event).catch(
+        (error) => {
+          console.error(error);
+          if (isMounted) {
+            setSignedOutState(setStatus, setSession, setUser, setAccount);
+          }
+        },
+      );
     });
 
     return () => {
@@ -306,11 +334,18 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     await syncAuthenticatedSession(data.session, false);
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    returnTo?: string | null,
+  ) => {
     const client = getSupabaseClient();
     const { data, error } = await client.auth.signUp({
       email: email.trim(),
       password,
+      options: {
+        emailRedirectTo: buildAccountAuthRedirectUrl("/auth", returnTo),
+      },
     });
 
     if (error) {
@@ -323,6 +358,23 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     }
 
     await syncAuthenticatedSession(data.session, false);
+  };
+
+  const verifySignupOtp = async (email: string, token: string) => {
+    const client = getSupabaseClient();
+    const { data, error } = await client.auth.verifyOtp({
+      email: email.trim(),
+      token: token.trim(),
+      type: "signup",
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (data.session) {
+      await syncAuthenticatedSession(data.session, false);
+    }
   };
 
   const signOut = async () => {
@@ -340,10 +392,16 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     const client = getSupabaseClient();
 
     if (!user) {
-      throw new Error("Cannot save a display name without a signed-in account.");
+      throw new Error(
+        "Cannot save a display name without a signed-in account.",
+      );
     }
 
-    const nextAccount = await saveAccountDisplayName(client, user.id, displayName);
+    const nextAccount = await saveAccountDisplayName(
+      client,
+      user.id,
+      displayName,
+    );
 
     setAccount(nextAccount);
     setStatus("ready");
@@ -358,9 +416,7 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     setStatus("recoveringPassword");
 
     const { error } = await client.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: Linking.createURL(
-        buildAccountAuthRoute("/auth/reset-password", returnTo),
-      ),
+      redirectTo: buildAccountAuthRedirectUrl("/auth/reset-password", returnTo),
     });
 
     setStatus("signedOut");
@@ -395,6 +451,48 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     await signOut();
   };
 
+  const changePassword = async (newPassword: string) => {
+    const client = getSupabaseClient();
+    const trimmedPassword = newPassword.trim();
+
+    if (!trimmedPassword) {
+      throw new Error("Password cannot be blank.");
+    }
+
+    const { error } = await client.auth.updateUser({
+      password: trimmedPassword,
+    });
+
+    if (error) {
+      throw error;
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!session) {
+      throw new Error("Cannot delete account without an active session.");
+    }
+
+    const config = getSupabasePublicConfig();
+    const response = await fetch(
+      `${config.url}/functions/v1/delete-account`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(body.error ?? "Failed to delete account.");
+    }
+
+    setSignedOutState(setStatus, setSession, setUser, setAccount);
+  };
+
   return React.createElement(
     AccountAuthContext.Provider,
     {
@@ -405,10 +503,13 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
         account,
         signIn,
         signUp,
+        verifySignupOtp,
         signOut,
         saveDisplayName,
+        changePassword,
         requestPasswordReset,
         completePasswordRecovery,
+        deleteAccount,
       },
     },
     children,
@@ -419,7 +520,9 @@ export const useAccountAuth = () => {
   const context = useContext(AccountAuthContext);
 
   if (!context) {
-    throw new Error("useAccountAuth must be used within an AccountAuthProvider.");
+    throw new Error(
+      "useAccountAuth must be used within an AccountAuthProvider.",
+    );
   }
 
   return context;

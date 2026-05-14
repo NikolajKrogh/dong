@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { StyleSheet, TextInput } from "react-native";
+import { Text, YStack } from "tamagui";
 
 import { useColors } from "../../app/style/theme";
 import {
@@ -12,65 +13,42 @@ import { ShellActionButton, ShellCard } from "../ui";
 
 interface UsernameOnboardingFormProps {
   returnTo?: string | null;
+  prefillName?: string;
 }
 
-const UsernameOnboardingForm = ({ returnTo }: UsernameOnboardingFormProps) => {
+const UsernameOnboardingForm = ({
+  returnTo,
+  prefillName,
+}: UsernameOnboardingFormProps) => {
   const router = useRouter();
   const colors = useColors();
   const { account, saveDisplayName, status } = useAccountAuth();
   const normalizedReturnTo = normalizeAccountFlowReturnTo(returnTo);
   const [displayName, setDisplayName] = useState(
-    account?.preferredDisplayName ?? "",
+    account?.preferredDisplayName ?? prefillName ?? "",
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const styles = React.useMemo(
-    () =>
-      StyleSheet.create({
-        container: {
-          gap: 16,
-        },
-        title: {
-          fontSize: 24,
-          fontWeight: "700",
-          color: colors.textPrimary,
-        },
-        subtitle: {
-          fontSize: 15,
-          color: colors.textSecondary,
-        },
-        input: {
-          borderWidth: 1,
-          borderColor: colors.border,
-          borderRadius: 10,
-          paddingHorizontal: 14,
-          paddingVertical: 12,
-          fontSize: 16,
-          color: colors.textPrimary,
-          backgroundColor: colors.surface,
-        },
-        message: {
-          fontSize: 14,
-          color: colors.textSecondary,
-        },
-        error: {
-          fontSize: 14,
-          color: colors.danger,
-        },
-        link: {
-          color: colors.primary,
-          fontWeight: "600",
-        },
-      }),
-    [colors],
-  );
+  const inputRef = useRef<TextInput>(null);
+
+  const inputStyles = StyleSheet.create({
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 16,
+      color: colors.textPrimary,
+      backgroundColor: colors.surface,
+    },
+  });
 
   useEffect(() => {
     if (status === "ready") {
       router.replace((normalizedReturnTo ?? "/") as never);
     }
-
     if (status === "signedOut") {
       router.replace(
         buildAccountAuthRoute("/auth", normalizedReturnTo) as never,
@@ -100,39 +78,49 @@ const UsernameOnboardingForm = ({ returnTo }: UsernameOnboardingFormProps) => {
 
   return (
     <ShellCard elevated>
-      <View style={styles.container}>
-        <View style={{ gap: 8 }}>
-            <Text style={styles.title}>Choose your display name</Text>
-          <Text style={styles.subtitle}>
-              This name is stored on your account and shown whenever you create or
-              join a multiplayer session.
+      <YStack gap="$4">
+        <YStack gap="$2">
+          <Text fontSize={22} fontWeight="700" color="$textPrimary">
+            Choose your display name
           </Text>
-        </View>
+          <Text fontSize={15} color="$textSecondary">
+            This name is stored on your account and shown whenever you create or
+            join a multiplayer session.
+          </Text>
+        </YStack>
 
-        <TextInput
-          autoCapitalize="words"
-          autoCorrect={false}
-          placeholder="Display name"
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
-          value={displayName}
-          onChangeText={setDisplayName}
-        />
+        <YStack gap="$1.5">
+          <Text fontSize={13} fontWeight="600" color="$textMuted">
+            Display name
+          </Text>
+          <TextInput
+            ref={inputRef}
+            autoCapitalize="words"
+            autoCorrect={false}
+            placeholder="Your name"
+            placeholderTextColor={colors.textMuted}
+            returnKeyType="done"
+            style={inputStyles.input}
+            value={displayName}
+            onChangeText={setDisplayName}
+            onSubmitEditing={() => void handleSubmit()}
+          />
+        </YStack>
 
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+        {errorMessage ? (
+          <Text fontSize={14} color="$danger">{errorMessage}</Text>
+        ) : null}
 
         <ShellActionButton
           disabled={isSubmitting}
           label={isSubmitting ? "Saving…" : "Save display name"}
-          onPress={() => {
-            void handleSubmit();
-          }}
+          onPress={() => void handleSubmit()}
         />
 
-        <Text style={styles.message}>
+        <Text fontSize={13} color="$textMuted" textAlign="center">
           Duplicate display names are allowed.
         </Text>
-      </View>
+      </YStack>
     </ShellCard>
   );
 };
