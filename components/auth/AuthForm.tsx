@@ -341,6 +341,10 @@ const AuthForm = ({ returnTo, confirmationCode }: AuthFormProps) => {
             onPress={() => {
               setMode("signIn");
               setErrorMessage(null);
+              setPassword("");
+              setConfirmPassword("");
+              setShowPassword(false);
+              setShowConfirmPassword(false);
             }}
           >
             <Text
@@ -356,6 +360,10 @@ const AuthForm = ({ returnTo, confirmationCode }: AuthFormProps) => {
             onPress={() => {
               setMode("signUp");
               setErrorMessage(null);
+              setPassword("");
+              setConfirmPassword("");
+              setShowPassword(false);
+              setShowConfirmPassword(false);
             }}
           >
             <Text
