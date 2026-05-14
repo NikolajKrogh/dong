@@ -244,7 +244,7 @@ Returns the active session snapshot used by join and reconnect flows.
 **Includes**:
 
 - session id and state
-- host account reference
+- owner account reference
 - participants
 - matches
 - common match

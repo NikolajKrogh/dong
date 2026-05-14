@@ -137,8 +137,8 @@ npm run lint
 
 ## Schema Smoke Checklist
 
-- Host account ids map cleanly from `auth.users` into `public.accounts`.
-- A non-completed session can be created with one active join code and one host account.
+- Account ids map cleanly from `auth.users` into `public.accounts`.
+- A non-completed session can be created with one active join code and one owner account.
 - The same registered account cannot create a duplicate participant membership in the same session.
 - A reconnecting guest using the same rejoin token resolves to the existing participant row.
 - Assignments cannot reference a participant or match from another session.

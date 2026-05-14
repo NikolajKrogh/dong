@@ -11,7 +11,7 @@ This contract defines the row-level access boundaries for the data surfaced by i
 | Signed-in account owner         | `auth.uid()` mapped to `public.accounts.id`                           | Can read and update its own profile and settings rows                                            |
 | Accepted friendship participant | `auth.uid()` mapped to one side of an accepted friendship row         | Can read the other account's profile row, but not that account's settings row                    |
 | Friendship requester/addressee  | `auth.uid()` mapped to the requester or addressee on a friendship row | Can read that friendship row and transition it only when the current lifecycle state allows it   |
-| Room host                       | `auth.uid()` mapped to the host account on a session                  | Can read room data for that session                                                              |
+| Room owner                      | `auth.uid()` mapped to the owner account on a session                 | Can read room data for that session                                                              |
 | Room participant                | `auth.uid()` mapped to a participant account in the session           | Can read room data for that session                                                              |
 | Guest participant               | Join code plus session-scoped guest reclaim token                     | Can join/reclaim through the approved room surface, not through direct unrestricted table access |
 | Service role / DB harness       | Supabase service role or pgTAP fixture context                        | Fixture setup and privileged room mutations only                                                 |

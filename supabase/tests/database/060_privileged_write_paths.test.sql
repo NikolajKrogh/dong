@@ -75,7 +75,7 @@ participant_account AS (
     RETURNING id
 ),
 session_row AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'WRIT60'
     FROM host_account
@@ -146,7 +146,7 @@ event_row AS (
 SELECT (
         SELECT id
         FROM host_account
-    ) AS host_account_id,
+    ) AS owner_account_id,
     (
         SELECT id
         FROM participant_account
@@ -190,16 +190,16 @@ SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 SELECT set_config(
         'request.jwt.claim.sub',
         (
-            SELECT host_account_id::text
+            SELECT owner_account_id::text
             FROM privileged_write_context
         ),
         true
     );
 DO $$ BEGIN BEGIN
-INSERT INTO public.game_sessions (host_account_id, join_code)
+INSERT INTO public.game_sessions (owner_account_id, join_code)
 VALUES (
         (
-            SELECT host_account_id
+            SELECT owner_account_id
             FROM privileged_write_context
         ),
         'WRIT61'
@@ -254,7 +254,7 @@ VALUES (
             FROM privileged_write_context
         ),
         (
-            SELECT host_account_id
+            SELECT owner_account_id
             FROM privileged_write_context
         ),
         'Denied Host Participant',
@@ -545,10 +545,10 @@ SELECT ok(
 SET LOCAL ROLE service_role;
 SELECT set_config('request.jwt.claim.role', 'service_role', true);
 WITH inserted_session AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     VALUES (
             (
-                SELECT host_account_id
+                SELECT owner_account_id
                 FROM privileged_write_context
             ),
             'SRV601'

@@ -34,6 +34,20 @@ Make sure you have the following installed:
 npm install
 ```
 
+2. Bootstrap the hosted Supabase public env vars for account auth:
+
+```bash
+npm run auth:env
+```
+
+This writes a gitignored `.env.local` using the linked Supabase project. If the command cannot read project keys, authenticate the CLI first with:
+
+```bash
+npx supabase login
+```
+
+After creating or changing `.env.local`, restart Expo so the `EXPO_PUBLIC_*` values are picked up by the bundle.
+
 ## Local Supabase (optional)
 
 This project supports a local Supabase development workspace for schema iteration and pgTAP tests. See `specs/007-core-supabase-schema/quickstart.md` for the authoritative quickstart.
@@ -83,6 +97,24 @@ Run the database tests (pgTAP):
 
 ```bash
 npm run db:test
+```
+
+## Account Auth Flow
+
+Account authentication now lives in a dedicated `app/auth/` route group and is surfaced from Settings through the `Account` section.
+
+- Signed-out users start at `/auth`.
+- First-time users finish onboarding at `/auth/onboarding` before entering owner-only flows.
+- Password reset starts from `/auth/reset-password` and uses the app scheme so native and web can complete the recovery link.
+- Redirects preserve an optional `returnTo` query so gated owner actions can send users back to the same flow after sign-in or recovery.
+- The hosted development project env can be bootstrapped into `.env.local` with `npm run auth:env`.
+
+For local validation of the account-auth slice, use:
+
+```bash
+npm run db:test
+npm run lint
+npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/auth/AuthForm.platform.test.tsx __tests__/components/auth/UsernameOnboardingForm.platform.test.tsx __tests__/components/auth/PasswordResetForm.platform.test.tsx __tests__/components/preferences/AccountSection.platform.test.tsx __tests__/app/userPreferences.platform.test.tsx
 ```
 
 2. Start the app in development mode:

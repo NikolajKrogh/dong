@@ -2,7 +2,7 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(27);
+SELECT plan(30);
 SELECT ok(
         EXISTS (
             SELECT 1
@@ -97,6 +97,20 @@ SELECT is(
                 )
             FROM pg_enum e
                 JOIN pg_type t ON t.oid = e.enumtypid
+            WHERE t.typname = 'participant_session_role'
+        ),
+        'owner,member',
+        'participant_session_role enum contains expected values'
+    );
+SELECT is(
+        (
+            SELECT string_agg(
+                    e.enumlabel,
+                    ','
+                    ORDER BY e.enumsortorder
+                )
+            FROM pg_enum e
+                JOIN pg_type t ON t.oid = e.enumtypid
             WHERE t.typname = 'friendship_status'
         ),
         'pending,accepted,declined,canceled',
@@ -121,6 +135,26 @@ SELECT ok(
                 AND pg_get_constraintdef(oid) = 'CHECK (((completed_at IS NULL) OR (state = ''completed''::session_state)))'
         ),
         'game_sessions has the completed_at lifecycle check constraint'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+                AND tablename = 'participants'
+                AND indexname = 'ux_participants_session_owner_role'
+                AND indexdef LIKE 'CREATE UNIQUE INDEX% (session_id)%WHERE (session_role = ''owner''::participant_session_role)%'
+        ),
+        'participants has a unique owner-per-session index'
+    );
+SELECT ok(
+        EXISTS (
+            SELECT 1
+            FROM pg_constraint
+            WHERE conrelid = 'public.participants'::regclass
+                AND conname = 'chk_participants_owner_role_consistency'
+        ),
+        'participants has the owner-role consistency check constraint'
     );
 SELECT ok(
         EXISTS (
@@ -264,14 +298,14 @@ registered_account AS (
     RETURNING id
 ),
 session_one AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'P4S001'
     FROM host_one_account
     RETURNING id
 ),
 session_two AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'P4S002'
     FROM host_two_account

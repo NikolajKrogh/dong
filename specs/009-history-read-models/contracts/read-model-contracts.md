@@ -25,7 +25,7 @@ Return one row per completed session with enough nested data to render the Games
 | Field                   | Type          | Notes                    |
 | ----------------------- | ------------- | ------------------------ | ------------ |
 | `session_id`            | `uuid`        | Completed session id     |
-| `host_account_id`       | `uuid`        | Session host             |
+| `owner_account_id`      | `uuid`        | Session owner            |
 | `completed_at`          | `timestamptz` | Completion timestamp     |
 | `started_at`            | `timestamptz` | Session start time       |
 | `common_match_id`       | `uuid         | null`                    | Common match |

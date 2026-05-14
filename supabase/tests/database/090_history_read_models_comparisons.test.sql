@@ -69,7 +69,7 @@ VALUES (
     );
 INSERT INTO public.game_sessions (
         id,
-        host_account_id,
+    owner_account_id,
         join_code,
         state,
         started_at,
@@ -112,6 +112,38 @@ VALUES (
         '2026-05-04 09:00:00+00',
         NULL
     );
+UPDATE public.participants
+SET id = '43000000-0000-0000-0000-000000000001',
+    display_name = 'Compare Alpha',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 4.0
+WHERE session_id = '23000000-0000-0000-0000-000000000001'
+    AND account_id = '13000000-0000-0000-0000-000000000001';
+UPDATE public.participants
+SET id = '43000000-0000-0000-0000-000000000004',
+    display_name = 'Compare Alpha',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 1.0
+WHERE session_id = '23000000-0000-0000-0000-000000000002'
+    AND account_id = '13000000-0000-0000-0000-000000000001';
+UPDATE public.participants
+SET id = '43000000-0000-0000-0000-000000000006',
+    display_name = 'Compare Alpha',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 7.0
+WHERE session_id = '23000000-0000-0000-0000-000000000003'
+    AND account_id = '13000000-0000-0000-0000-000000000001';
+UPDATE public.participants
+SET id = '43000000-0000-0000-0000-000000000007',
+    display_name = 'Compare Charlie',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 2.0
+WHERE session_id = '23000000-0000-0000-0000-000000000004'
+    AND account_id = '13000000-0000-0000-0000-000000000003';
 INSERT INTO public.matches (
         id,
         session_id,
@@ -177,15 +209,6 @@ INSERT INTO public.participants (
         guest_rejoin_token_hash
     )
 VALUES (
-        '43000000-0000-0000-0000-000000000001',
-        '23000000-0000-0000-0000-000000000001',
-        '13000000-0000-0000-0000-000000000001',
-        'Compare Alpha',
-        'registered',
-        4.0,
-        NULL
-    ),
-    (
         '43000000-0000-0000-0000-000000000002',
         '23000000-0000-0000-0000-000000000001',
         '13000000-0000-0000-0000-000000000002',
@@ -204,39 +227,12 @@ VALUES (
         'compare-guest-token'
     ),
     (
-        '43000000-0000-0000-0000-000000000004',
-        '23000000-0000-0000-0000-000000000002',
-        '13000000-0000-0000-0000-000000000001',
-        'Compare Alpha',
-        'registered',
-        1.0,
-        NULL
-    ),
-    (
         '43000000-0000-0000-0000-000000000005',
         '23000000-0000-0000-0000-000000000002',
         '13000000-0000-0000-0000-000000000002',
         'Compare Bravo',
         'registered',
         5.0,
-        NULL
-    ),
-    (
-        '43000000-0000-0000-0000-000000000006',
-        '23000000-0000-0000-0000-000000000003',
-        '13000000-0000-0000-0000-000000000001',
-        'Compare Alpha',
-        'registered',
-        7.0,
-        NULL
-    ),
-    (
-        '43000000-0000-0000-0000-000000000007',
-        '23000000-0000-0000-0000-000000000004',
-        '13000000-0000-0000-0000-000000000003',
-        'Compare Charlie',
-        'registered',
-        2.0,
         NULL
     );
 UPDATE public.game_sessions

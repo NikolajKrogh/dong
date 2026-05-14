@@ -69,7 +69,7 @@ VALUES (
     );
 INSERT INTO public.game_sessions (
         id,
-        host_account_id,
+    owner_account_id,
         join_code,
         state,
         started_at,
@@ -91,6 +91,22 @@ VALUES (
         '2026-05-02 08:00:00+00',
         '2026-05-02 09:00:00+00'
     );
+UPDATE public.participants
+SET id = '41000000-0000-0000-0000-000000000001',
+    display_name = 'Lifetime Host',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 4.0
+WHERE session_id = '21000000-0000-0000-0000-000000000001'
+    AND account_id = '11000000-0000-0000-0000-000000000001';
+UPDATE public.participants
+SET id = '41000000-0000-0000-0000-000000000003',
+    display_name = 'Lifetime Host',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 5.0
+WHERE session_id = '21000000-0000-0000-0000-000000000002'
+    AND account_id = '11000000-0000-0000-0000-000000000001';
 INSERT INTO public.participants (
         id,
         session_id,
@@ -101,30 +117,12 @@ INSERT INTO public.participants (
         guest_rejoin_token_hash
     )
 VALUES (
-        '41000000-0000-0000-0000-000000000001',
-        '21000000-0000-0000-0000-000000000001',
-        '11000000-0000-0000-0000-000000000001',
-        'Lifetime Host',
-        'registered',
-        4.0,
-        NULL
-    ),
-    (
         '41000000-0000-0000-0000-000000000002',
         '21000000-0000-0000-0000-000000000001',
         '11000000-0000-0000-0000-000000000002',
         'Lifetime Friend',
         'registered',
         2.0,
-        NULL
-    ),
-    (
-        '41000000-0000-0000-0000-000000000003',
-        '21000000-0000-0000-0000-000000000002',
-        '11000000-0000-0000-0000-000000000001',
-        'Lifetime Host',
-        'registered',
-        5.0,
         NULL
     ),
     (

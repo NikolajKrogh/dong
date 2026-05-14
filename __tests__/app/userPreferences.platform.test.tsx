@@ -127,6 +127,19 @@ jest.mock("../../components/ui", () => ({
 
 jest.mock("../../components/OnboardingScreen", () => () => null);
 
+jest.mock("../../components/preferences/AccountSection", () => {
+  const RN = require("react-native");
+  const R = require("react");
+
+  return () =>
+    R.createElement(
+      RN.View,
+      { testID: "AccountSection" },
+      R.createElement(RN.Text, null, "Account"),
+      R.createElement(RN.Text, null, "Sign in to create and manage multiplayer rooms."),
+    );
+});
+
 jest.mock("../../components/preferences/AddLeagueModal", () => () => null);
 jest.mock(
   "../../components/preferences/LegacyHistoryImportSection",
@@ -159,16 +172,19 @@ describe("UserPreferences shell adoption", () => {
     });
   });
 
-  it("renders Header, AppearanceSettings, SoundNotificationSettings, LeagueSettings, LegacyHistoryImportSection, and OnboardingButton", () => {
+  it("renders the account gate alongside public settings", () => {
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = TestRenderer.create(React.createElement(Screen));
+    const renderer = (TestRenderer as any).create(React.createElement(Screen));
 
     const { Text } = require("react-native");
     const texts = renderer.root.findAllByType(Text);
-    const textContents = texts.map((t: any) => t.props.children).flat();
+    const textContents = texts.flatMap((t: any) => t.props.children);
 
     expect(textContents).toContain("Settings");
+    expect(textContents).toContain(
+      "Sign in to create and manage multiplayer rooms.",
+    );
     expect(textContents).toContain("Appearance");
     expect(textContents).toContain("Sound & Notifications");
     expect(textContents).toContain("League Configuration");
@@ -181,7 +197,7 @@ describe("UserPreferences shell adoption", () => {
   it("keeps the shared shell unconstrained on phone-sized viewports", () => {
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = TestRenderer.create(React.createElement(Screen));
+    const renderer = (TestRenderer as any).create(React.createElement(Screen));
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
     expect(shell.props.centerContent).toBe(false);
@@ -200,7 +216,7 @@ describe("UserPreferences shell adoption", () => {
 
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = TestRenderer.create(React.createElement(Screen));
+    const renderer = (TestRenderer as any).create(React.createElement(Screen));
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
     expect(shell.props.centerContent).toBe(true);
@@ -212,7 +228,7 @@ describe("UserPreferences shell adoption", () => {
   it("renders SafeAreaView as root wrapper", () => {
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = TestRenderer.create(React.createElement(Screen));
+    const renderer = (TestRenderer as any).create(React.createElement(Screen));
 
     // SafeAreaView is mocked to pass children through, so the component renders
     // without error — confirming it wraps in SafeAreaView

@@ -374,3 +374,16 @@ When migrating a screen to the shell:
 - `components/preferences/SoundNotificationSettings.tsx` — `ShellSection` + `ShellCard`
 - `components/preferences/OnboardingButton.tsx` — `ShellSection`
 - `components/preferences/LeagueSettings.tsx` — `ShellSection` + `ShellCard`
+
+## Account Auth & Redirects
+
+The account-auth flow is a settings-driven route group under `app/auth/` and is intentionally narrow:
+
+- `app/userPreferences.tsx` is the public entry point for account status.
+- `app/auth/index.tsx` handles sign-in/sign-up.
+- `app/auth/onboarding.tsx` completes the required display-name step.
+- `app/auth/reset-password.tsx` completes password recovery on both native and web.
+
+Redirect behavior should preserve the intended destination with a `returnTo` query where possible. That lets a gated owner action send the user into auth and then back to the same flow after sign-in, onboarding, or password recovery.
+
+The account-auth UI should stay aligned with the rest of the shell system: card-based, utility-first, and visually consistent with settings screens rather than introducing a separate visual language.

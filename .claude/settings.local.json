@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx jest *)",
+      "mcp__373152b6-8382-4922-a05a-b53bcf68cdfc__list_projects",
+      "mcp__75f66b9d-dcae-4447-b32f-952483fb00bd__get_design_context"
+    ]
+  }
+}

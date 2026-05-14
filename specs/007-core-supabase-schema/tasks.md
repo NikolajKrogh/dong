@@ -49,9 +49,9 @@
 
 ### Implementation for User Story 1
 
-- [x] T012 [US1] Add `game_sessions` table (`id uuid PK`, `host_account_id uuid FK→accounts.id NOT NULL`, `join_code text NOT NULL`, `state session_state NOT NULL DEFAULT 'joinable'`, `common_match_id uuid NULL`, `last_event_sequence bigint NOT NULL DEFAULT 0`, `created_at`, `started_at`, `completed_at`) to `supabase/migrations/`
+- [x] T012 [US1] Add `game_sessions` table (`id uuid PK`, `owner_account_id uuid FK→accounts.id NOT NULL`, `join_code text NOT NULL`, `state session_state NOT NULL DEFAULT 'joinable'`, `common_match_id uuid NULL`, `last_event_sequence bigint NOT NULL DEFAULT 0`, `created_at`, `started_at`, `completed_at`) to `supabase/migrations/`
 - [x] T013 [P] [US1] Add partial unique index `UNIQUE (join_code) WHERE state != 'completed'` and check constraint `CHECK (completed_at IS NULL OR state = 'completed')` on `game_sessions` in `supabase/migrations/`
-- [x] T014 [P] [US1] Add performance indexes `idx_game_sessions_host_account_id` and `idx_game_sessions_state`, with the active join-code partial unique index serving the join-code lookup path on `game_sessions`
+- [x] T014 [P] [US1] Add performance indexes `idx_game_sessions_owner_account_id` and `idx_game_sessions_state`, with the active join-code partial unique index serving the join-code lookup path on `game_sessions`
 
 ### Tests for User Story 1
 

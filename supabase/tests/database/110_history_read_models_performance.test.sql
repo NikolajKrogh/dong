@@ -52,7 +52,7 @@ VALUES (
     );
 INSERT INTO public.game_sessions (
         id,
-        host_account_id,
+    owner_account_id,
         join_code,
         state,
         started_at,
@@ -67,6 +67,22 @@ VALUES (
         '2026-05-01 08:00:00+00',
         '2026-05-01 09:00:00+00',
         NULL
+UPDATE public.participants
+SET id = '44000000-0000-0000-0000-000000000001',
+    display_name = 'Perf Alpha',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 5.0
+WHERE session_id = '24000000-0000-0000-0000-000000000001'
+    AND account_id = '14000000-0000-0000-0000-000000000001';
+UPDATE public.participants
+SET id = '44000000-0000-0000-0000-000000000003',
+    display_name = 'Perf Alpha',
+    membership_type = 'registered',
+    session_role = 'owner',
+    current_drink_total = 3.0
+WHERE session_id = '24000000-0000-0000-0000-000000000002'
+    AND account_id = '14000000-0000-0000-0000-000000000001';
     ),
     (
         '24000000-0000-0000-0000-000000000002',
@@ -120,30 +136,12 @@ INSERT INTO public.participants (
         guest_rejoin_token_hash
     )
 VALUES (
-        '44000000-0000-0000-0000-000000000001',
-        '24000000-0000-0000-0000-000000000001',
-        '14000000-0000-0000-0000-000000000001',
-        'Perf Alpha',
-        'registered',
-        5.0,
-        NULL
-    ),
-    (
         '44000000-0000-0000-0000-000000000002',
         '24000000-0000-0000-0000-000000000001',
         '14000000-0000-0000-0000-000000000002',
         'Perf Bravo',
         'registered',
         1.0,
-        NULL
-    ),
-    (
-        '44000000-0000-0000-0000-000000000003',
-        '24000000-0000-0000-0000-000000000002',
-        '14000000-0000-0000-0000-000000000001',
-        'Perf Alpha',
-        'registered',
-        3.0,
         NULL
     );
 UPDATE public.game_sessions

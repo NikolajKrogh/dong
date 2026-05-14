@@ -54,7 +54,7 @@ Durable application-owned identity row keyed to Supabase Auth.
 
 **Relationships**
 
-- One account can host many game sessions.
+- One account can own many game sessions.
 - One account can participate in many sessions through `participants.account_id`.
 
 **Validation rules**
@@ -68,7 +68,7 @@ Authoritative room and lifecycle record for a multiplayer game.
 | Field                 | Type            | Notes                                             |
 | --------------------- | --------------- | ------------------------------------------------- |
 | `id`                  | `uuid`          | Primary key                                       |
-| `host_account_id`     | `uuid`          | Foreign key to `accounts.id`                      |
+| `owner_account_id`    | `uuid`          | Foreign key to `accounts.id`                      |
 | `join_code`           | `text`          | Short uppercase code used by participants to join |
 | `state`               | `session_state` | `joinable`, `in_progress`, or `completed`         |
 | `common_match_id`     | `uuid`          | Nullable reference to the shared common match     |
@@ -79,7 +79,7 @@ Authoritative room and lifecycle record for a multiplayer game.
 
 **Relationships**
 
-- One session belongs to one host account.
+- One session belongs to one owner account.
 - One session has many participants, matches, assignments, and gameplay events.
 - One session can reference zero or one common match from its own match set.
 
@@ -100,6 +100,7 @@ Session-scoped member record for either a durable account or a guest.
 | `account_id`              | `uuid`                        | Nullable foreign key to `accounts.id`; null for guests    |
 | `display_name`            | `text`                        | Session-facing display name                               |
 | `membership_type`         | `participant_membership_type` | `registered` or `guest`                                   |
+| `session_role`            | `participant_session_role`    | `owner` or `member`                                       |
 | `current_drink_total`     | `numeric(6,1)`                | Current session snapshot, default `0`                     |
 | `guest_rejoin_token_hash` | `text`                        | Nullable for registered participants; required for guests |
 | `created_at`              | `timestamptz`                 | Default `now()`                                           |
@@ -113,6 +114,7 @@ Session-scoped member record for either a durable account or a guest.
 **Validation rules**
 
 - Registered participants require `account_id` and must not carry a guest rejoin token hash.
+- Owner participants must be registered participants tied to the session owner account.
 - Guest participants require a guest rejoin token hash and must not reference `account_id`.
 - `current_drink_total >= 0`.
 - At most one `(session_id, account_id)` exists when `account_id IS NOT NULL`.
@@ -215,7 +217,7 @@ Immutable append-only audit record for shared-state changes that affect history.
 ## Relationship Summary
 
 - `auth.users` 1:1 `accounts`
-- `accounts` 1:\* `game_sessions` as hosts
+- `accounts` 1:\* `game_sessions` as owners
 - `game_sessions` 1:\* `participants`
 - `game_sessions` 1:\* `matches`
 - `game_sessions` 1:\* `gameplay_events`
@@ -257,7 +259,7 @@ validated command -> allocate next session sequence -> write snapshot changes ->
 ## Database Invariants
 
 - Active join codes map to at most one non-completed session.
-- Host ownership is always represented by `game_sessions.host_account_id`.
+- Session ownership is always represented by `game_sessions.owner_account_id`.
 - Every registered participant membership is unique per account within a session.
 - Every guest participant has one reclaim token hash scoped to the session.
 - Every assignment references a participant and match in the same session.
