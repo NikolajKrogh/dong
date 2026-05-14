@@ -85,6 +85,23 @@ Run the database tests (pgTAP):
 npm run db:test
 ```
 
+## Account Auth Flow
+
+Account authentication now lives in a dedicated `app/auth/` route group and is surfaced from Settings through the `Account` section.
+
+- Signed-out users start at `/auth`.
+- First-time users finish onboarding at `/auth/onboarding` before entering owner-only flows.
+- Password reset starts from `/auth/reset-password` and uses the app scheme so native and web can complete the recovery link.
+- Redirects preserve an optional `returnTo` query so gated owner actions can send users back to the same flow after sign-in or recovery.
+
+For local validation of the account-auth slice, use:
+
+```bash
+npm run db:test
+npm run lint
+npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/auth/AuthForm.platform.test.tsx __tests__/components/auth/UsernameOnboardingForm.platform.test.tsx __tests__/components/auth/PasswordResetForm.platform.test.tsx __tests__/components/preferences/AccountSection.platform.test.tsx __tests__/app/userPreferences.platform.test.tsx
+```
+
 2. Start the app in development mode:
 
 For web preview:

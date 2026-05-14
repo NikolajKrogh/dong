@@ -40,7 +40,7 @@ host_account AS (
     RETURNING id
 ),
 session_row AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'GUEST4'
     FROM host_account

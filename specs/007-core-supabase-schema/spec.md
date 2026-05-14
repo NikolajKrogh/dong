@@ -97,7 +97,7 @@ As a user who wants trustworthy history and comparisons later, I need gameplay a
 ### Functional Requirements
 
 - **FR-001**: The system MUST maintain a durable account record for each authenticated user who can host or participate in cloud-backed sessions.
-- **FR-002**: The system MUST allow only authenticated hosts to create a new shared game session and MUST associate each session with exactly one host account.
+- **FR-002**: The system MUST allow authenticated accounts to create a new shared game session and MUST associate each session with exactly one owner account.
 - **FR-003**: The system MUST provide each active shared session with a join code that resolves to one active session at a time.
 - **FR-004**: The system MUST persist session lifecycle information needed to distinguish joinable, in-progress, and completed sessions, where completed is the only no-longer-joinable state in v1.
 - **FR-004a**: Once a session is completed, the system MUST reject any further history-affecting writes for that session in v1.
@@ -115,8 +115,8 @@ As a user who wants trustworthy history and comparisons later, I need gameplay a
 
 ### Key Entities _(include if feature involves data)_
 
-- **Account**: A durable identity for an authenticated user who can host sessions and optionally participate across many sessions.
-- **Game Session**: One hosted room and play instance with host ownership, join code, lifecycle state, common-match reference, and time boundaries.
+- **Account**: A durable identity for an authenticated user who can create sessions and optionally participate across many sessions.
+- **Game Session**: One hosted room and play instance with explicit owner-account identity, join code, lifecycle state, common-match reference, and time boundaries.
 - **Participant**: A session member represented either by a durable account or a guest-only session identity, with display name, session role, and a uniqueness rule that prevents duplicate durable-account memberships within one session.
 - **Guest Rejoin Token**: A server-issued token scoped to one session and one guest participant record that allows a reconnecting guest to reclaim the same session membership.
 - **Match**: A football fixture tracked inside a session, including teams, schedule context, and score state over the lifetime of the session.

@@ -184,7 +184,7 @@ VALUES (
 CREATE TEMP TABLE legacy_history_import_first_session AS
 SELECT id AS cloud_session_id
 FROM public.game_sessions
-WHERE host_account_id = (
+WHERE owner_account_id = (
         SELECT account_id
         FROM legacy_history_import_accounts
         WHERE account_label = 'first'
@@ -213,7 +213,7 @@ SELECT is(
         (
             SELECT count(*)::text
             FROM public.game_sessions
-            WHERE host_account_id = (
+                WHERE owner_account_id = (
                     SELECT account_id
                     FROM legacy_history_import_accounts
                     WHERE account_label = 'first'
@@ -289,7 +289,7 @@ VALUES (
 CREATE TEMP TABLE legacy_history_import_second_session AS
 SELECT id AS cloud_session_id
 FROM public.game_sessions
-WHERE host_account_id = (
+WHERE owner_account_id = (
         SELECT account_id
         FROM legacy_history_import_accounts
         WHERE account_label = 'second'
@@ -318,7 +318,7 @@ SELECT is(
         (
             SELECT count(*)::text
             FROM public.game_sessions
-            WHERE host_account_id = (
+                WHERE owner_account_id = (
                     SELECT account_id
                     FROM legacy_history_import_accounts
                     WHERE account_label = 'second'

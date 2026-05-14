@@ -177,7 +177,7 @@ SELECT is(
         (
             SELECT count(*)::text
             FROM public.game_sessions
-            WHERE host_account_id = (
+            WHERE owner_account_id = (
                     SELECT account_id
                     FROM legacy_history_import_context
                 )
@@ -257,7 +257,7 @@ SELECT is(
         (
             SELECT count(*)::text
             FROM public.game_sessions
-            WHERE host_account_id = (
+            WHERE owner_account_id = (
                     SELECT account_id
                     FROM legacy_history_import_context
                 )

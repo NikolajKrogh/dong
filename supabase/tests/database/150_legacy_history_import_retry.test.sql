@@ -198,12 +198,12 @@ SELECT jsonb_build_object(
         )
     ) AS retry_sessions;
 CREATE TEMP TABLE legacy_history_import_seeded_sessions AS WITH seeded_game_session AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT account_id,
         'IMPRET1'
     FROM legacy_history_import_context
     RETURNING id,
-        host_account_id
+        owner_account_id
 )
 SELECT *
 FROM seeded_game_session;
@@ -346,7 +346,7 @@ SELECT is(
         (
             SELECT count(*)::text
             FROM public.game_sessions
-            WHERE host_account_id = (
+            WHERE owner_account_id = (
                     SELECT account_id
                     FROM legacy_history_import_context
                 )

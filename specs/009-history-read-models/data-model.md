@@ -20,7 +20,7 @@ Represents one completed session in the history list and details view.
 | Field                   | Type          | Notes                                              |
 | ----------------------- | ------------- | -------------------------------------------------- | -------------------- |
 | `session_id`            | `uuid`        | Session primary key                                |
-| `host_account_id`       | `uuid`        | Host identity                                      |
+| `owner_account_id`      | `uuid`        | Session owner identity                             |
 | `completed_at`          | `timestamptz` | Completion timestamp                               |
 | `started_at`            | `timestamptz` | Session start time                                 |
 | `common_match_id`       | `uuid         | null`                                              | Session common match |

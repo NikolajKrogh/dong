@@ -24,7 +24,7 @@
 
 ## Decision 3: Model sessions as active-until-completed records with partial unique join codes and a direct common-match reference
 
-**Decision**: Use `game_sessions` as the authoritative room table with `state`, `join_code`, `host_account_id`, `last_event_sequence`, and `common_match_id`. Enforce join-code uniqueness only for non-completed sessions and treat `completed` as the only no-longer-joinable state in v1.
+**Decision**: Use `game_sessions` as the authoritative room table with `state`, `join_code`, `owner_account_id`, `last_event_sequence`, and `common_match_id`. Enforce join-code uniqueness only for non-completed sessions and treat `completed` as the only no-longer-joinable state in v1.
 
 **Rationale**: The clarified spec says sessions stay joinable until completion, so a partial unique index on active sessions matches product behavior better than a globally unique code. Storing `common_match_id` directly on the session mirrors the current app model and makes room hydration simple for later clients.
 

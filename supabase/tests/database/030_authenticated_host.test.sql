@@ -40,12 +40,12 @@ inserted_account AS (
     RETURNING id
 ),
 inserted_session AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'ROOM01'
     FROM inserted_account
     RETURNING id,
-        host_account_id,
+        owner_account_id,
         join_code,
         state
 )
@@ -53,10 +53,10 @@ SELECT *
 FROM inserted_session;
 CREATE TEMP TABLE duplicate_join_code_check (rejected boolean NOT NULL);
 DO $$ BEGIN BEGIN
-INSERT INTO public.game_sessions (host_account_id, join_code)
+INSERT INTO public.game_sessions (owner_account_id, join_code)
 VALUES (
         (
-            SELECT host_account_id
+            SELECT owner_account_id
             FROM host_session_context
         ),
         'ROOM01'
@@ -83,7 +83,7 @@ SELECT ok(
     );
 SELECT is(
         (
-            SELECT host_account_id::text
+            SELECT owner_account_id::text
             FROM public.game_sessions
             WHERE id = (
                     SELECT id
@@ -91,7 +91,7 @@ SELECT is(
                 )
         ),
         (
-            SELECT host_account_id::text
+            SELECT owner_account_id::text
             FROM host_session_context
         ),
         'host identity is preserved on reload'

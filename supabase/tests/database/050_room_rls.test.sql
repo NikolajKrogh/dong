@@ -147,14 +147,14 @@ participant_two_account AS (
     RETURNING id
 ),
 session_one AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'RLS501'
     FROM host_one_account
     RETURNING id
 ),
 session_two AS (
-    INSERT INTO public.game_sessions (host_account_id, join_code)
+    INSERT INTO public.game_sessions (owner_account_id, join_code)
     SELECT id,
         'RLS502'
     FROM host_two_account

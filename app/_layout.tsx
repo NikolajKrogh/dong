@@ -4,6 +4,7 @@ import RandomMatchesToast from "../components/setupGame/RandomMatchesToast";
 import { goalToastConfig } from "../components/gameProgress/GoalToast";
 import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
+import { AccountAuthProvider } from "../hooks/useAccountAuth";
 
 const toastConfig = {
   // Setup Game toasts
@@ -22,18 +23,24 @@ const toastConfig = {
  */
 export default function Layout() {
   return (
-    <TamaguiAppProvider>
-      <PlatformGestureRoot style={{ flex: 1 }}>
-        <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
-          <Stack.Screen
-            name="userPreferences"
-            options={{ title: "Preferences" }}
-          />
-          {/* Group to prevent style files from being treated as routes */}
-          <Stack.Screen name="_style" options={{ headerShown: false }} />
-        </Stack>
-        <Toast config={toastConfig as any} />
-      </PlatformGestureRoot>
-    </TamaguiAppProvider>
+    <AccountAuthProvider>
+      <TamaguiAppProvider>
+        <PlatformGestureRoot style={{ flex: 1 }}>
+          <Stack
+            initialRouteName="index"
+            screenOptions={{ headerShown: false }}
+          >
+            <Stack.Screen
+              name="userPreferences"
+              options={{ title: "Preferences" }}
+            />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            {/* Group to prevent style files from being treated as routes */}
+            <Stack.Screen name="_style" options={{ headerShown: false }} />
+          </Stack>
+          <Toast config={toastConfig as any} />
+        </PlatformGestureRoot>
+      </TamaguiAppProvider>
+    </AccountAuthProvider>
   );
 }

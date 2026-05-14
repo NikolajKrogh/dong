@@ -2,7 +2,7 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(34);
+SELECT plan(35);
 SELECT ok(
         to_regclass('public.accounts') IS NOT NULL,
         'accounts table exists'
@@ -14,6 +14,10 @@ SELECT ok(
 SELECT ok(
         to_regtype('participant_membership_type') IS NOT NULL,
         'participant_membership_type enum exists'
+    );
+SELECT ok(
+        to_regtype('participant_session_role') IS NOT NULL,
+        'participant_session_role enum exists'
     );
 SELECT is(
         (
@@ -131,7 +135,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'game_sessions'
         ),
-        'id,host_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at',
+        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at',
         'game_sessions has expected columns'
     );
 SELECT is(
@@ -151,10 +155,10 @@ SELECT is(
             FROM information_schema.columns
             WHERE table_schema = 'public'
                 AND table_name = 'game_sessions'
-                AND column_name = 'host_account_id'
+                AND column_name = 'owner_account_id'
         ),
         'NO',
-        'game_sessions.host_account_id is not nullable'
+            'game_sessions.owner_account_id is not nullable'
     );
 SELECT is(
         (
@@ -286,7 +290,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'participants'
         ),
-        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES',
+        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO',
         'participants columns, types, and nullability match expectations'
     );
 SELECT ok(

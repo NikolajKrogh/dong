@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { ScrollView, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import OnboardingScreen from "../components/OnboardingScreen";
+import AccountSection from "../components/preferences/AccountSection";
 import { LeagueEndpoint } from "../constants/leagues";
 import { useGameStore } from "../store/store";
 
@@ -106,6 +107,7 @@ const UserPreferencesScreen = () => {
             paddingBottom: 24,
           }}
         >
+          <AccountSection />
           <AppearanceSettings />
           <SoundNotificationSettings
             soundEnabled={soundEnabled}
