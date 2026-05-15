@@ -1,6 +1,14 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
+const mockUseGuestRoomJoin = jest.fn(() => ({
+  session: null,
+  error: null,
+  isSubmitting: false,
+  leaveRoom: jest.fn(),
+  submitGuestJoin: jest.fn(),
+}));
+
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
   height: 844,
@@ -12,6 +20,7 @@ jest.mock("react-native", () => {
   return {
     View: "View",
     Text: "Text",
+    Pressable: "Pressable",
     TouchableOpacity: "TouchableOpacity",
     Modal: "Modal",
     Image: "Image",
@@ -24,6 +33,10 @@ const mockPlatformAnimation = jest.fn(() => null);
 
 jest.mock("../../platform", () => ({
   PlatformAnimation: mockPlatformAnimation,
+}));
+
+jest.mock("../../hooks/useGuestRoomJoin", () => ({
+  useGuestRoomJoin: () => mockUseGuestRoomJoin(),
 }));
 
 jest.mock("expo-router", () => ({
@@ -113,6 +126,27 @@ jest.mock("../../components/OnboardingScreen", () => {
     );
 });
 
+jest.mock("../../components/guestJoin/GuestJoinModal", () => ({
+  GuestJoinModal: ({ visible, session }: any) => {
+    const RN = require("react-native");
+    const R = require("react");
+
+    if (!visible) {
+      return null;
+    }
+
+    const modalStateText = session ? "guest-modal-session" : "guest-modal-form";
+
+    return visible
+      ? R.createElement(
+          RN.View,
+          { testID: "GuestJoinModal" },
+          R.createElement(RN.Text, null, modalStateText),
+        )
+      : null;
+  },
+}));
+
 jest.mock("../../components/ui", () => ({
   ShellScreen: ({ children, ...props }: any) => {
     const RN = require("react-native");
@@ -145,7 +179,7 @@ jest.mock("../../components/ui", () => ({
     const RN = require("react-native");
     const R = require("react");
     return R.createElement(
-      RN.View,
+      RN.Pressable,
       { testID: "ShellActionButton", ...props },
       label ? R.createElement(RN.Text, null, label) : null,
     );
@@ -155,6 +189,14 @@ jest.mock("../../components/ui", () => ({
 describe("HomeScreen platform adoption", () => {
   beforeEach(() => {
     jest.useFakeTimers();
+    mockUseGuestRoomJoin.mockReset();
+    mockUseGuestRoomJoin.mockReturnValue({
+      session: null,
+      error: null,
+      isSubmitting: false,
+      leaveRoom: jest.fn(),
+      submitGuestJoin: jest.fn(),
+    });
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
@@ -207,9 +249,70 @@ describe("HomeScreen platform adoption", () => {
     });
     // Check for "Start New Game" label via the nested text element
     const allText = renderer.root.findAllByType("Text" as any);
-    const textContents = allText.map((t: any) => t.props.children).flat();
+    const textContents = allText.flatMap((t: any) => t.props.children);
     expect(textContents).toContain("Start New Game");
     expect(buttons.length).toBeGreaterThan(0);
+
+    renderer.unmount();
+  });
+
+  it("opens the guest modal from the home CTA", () => {
+    const HomeScreen = require("../../app/index").default;
+
+    const renderer = TestRenderer.create(React.createElement(HomeScreen));
+    const guestJoinButton = renderer.root.findByProps({
+      testID: "home-join-room-button",
+    });
+
+    TestRenderer.act(() => {
+      guestJoinButton.props.onPress();
+    });
+
+    const modal = renderer.root.findByProps({ testID: "GuestJoinModal" });
+    const { Text } = require("react-native");
+    const textNodes = modal.findAllByType(Text);
+    const renderedText = textNodes
+      .flatMap((node: any) => node.props.children)
+      .join("");
+
+    expect(renderedText).toContain("guest-modal-form");
+
+    renderer.unmount();
+  });
+
+  it("updates the guest CTA label when a guest room is already active", () => {
+    mockUseGuestRoomJoin.mockReturnValue({
+      session: {
+        grant: {
+          guestToken: "guest-token-1",
+          participantId: "guest-1",
+          sessionId: "session-1",
+          joinCode: "ROOM42",
+          displayName: "Casey",
+        },
+        snapshot: {
+          sessionId: "session-1",
+          joinCode: "ROOM42",
+          state: "joinable",
+          commonMatchId: "match-1",
+          participants: [],
+          matches: [],
+          assignments: [],
+        },
+      },
+      error: null,
+      isSubmitting: false,
+      leaveRoom: jest.fn(),
+      submitGuestJoin: jest.fn(),
+    });
+
+    const HomeScreen = require("../../app/index").default;
+    const renderer = TestRenderer.create(React.createElement(HomeScreen));
+    const { Text } = require("react-native");
+    const allText = renderer.root.findAllByType(Text);
+    const textContents = allText.flatMap((node: any) => node.props.children);
+
+    expect(textContents).toContain("Return to Guest Room");
 
     renderer.unmount();
   });
@@ -230,7 +333,7 @@ describe("HomeScreen platform adoption", () => {
     // Find all text nodes to verify button labels
     const { Text } = require("react-native");
     const allText = renderer.root.findAllByType(Text);
-    const textContents = allText.map((t: any) => t.props.children).flat();
+    const textContents = allText.flatMap((t: any) => t.props.children);
     expect(textContents).toContain("Continue Game");
     expect(textContents).toContain("Cancel Game");
 
