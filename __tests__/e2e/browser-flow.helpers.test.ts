@@ -1,7 +1,12 @@
 import { type Page } from "@playwright/test";
+import { createGuestRoomHostFixture } from "../../e2e/fixtures";
 import {
+  GUEST_ROOM_SESSION_GRANT_STORAGE_KEY,
   HOME_READY_MARKERS,
   PERSISTED_STORE_KEY,
+  buildGuestRoomJoinResponseFromFixture,
+  buildGuestRoomSessionGrantFromFixture,
+  buildGuestRoomSnapshotFromFixture,
   buildPersistedBrowserStateFromSetupDataset,
   createSetupJourneyDataset,
   createSetupJourneyDatasets,
@@ -59,6 +64,61 @@ describe("browser-flow.helpers", () => {
       "Game Stats",
     ]);
     expect(PERSISTED_STORE_KEY).toBe("dong-storage");
+    expect(GUEST_ROOM_SESSION_GRANT_STORAGE_KEY).toBe(
+      "dong:guest-room-session-grant",
+    );
+  });
+
+  it("builds a replay-safe guest join response and persisted grant from a room fixture", () => {
+    const fixture = createGuestRoomHostFixture();
+    const joinResponse = buildGuestRoomJoinResponseFromFixture({
+      fixture,
+      guestName: "Casey",
+      guestToken: "guest-token-1",
+    });
+    const sessionGrant = buildGuestRoomSessionGrantFromFixture({
+      fixture,
+      guestName: "Casey",
+      guestToken: "guest-token-1",
+    });
+
+    expect(joinResponse).toMatchObject({
+      participantId: "guest-guest-token-1",
+      sessionId: fixture.sessionId,
+      guestToken: "guest-token-1",
+      joinCode: fixture.joinCode,
+      displayName: "Casey",
+    });
+    expect(joinResponse.snapshot.participants).toHaveLength(
+      fixture.participants.length + 1,
+    );
+    expect(sessionGrant).toEqual({
+      guestToken: "guest-token-1",
+      participantId: "guest-guest-token-1",
+      sessionId: fixture.sessionId,
+      joinCode: fixture.joinCode,
+      displayName: "Casey",
+    });
+  });
+
+  it("builds updated guest snapshots when the mocked room state changes", () => {
+    const fixture = createGuestRoomHostFixture({ state: "in_play" });
+
+    const snapshot = buildGuestRoomSnapshotFromFixture(fixture, {
+      id: "guest-guest-token-1",
+      displayName: "Casey",
+      membershipType: "guest",
+      sessionRole: "member",
+      currentDrinkTotal: 0,
+    });
+
+    expect(snapshot.state).toBe("in_play");
+    expect(snapshot.participants).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ displayName: "Host Owner" }),
+        expect.objectContaining({ displayName: "Casey" }),
+      ]),
+    );
   });
 
   it("creates a reusable default setup journey dataset", () => {

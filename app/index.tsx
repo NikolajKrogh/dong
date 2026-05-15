@@ -1,7 +1,13 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Image,
   Modal,
@@ -24,8 +30,10 @@ import { useGameStore } from "../store/store";
 import createStyles from "./style/indexStyles";
 
 import AppIcon from "../components/AppIcon";
+import { GuestJoinModal } from "../components/guestJoin/GuestJoinModal";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { ShellActionButton, ShellCard, ShellScreen } from "../components/ui";
+import { useGuestRoomJoin } from "../hooks/useGuestRoomJoin";
 import { PlatformAnimation } from "../platform";
 import { isWideLayout } from "./style/responsive";
 import { useColors } from "./style/theme";
@@ -109,11 +117,23 @@ const getTopDrinker = (gameHistory: GameSession[]): TopDrinkerInfo | null => {
 
 const HomeSplash: React.FC<HomeSplashProps> = ({ styles, onComplete }) => {
   const opacity = useSharedValue(1);
+  const hasCompletedRef = useRef(false);
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
   }));
 
+  const completeSplash = useCallback(() => {
+    if (hasCompletedRef.current) {
+      return;
+    }
+
+    hasCompletedRef.current = true;
+    onComplete();
+  }, [onComplete]);
+
   useEffect(() => {
+    const splashFallbackTimer = setTimeout(completeSplash, 4500);
+
     opacity.value = withDelay(
       3000,
       withTiming(
@@ -124,12 +144,16 @@ const HomeSplash: React.FC<HomeSplashProps> = ({ styles, onComplete }) => {
         },
         (finished) => {
           if (finished) {
-            runOnJS(onComplete)();
+            runOnJS(completeSplash)();
           }
         },
       ),
     );
-  }, [onComplete, opacity]);
+
+    return () => {
+      clearTimeout(splashFallbackTimer);
+    };
+  }, [completeSplash, opacity]);
 
   return (
     <Animated.View style={[styles.splashContainer, animatedStyle]}>
@@ -276,7 +300,15 @@ const HomeScreen = () => {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const wideLayout = isWideLayout(width);
   const { players, matches, history, resetState } = useGameStore();
+  const {
+    session: guestRoomSession,
+    error: guestRoomError,
+    isSubmitting: isGuestJoinSubmitting,
+    leaveRoom: leaveGuestRoom,
+    submitGuestJoin,
+  } = useGuestRoomJoin();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [isGuestJoinModalVisible, setIsGuestJoinModalVisible] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(() => {
     const shouldShow = !hasSplashBeenShown;
     if (shouldShow) {
@@ -285,6 +317,10 @@ const HomeScreen = () => {
     return shouldShow;
   });
   const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
+  const [guestJoinCode, setGuestJoinCode] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [hasDismissedGuestJoinModal, setHasDismissedGuestJoinModal] =
+    useState(false);
 
   useEffect(() => {
     const checkFirstLaunch = async () => {
@@ -321,12 +357,44 @@ const HomeScreen = () => {
     router.push("/userPreferences");
   }, [router]);
 
+  const handleOpenGuestJoin = useCallback(() => {
+    setHasDismissedGuestJoinModal(false);
+    setIsGuestJoinModalVisible(true);
+  }, []);
+
+  const handleCloseGuestJoin = useCallback(() => {
+    setIsGuestJoinModalVisible(false);
+    setHasDismissedGuestJoinModal(Boolean(guestRoomSession));
+  }, [guestRoomSession]);
+
+  const handleLeaveGuestJoin = useCallback(async () => {
+    await leaveGuestRoom();
+    setGuestJoinCode("");
+    setGuestName("");
+    setHasDismissedGuestJoinModal(false);
+    setIsGuestJoinModalVisible(false);
+  }, [leaveGuestRoom]);
+
   const openCancelModal = useCallback(() => {
     setIsConfirmModalVisible(true);
   }, []);
 
   const topDrinkerInfo = useMemo(() => getTopDrinker(history), [history]);
   const totalDrinks = useMemo(() => getTotalDrinks(history), [history]);
+  const guestJoinActionLabel = guestRoomSession
+    ? "Return to Guest Room"
+    : "Join Room as Guest";
+
+  useEffect(() => {
+    if (!guestRoomSession) {
+      setHasDismissedGuestJoinModal(false);
+      return;
+    }
+
+    if (!hasDismissedGuestJoinModal) {
+      setIsGuestJoinModalVisible(true);
+    }
+  }, [guestRoomSession, hasDismissedGuestJoinModal]);
 
   if (isSplashVisible) {
     return <HomeSplash styles={styles} onComplete={handleCloseSplash} />;
@@ -405,6 +473,22 @@ const HomeScreen = () => {
             )}
 
             <ShellActionButton
+              variant={guestRoomSession ? "primary" : "secondary"}
+              label={guestJoinActionLabel}
+              testID="home-join-room-button"
+              icon={
+                <AppIcon
+                  name={guestRoomSession ? "people" : "people-outline"}
+                  size={22}
+                  color={colors.white}
+                />
+              }
+              onPress={handleOpenGuestJoin}
+              widthMode={wideLayout ? "wide" : undefined}
+              style={{ marginTop: 16 }}
+            />
+
+            <ShellActionButton
               variant="surface"
               size="small"
               testID="open-preferences-button"
@@ -451,6 +535,22 @@ const HomeScreen = () => {
               </View>
             </View>
           </Modal>
+
+          <GuestJoinModal
+            error={guestRoomError}
+            guestName={guestName}
+            isSubmitting={isGuestJoinSubmitting}
+            joinCode={guestJoinCode}
+            onClose={handleCloseGuestJoin}
+            onGuestNameChange={setGuestName}
+            onJoinCodeChange={setGuestJoinCode}
+            onLeaveRoom={handleLeaveGuestJoin}
+            onSubmit={() => {
+              void submitGuestJoin(guestJoinCode, guestName);
+            }}
+            session={guestRoomSession}
+            visible={isGuestJoinModalVisible}
+          />
         </SafeAreaView>
       </ShellScreen>
     </>

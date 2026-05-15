@@ -2,10 +2,19 @@ import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import type {
+  GuestRoomJoinResponse,
+  GuestRoomParticipantSummary,
+  GuestRoomSnapshot,
+} from "../../types/guestRoom";
+import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
   LegacyLocalSessionSnapshot,
 } from "../../types/legacyHistoryImport";
+import {
+  createGuestRoomHostFixture,
+  type GuestRoomHostFixture,
+} from "../fixtures";
 
 export const PERSISTED_STORE_KEY = "dong-storage" as const;
 
@@ -27,15 +36,33 @@ export const LEGACY_HISTORY_IMPORT_USER_ID =
 export const LEGACY_HISTORY_IMPORT_USER_EMAIL =
   "legacy-import@example.com" as const;
 
+export const GUEST_ROOM_JOIN_RPC_PATH =
+  "**/rest/v1/rpc/join_room_as_guest" as const;
+
+export const GUEST_ROOM_SNAPSHOT_RPC_PATH =
+  "**/rest/v1/rpc/get_guest_room_snapshot" as const;
+
+export const GUEST_ROOM_SESSION_GRANT_STORAGE_KEY =
+  "dong:guest-room-session-grant" as const;
+
 let legacyHistoryImportRpcCallCount = 0;
 let legacyHistoryImportRpcLastRequest: ImportLegacyHistoryRpcRequest | null =
   null;
+let guestRoomJoinRpcLastRequest: {
+  join_code?: string;
+  guest_name?: string;
+  guest_token?: string;
+} | null = null;
+let activeGuestRoomFixture: GuestRoomHostFixture | null = null;
+let activeGuestParticipant: GuestRoomParticipantSummary | null = null;
 
 export const getLegacyHistoryImportRpcCallCount = () =>
   legacyHistoryImportRpcCallCount;
 
 export const getLegacyHistoryImportRpcLastRequest = () =>
   legacyHistoryImportRpcLastRequest;
+
+export const getGuestRoomJoinRpcLastRequest = () => guestRoomJoinRpcLastRequest;
 
 export const HOME_READY_MARKERS = [
   "Start New Game",
@@ -353,4 +380,205 @@ export const seedLegacyHistoryImportState = async (page: Page) => {
 
   await page.reload();
   await waitForBrowserFlowReady(page);
+};
+
+const buildGuestFixtureParticipant = (
+  participant: GuestRoomHostFixture["participants"][number],
+): GuestRoomParticipantSummary => ({
+  id: participant.id,
+  displayName: participant.displayName,
+  membershipType: participant.membershipType,
+  sessionRole: participant.sessionRole,
+  currentDrinkTotal: participant.currentDrinkTotal,
+});
+
+const buildMockGuestParticipant = ({
+  guestName,
+  guestToken,
+}: {
+  guestName: string;
+  guestToken: string;
+}): GuestRoomParticipantSummary => ({
+  id: `guest-${guestToken}`,
+  displayName: guestName,
+  membershipType: "guest",
+  sessionRole: "member",
+  currentDrinkTotal: 0,
+});
+
+export const buildGuestRoomSnapshotFromFixture = (
+  fixture: GuestRoomHostFixture,
+  guestParticipant?: GuestRoomParticipantSummary,
+): GuestRoomSnapshot => ({
+  sessionId: fixture.sessionId,
+  joinCode: fixture.joinCode,
+  state: fixture.state,
+  commonMatchId: fixture.commonMatchId,
+  participants: guestParticipant
+    ? [
+        ...fixture.participants.map(buildGuestFixtureParticipant),
+        guestParticipant,
+      ]
+    : fixture.participants.map(buildGuestFixtureParticipant),
+  matches: fixture.matches.map((match) => ({
+    id: match.id,
+    sourceProvider: match.sourceProvider,
+    sourceMatchId: match.sourceMatchId,
+    homeTeamName: match.homeTeamName,
+    awayTeamName: match.awayTeamName,
+    kickoffAt: match.kickoffAt,
+    homeScore: match.homeScore,
+    awayScore: match.awayScore,
+  })),
+  assignments: fixture.assignments.map((assignment) => ({
+    participantId: assignment.participantId,
+    matchId: assignment.matchId,
+  })),
+});
+
+export const buildGuestRoomJoinResponseFromFixture = ({
+  fixture,
+  guestName,
+  guestToken,
+}: {
+  fixture: GuestRoomHostFixture;
+  guestName: string;
+  guestToken: string;
+}): GuestRoomJoinResponse => {
+  const guestParticipant = buildMockGuestParticipant({
+    guestName,
+    guestToken,
+  });
+
+  return {
+    participantId: guestParticipant.id,
+    sessionId: fixture.sessionId,
+    guestToken,
+    joinCode: fixture.joinCode,
+    displayName: guestName,
+    snapshot: buildGuestRoomSnapshotFromFixture(fixture, guestParticipant),
+  };
+};
+
+export const transitionMockGuestRoomToState = (
+  nextState: GuestRoomHostFixture["state"],
+) => {
+  if (!activeGuestRoomFixture) {
+    return;
+  }
+
+  activeGuestRoomFixture = {
+    ...activeGuestRoomFixture,
+    state: nextState,
+  };
+};
+
+export const buildGuestRoomSessionGrantFromFixture = ({
+  fixture,
+  guestName,
+  guestToken,
+}: {
+  fixture: GuestRoomHostFixture;
+  guestName: string;
+  guestToken: string;
+}) => {
+  const joinResponse = buildGuestRoomJoinResponseFromFixture({
+    fixture,
+    guestName,
+    guestToken,
+  });
+
+  return {
+    guestToken: joinResponse.guestToken,
+    participantId: joinResponse.participantId,
+    sessionId: joinResponse.sessionId,
+    joinCode: joinResponse.joinCode,
+    displayName: joinResponse.displayName,
+  };
+};
+
+export const seedGuestRoomSessionGrant = async (
+  page: Page,
+  sessionGrant: ReturnType<typeof buildGuestRoomSessionGrantFromFixture>,
+) => {
+  await page.evaluate(
+    ({ storageKey, grant }) => {
+      globalThis.localStorage.setItem(storageKey, JSON.stringify(grant));
+    },
+    {
+      storageKey: GUEST_ROOM_SESSION_GRANT_STORAGE_KEY,
+      grant: sessionGrant,
+    },
+  );
+};
+
+export const mockGuestRoomRpcServices = async (
+  page: Page,
+  fixture: GuestRoomHostFixture = createGuestRoomHostFixture(),
+) => {
+  let latestJoinResponse: GuestRoomJoinResponse | null = null;
+
+  guestRoomJoinRpcLastRequest = null;
+  activeGuestRoomFixture = fixture;
+  activeGuestParticipant = null;
+
+  await page.route(GUEST_ROOM_JOIN_RPC_PATH, async (route) => {
+    const body = route.request().postDataJSON() as {
+      join_code?: string;
+      guest_name?: string;
+      guest_token?: string;
+    };
+
+    guestRoomJoinRpcLastRequest = body;
+
+    latestJoinResponse = buildGuestRoomJoinResponseFromFixture({
+      fixture: activeGuestRoomFixture ?? fixture,
+      guestName: body.guest_name?.trim() || fixture.defaultGuestName,
+      guestToken: body.guest_token?.trim() || "guest-room-test-token",
+    });
+    activeGuestParticipant =
+      latestJoinResponse.snapshot.participants.find(
+        (participant) => participant.id === latestJoinResponse?.participantId,
+      ) ?? null;
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(latestJoinResponse),
+    });
+  });
+
+  await page.route(GUEST_ROOM_SNAPSHOT_RPC_PATH, async (route) => {
+    const body = route.request().postDataJSON() as {
+      guest_token?: string;
+    };
+
+    const guestToken =
+      body.guest_token?.trim() ||
+      latestJoinResponse?.guestToken ||
+      "guest-room-test-token";
+    const guestParticipant =
+      activeGuestParticipant ??
+      buildMockGuestParticipant({
+        guestName: latestJoinResponse?.displayName || fixture.defaultGuestName,
+        guestToken,
+      });
+
+    const snapshot = buildGuestRoomSnapshotFromFixture(
+      activeGuestRoomFixture ?? fixture,
+      guestParticipant,
+    );
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(snapshot),
+    });
+  });
+
+  return {
+    fixture,
+    getLatestJoinResponse: () => latestJoinResponse,
+    getLatestJoinRequest: () => guestRoomJoinRpcLastRequest,
+  };
 };

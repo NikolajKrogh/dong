@@ -3,6 +3,11 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 
 import type {
+  GuestRoomJoinRequest,
+  GuestRoomJoinResponse,
+  GuestRoomSnapshot,
+} from "../types/guestRoom";
+import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
 } from "../types/legacyHistoryImport";
@@ -18,9 +23,17 @@ export interface LegacyHistoryImportRpcClient {
   ): Promise<ImportLegacyHistoryRpcResponse>;
 }
 
+export interface GuestRoomRpcClient {
+  joinRoomAsGuest(
+    request: GuestRoomJoinRequest,
+  ): Promise<GuestRoomJoinResponse>;
+  getGuestRoomSnapshot(guestToken: string): Promise<GuestRoomSnapshot>;
+}
+
 let cachedSupabaseClient: SupabaseClient | null = null;
 let cachedLegacyHistoryImportRpcClient: LegacyHistoryImportRpcClient | null =
   null;
+let cachedGuestRoomRpcClient: GuestRoomRpcClient | null = null;
 
 const readTrimmedEnvValue = (value: string | undefined) => {
   if (typeof value !== "string") {
@@ -74,9 +87,7 @@ export const createSupabaseClient = (
 };
 
 export const getSupabaseClient = () => {
-  if (!cachedSupabaseClient) {
-    cachedSupabaseClient = createSupabaseClient();
-  }
+  cachedSupabaseClient ??= createSupabaseClient();
 
   return cachedSupabaseClient;
 };
@@ -109,9 +120,61 @@ export const createLegacyHistoryImportRpcClient = (
 };
 
 export const getLegacyHistoryImportRpcClient = () => {
-  if (!cachedLegacyHistoryImportRpcClient) {
-    cachedLegacyHistoryImportRpcClient = createLegacyHistoryImportRpcClient();
-  }
+  cachedLegacyHistoryImportRpcClient ??= createLegacyHistoryImportRpcClient();
 
   return cachedLegacyHistoryImportRpcClient;
+};
+
+export const createGuestRoomRpcClient = (
+  client: SupabaseClient = getSupabaseClient(),
+): GuestRoomRpcClient => {
+  return {
+    async joinRoomAsGuest(request) {
+      const { data, error } = await client
+        .rpc("join_room_as_guest", {
+          join_code: request.joinCode,
+          guest_name: request.guestName,
+          guest_token: request.guestToken,
+        })
+        .overrideTypes<GuestRoomJoinResponse, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase join_room_as_guest returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+
+    async getGuestRoomSnapshot(guestToken) {
+      const { data, error } = await client
+        .rpc("get_guest_room_snapshot", {
+          guest_token: guestToken,
+        })
+        .overrideTypes<GuestRoomSnapshot, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase get_guest_room_snapshot returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+  };
+};
+
+export const getGuestRoomRpcClient = () => {
+  cachedGuestRoomRpcClient ??= createGuestRoomRpcClient();
+
+  return cachedGuestRoomRpcClient;
 };

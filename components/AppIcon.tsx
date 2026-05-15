@@ -14,6 +14,7 @@ type AppIconName =
   | "calendar-outline"
   | "chevron-down"
   | "chevron-forward"
+  | "close"
   | "close-circle"
   | "close-circle-outline"
   | "flame"
@@ -24,10 +25,13 @@ type AppIconName =
   | "game-controller-outline"
   | "git-network"
   | "home"
+  | "information-circle-outline"
+  | "keypad-outline"
   | "options-outline"
   | "people"
   | "people-outline"
   | "person-circle-outline"
+  | "person-outline"
   | "play"
   | "remove"
   | "time"
@@ -58,6 +62,7 @@ const ICON_MAP: Record<AppIconName, IoniconName> = {
   "calendar-outline": "calendar-outline",
   "chevron-down": "chevron-down",
   "chevron-forward": "chevron-forward",
+  close: "close",
   "close-circle": "close-circle",
   "close-circle-outline": "close-circle-outline",
   flame: "flame",
@@ -68,10 +73,13 @@ const ICON_MAP: Record<AppIconName, IoniconName> = {
   "game-controller-outline": "game-controller-outline",
   "git-network": "git-network",
   home: "home",
+  "information-circle-outline": "information-circle-outline",
+  "keypad-outline": "keypad-outline",
   "options-outline": "options-outline",
   people: "people",
   "people-outline": "people-outline",
   "person-circle-outline": "person-circle-outline",
+  "person-outline": "person-outline",
   play: "play",
   remove: "remove",
   time: "time",
