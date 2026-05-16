@@ -108,6 +108,14 @@ Typography behavior notes:
 
 ## Component Primitives
 
+## Host Profile And Synced Settings Surface
+
+The new host profile and synced settings work stays inside the existing Settings language rather than introducing a separate account-management aesthetic.
+
+- The `Profile` section uses the same shell card framing, muted helper copy, and simple labeled field rhythm already used in onboarding and other settings surfaces.
+- Validation and expired-session messaging use the existing danger color rather than a bespoke alert pattern, keeping recovery states visually consistent with the rest of Settings.
+- Synced preference controls reuse the existing appearance, sound, and league rows so a signed-in host sees the same controls regardless of whether values came from local storage or the cloud-backed settings row.
+
 ### Button family
 
 Base button characteristics:

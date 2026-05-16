@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-15
 - Supabase Postgres for auth/account rows and RLS; AsyncStorage for the persisted Supabase session and the existing local game state; no new client persistence model (130-us31-allow-a-user-to-create-an-account-and-sign-in-as-a-host)
 - TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `@supabase/supabase-js` 2.105.4, Zustand 5, AsyncStorage, `react-native-safe-area-context`, `react-native-toast-message`, `react-native-reanimated`, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1 (131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account)
 - Existing Supabase Postgres room tables (`game_sessions`, `participants`, `matches`, `assignments`, `gameplay_events`) plus AsyncStorage for a persisted guest-room session grant; no new business tables are required (131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account)
+- TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage, Tamagui 1.141.5, @supabase/supabase-js 2.105.4, react-native-safe-area-context, react-native-toast-message, react-native-reanimated, playwright-bdd 8.5.0, @playwright/test 1.59.1 (131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account)
+- Supabase Postgres for account and settings rows; AsyncStorage remains the local device fallback and game-state store (131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account)
 
 - TypeScript 5.3.3 in an Expo SDK 52 / React Native 0.76.9 workspace + Expo Router 4, React 18.3.1, Zustand 5, AsyncStorage, `expo-av`, `react-native-date-picker`, `react-native-ui-datepicker`, `lottie-react-native`, `react-native-gesture-handler`, `react-native-reanimated`, Jest-Expo 52 (111-add-platform-abstractions)
 - Existing Zustand + AsyncStorage persistence remains unchanged; no new storage for this feature (111-add-platform-abstractions)
@@ -49,9 +51,9 @@ npm test; npm run lint
 Markdown documentation artifact inside a TypeScript 5.3.3 / Expo SDK 52 workspace: Follow standard conventions
 
 ## Recent Changes
+- 131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage, Tamagui 1.141.5, @supabase/supabase-js 2.105.4, react-native-safe-area-context, react-native-toast-message, react-native-reanimated, playwright-bdd 8.5.0, @playwright/test 1.59.1
 - 131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `@supabase/supabase-js` 2.105.4, Zustand 5, AsyncStorage, `react-native-safe-area-context`, `react-native-toast-message`, `react-native-reanimated`, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1
 - 130-us31-allow-a-user-to-create-an-account-and-sign-in-as-a-host: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `@supabase/supabase-js` 2.105.4, Zustand 5, AsyncStorage, `expo-linking`, `react-native-safe-area-context`, `react-native-toast-message`
-- 127-us24-add-one-time-local-to-cloud-import-for-existing-registered-users: Added TypeScript 5.3.3 in Expo SDK 52 / React Native 0.76.9 / React 18.3.1 + Expo Router 4, Zustand 5, AsyncStorage, `react-native-toast-message`, `@supabase/supabase-js`, Supabase Auth/Postgres local stack, Supabase CLI, pgTAP, `playwright-bdd`, `@playwright/test`
 
 
 

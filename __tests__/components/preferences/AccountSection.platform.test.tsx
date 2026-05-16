@@ -98,7 +98,9 @@ describe("AccountSection", () => {
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: null,
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
@@ -141,7 +143,9 @@ describe("AccountSection", () => {
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: { user: { id: "host-1" } },
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
@@ -174,7 +178,9 @@ describe("AccountSection", () => {
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: { user: { id: "host-1" } },
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut,
       signUp: jest.fn(),
@@ -192,6 +198,38 @@ describe("AccountSection", () => {
     signOutButton!.props.onPress();
 
     expect(signOut).toHaveBeenCalled();
+
+    tree.unmount();
+  });
+
+  it("shows a recovery message when the session has expired", () => {
+    mockUseAccountAuth.mockReturnValue({
+      account: null,
+      changePassword: jest.fn(),
+      deleteAccount: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
+      session: null,
+      sessionNotice:
+        "Your session ended. Sign in again to keep managing your profile and synced settings.",
+      signIn: jest.fn(),
+      signOut: jest.fn(),
+      signUp: jest.fn(),
+      verifySignupOtp: jest.fn(),
+      status: "signedOut",
+      user: null,
+    } as never);
+
+    const tree = TestRenderer.create(React.createElement(AccountSection));
+
+    const { Text } = require("react-native");
+    const textNodes = tree.root.findAllByType(Text);
+    const textContents = textNodes.flatMap((node: any) => node.props.children);
+
+    expect(textContents).toContain(
+      "Your session ended. Sign in again to keep managing your profile and synced settings.",
+    );
 
     tree.unmount();
   });

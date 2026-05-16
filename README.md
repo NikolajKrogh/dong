@@ -117,6 +117,24 @@ npm run lint
 npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/auth/AuthForm.platform.test.tsx __tests__/components/auth/UsernameOnboardingForm.platform.test.tsx __tests__/components/auth/PasswordResetForm.platform.test.tsx __tests__/components/preferences/AccountSection.platform.test.tsx __tests__/app/userPreferences.platform.test.tsx
 ```
 
+## Host Profile And Synced Settings
+
+Signed-in hosts can now manage their profile and the cloud-backed preference subset directly from Settings.
+
+- The `Profile` section saves both the visible display name and the account username/handle to `public.accounts`.
+- The synced preference subset now round-trips through `public.settings.settings_data` for `theme`, `soundEnabled`, `commonMatchNotificationsEnabled`, `configuredLeagues`, and `defaultSelectedLeagues`.
+- The first authenticated restore seeds cloud settings from the device's current local preference values when no synced row exists yet.
+- Signing out or losing the session clears account-bound UI state without wiping the local device store, and Settings shows a recovery message when the session expires.
+
+For focused validation of this slice, use:
+
+```bash
+npm run db:reset
+npx supabase test db supabase/tests/database/032_host_profile_and_settings.test.sql
+npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/preferences/ProfileSection.platform.test.tsx __tests__/components/preferences/AccountSection.platform.test.tsx __tests__/components/preferences/AppearanceSettings.platform.test.tsx __tests__/components/preferences/SoundNotificationSettings.platform.test.tsx __tests__/components/preferences/LeagueSettings.platform.test.tsx __tests__/app/userPreferences.platform.test.tsx
+npm run bddgen
+```
+
 2. Start the app in development mode:
 
 For web preview:

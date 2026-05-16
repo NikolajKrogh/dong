@@ -51,6 +51,7 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
             <Text style={settingsStyles.preferenceLabel}>Enable Sound</Text>
           </View>
           <Switch
+            testID="SoundSettingSwitch"
             value={soundEnabled}
             onValueChange={(value) => setSoundEnabled(value)}
             trackColor={{
@@ -80,6 +81,7 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
             </Text>
           </View>
           <Switch
+            testID="CommonMatchNotificationsSwitch"
             value={commonMatchNotificationsEnabled}
             onValueChange={(value) => setCommonMatchNotificationsEnabled(value)}
             trackColor={{

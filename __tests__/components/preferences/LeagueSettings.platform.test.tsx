@@ -106,4 +106,40 @@ describe("LeagueSettings shell adoption", () => {
 
     renderer.unmount();
   });
+
+  it("routes the league actions through the provided handlers", () => {
+    const onManageLeaguesPress = jest.fn();
+    const onAddLeaguesPress = jest.fn();
+    const onSetDefaultLeaguesPress = jest.fn();
+    const LeagueSettings =
+      require("../../../components/preferences/LeagueSettings").default;
+
+    const renderer = TestRenderer.create(
+      React.createElement(LeagueSettings, {
+        configuredLeagues: [{ code: "EPL", name: "Premier League" }],
+        onManageLeaguesPress,
+        onAddLeaguesPress,
+        defaultSelectedLeagues: [],
+        onSetDefaultLeaguesPress,
+      })
+    );
+
+    const { TouchableOpacity, Text } = require("react-native");
+    const rows = renderer.root.findAllByType(TouchableOpacity);
+    const texts = renderer.root.findAllByType(Text);
+    const textContents = texts.map((t: any) => t.props.children).flat();
+
+    TestRenderer.act(() => {
+      rows[0].props.onPress();
+      rows[1].props.onPress();
+      rows[2].props.onPress();
+    });
+
+    expect(onManageLeaguesPress).toHaveBeenCalled();
+    expect(onAddLeaguesPress).toHaveBeenCalled();
+    expect(onSetDefaultLeaguesPress).toHaveBeenCalled();
+    expect(textContents).toContain("Tap to set");
+
+    renderer.unmount();
+  });
 });

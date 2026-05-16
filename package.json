@@ -28,7 +28,8 @@
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/e2e/playwright/"
+      "/e2e/playwright/",
+      "/\\.features-gen/"
     ]
   },
   "dependencies": {

@@ -3,6 +3,19 @@ import TestRenderer from "react-test-renderer";
 
 import PasswordResetForm from "../../../components/auth/PasswordResetForm";
 
+jest.mock("tamagui", () => {
+  const RN = require("react-native");
+  const ReactLocal = require("react");
+  return {
+    Text: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.Text, props, children),
+    XStack: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.View, props, children),
+    YStack: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.View, props, children),
+  };
+});
+
 const mockExchangeCodeForSession = jest.fn();
 const mockReplace = jest.fn();
 const mockRequestPasswordReset = jest.fn();
@@ -44,7 +57,9 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       completePasswordRecovery: mockCompletePasswordRecovery,
       requestPasswordReset: mockRequestPasswordReset,
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: null,
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),

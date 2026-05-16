@@ -56,6 +56,7 @@ const AppearanceSettings: React.FC = () => {
             <Text style={styles.preferenceLabel}>Dark Mode</Text>
           </View>
           <Switch
+            testID="ThemeSettingSwitch"
             value={theme === "dark"}
             onValueChange={toggleTheme}
             trackColor={{
