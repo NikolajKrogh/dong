@@ -14,6 +14,7 @@ import LeagueSettings from "../components/preferences/LeagueSettings";
 import LegacyHistoryImportSection from "../components/preferences/LegacyHistoryImportSection";
 import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
 import OnboardingButton from "../components/preferences/OnboardingButton";
+import ProfileSection from "../components/preferences/ProfileSection";
 import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
 import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
 import { ShellScreen } from "../components/ui";
@@ -108,6 +109,7 @@ const UserPreferencesScreen = () => {
           }}
         >
           <AccountSection />
+          <ProfileSection />
           <AppearanceSettings />
           <SoundNotificationSettings
             soundEnabled={soundEnabled}

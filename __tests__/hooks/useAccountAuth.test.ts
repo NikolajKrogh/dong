@@ -2,18 +2,37 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
+import { LEAGUE_ENDPOINTS } from "../../constants/leagues";
 import {
   AccountAuthProvider,
+  SESSION_EXPIRED_MESSAGE,
   bootstrapAccountRow,
   normalizeAccountDisplayName,
   saveAccountDisplayName,
   useAccountAuth,
 } from "../../hooks/useAccountAuth";
 import {
+  getCurrentSyncedPreferenceState,
+  useGameStore,
+} from "../../store/store";
+import {
   getSupabaseClient,
   getSupabasePublicConfig,
   hasSupabasePublicConfig,
 } from "../../utils/supabaseClient";
+
+const DEFAULT_SELECTED_LEAGUES = [
+  { name: "Premier League", code: "eng.1", category: "Europe" },
+  { name: "Championship", code: "eng.2", category: "Europe" },
+];
+
+const DEFAULT_SYNCED_PREFERENCES = {
+  theme: "light" as const,
+  soundEnabled: true,
+  commonMatchNotificationsEnabled: true,
+  configuredLeagues: LEAGUE_ENDPOINTS,
+  defaultSelectedLeagues: DEFAULT_SELECTED_LEAGUES,
+};
 
 jest.mock("expo-linking", () => ({
   createURL: jest.fn((path: string) => `myapp://${path.replace(/^\//, "")}`),
@@ -29,8 +48,10 @@ const mockGetSupabaseClient = jest.mocked(getSupabaseClient);
 const mockGetSupabasePublicConfig = jest.mocked(getSupabasePublicConfig);
 const mockHasSupabasePublicConfig = jest.mocked(hasSupabasePublicConfig);
 
-const createAccountsTableMock = () => {
-  let accountRow: Record<string, unknown> | null = null;
+const createAccountsTableMock = (
+  initialAccount: Record<string, unknown> | null = null,
+) => {
+  let accountRow: Record<string, unknown> | null = initialAccount;
 
   const accountsTable = {
     select: jest.fn(() => accountsTable),
@@ -51,14 +72,15 @@ const createAccountsTableMock = () => {
       accountRow = {
         id: accountRow?.id ?? values.id,
         preferred_display_name:
-          (values.preferred_display_name as string | null | undefined) ??
-          accountRow?.preferred_display_name ??
-          null,
+          typeof values.preferred_display_name === "string" ||
+          values.preferred_display_name === null
+            ? values.preferred_display_name
+            : (accountRow?.preferred_display_name ?? null),
         created_at: accountRow?.created_at ?? "2026-05-10T00:00:00.000Z",
         updated_at:
-          (values.updated_at as string | null | undefined) ??
-          accountRow?.updated_at ??
-          "2026-05-10T00:00:00.000Z",
+          typeof values.updated_at === "string" || values.updated_at === null
+            ? values.updated_at
+            : (accountRow?.updated_at ?? "2026-05-10T00:00:00.000Z"),
       };
 
       return accountsTable;
@@ -71,18 +93,53 @@ const createAccountsTableMock = () => {
   };
 };
 
-const createSupabaseClientMock = () => {
-  const accounts = createAccountsTableMock();
+const createSupabaseClientMock = (
+  initialAccount: Record<string, unknown> | null = null,
+  initialSettings: Record<string, unknown> | null = null,
+) => {
+  const accounts = createAccountsTableMock(initialAccount);
+  let settingsRow = initialSettings;
+  let authStateChangeCallback:
+    | ((event: unknown, nextSession: Session | null) => void)
+    | null = null;
+  const settingsTable = {
+    select: jest.fn(() => settingsTable),
+    eq: jest.fn(() => settingsTable),
+    maybeSingle: jest.fn(async () => ({ data: settingsRow, error: null })),
+    single: jest.fn(async () => ({ data: settingsRow, error: null })),
+    upsert: jest.fn((values: Record<string, unknown>) => {
+      settingsRow = {
+        account_id: values.account_id,
+        settings_data:
+          values.settings_data ??
+          settingsRow?.settings_data ??
+          DEFAULT_SYNCED_PREFERENCES,
+        created_at: settingsRow?.created_at ?? "2026-05-10T00:00:00.000Z",
+        updated_at:
+          typeof values.updated_at === "string" || values.updated_at === null
+            ? values.updated_at
+            : (settingsRow?.updated_at ?? "2026-05-10T00:00:00.000Z"),
+      };
+
+      return settingsTable;
+    }),
+  };
   const auth = {
     getSession: jest.fn(async () => ({ data: { session: null }, error: null })),
     getUser: jest.fn(async () => ({ data: { user: null }, error: null })),
-    onAuthStateChange: jest.fn(() => ({
-      data: {
-        subscription: {
-          unsubscribe: jest.fn(),
-        },
+    onAuthStateChange: jest.fn(
+      (callback: (event: unknown, nextSession: Session | null) => void) => {
+        authStateChangeCallback = callback;
+
+        return {
+          data: {
+            subscription: {
+              unsubscribe: jest.fn(),
+            },
+          },
+        };
       },
-    })),
+    ),
     signInWithPassword: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(async () => ({ error: null })),
@@ -92,14 +149,24 @@ const createSupabaseClientMock = () => {
 
   return {
     auth,
-    from: jest.fn(() => accounts.accountsTable),
+    from: jest.fn((table: string) =>
+      table === "settings" ? settingsTable : accounts.accountsTable,
+    ),
     accounts,
+    settings: {
+      settingsTable,
+      getCurrentSettings: () => settingsRow,
+    },
+    emitAuthStateChange: (event: unknown, nextSession: Session | null) => {
+      authStateChangeCallback?.(event, nextSession);
+    },
   };
 };
 
 describe("account auth foundation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useGameStore.setState(DEFAULT_SYNCED_PREFERENCES);
   });
 
   it("normalizes account display names", () => {
@@ -135,6 +202,527 @@ describe("account auth foundation", () => {
         "   ",
       ),
     ).rejects.toThrow("Account display name cannot be blank.");
+  });
+
+  it("restores the saved display name from the account row", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    const client = createSupabaseClientMock({
+      id: "host-restore",
+      preferred_display_name: "Restored Captain",
+      created_at: "2026-05-10T00:00:00.000Z",
+      updated_at: "2026-05-10T00:00:00.000Z",
+    });
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-restore" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-restore" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    let observedAccount: ReturnType<typeof useAccountAuth>["account"] = null;
+
+    const Probe = () => {
+      observedAccount = useAccountAuth().account;
+      return null;
+    };
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(Probe),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(observedAccount).toMatchObject({
+      preferredDisplayName: "Restored Captain",
+    });
+  });
+
+  it("saves the signed-in display name and keeps the last saved profile on validation errors", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    const client = createSupabaseClientMock({
+      id: "host-profile",
+      preferred_display_name: "Captain",
+      created_at: "2026-05-10T00:00:00.000Z",
+      updated_at: "2026-05-10T00:00:00.000Z",
+    });
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-profile" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-profile" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    let observedAccount: ReturnType<typeof useAccountAuth>["account"] = null;
+    let saveDisplayName: ((displayName: string) => Promise<void>) | null = null;
+
+    const Probe = () => {
+      const auth = useAccountAuth();
+      observedAccount = auth.account;
+      saveDisplayName = auth.saveDisplayName;
+      return null;
+    };
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(Probe),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await TestRenderer.act(async () => {
+      await saveDisplayName?.("Captain Updated");
+    });
+
+    expect(observedAccount).toMatchObject({
+      preferredDisplayName: "Captain Updated",
+    });
+
+    await expect(
+      TestRenderer.act(async () => {
+        await saveDisplayName?.("   ");
+      }),
+    ).rejects.toThrow("Account display name cannot be blank.");
+
+    expect(observedAccount).toMatchObject({
+      preferredDisplayName: "Captain Updated",
+    });
+  });
+
+  it("hydrates the supported settings from the saved settings row on session restore", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    const client = createSupabaseClientMock(
+      {
+        id: "host-settings-restore",
+        preferred_display_name: "Captain",
+        username: "captain-owner",
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+      {
+        account_id: "host-settings-restore",
+        settings_data: {
+          theme: "dark",
+          soundEnabled: false,
+          commonMatchNotificationsEnabled: false,
+          configuredLeagues: [
+            { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+          ],
+          defaultSelectedLeagues: [
+            { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+          ],
+        },
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+    );
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-settings-restore" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-settings-restore" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(() => null),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(getCurrentSyncedPreferenceState()).toMatchObject({
+      theme: "dark",
+      soundEnabled: false,
+      commonMatchNotificationsEnabled: false,
+      configuredLeagues: [
+        { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+      ],
+      defaultSelectedLeagues: [
+        { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+      ],
+    });
+  });
+
+  it("seeds the first synced settings row from the current local values", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    useGameStore.setState({
+      theme: "dark",
+      soundEnabled: false,
+      commonMatchNotificationsEnabled: false,
+      configuredLeagues: [
+        { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+      ],
+      defaultSelectedLeagues: [
+        { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+      ],
+    });
+
+    const client = createSupabaseClientMock({
+      id: "host-settings-seed",
+      preferred_display_name: "Captain",
+      username: "captain-owner",
+      created_at: "2026-05-10T00:00:00.000Z",
+      updated_at: "2026-05-10T00:00:00.000Z",
+    });
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-settings-seed" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-settings-seed" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(() => null),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(client.settings.getCurrentSettings()).toMatchObject({
+      account_id: "host-settings-seed",
+      settings_data: {
+        theme: "dark",
+        soundEnabled: false,
+        commonMatchNotificationsEnabled: false,
+        configuredLeagues: [
+          { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+        ],
+        defaultSelectedLeagues: [
+          { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+        ],
+      },
+    });
+  });
+
+  it("persists supported preference changes after the account is restored", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    const client = createSupabaseClientMock(
+      {
+        id: "host-settings-save",
+        preferred_display_name: "Captain",
+        username: "captain-owner",
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+      {
+        account_id: "host-settings-save",
+        settings_data: DEFAULT_SYNCED_PREFERENCES,
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+    );
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-settings-save" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-settings-save" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(() => null),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await TestRenderer.act(async () => {
+      useGameStore.getState().setTheme("dark");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(client.settings.getCurrentSettings()).toMatchObject({
+      settings_data: expect.objectContaining({
+        theme: "dark",
+      }),
+    });
+  });
+
+  it("signs out without clearing the local synced settings", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    const client = createSupabaseClientMock(
+      {
+        id: "host-signout",
+        preferred_display_name: "Captain",
+        username: "captain-owner",
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+      {
+        account_id: "host-signout",
+        settings_data: {
+          theme: "dark",
+          soundEnabled: false,
+          commonMatchNotificationsEnabled: false,
+          configuredLeagues: [
+            { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+          ],
+          defaultSelectedLeagues: [
+            { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
+          ],
+        },
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+    );
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-signout" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-signout" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    let signOut: (() => Promise<void>) | null = null;
+    let observedStatus = "loading";
+
+    const Probe = () => {
+      const auth = useAccountAuth();
+      signOut = auth.signOut;
+      observedStatus = auth.status;
+      return null;
+    };
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(Probe),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await TestRenderer.act(async () => {
+      await signOut?.();
+    });
+
+    expect(observedStatus).toBe("signedOut");
+    expect(getCurrentSyncedPreferenceState()).toMatchObject({
+      theme: "dark",
+      soundEnabled: false,
+      commonMatchNotificationsEnabled: false,
+    });
+  });
+
+  it("moves to a recoverable signed-out state when the session expires", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+
+    const client = createSupabaseClientMock(
+      {
+        id: "host-expired",
+        preferred_display_name: "Captain",
+        username: "captain-owner",
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+      {
+        account_id: "host-expired",
+        settings_data: DEFAULT_SYNCED_PREFERENCES,
+        created_at: "2026-05-10T00:00:00.000Z",
+        updated_at: "2026-05-10T00:00:00.000Z",
+      },
+    );
+
+    (
+      client.auth.getSession as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "host-expired" },
+        },
+      },
+      error: null,
+    });
+    (
+      client.auth.getUser as unknown as {
+        mockResolvedValue: (value: unknown) => void;
+      }
+    ).mockResolvedValue({
+      data: { user: { id: "host-expired" } },
+      error: null,
+    });
+
+    mockGetSupabaseClient.mockReturnValue(
+      client as unknown as ReturnType<typeof getSupabaseClient>,
+    );
+
+    let observedStatus = "loading";
+    let observedSessionNotice: string | null = null;
+
+    const Probe = () => {
+      const auth = useAccountAuth();
+      observedStatus = auth.status;
+      observedSessionNotice = auth.sessionNotice;
+      return null;
+    };
+
+    TestRenderer.create(
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(Probe),
+      ),
+    );
+
+    await TestRenderer.act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    await TestRenderer.act(async () => {
+      client.emitAuthStateChange("SIGNED_OUT", null);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(observedStatus).toBe("signedOut");
+    expect(observedSessionNotice).toBe(SESSION_EXPIRED_MESSAGE);
   });
 
   it("boots a newly signed-up account into display-name onboarding", async () => {
@@ -310,10 +898,11 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    const mockFetch = jest.fn(async () =>
-      new Response(JSON.stringify({ success: true }), { status: 200 }),
+    const mockFetch: typeof fetch = jest.fn(
+      async () =>
+        new Response(JSON.stringify({ success: true }), { status: 200 }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch;
 
     let deleteAccount: (() => Promise<void>) | null = null;
     let observedStatus = "loading";
@@ -387,11 +976,12 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    global.fetch = jest.fn(async () =>
-      new Response(JSON.stringify({ error: "Deletion failed" }), {
-        status: 500,
-      }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = jest.fn(
+      async () =>
+        new Response(JSON.stringify({ error: "Deletion failed" }), {
+          status: 500,
+        }),
+    ) as typeof fetch;
 
     let deleteAccount: (() => Promise<void>) | null = null;
 

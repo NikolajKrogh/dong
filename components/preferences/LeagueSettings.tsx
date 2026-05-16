@@ -1,10 +1,10 @@
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { LeagueEndpoint } from "../../constants/leagues";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../app/style/theme";
-import { ShellSection, ShellCard } from "../ui";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { LeagueEndpoint } from "../../constants/leagues";
+import { ShellCard, ShellSection } from "../ui";
 
 interface LeagueSettingsProps {
   configuredLeagues: LeagueEndpoint[];
@@ -21,14 +21,24 @@ const SettingsRow: React.FC<{
   iconName: keyof typeof Ionicons.glyphMap;
   valueIsSecondary?: boolean;
   isLast?: boolean;
-}> = ({ label, value, onPress, iconName, valueIsSecondary, isLast }) => {
+  testID?: string;
+}> = ({
+  label,
+  value,
+  onPress,
+  iconName,
+  valueIsSecondary,
+  isLast,
+  testID,
+}) => {
   const colors = useColors();
   const { settingsStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
-    [colors]
+    [colors],
   );
   return (
     <TouchableOpacity
+      testID={testID}
       onPress={onPress}
       style={[
         settingsStyles.preferenceRow,
@@ -74,6 +84,7 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
         <SettingsRow
           label="Remove Leagues"
           iconName="trash-outline"
+          testID="ManageLeaguesRow"
           value={`${configuredLeagueCount} league${
             configuredLeagueCount === 1 ? "" : "s"
           }`}
@@ -82,11 +93,13 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
         <SettingsRow
           label="Add New Leagues"
           iconName="add-circle-outline"
+          testID="AddLeaguesRow"
           onPress={onAddLeaguesPress}
         />
         <SettingsRow
           label="Set Default Leagues"
           iconName="star-outline"
+          testID="DefaultLeaguesRow"
           value={
             defaultSelectedLeagues.length > 0
               ? `${defaultSelectedLeagues.length} selected`

@@ -39,14 +39,21 @@ jest.mock("../../../components/ui", () => ({
   ShellSection: ({ children, title, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellSection", ...props },
+    return R.createElement(
+      RN.View,
+      { testID: "ShellSection", ...props },
       title ? R.createElement(RN.Text, null, title) : null,
-      children);
+      children,
+    );
   },
   ShellCard: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellCard", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellCard", ...props },
+      children,
+    );
   },
 }));
 
@@ -65,7 +72,7 @@ describe("LeagueSettings shell adoption", () => {
         onAddLeaguesPress: jest.fn(),
         defaultSelectedLeagues: [{ code: "EPL", name: "Premier League" }],
         onSetDefaultLeaguesPress: jest.fn(),
-      })
+      }),
     );
 
     const { Text } = require("react-native");
@@ -95,7 +102,7 @@ describe("LeagueSettings shell adoption", () => {
         onAddLeaguesPress: jest.fn(),
         defaultSelectedLeagues: [],
         onSetDefaultLeaguesPress: jest.fn(),
-      })
+      }),
     );
 
     const { Text } = require("react-native");
@@ -103,6 +110,42 @@ describe("LeagueSettings shell adoption", () => {
     const textContents = texts.map((t: any) => t.props.children).flat();
 
     expect(textContents).toContain("3 leagues");
+
+    renderer.unmount();
+  });
+
+  it("routes the league actions through the provided handlers", () => {
+    const onManageLeaguesPress = jest.fn();
+    const onAddLeaguesPress = jest.fn();
+    const onSetDefaultLeaguesPress = jest.fn();
+    const LeagueSettings =
+      require("../../../components/preferences/LeagueSettings").default;
+
+    const renderer = TestRenderer.create(
+      React.createElement(LeagueSettings, {
+        configuredLeagues: [{ code: "EPL", name: "Premier League" }],
+        onManageLeaguesPress,
+        onAddLeaguesPress,
+        defaultSelectedLeagues: [],
+        onSetDefaultLeaguesPress,
+      }),
+    );
+
+    const { TouchableOpacity, Text } = require("react-native");
+    const rows = renderer.root.findAllByType(TouchableOpacity);
+    const texts = renderer.root.findAllByType(Text);
+    const textContents = texts.map((t: any) => t.props.children).flat();
+
+    TestRenderer.act(() => {
+      rows[0].props.onPress();
+      rows[1].props.onPress();
+      rows[2].props.onPress();
+    });
+
+    expect(onManageLeaguesPress).toHaveBeenCalled();
+    expect(onAddLeaguesPress).toHaveBeenCalled();
+    expect(onSetDefaultLeaguesPress).toHaveBeenCalled();
+    expect(textContents).toContain("Tap to set");
 
     renderer.unmount();
   });

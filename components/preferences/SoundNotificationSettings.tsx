@@ -1,9 +1,9 @@
-import React from "react";
-import { View, Text, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import React from "react";
+import { Switch, Text, View } from "react-native";
 import { useColors } from "../../app/style/theme";
-import { ShellSection, ShellCard } from "../ui";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { ShellCard, ShellSection } from "../ui";
 
 /**
  * Props for sound + notification settings.
@@ -35,7 +35,7 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
   const colors = useColors();
   const { settingsStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
-    [colors]
+    [colors],
   );
   return (
     <ShellSection title="Sound & Notifications" marginBottom="$3">
@@ -51,6 +51,7 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
             <Text style={settingsStyles.preferenceLabel}>Enable Sound</Text>
           </View>
           <Switch
+            testID="SoundSettingSwitch"
             value={soundEnabled}
             onValueChange={(value) => setSoundEnabled(value)}
             trackColor={{
@@ -80,6 +81,7 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
             </Text>
           </View>
           <Switch
+            testID="CommonMatchNotificationsSwitch"
             value={commonMatchNotificationsEnabled}
             onValueChange={(value) => setCommonMatchNotificationsEnabled(value)}
             trackColor={{

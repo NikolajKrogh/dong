@@ -3,6 +3,19 @@ import TestRenderer from "react-test-renderer";
 
 import PasswordResetForm from "../../../components/auth/PasswordResetForm";
 
+jest.mock("tamagui", () => {
+  const RN = require("react-native");
+  const ReactLocal = require("react");
+  return {
+    Text: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.Text, props, children),
+    XStack: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.View, props, children),
+    YStack: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.View, props, children),
+  };
+});
+
 const mockExchangeCodeForSession = jest.fn();
 const mockReplace = jest.fn();
 const mockRequestPasswordReset = jest.fn();
@@ -44,7 +57,9 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       completePasswordRecovery: mockCompletePasswordRecovery,
       requestPasswordReset: mockRequestPasswordReset,
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: null,
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
@@ -96,7 +111,10 @@ describe("PasswordResetForm", () => {
   });
 
   it("opens a recovery link and switches to the new-password form", async () => {
-    mockExchangeCodeForSession.mockResolvedValue({ data: { session: null }, error: null });
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
 
     const tree = TestRenderer.create(
       React.createElement(PasswordResetForm, {
@@ -108,7 +126,9 @@ describe("PasswordResetForm", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(mockExchangeCodeForSession).toHaveBeenCalledWith("recovery-code-123");
+    expect(mockExchangeCodeForSession).toHaveBeenCalledWith(
+      "recovery-code-123",
+    );
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);

@@ -20,84 +20,84 @@ Primary audit sources:
 
 ### Brand and interaction colors
 
-| Role | Light value | Dark value | Usage |
-| --- | --- | --- | --- |
-| Primary | `#0275d8` | `#0275d8` | Main call-to-action color, active UI accents, score emphasis, link-style interactions |
-| Primary dark | `#0056b3` | `#58a6ff` | Hover/pressed emphasis and stronger contrast accent |
-| Primary focus | `#1976d2` | `#1976d2` | Focused or active input state treatment |
-| Primary light fill | `#e3f2fd` | `#0b2947` | Selected tabs, soft highlighted states |
-| Primary lighter fill | `#f0f8ff` | `#0a223a` | Subtle icon backplates and supportive tinted surfaces |
-| Primary transparent | `rgba(2, 117, 216, 0.08)` | `rgba(88, 166, 255, 0.12)` | Ghost buttons and lightweight status backgrounds |
+| Role                 | Light value               | Dark value                 | Usage                                                                                 |
+| -------------------- | ------------------------- | -------------------------- | ------------------------------------------------------------------------------------- |
+| Primary              | `#0275d8`                 | `#0275d8`                  | Main call-to-action color, active UI accents, score emphasis, link-style interactions |
+| Primary dark         | `#0056b3`                 | `#58a6ff`                  | Hover/pressed emphasis and stronger contrast accent                                   |
+| Primary focus        | `#1976d2`                 | `#1976d2`                  | Focused or active input state treatment                                               |
+| Primary light fill   | `#e3f2fd`                 | `#0b2947`                  | Selected tabs, soft highlighted states                                                |
+| Primary lighter fill | `#f0f8ff`                 | `#0a223a`                  | Subtle icon backplates and supportive tinted surfaces                                 |
+| Primary transparent  | `rgba(2, 117, 216, 0.08)` | `rgba(88, 166, 255, 0.12)` | Ghost buttons and lightweight status backgrounds                                      |
 
 ### Surface and background stack
 
-| Role | Light value | Dark value | Usage |
-| --- | --- | --- | --- |
-| App background | `#f5f5f5` | `#0e1116` | Base screen background |
-| Background light | `#f8f9fa` | `#12161c` | Secondary page areas and light content zones |
-| Background subtle | `#f0f0f0` | `#161b22` | Input fills, chip fills, subtle grouped regions |
-| Surface | `#ffffff` | `#1b222c` | Cards, sheets, modals, headers, list items |
-| Dark surface | `#333333` | `#0e1116` | Legacy dark panel role |
-| Toast background | `#222222` | `#0d1117` | Toast and transient notification containers |
-| Modal overlay | `rgba(0, 0, 0, 0.5)` | `rgba(0, 0, 0, 0.5)` | Global dim layer for dialogs and overlays |
+| Role              | Light value          | Dark value           | Usage                                           |
+| ----------------- | -------------------- | -------------------- | ----------------------------------------------- |
+| App background    | `#f5f5f5`            | `#0e1116`            | Base screen background                          |
+| Background light  | `#f8f9fa`            | `#12161c`            | Secondary page areas and light content zones    |
+| Background subtle | `#f0f0f0`            | `#161b22`            | Input fills, chip fills, subtle grouped regions |
+| Surface           | `#ffffff`            | `#1b222c`            | Cards, sheets, modals, headers, list items      |
+| Dark surface      | `#333333`            | `#0e1116`            | Legacy dark panel role                          |
+| Toast background  | `#222222`            | `#0d1117`            | Toast and transient notification containers     |
+| Modal overlay     | `rgba(0, 0, 0, 0.5)` | `rgba(0, 0, 0, 0.5)` | Global dim layer for dialogs and overlays       |
 
 ### Text roles
 
-| Role | Light value | Dark value | Usage |
-| --- | --- | --- | --- |
-| Text primary | `#212529` | `#e6edf3` | Main reading text and most high-contrast labels |
-| Text secondary | `#333333` | `#c9d1d9` | Section titles, strong supporting text |
-| Text muted | `#6c757d` | `#8b949e` | Helper copy, metadata, subtitles |
-| Text disabled | `#adb5bd` | `#6e7681` | Disabled states and de-emphasized controls |
-| Text light | `#ffffff` | `#ffffff` | Text on filled buttons and dark surfaces |
-| Placeholder | `#999999` | `#999999` | Placeholder and low-priority hints |
-| Link text | `#0275d8` | `#0275d8` | Link-like navigation and inline actions |
+| Role           | Light value | Dark value | Usage                                           |
+| -------------- | ----------- | ---------- | ----------------------------------------------- |
+| Text primary   | `#212529`   | `#e6edf3`  | Main reading text and most high-contrast labels |
+| Text secondary | `#333333`   | `#c9d1d9`  | Section titles, strong supporting text          |
+| Text muted     | `#6c757d`   | `#8b949e`  | Helper copy, metadata, subtitles                |
+| Text disabled  | `#adb5bd`   | `#6e7681`  | Disabled states and de-emphasized controls      |
+| Text light     | `#ffffff`   | `#ffffff`  | Text on filled buttons and dark surfaces        |
+| Placeholder    | `#999999`   | `#999999`  | Placeholder and low-priority hints              |
+| Link text      | `#0275d8`   | `#0275d8`  | Link-like navigation and inline actions         |
 
 ### Borders and dividers
 
-| Role | Light value | Dark value | Usage |
-| --- | --- | --- | --- |
-| Border | `#dddddd` | `#2d333b` | Default 1px boundaries |
-| Border light | `#e0e0e0` | `#30363d` | Inputs, list items, lightweight cards |
-| Border lighter | `#eeeeee` | `#343a42` | In-card separators and soft rows |
-| Border subtle | `#e9ecef` | `#2d333b` | Header rules, section dividers, low-contrast framing |
+| Role           | Light value | Dark value | Usage                                                |
+| -------------- | ----------- | ---------- | ---------------------------------------------------- |
+| Border         | `#dddddd`   | `#2d333b`  | Default 1px boundaries                               |
+| Border light   | `#e0e0e0`   | `#30363d`  | Inputs, list items, lightweight cards                |
+| Border lighter | `#eeeeee`   | `#343a42`  | In-card separators and soft rows                     |
+| Border subtle  | `#e9ecef`   | `#2d333b`  | Header rules, section dividers, low-contrast framing |
 
 ### Semantic feedback colors
 
-| Role | Light/base value | Dark support value | Usage |
-| --- | --- | --- | --- |
-| Success | `#28a745` | `#12361c` support fill | Start and continue actions, positive confirmation, active game state |
-| Danger | `#dc3545` | `#3b1519` support fill | Cancel, reset, destructive confirmation, alert contexts |
-| Warning | `#ffc107` | `#3b2e0d` support fill | Warning emphasis and medal/highlight usage |
-| Info | `#17a2b8` | `#11343a` support fill | Informational cues and subtle live context |
+| Role    | Light/base value | Dark support value     | Usage                                                                |
+| ------- | ---------------- | ---------------------- | -------------------------------------------------------------------- |
+| Success | `#28a745`        | `#12361c` support fill | Start and continue actions, positive confirmation, active game state |
+| Danger  | `#dc3545`        | `#3b1519` support fill | Cancel, reset, destructive confirmation, alert contexts              |
+| Warning | `#ffc107`        | `#3b2e0d` support fill | Warning emphasis and medal/highlight usage                           |
+| Info    | `#17a2b8`        | `#11343a` support fill | Informational cues and subtle live context                           |
 
 Semantic hue stays stable across themes. Dark mode changes the surrounding support surfaces rather than inventing new semantic colors.
 
 ### Contextual accents
 
-| Role | Value | Usage |
-| --- | --- | --- |
-| Away team | `#fd7e14` | Alternate team accent when teams need differentiation |
-| Live indicator | `#e74c3c` | Live badges, minute indicators, urgent in-game context |
-| Count badge border | `#81d4fa` | Filter result count chips |
-| Owed positive border | `#e57373` | Drink/owed status framing |
-| Owed zero border | `#81c784` | Balanced or resolved owed state framing |
-| Gold / Silver / Bronze | `#ffc107`, `#adb5bd`, `#cd7f32` | Ranking and medal treatment in history views |
+| Role                   | Value                           | Usage                                                  |
+| ---------------------- | ------------------------------- | ------------------------------------------------------ |
+| Away team              | `#fd7e14`                       | Alternate team accent when teams need differentiation  |
+| Live indicator         | `#e74c3c`                       | Live badges, minute indicators, urgent in-game context |
+| Count badge border     | `#81d4fa`                       | Filter result count chips                              |
+| Owed positive border   | `#e57373`                       | Drink/owed status framing                              |
+| Owed zero border       | `#81c784`                       | Balanced or resolved owed state framing                |
+| Gold / Silver / Bronze | `#ffc107`, `#adb5bd`, `#cd7f32` | Ranking and medal treatment in history views           |
 
 ## Typography Rules
 
 The current system uses platform-default sans-serif typography. There is no custom font family token yet, so hierarchy is carried by size, weight, casing, spacing, and color.
 
-| Token | Specs | Usage |
-| --- | --- | --- |
-| Display / Hero | `40px`, `bold` | Large home-screen titles and standout hero text |
-| Screen title | `18-20px`, `600` to `bold` | Page headers, modal titles, key section headers |
-| Section title | `16-20px`, `600` to `bold` | Card headers, filter headers, content section labels |
-| Body / Row label | `15-16px`, `400` to `500` | Main content rows, inputs, supporting actions |
-| Button label | `16-18px`, `600` to `bold` | Primary CTAs, start/continue actions, prominent buttons |
-| Supporting text | `13-14px`, `400` to `500` | Subtitles, helper copy, filter details, empty-state support text |
-| Caption / Micro | `11-12px`, `500` to `600` | Compact badges, category chips, score metadata |
-| Eyebrow / Settings label | `14px`, `600`, uppercase, `letterSpacing: 0.5` | Settings section labels and compact organizational labels |
+| Token                    | Specs                                          | Usage                                                            |
+| ------------------------ | ---------------------------------------------- | ---------------------------------------------------------------- |
+| Display / Hero           | `40px`, `bold`                                 | Large home-screen titles and standout hero text                  |
+| Screen title             | `18-20px`, `600` to `bold`                     | Page headers, modal titles, key section headers                  |
+| Section title            | `16-20px`, `600` to `bold`                     | Card headers, filter headers, content section labels             |
+| Body / Row label         | `15-16px`, `400` to `500`                      | Main content rows, inputs, supporting actions                    |
+| Button label             | `16-18px`, `600` to `bold`                     | Primary CTAs, start/continue actions, prominent buttons          |
+| Supporting text          | `13-14px`, `400` to `500`                      | Subtitles, helper copy, filter details, empty-state support text |
+| Caption / Micro          | `11-12px`, `500` to `600`                      | Compact badges, category chips, score metadata                   |
+| Eyebrow / Settings label | `14px`, `600`, uppercase, `letterSpacing: 0.5` | Settings section labels and compact organizational labels        |
 
 Typography behavior notes:
 
@@ -107,6 +107,14 @@ Typography behavior notes:
 - Compact chips and badges generally drop to `11-13px` to stay readable without dominating dense layouts.
 
 ## Component Primitives
+
+## Host Profile And Synced Settings Surface
+
+The new host profile and synced settings work stays inside the existing Settings language rather than introducing a separate account-management aesthetic.
+
+- The `Profile` section uses the same shell card framing, muted helper copy, and simple labeled field rhythm already used in onboarding and other settings surfaces.
+- Validation and expired-session messaging use the existing danger color rather than a bespoke alert pattern, keeping recovery states visually consistent with the rest of Settings.
+- Synced preference controls reuse the existing appearance, sound, and league rows so a signed-in host sees the same controls regardless of whether values came from local storage or the cloud-backed settings row.
 
 ### Button family
 
@@ -238,47 +246,47 @@ Common score and counter characteristics:
 
 The system behaves like an `8px` base grid with `4px` half-steps for dense controls.
 
-| Value | Typical usage |
-| --- | --- |
-| `4px` | Micro spacing, icon nudges, fine separation |
-| `6px` | Tight chip spacing, compact label rhythm |
-| `8px` | Small control padding, icon gaps, compact card spacing |
-| `10px` | Button icon offsets, chip offsets, dialog action spacing |
-| `12px` | Row padding, compact cards, score and stat grouping |
-| `14px` | Main button padding and medium-density action rows |
-| `16px` | Default section padding, card padding, major internal spacing |
-| `20px` | Modal bodies, larger containers, prominent sections |
-| `24px` | Section separation and breathing room between major blocks |
-| `30-35px` | Large centered modals and oversized hero spacing |
+| Value     | Typical usage                                                 |
+| --------- | ------------------------------------------------------------- |
+| `4px`     | Micro spacing, icon nudges, fine separation                   |
+| `6px`     | Tight chip spacing, compact label rhythm                      |
+| `8px`     | Small control padding, icon gaps, compact card spacing        |
+| `10px`    | Button icon offsets, chip offsets, dialog action spacing      |
+| `12px`    | Row padding, compact cards, score and stat grouping           |
+| `14px`    | Main button padding and medium-density action rows            |
+| `16px`    | Default section padding, card padding, major internal spacing |
+| `20px`    | Modal bodies, larger containers, prominent sections           |
+| `24px`    | Section separation and breathing room between major blocks    |
+| `30-35px` | Large centered modals and oversized hero spacing              |
 
 Practical rule: `16px` is the default content rhythm, while `8px` and `12px` are used to compress dense utility UI without making it feel cramped.
 
 ## Border Radius
 
-| Value | Role |
-| --- | --- |
-| `4px` | Compact inputs, sharp utility menus, dense controls |
-| `6px` | Small manage/action chips |
-| `8px` | Default buttons, cards, inputs, list items |
-| `10px` | Wrapped input shells, match list containers, secondary emphasis containers |
-| `12px` | Stats cards, tab groups, subtle feature cards |
-| `14px` | Contextual highlight cards; not a primary system step |
-| `16px` | Modal content, chips, grouped utility surfaces |
-| `18px` | Counter buttons and circular compact controls |
-| `20px` | Dialog shells, rounded tab pills, larger visual groupings |
-| `30px+` | Floating actions, circular shells, decorative or fully rounded treatments |
+| Value   | Role                                                                       |
+| ------- | -------------------------------------------------------------------------- |
+| `4px`   | Compact inputs, sharp utility menus, dense controls                        |
+| `6px`   | Small manage/action chips                                                  |
+| `8px`   | Default buttons, cards, inputs, list items                                 |
+| `10px`  | Wrapped input shells, match list containers, secondary emphasis containers |
+| `12px`  | Stats cards, tab groups, subtle feature cards                              |
+| `14px`  | Contextual highlight cards; not a primary system step                      |
+| `16px`  | Modal content, chips, grouped utility surfaces                             |
+| `18px`  | Counter buttons and circular compact controls                              |
+| `20px`  | Dialog shells, rounded tab pills, larger visual groupings                  |
+| `30px+` | Floating actions, circular shells, decorative or fully rounded treatments  |
 
 Default recommendation: treat `8px`, `12px`, `16px`, and `20px` as the main reusable steps. Smaller or larger values tend to be context-specific.
 
 ## Depth & Elevation
 
-| Level | Typical values | Usage |
-| --- | --- | --- |
-| Level 0 | No shadow | Page background, flat sections, embedded content areas |
-| Level 1 | `shadowOpacity: 0.08-0.1`, `elevation: 1-2` | Quiet cards, subtle list rows, low-priority floating elements |
-| Level 2 | `shadowOpacity: 0.1-0.2`, `elevation: 2-3` | Standard cards, stats blocks, tab containers, list containers |
-| Level 3 | `shadowOpacity: 0.15-0.2`, `elevation: 3-4` | Highlighted cards, selected surfaces, stronger action emphasis |
-| Level 4 | `shadowOpacity: 0.25+`, `elevation: 5-6` | Modals, dialogs, dropdown-like overlays, selected match emphasis |
+| Level   | Typical values                              | Usage                                                            |
+| ------- | ------------------------------------------- | ---------------------------------------------------------------- |
+| Level 0 | No shadow                                   | Page background, flat sections, embedded content areas           |
+| Level 1 | `shadowOpacity: 0.08-0.1`, `elevation: 1-2` | Quiet cards, subtle list rows, low-priority floating elements    |
+| Level 2 | `shadowOpacity: 0.1-0.2`, `elevation: 2-3`  | Standard cards, stats blocks, tab containers, list containers    |
+| Level 3 | `shadowOpacity: 0.15-0.2`, `elevation: 3-4` | Highlighted cards, selected surfaces, stronger action emphasis   |
+| Level 4 | `shadowOpacity: 0.25+`, `elevation: 5-6`    | Modals, dialogs, dropdown-like overlays, selected match emphasis |
 
 The depth model is practical rather than cinematic. The app relies on shallow, readable separation more than dramatic layered shadows.
 
@@ -348,12 +356,12 @@ The application shell is built on Tamagui-backed primitives exported from `compo
 
 ### Shared primitives
 
-| Primitive | Base | Purpose |
-| --- | --- | --- |
-| `ShellScreen` | `styled(YStack)` | Full-screen wrapper with `flex: 1` and theme background. `padded` variant adds horizontal padding. |
-| `ShellSection` | `styled(YStack)` | Vertical group with optional title (uppercase, muted). Used for settings sections and content groups. |
-| `ShellCard` | `styled(YStack)` | Surface card with border, shadow, and radius. `elevated` variant adds stronger shadow. `compact` variant reduces padding. Supports `onPress` natively. |
-| `ShellActionButton` | `styled(XStack)` | Action button with `variant` (primary/success/danger/secondary/surface), `size` (small/large), and `disabled`. Label is optional for icon-only usage. |
+| Primitive           | Base             | Purpose                                                                                                                                                |
+| ------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ShellScreen`       | `styled(YStack)` | Full-screen wrapper with `flex: 1` and theme background. `padded` variant adds horizontal padding.                                                     |
+| `ShellSection`      | `styled(YStack)` | Vertical group with optional title (uppercase, muted). Used for settings sections and content groups.                                                  |
+| `ShellCard`         | `styled(YStack)` | Surface card with border, shadow, and radius. `elevated` variant adds stronger shadow. `compact` variant reduces padding. Supports `onPress` natively. |
+| `ShellActionButton` | `styled(XStack)` | Action button with `variant` (primary/success/danger/secondary/surface), `size` (small/large), and `disabled`. Label is optional for icon-only usage.  |
 
 ### Adoption pattern
 

@@ -3,6 +3,17 @@ import TestRenderer from "react-test-renderer";
 
 import UsernameOnboardingForm from "../../../components/auth/UsernameOnboardingForm";
 
+jest.mock("tamagui", () => {
+  const RN = require("react-native");
+  const ReactLocal = require("react");
+  return {
+    Text: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.Text, props, children),
+    YStack: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.View, props, children),
+  };
+});
+
 jest.mock("../../../app/style/theme", () => ({
   useColors: () => ({
     textPrimary: "#111111",
@@ -29,11 +40,13 @@ jest.mock("../../../hooks/useAccountAuth", () => {
     useAccountAuth: () => ({
       account: { preferredDisplayName: null },
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
       requestPasswordReset: jest.fn(),
       session: { user: { id: "host-1" } },
+      sessionNotice: null,
       status: "needsDisplayName",
       user: { id: "host-1" },
     }),

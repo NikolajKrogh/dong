@@ -10,6 +10,8 @@ import {
 
 const { Given, When, Then } = createBdd();
 
+const DEFAULT_BASE_URL = "http://localhost:8093";
+
 const PHONE_SIZED_VIEWPORT = {
   width: 390,
   height: 844,
@@ -108,6 +110,22 @@ const expectFirstVisibleMatch = async (
   }
 
   return false;
+};
+
+const waitForBaseUrlReady = async (page: Page, baseURL: string) => {
+  await expect
+    .poll(
+      async () => {
+        try {
+          const response = await page.request.get(baseURL);
+          return response.ok();
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 60_000 },
+    )
+    .toBe(true);
 };
 
 const [defaultSetupJourneyDataset, alternateSetupJourneyDataset] =
@@ -228,10 +246,13 @@ const completeSetupJourney = async (
 };
 
 Given("the app is running on web", async ({ page, baseURL }) => {
+  const resolvedBaseURL = baseURL ?? DEFAULT_BASE_URL;
+
   await page.addInitScript(() => {
     globalThis.localStorage.setItem("hasLaunched", "true");
   });
-  await page.goto(baseURL ?? "http://localhost:8081");
+  await waitForBaseUrlReady(page, resolvedBaseURL);
+  await page.goto(resolvedBaseURL);
 });
 
 Given("the browser viewport is phone-sized", async ({ page }) => {
@@ -509,13 +530,19 @@ Given("the user has game history", async ({ page }) => {
 });
 
 Given("the user navigates to preferences", async ({ page, baseURL }) => {
+  const resolvedBaseURL = baseURL ?? DEFAULT_BASE_URL;
+
   await waitForBrowserFlowReady(page);
-  await page.goto(`${baseURL ?? "http://localhost:8081"}/userPreferences`);
+  await waitForBaseUrlReady(page, resolvedBaseURL);
+  await page.goto(`${resolvedBaseURL}/userPreferences`);
   await page.waitForLoadState("networkidle");
 });
 
 When("the user navigates to history", async ({ page, baseURL }) => {
-  await page.goto(`${baseURL ?? "http://localhost:8081"}/history`);
+  const resolvedBaseURL = baseURL ?? DEFAULT_BASE_URL;
+
+  await waitForBaseUrlReady(page, resolvedBaseURL);
+  await page.goto(`${resolvedBaseURL}/history`);
   await page.waitForLoadState("networkidle");
 });
 

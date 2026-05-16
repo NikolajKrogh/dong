@@ -52,7 +52,7 @@ VALUES (
     );
 INSERT INTO public.game_sessions (
         id,
-    owner_account_id,
+        owner_account_id,
         join_code,
         state,
         started_at,
@@ -67,6 +67,16 @@ VALUES (
         '2026-05-01 08:00:00+00',
         '2026-05-01 09:00:00+00',
         NULL
+    ),
+    (
+        '24000000-0000-0000-0000-000000000002',
+        '14000000-0000-0000-0000-000000000001',
+        'PERF2',
+        'completed',
+        '2026-05-02 08:00:00+00',
+        '2026-05-02 09:00:00+00',
+        NULL
+    );
 UPDATE public.participants
 SET id = '44000000-0000-0000-0000-000000000001',
     display_name = 'Perf Alpha',
@@ -83,14 +93,31 @@ SET id = '44000000-0000-0000-0000-000000000003',
     current_drink_total = 3.0
 WHERE session_id = '24000000-0000-0000-0000-000000000002'
     AND account_id = '14000000-0000-0000-0000-000000000001';
+INSERT INTO public.participants (
+        id,
+        session_id,
+        account_id,
+        display_name,
+        membership_type,
+        current_drink_total,
+        guest_rejoin_token_hash
+    )
+VALUES (
+        '44000000-0000-0000-0000-000000000002',
+        '24000000-0000-0000-0000-000000000001',
+        '14000000-0000-0000-0000-000000000002',
+        'Perf Bravo',
+        'registered',
+        1.0,
+        NULL
     ),
     (
+        '44000000-0000-0000-0000-000000000004',
         '24000000-0000-0000-0000-000000000002',
-        '14000000-0000-0000-0000-000000000001',
-        'PERF2',
-        'completed',
-        '2026-05-02 08:00:00+00',
-        '2026-05-02 09:00:00+00',
+        '14000000-0000-0000-0000-000000000002',
+        'Perf Bravo',
+        'registered',
+        4.0,
         NULL
     );
 INSERT INTO public.matches (
@@ -126,23 +153,26 @@ VALUES (
         0,
         1
     );
-INSERT INTO public.participants (
-        id,
-        session_id,
-        account_id,
-        display_name,
-        membership_type,
-        current_drink_total,
-        guest_rejoin_token_hash
-    )
+INSERT INTO public.assignments (session_id, participant_id, match_id)
 VALUES (
-        '44000000-0000-0000-0000-000000000002',
         '24000000-0000-0000-0000-000000000001',
-        '14000000-0000-0000-0000-000000000002',
-        'Perf Bravo',
-        'registered',
-        1.0,
-        NULL
+        '44000000-0000-0000-0000-000000000001',
+        '34000000-0000-0000-0000-000000000001'
+    ),
+    (
+        '24000000-0000-0000-0000-000000000001',
+        '44000000-0000-0000-0000-000000000002',
+        '34000000-0000-0000-0000-000000000001'
+    ),
+    (
+        '24000000-0000-0000-0000-000000000002',
+        '44000000-0000-0000-0000-000000000003',
+        '34000000-0000-0000-0000-000000000002'
+    ),
+    (
+        '24000000-0000-0000-0000-000000000002',
+        '44000000-0000-0000-0000-000000000004',
+        '34000000-0000-0000-0000-000000000002'
     );
 UPDATE public.game_sessions
 SET common_match_id = '34000000-0000-0000-0000-000000000001'
@@ -164,7 +194,7 @@ CREATE TEMP TABLE performance_plans (
 );
 DO $do$
 DECLARE plan_line text;
-BEGIN FOR plan_line IN EXECUTE $sql$EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+BEGIN FOR plan_line IN EXECUTE $sql$ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT *
 FROM public.completed_session_summaries
 WHERE session_id = '24000000-0000-0000-0000-000000000001' $sql$ LOOP
@@ -175,7 +205,7 @@ END;
 $do$;
 DO $do$
 DECLARE plan_line text;
-BEGIN FOR plan_line IN EXECUTE $sql$EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+BEGIN FOR plan_line IN EXECUTE $sql$ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT *
 FROM public.lifetime_player_stats
 WHERE account_id = '14000000-0000-0000-0000-000000000001' $sql$ LOOP
@@ -186,7 +216,7 @@ END;
 $do$;
 DO $do$
 DECLARE plan_line text;
-BEGIN FOR plan_line IN EXECUTE $sql$EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+BEGIN FOR plan_line IN EXECUTE $sql$ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
 SELECT *
 FROM public.leaderboard_entries
 WHERE account_id = '14000000-0000-0000-0000-000000000001' $sql$ LOOP
@@ -225,7 +255,7 @@ FROM public.compare_session_participants(
     );
 finished_at := clock_timestamp();
 INSERT INTO performance_timings (label, elapsed)
-VALUES ('guest', finished_at - started_at);
+VALUES ('session', finished_at - started_at);
 END;
 $do$;
 SELECT ok(
@@ -267,9 +297,9 @@ SELECT ok(
         (
             SELECT elapsed < interval '250 milliseconds'
             FROM performance_timings
-            WHERE label = 'guest'
+            WHERE label = 'session'
         ),
-        'guest comparison finishes within the smoke threshold'
+        'session comparison finishes within the smoke threshold'
     );
 SELECT *
 FROM finish();

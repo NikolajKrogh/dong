@@ -136,7 +136,24 @@ jest.mock("../../components/preferences/AccountSection", () => {
       RN.View,
       { testID: "AccountSection" },
       R.createElement(RN.Text, null, "Account"),
-      R.createElement(RN.Text, null, "Sign in to create and manage multiplayer rooms."),
+      R.createElement(
+        RN.Text,
+        null,
+        "Sign in to create and manage multiplayer rooms.",
+      ),
+    );
+});
+
+jest.mock("../../components/preferences/ProfileSection", () => {
+  const RN = require("react-native");
+  const R = require("react");
+
+  return () =>
+    R.createElement(
+      RN.View,
+      { testID: "ProfileSection" },
+      R.createElement(RN.Text, null, "Profile"),
+      R.createElement(RN.Text, null, "Edit your host identity."),
     );
 });
 
@@ -185,6 +202,7 @@ describe("UserPreferences shell adoption", () => {
     expect(textContents).toContain(
       "Sign in to create and manage multiplayer rooms.",
     );
+    expect(textContents).toContain("Profile");
     expect(textContents).toContain("Appearance");
     expect(textContents).toContain("Sound & Notifications");
     expect(textContents).toContain("League Configuration");

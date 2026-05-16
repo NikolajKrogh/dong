@@ -2,10 +2,149 @@
  * @file store.ts
  * @description Global Zustand store defining core domain entities (Player, Match, GameSession) and state/actions for configuring, running, and persisting game sessions. Persists a curated subset of state to AsyncStorage.
  */
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
+
+type ThemeMode = "light" | "dark";
+
+export interface SyncedPreferenceState {
+  theme: ThemeMode;
+  soundEnabled: boolean;
+  commonMatchNotificationsEnabled: boolean;
+  configuredLeagues: LeagueEndpoint[];
+  defaultSelectedLeagues: LeagueEndpoint[];
+}
+
+const cloneLeagueEndpoints = (leagues: LeagueEndpoint[]) =>
+  leagues.map((league) =>
+    league.category
+      ? {
+          code: league.code,
+          name: league.name,
+          category: league.category,
+        }
+      : {
+          code: league.code,
+          name: league.name,
+        },
+  );
+
+const createDefaultSelectedLeagues = (): LeagueEndpoint[] => [
+  { name: "Premier League", code: "eng.1", category: "Europe" },
+  { name: "Championship", code: "eng.2", category: "Europe" },
+];
+
+const createDefaultSyncedPreferenceState = (): SyncedPreferenceState => ({
+  theme: "light",
+  soundEnabled: true,
+  commonMatchNotificationsEnabled: true,
+  configuredLeagues: cloneLeagueEndpoints(LEAGUE_ENDPOINTS),
+  defaultSelectedLeagues: createDefaultSelectedLeagues(),
+});
+
+const normalizeLeagueEndpoint = (value: unknown): LeagueEndpoint | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = value as Partial<LeagueEndpoint>;
+
+  if (
+    typeof candidate.code !== "string" ||
+    candidate.code.trim().length === 0 ||
+    typeof candidate.name !== "string" ||
+    candidate.name.trim().length === 0
+  ) {
+    return null;
+  }
+
+  if (
+    typeof candidate.category === "string" &&
+    candidate.category.trim().length > 0
+  ) {
+    return {
+      code: candidate.code,
+      name: candidate.name,
+      category: candidate.category,
+    };
+  }
+
+  return {
+    code: candidate.code,
+    name: candidate.name,
+  };
+};
+
+const normalizeLeagueEndpointList = (
+  value: unknown,
+  fallback: LeagueEndpoint[],
+) => {
+  if (!Array.isArray(value)) {
+    return cloneLeagueEndpoints(fallback);
+  }
+
+  if (value.length === 0) {
+    return [];
+  }
+
+  const normalizedLeagues = value
+    .map(normalizeLeagueEndpoint)
+    .filter((league): league is LeagueEndpoint => Boolean(league));
+
+  return normalizedLeagues.length > 0
+    ? normalizedLeagues
+    : cloneLeagueEndpoints(fallback);
+};
+
+export const serializeSyncedPreferenceState = (
+  state: SyncedPreferenceState,
+): SyncedPreferenceState => ({
+  theme: state.theme,
+  soundEnabled: state.soundEnabled,
+  commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
+  configuredLeagues: cloneLeagueEndpoints(state.configuredLeagues),
+  defaultSelectedLeagues: cloneLeagueEndpoints(state.defaultSelectedLeagues),
+});
+
+export const hydrateSyncedPreferenceState = (
+  value: unknown,
+  fallback: SyncedPreferenceState = createDefaultSyncedPreferenceState(),
+): SyncedPreferenceState => {
+  const normalizedFallback = serializeSyncedPreferenceState(fallback);
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return normalizedFallback;
+  }
+
+  const candidate = value as Partial<
+    Record<keyof SyncedPreferenceState, unknown>
+  >;
+
+  return {
+    theme:
+      candidate.theme === "dark" || candidate.theme === "light"
+        ? candidate.theme
+        : normalizedFallback.theme,
+    soundEnabled:
+      typeof candidate.soundEnabled === "boolean"
+        ? candidate.soundEnabled
+        : normalizedFallback.soundEnabled,
+    commonMatchNotificationsEnabled:
+      typeof candidate.commonMatchNotificationsEnabled === "boolean"
+        ? candidate.commonMatchNotificationsEnabled
+        : normalizedFallback.commonMatchNotificationsEnabled,
+    configuredLeagues: normalizeLeagueEndpointList(
+      candidate.configuredLeagues,
+      normalizedFallback.configuredLeagues,
+    ),
+    defaultSelectedLeagues: normalizeLeagueEndpointList(
+      candidate.defaultSelectedLeagues,
+      normalizedFallback.defaultSelectedLeagues,
+    ),
+  };
+};
 
 /**
  * Player participating in a game.
@@ -73,7 +212,7 @@ interface GameSession {
  */
 interface GameState {
   /** Current theme mode for the app. */
-  theme: "light" | "dark";
+  theme: ThemeMode;
   // Current game state
   /** Players in the current (active) game. */
   players: Player[];
@@ -124,7 +263,7 @@ interface GameState {
   setPlayerAssignments: (
     playerAssignments:
       | PlayerAssignments
-      | ((prev: PlayerAssignments) => PlayerAssignments)
+      | ((prev: PlayerAssignments) => PlayerAssignments),
   ) => void;
   /**
    * Sets matches per player configuration value.
@@ -192,14 +331,7 @@ export const useGameStore = create<GameState>()(
       playerAssignments: {},
       matchesPerPlayer: 1,
       hasVideoPlayed: false,
-      theme: "light",
-      soundEnabled: true,
-      commonMatchNotificationsEnabled: true,
-      configuredLeagues: LEAGUE_ENDPOINTS, // Initialize with all available as "configured"
-      defaultSelectedLeagues: [
-        { name: "Premier League", code: "eng.1", category: "Europe" },
-        { name: "Championship", code: "eng.2", category: "Europe" },
-      ],
+      ...createDefaultSyncedPreferenceState(),
       history: [],
 
       // --- Actions ---
@@ -237,17 +369,10 @@ export const useGameStore = create<GameState>()(
       removeLeague: (code) =>
         set((state) => ({
           configuredLeagues: state.configuredLeagues.filter(
-            (l) => l.code !== code
+            (l) => l.code !== code,
           ),
         })),
-      resetLeaguesToDefaults: () =>
-        set({
-          configuredLeagues: LEAGUE_ENDPOINTS,
-          defaultSelectedLeagues: [
-            { name: "Premier League", code: "eng.1", category: "Europe" },
-            { name: "Championship", code: "eng.2", category: "Europe" },
-          ],
-        }),
+      resetLeaguesToDefaults: () => set(createDefaultSyncedPreferenceState()),
       setDefaultSelectedLeagues: (leagues) =>
         set({ defaultSelectedLeagues: leagues }),
 
@@ -291,12 +416,22 @@ export const useGameStore = create<GameState>()(
         playerAssignments: state.playerAssignments,
         matchesPerPlayer: state.matchesPerPlayer,
         history: state.history,
-        soundEnabled: state.soundEnabled,
-        commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
-        configuredLeagues: state.configuredLeagues,
-        defaultSelectedLeagues: state.defaultSelectedLeagues,
-        theme: state.theme,
+        ...serializeSyncedPreferenceState(state),
       }),
-    }
-  )
+    },
+  ),
 );
+
+export const getCurrentSyncedPreferenceState = (): SyncedPreferenceState =>
+  serializeSyncedPreferenceState(useGameStore.getState());
+
+export const applySyncedPreferenceState = (
+  value: unknown,
+  fallback = getCurrentSyncedPreferenceState(),
+) => {
+  const nextSyncedPreferences = hydrateSyncedPreferenceState(value, fallback);
+
+  useGameStore.setState(nextSyncedPreferences);
+
+  return nextSyncedPreferences;
+};

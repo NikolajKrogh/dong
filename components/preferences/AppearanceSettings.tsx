@@ -4,13 +4,13 @@
  * Uses the global Zustand store (`useGameStore`) to persist the selected theme across app sessions.
  * The switch reflects the current theme and toggles it with immediate UI feedback.
  */
-import React from "react";
-import { View, Text, Switch } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Switch, Text, View } from "react-native";
+import { useColors } from "../../app/style/theme";
 import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
 import { useGameStore } from "../../store/store";
-import { useColors } from "../../app/style/theme";
-import { ShellSection, ShellCard } from "../ui";
+import { ShellCard, ShellSection } from "../ui";
 
 /**
  * AppearanceSettings component
@@ -32,7 +32,7 @@ const AppearanceSettings: React.FC = () => {
   const colors = useColors();
   const { settingsStyles: styles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
-    [colors]
+    [colors],
   );
 
   /**
@@ -56,6 +56,7 @@ const AppearanceSettings: React.FC = () => {
             <Text style={styles.preferenceLabel}>Dark Mode</Text>
           </View>
           <Switch
+            testID="ThemeSettingSwitch"
             value={theme === "dark"}
             onValueChange={toggleTheme}
             trackColor={{

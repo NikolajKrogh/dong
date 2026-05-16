@@ -15,7 +15,7 @@ const testDir = defineBddConfig({
   steps: "e2e/steps/**/*.steps.ts",
 });
 
-const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? "8081");
+const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? "8093");
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${webPort}`;
 

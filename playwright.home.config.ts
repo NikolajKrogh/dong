@@ -4,7 +4,7 @@ import {
   PHONE_SIZED_VIEWPORT,
 } from "./e2e/steps/fixtures";
 
-const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? "8081");
+const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? "8093");
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${webPort}`;
 

@@ -1,4 +1,7 @@
-import { canUseNativeAnimation, getAnimationFallback } from "../../platform/animation/fallbacks";
+import {
+  canUseNativeAnimation,
+  getAnimationFallback,
+} from "../../platform/animation/fallbacks";
 import { createReactNativePlatformMock } from "../../test-utils/platform";
 
 describe("platform animation adapters", () => {
@@ -27,17 +30,22 @@ describe("platform animation adapters", () => {
       const React = require("react");
       const TestRenderer = require("react-test-renderer");
       const { Text } = require("react-native");
-      const { PlatformAnimation } = require("../../platform/animation/PlatformAnimation");
+      const {
+        PlatformAnimation,
+      } = require("../../platform/animation/PlatformAnimation.tsx");
 
       const tree = TestRenderer.create(
         React.createElement(PlatformAnimation, {
           kind: "loading",
           source: {},
           fallback: React.createElement(Text, null, "Loading fallback"),
-        })
+        }),
       );
 
-      expect(tree.root.findByType(Text).props.children).toBe("Loading fallback");
+      expect(tree.toJSON()).toMatchObject({
+        type: "View",
+        children: [{ type: "Text", children: ["Loading fallback"] }],
+      });
     });
   });
 });

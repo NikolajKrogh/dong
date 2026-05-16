@@ -81,13 +81,18 @@ describe("AccountSection", () => {
     jest.clearAllMocks();
   });
 
-  const findButtonByLabel = (tree: TestRenderer.ReactTestRenderer, label: string) => {
+  const findButtonByLabel = (
+    tree: TestRenderer.ReactTestRenderer,
+    label: string,
+  ) => {
     const { Text } = require("react-native");
 
     return tree.root
       .findAllByProps({ testID: "ShellActionButton" })
       .find((button) =>
-        button.findAllByType(Text).some((text) => text.props.children === label),
+        button
+          .findAllByType(Text)
+          .some((text) => text.props.children === label),
       );
   };
 
@@ -98,7 +103,9 @@ describe("AccountSection", () => {
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: null,
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
@@ -114,22 +121,15 @@ describe("AccountSection", () => {
     const textContents = textNodes.flatMap((node: any) => node.props.children);
 
     expect(textContents).toContain("Account");
-    expect(textContents).toContain(
-      "Sign in or create account",
-    );
+    expect(textContents).toContain("Sign in or create account");
 
-    const signInButton = findButtonByLabel(
-      tree,
-      "Sign in or create account",
-    );
+    const signInButton = findButtonByLabel(tree, "Sign in or create account");
 
     expect(signInButton).toBeDefined();
 
     signInButton!.props.onPress();
 
-    expect(mockPush).toHaveBeenCalledWith(
-      "/auth?returnTo=%2FuserPreferences",
-    );
+    expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2FuserPreferences");
 
     tree.unmount();
   });
@@ -141,7 +141,9 @@ describe("AccountSection", () => {
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: { user: { id: "host-1" } },
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
@@ -174,7 +176,9 @@ describe("AccountSection", () => {
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
       saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
       session: { user: { id: "host-1" } },
+      sessionNotice: null,
       signIn: jest.fn(),
       signOut,
       signUp: jest.fn(),
@@ -192,6 +196,38 @@ describe("AccountSection", () => {
     signOutButton!.props.onPress();
 
     expect(signOut).toHaveBeenCalled();
+
+    tree.unmount();
+  });
+
+  it("shows a recovery message when the session has expired", () => {
+    mockUseAccountAuth.mockReturnValue({
+      account: null,
+      changePassword: jest.fn(),
+      deleteAccount: jest.fn(),
+      requestPasswordReset: jest.fn(),
+      saveDisplayName: jest.fn(),
+      saveProfile: jest.fn(),
+      session: null,
+      sessionNotice:
+        "Your session ended. Sign in again to keep managing your profile and synced settings.",
+      signIn: jest.fn(),
+      signOut: jest.fn(),
+      signUp: jest.fn(),
+      verifySignupOtp: jest.fn(),
+      status: "signedOut",
+      user: null,
+    } as never);
+
+    const tree = TestRenderer.create(React.createElement(AccountSection));
+
+    const { Text } = require("react-native");
+    const textNodes = tree.root.findAllByType(Text);
+    const textContents = textNodes.flatMap((node: any) => node.props.children);
+
+    expect(textContents).toContain(
+      "Your session ended. Sign in again to keep managing your profile and synced settings.",
+    );
 
     tree.unmount();
   });

@@ -92,19 +92,23 @@ describe("useLiveScores", () => {
 
     const ControllerProbe = () => {
       const { useLiveScores } = require("../../hooks/useLiveScores");
-      const hookState = useLiveScores(trackedMatches, jest.fn(), 1000);
+      const { startPolling, stopPolling } = useLiveScores(
+        trackedMatches,
+        jest.fn(),
+        1000,
+      );
 
       useEffect(() => {
         if (trackedMatches.length === 0) {
           return;
         }
 
-        hookState.startPolling();
+        startPolling();
 
         return () => {
-          hookState.stopPolling();
+          stopPolling();
         };
-      }, [hookState.startPolling, hookState.stopPolling]);
+      }, [startPolling, stopPolling]);
 
       return null;
     };

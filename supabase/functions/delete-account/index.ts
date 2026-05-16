@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -15,7 +16,10 @@ Deno.serve(async (req: Request) => {
   if (!authHeader) {
     return new Response(
       JSON.stringify({ error: "Missing authorization header" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 
@@ -99,7 +103,9 @@ Deno.serve(async (req: Request) => {
     await supabaseAdmin
       .from("friendships")
       .delete()
-      .or(`requester_account_id.eq.${userId},addressee_account_id.eq.${userId}`);
+      .or(
+        `requester_account_id.eq.${userId},addressee_account_id.eq.${userId}`,
+      );
 
     // Deleting the accounts row cascades to profiles, settings, and legacy import state.
     await supabaseAdmin.from("accounts").delete().eq("id", userId);
