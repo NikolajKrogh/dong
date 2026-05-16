@@ -8,11 +8,10 @@ import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 
 const ProfileSection = () => {
   const colors = useColors();
-  const { account, saveProfile, status } = useAccountAuth();
+  const { account, saveDisplayName, status } = useAccountAuth();
   const [displayName, setDisplayName] = useState(
     account?.preferredDisplayName ?? "",
   );
-  const [username, setUsername] = useState(account?.username ?? "");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,8 +30,7 @@ const ProfileSection = () => {
 
   useEffect(() => {
     setDisplayName(account?.preferredDisplayName ?? "");
-    setUsername(account?.username ?? "");
-  }, [account?.preferredDisplayName, account?.username]);
+  }, [account?.preferredDisplayName]);
 
   if (!account || status === "loading" || status === "signedOut") {
     return null;
@@ -43,7 +41,7 @@ const ProfileSection = () => {
     setIsSubmitting(true);
 
     try {
-      await saveProfile({ displayName, username });
+      await saveDisplayName(displayName);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to save the profile.",
@@ -57,9 +55,23 @@ const ProfileSection = () => {
     <ShellSection title="Profile" marginBottom="$3">
       <ShellCard compact testID="ProfileSection">
         <YStack gap="$4">
-          <Text fontSize={14} color="$textSecondary">
-            Edit the visible name and handle stored on your host account.
-          </Text>
+          <YStack gap="$1">
+            <Text
+              fontSize={12}
+              fontWeight="700"
+              color="$primary"
+              letterSpacing={0.8}
+              textTransform="uppercase"
+            >
+              Host identity
+            </Text>
+            <Text fontSize={18} fontWeight="700" color="$textPrimary">
+              Display name
+            </Text>
+            <Text fontSize={14} color="$textSecondary">
+              This is the name other players see in rooms and invites.
+            </Text>
+          </YStack>
 
           <YStack gap="$1.5">
             <Text fontSize={13} fontWeight="600" color="$textMuted">
@@ -68,30 +80,13 @@ const ProfileSection = () => {
             <TextInput
               autoCapitalize="words"
               autoCorrect={false}
-              placeholder="Your display name"
+              placeholder="Enter your display name"
               placeholderTextColor={colors.textMuted}
-              returnKeyType="next"
+              returnKeyType="done"
               style={inputStyles.input}
               testID="ProfileDisplayNameInput"
               value={displayName}
               onChangeText={setDisplayName}
-            />
-          </YStack>
-
-          <YStack gap="$1.5">
-            <Text fontSize={13} fontWeight="600" color="$textMuted">
-              Username or handle
-            </Text>
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="Your handle"
-              placeholderTextColor={colors.textMuted}
-              returnKeyType="done"
-              style={inputStyles.input}
-              testID="ProfileUsernameInput"
-              value={username}
-              onChangeText={setUsername}
               onSubmitEditing={() => {
                 void handleSave();
               }}
@@ -99,22 +94,25 @@ const ProfileSection = () => {
           </YStack>
 
           {errorMessage ? (
-            <Text testID="ProfileValidationMessage" fontSize={14} color="$danger">
+            <Text
+              testID="ProfileValidationMessage"
+              fontSize={14}
+              color="$danger"
+            >
               {errorMessage}
             </Text>
           ) : null}
 
           <ShellActionButton
             disabled={isSubmitting}
-            label={isSubmitting ? "Saving…" : "Save profile"}
+            label={isSubmitting ? "Saving…" : "Save display name"}
             onPress={() => {
               void handleSave();
             }}
           />
 
           <Text fontSize={13} color="$textMuted" textAlign="center">
-            Handles only need to be non-empty after trimming. Duplicate handles
-            are allowed.
+            Duplicate display names are allowed.
           </Text>
         </YStack>
       </ShellCard>

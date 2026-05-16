@@ -8,13 +8,12 @@ Represents the signed-in host identity that owns the profile data.
 
 - `id`: UUID, primary key and auth user id.
 - `preferred_display_name`: text, the visible display name shown in the app.
-- `username`: text, the editable profile handle or username for this feature.
 - `created_at`: timestamp with time zone.
 - `updated_at`: timestamp with time zone.
 
 ### Rules
 
-- `preferred_display_name` and `username` are both trimmed before save.
+- `preferred_display_name` is trimmed before save.
 - Blank or whitespace-only values are rejected.
 - Duplicate values are allowed.
 - Punctuation is allowed.
@@ -83,6 +82,6 @@ Represents the device-scoped state that remains in AsyncStorage.
 
 ## Migration Notes
 
-- Extend the existing account row to include `username` if it is not already present.
+- Keep the existing account row focused on `preferred_display_name`; no additional profile column is required.
 - Keep the existing settings row and JSONB payload shape.
 - No game-history migration or event backfill is required.

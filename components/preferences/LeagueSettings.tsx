@@ -1,10 +1,10 @@
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { LeagueEndpoint } from "../../constants/leagues";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import React from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../app/style/theme";
-import { ShellSection, ShellCard } from "../ui";
+import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { LeagueEndpoint } from "../../constants/leagues";
+import { ShellCard, ShellSection } from "../ui";
 
 interface LeagueSettingsProps {
   configuredLeagues: LeagueEndpoint[];
@@ -22,11 +22,19 @@ const SettingsRow: React.FC<{
   valueIsSecondary?: boolean;
   isLast?: boolean;
   testID?: string;
-}> = ({ label, value, onPress, iconName, valueIsSecondary, isLast, testID }) => {
+}> = ({
+  label,
+  value,
+  onPress,
+  iconName,
+  valueIsSecondary,
+  isLast,
+  testID,
+}) => {
   const colors = useColors();
   const { settingsStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
-    [colors]
+    [colors],
   );
   return (
     <TouchableOpacity

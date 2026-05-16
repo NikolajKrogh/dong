@@ -10,7 +10,7 @@
 ### Session 2026-05-15
 
 - Q: Which settings should be cloud-synced for this issue? → A: Sync all settings already exposed in preferences that are meant to persist across devices: theme, sound, common match notifications, configured leagues, and default selected leagues.
-- Q: What validation rules should the username/handle follow? → A: Trimmed and non-empty only; duplicates and punctuation are allowed.
+- Q: What validation rules should the display name follow? → A: Trimmed and non-empty only; duplicates and punctuation are allowed.
 - Q: Where should the editable profile data be stored? → A: Keep editable profile data on the existing account identity row and store synced settings in the existing settings row.
 
 ## User Scenarios & Testing _(mandatory)_
@@ -27,7 +27,7 @@ As a signed-in host, I can open my profile area from preferences, update my visi
 
 1. **Given** a signed-in host on the preferences screen, **When** they update their profile with valid values and save, **Then** the saved profile is updated and the new values appear in the profile section.
 2. **Given** a signed-in host who previously saved profile changes, **When** they relaunch the app or revisit preferences, **Then** the saved profile values are restored.
-3. **Given** a signed-in host editing their profile, **When** they enter a blank display name or a blank username/handle, **Then** the app rejects the change and keeps the previous saved profile intact.
+3. **Given** a signed-in host editing their profile, **When** they enter a blank display name, **Then** the app rejects the change and keeps the previous saved profile intact.
 
 ---
 
@@ -65,7 +65,7 @@ As a signed-in host, I can sign out or lose my session without corrupting my pro
 ### Edge Cases
 
 - A host submits a profile update with a blank or whitespace-only display name.
-- A host enters a username or handle that is blank or whitespace-only.
+- A host enters a display name that is blank or whitespace-only.
 - Two signed-in devices for the same account change preferences independently and the later successful save becomes the active account state.
 - A session expires while a profile or settings save is in flight.
 - A host signs out and then returns to the preferences screen before reauthenticating.
@@ -76,7 +76,7 @@ As a signed-in host, I can sign out or lose my session without corrupting my pro
 
 - **Platform Behavior**: The preferences experience must behave consistently on native and web, including restoring profile data and supported settings after reload or device change.
 - **Shared State Model**: Local gameplay state remains separate from account profile and cloud-synced settings. Signed-in account data becomes the source of truth for the profile area and supported preferences, while local-only settings stay device-scoped.
-- **Identity Model**: The signed-in host owns a durable account profile. The visible display name may differ from the account username/handle, and the profile section must reflect the current saved account identity rather than an unsaved draft.
+- **Identity Model**: The signed-in host owns a durable account profile with a single visible display name, and the profile section must reflect the current saved value rather than an unsaved draft.
 - **Migration / Backfill**: Existing local preference values should continue to work for current users, and the cloud-backed profile/settings record should be initialized from the user’s current saved values the first time they successfully sync.
 
 ## Delivery & Automation Impact _(mandatory)_
@@ -91,7 +91,7 @@ As a signed-in host, I can sign out or lose my session without corrupting my pro
 
 - **FR-001**: The app MUST allow a signed-in host to view and edit their profile from the preferences area.
 - **FR-002**: The app MUST allow the host to update their visible display name and save the change to their cloud-backed account profile.
-- **FR-003**: The app MUST allow the host to change their username or handle subject to validation rules that require a trimmed, non-empty value.
+- **FR-003**: The app MUST allow the host to change their display name subject to validation rules that require a trimmed, non-empty value.
 - **FR-004**: The app MUST reject invalid profile values and preserve the last saved profile when validation fails.
 - **FR-005**: The app MUST sync supported preference settings to the host’s cloud-backed account state so they are restored on later sessions and other devices.
 - **FR-006**: The app MUST keep supported cloud-backed settings consistent after the host signs in again on the same or another device.
@@ -101,7 +101,7 @@ As a signed-in host, I can sign out or lose my session without corrupting my pro
 
 ### Key Entities _(include if feature involves data)_
 
-- **Host Profile**: The signed-in host’s cloud-backed identity data, including the visible display name and username/handle.
+- **Host Profile**: The signed-in host’s cloud-backed identity data, represented by the visible display name.
 - **Synced Preference Set**: The preference values that are restored across sessions and devices for the signed-in host, including appearance theme, sound, common match notifications, configured leagues, and default selected leagues.
 - **Cloud Account State**: The combination of the existing account identity row for profile data and the existing settings row for synced preferences that becomes the source of truth for the host.
 - **Session State**: The current signed-in or signed-out status that controls whether profile edits and synced saves are available.
@@ -118,7 +118,7 @@ As a signed-in host, I can sign out or lose my session without corrupting my pro
 
 ## Assumptions
 
-- A username or handle is a separate account identity field from the visible display name, and only blank or whitespace-only values are rejected; duplicates and punctuation are allowed.
+- The visible display name is the only editable account identity field, and only blank or whitespace-only values are rejected; duplicates and punctuation are allowed.
 - Editable profile data stays on the existing account identity row, and synced settings stay on the existing settings row.
 - Duplicate visible display names may remain allowed unless a stricter rule already exists elsewhere in the product.
 - Supported cloud-synced settings are the preference values presented in the app’s settings area that should follow the signed-in host across devices; this set includes appearance theme, sound, common match notifications, configured leagues, and default selected leagues. Device-local or migration-only tools remain local.

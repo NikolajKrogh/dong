@@ -81,13 +81,18 @@ describe("AccountSection", () => {
     jest.clearAllMocks();
   });
 
-  const findButtonByLabel = (tree: TestRenderer.ReactTestRenderer, label: string) => {
+  const findButtonByLabel = (
+    tree: TestRenderer.ReactTestRenderer,
+    label: string,
+  ) => {
     const { Text } = require("react-native");
 
     return tree.root
       .findAllByProps({ testID: "ShellActionButton" })
       .find((button) =>
-        button.findAllByType(Text).some((text) => text.props.children === label),
+        button
+          .findAllByType(Text)
+          .some((text) => text.props.children === label),
       );
   };
 
@@ -116,22 +121,15 @@ describe("AccountSection", () => {
     const textContents = textNodes.flatMap((node: any) => node.props.children);
 
     expect(textContents).toContain("Account");
-    expect(textContents).toContain(
-      "Sign in or create account",
-    );
+    expect(textContents).toContain("Sign in or create account");
 
-    const signInButton = findButtonByLabel(
-      tree,
-      "Sign in or create account",
-    );
+    const signInButton = findButtonByLabel(tree, "Sign in or create account");
 
     expect(signInButton).toBeDefined();
 
     signInButton!.props.onPress();
 
-    expect(mockPush).toHaveBeenCalledWith(
-      "/auth?returnTo=%2FuserPreferences",
-    );
+    expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2FuserPreferences");
 
     tree.unmount();
   });

@@ -39,14 +39,21 @@ jest.mock("../../../components/ui", () => ({
   ShellSection: ({ children, title, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellSection", ...props },
+    return R.createElement(
+      RN.View,
+      { testID: "ShellSection", ...props },
       title ? R.createElement(RN.Text, null, title) : null,
-      children);
+      children,
+    );
   },
   ShellCard: ({ children, ...props }: any) => {
     const RN = require("react-native");
     const R = require("react");
-    return R.createElement(RN.View, { testID: "ShellCard", ...props }, children);
+    return R.createElement(
+      RN.View,
+      { testID: "ShellCard", ...props },
+      children,
+    );
   },
 }));
 
@@ -65,7 +72,7 @@ describe("LeagueSettings shell adoption", () => {
         onAddLeaguesPress: jest.fn(),
         defaultSelectedLeagues: [{ code: "EPL", name: "Premier League" }],
         onSetDefaultLeaguesPress: jest.fn(),
-      })
+      }),
     );
 
     const { Text } = require("react-native");
@@ -95,7 +102,7 @@ describe("LeagueSettings shell adoption", () => {
         onAddLeaguesPress: jest.fn(),
         defaultSelectedLeagues: [],
         onSetDefaultLeaguesPress: jest.fn(),
-      })
+      }),
     );
 
     const { Text } = require("react-native");
@@ -121,7 +128,7 @@ describe("LeagueSettings shell adoption", () => {
         onAddLeaguesPress,
         defaultSelectedLeagues: [],
         onSetDefaultLeaguesPress,
-      })
+      }),
     );
 
     const { TouchableOpacity, Text } = require("react-native");

@@ -2,7 +2,6 @@ BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT plan(5);
-
 INSERT INTO auth.users (
         id,
         aud,
@@ -42,7 +41,6 @@ VALUES (
         FALSE,
         FALSE
     );
-
 INSERT INTO public.accounts (id, preferred_display_name)
 VALUES (
         '14000000-0000-0000-0000-000000000001',
@@ -52,7 +50,6 @@ VALUES (
         '14000000-0000-0000-0000-000000000002',
         'Perf Bravo'
     );
-
 INSERT INTO public.game_sessions (
         id,
         owner_account_id,
@@ -80,7 +77,6 @@ VALUES (
         '2026-05-02 09:00:00+00',
         NULL
     );
-
 UPDATE public.participants
 SET id = '44000000-0000-0000-0000-000000000001',
     display_name = 'Perf Alpha',
@@ -89,7 +85,6 @@ SET id = '44000000-0000-0000-0000-000000000001',
     current_drink_total = 5.0
 WHERE session_id = '24000000-0000-0000-0000-000000000001'
     AND account_id = '14000000-0000-0000-0000-000000000001';
-
 UPDATE public.participants
 SET id = '44000000-0000-0000-0000-000000000003',
     display_name = 'Perf Alpha',
@@ -98,7 +93,6 @@ SET id = '44000000-0000-0000-0000-000000000003',
     current_drink_total = 3.0
 WHERE session_id = '24000000-0000-0000-0000-000000000002'
     AND account_id = '14000000-0000-0000-0000-000000000001';
-
 INSERT INTO public.participants (
         id,
         session_id,
@@ -126,7 +120,6 @@ VALUES (
         4.0,
         NULL
     );
-
 INSERT INTO public.matches (
         id,
         session_id,
@@ -160,7 +153,6 @@ VALUES (
         0,
         1
     );
-
 INSERT INTO public.assignments (session_id, participant_id, match_id)
 VALUES (
         '24000000-0000-0000-0000-000000000001',
@@ -182,15 +174,12 @@ VALUES (
         '44000000-0000-0000-0000-000000000004',
         '34000000-0000-0000-0000-000000000002'
     );
-
 UPDATE public.game_sessions
 SET common_match_id = '34000000-0000-0000-0000-000000000001'
 WHERE id = '24000000-0000-0000-0000-000000000001';
-
 UPDATE public.game_sessions
 SET common_match_id = '34000000-0000-0000-0000-000000000002'
 WHERE id = '24000000-0000-0000-0000-000000000002';
-
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 SELECT set_config(
@@ -199,105 +188,76 @@ SELECT set_config(
         true
     );
 SET LOCAL enable_seqscan = off;
-
 CREATE TEMP TABLE performance_plans (
     label text NOT NULL,
     plan_text text NOT NULL
 );
-
 DO $do$
-DECLARE
-    plan_line text;
-BEGIN
-    FOR plan_line IN EXECUTE $sql$
-        EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-        SELECT *
-        FROM public.completed_session_summaries
-        WHERE session_id = '24000000-0000-0000-0000-000000000001'
-    $sql$
-    LOOP
-        INSERT INTO performance_plans (label, plan_text)
-        VALUES ('history', plan_line);
-    END LOOP;
+DECLARE plan_line text;
+BEGIN FOR plan_line IN EXECUTE $sql$ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT *
+FROM public.completed_session_summaries
+WHERE session_id = '24000000-0000-0000-0000-000000000001' $sql$ LOOP
+INSERT INTO performance_plans (label, plan_text)
+VALUES ('history', plan_line);
+END LOOP;
 END;
 $do$;
-
 DO $do$
-DECLARE
-    plan_line text;
-BEGIN
-    FOR plan_line IN EXECUTE $sql$
-        EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-        SELECT *
-        FROM public.lifetime_player_stats
-        WHERE account_id = '14000000-0000-0000-0000-000000000001'
-    $sql$
-    LOOP
-        INSERT INTO performance_plans (label, plan_text)
-        VALUES ('lifetime', plan_line);
-    END LOOP;
+DECLARE plan_line text;
+BEGIN FOR plan_line IN EXECUTE $sql$ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT *
+FROM public.lifetime_player_stats
+WHERE account_id = '14000000-0000-0000-0000-000000000001' $sql$ LOOP
+INSERT INTO performance_plans (label, plan_text)
+VALUES ('lifetime', plan_line);
+END LOOP;
 END;
 $do$;
-
 DO $do$
-DECLARE
-    plan_line text;
-BEGIN
-    FOR plan_line IN EXECUTE $sql$
-        EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
-        SELECT *
-        FROM public.leaderboard_entries
-        WHERE account_id = '14000000-0000-0000-0000-000000000001'
-    $sql$
-    LOOP
-        INSERT INTO performance_plans (label, plan_text)
-        VALUES ('leaderboard', plan_line);
-    END LOOP;
+DECLARE plan_line text;
+BEGIN FOR plan_line IN EXECUTE $sql$ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)
+SELECT *
+FROM public.leaderboard_entries
+WHERE account_id = '14000000-0000-0000-0000-000000000001' $sql$ LOOP
+INSERT INTO performance_plans (label, plan_text)
+VALUES ('leaderboard', plan_line);
+END LOOP;
 END;
 $do$;
-
 CREATE TEMP TABLE performance_timings (
     label text PRIMARY KEY,
     elapsed interval NOT NULL
 );
-
 DO $do$
-DECLARE
-    started_at timestamptz;
-    finished_at timestamptz;
-BEGIN
-    started_at := clock_timestamp();
-    PERFORM 1
-    FROM public.compare_registered_players(
-            '14000000-0000-0000-0000-000000000001',
-            '14000000-0000-0000-0000-000000000002'
-        );
-    finished_at := clock_timestamp();
-
-    INSERT INTO performance_timings (label, elapsed)
-    VALUES ('registered', finished_at - started_at);
+DECLARE started_at timestamptz;
+finished_at timestamptz;
+BEGIN started_at := clock_timestamp();
+PERFORM 1
+FROM public.compare_registered_players(
+        '14000000-0000-0000-0000-000000000001',
+        '14000000-0000-0000-0000-000000000002'
+    );
+finished_at := clock_timestamp();
+INSERT INTO performance_timings (label, elapsed)
+VALUES ('registered', finished_at - started_at);
 END;
 $do$;
-
 DO $do$
-DECLARE
-    started_at timestamptz;
-    finished_at timestamptz;
-BEGIN
-    started_at := clock_timestamp();
-    PERFORM 1
-    FROM public.compare_session_participants(
-            '24000000-0000-0000-0000-000000000001',
-            '44000000-0000-0000-0000-000000000001',
-            '44000000-0000-0000-0000-000000000002'
-        );
-    finished_at := clock_timestamp();
-
-    INSERT INTO performance_timings (label, elapsed)
-    VALUES ('session', finished_at - started_at);
+DECLARE started_at timestamptz;
+finished_at timestamptz;
+BEGIN started_at := clock_timestamp();
+PERFORM 1
+FROM public.compare_session_participants(
+        '24000000-0000-0000-0000-000000000001',
+        '44000000-0000-0000-0000-000000000001',
+        '44000000-0000-0000-0000-000000000002'
+    );
+finished_at := clock_timestamp();
+INSERT INTO performance_timings (label, elapsed)
+VALUES ('session', finished_at - started_at);
 END;
 $do$;
-
 SELECT ok(
         EXISTS (
             SELECT 1
@@ -341,7 +301,6 @@ SELECT ok(
         ),
         'session comparison finishes within the smoke threshold'
     );
-
 SELECT *
 FROM finish();
 ROLLBACK;

@@ -30,8 +30,8 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
 - [x] T002 [P] Add the account profile and synced-settings migration in `supabase/migrations/027_host_profile_and_settings.sql`
-- [x] T003 [P] Add pgTAP regression coverage for the new account username rules, bootstrap behavior, and synced-settings RLS in `supabase/tests/database/032_host_profile_and_settings.test.sql`
-- [x] T004 [P] Extend `hooks/useAccountAuth.ts` with account profile bootstrap, display-name and username normalization, and cloud-backed settings load/save helpers
+- [x] T003 [P] Add pgTAP regression coverage for the account display-name rules, bootstrap behavior, and synced-settings RLS in `supabase/tests/database/032_host_profile_and_settings.test.sql`
+- [x] T004 [P] Extend `hooks/useAccountAuth.ts` with account profile bootstrap, display-name normalization, and cloud-backed settings load/save helpers
 - [x] T005 [P] Add synced preference hydration and serialization helpers to `store/store.ts` for theme, sound, common match notifications, configured leagues, and default selected leagues
 
 **Checkpoint**: The account/profile schema exists, the database posture is covered, and the shared helpers for profile and settings sync are ready.
@@ -52,7 +52,7 @@
 ### Implementation for User Story 1
 
 - [x] T008 [US1] Create `components/preferences/ProfileSection.tsx` and render it from `app/userPreferences.tsx`
-- [x] T009 [US1] Extend `hooks/useAccountAuth.ts` with profile update methods for display name and username plus validation errors
+- [x] T009 [US1] Extend `hooks/useAccountAuth.ts` with profile update methods for display name plus validation errors
 - [x] T010 [US1] Add the profile-edit, restore, and invalid-profile-message scenarios to `e2e/features/host-profile-settings.feature` and `e2e/steps/host-profile-settings.steps.ts`
 
 **Checkpoint**: User Story 1 is independently testable and delivers the MVP slice for editing the host profile.
@@ -169,15 +169,15 @@
 
 ## Summary
 
-| Phase | Story | Tasks | Parallel Opportunities |
-| --- | --- | --- | --- |
-| 1 - Setup | - | T001 (1) | T001 |
-| 2 - Foundational | - | T002-T005 (4) | T002+T003+T004+T005 |
-| 3 - US1 Edit Host Profile | P1 | T006-T010 (5) | T006+T007 |
-| 4 - US2 Sync Supported Preferences | P1 | T011-T015 (5) | T011+T012 |
-| 5 - US3 Safe Sign-Out/Expiry | P2 | T016-T020 (5) | T016+T017 |
-| 6 - Polish | - | T021-T022 (2) | T021+T022 |
-| **Total** |  | **22** |  |
+| Phase                              | Story | Tasks         | Parallel Opportunities |
+| ---------------------------------- | ----- | ------------- | ---------------------- |
+| 1 - Setup                          | -     | T001 (1)      | T001                   |
+| 2 - Foundational                   | -     | T002-T005 (4) | T002+T003+T004+T005    |
+| 3 - US1 Edit Host Profile          | P1    | T006-T010 (5) | T006+T007              |
+| 4 - US2 Sync Supported Preferences | P1    | T011-T015 (5) | T011+T012              |
+| 5 - US3 Safe Sign-Out/Expiry       | P2    | T016-T020 (5) | T016+T017              |
+| 6 - Polish                         | -     | T021-T022 (2) | T021+T022              |
+| **Total**                          |       | **22**        |                        |
 
 ---
 

@@ -5,7 +5,14 @@ import type {
   User,
 } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
   applySyncedPreferenceState,
@@ -22,7 +29,7 @@ import {
 } from "../utils/supabaseClient";
 
 const ACCOUNT_SELECT_COLUMNS =
-  "id, preferred_display_name, username, created_at, updated_at";
+  "id, preferred_display_name, created_at, updated_at";
 const SETTINGS_SELECT_COLUMNS =
   "account_id, settings_data, created_at, updated_at";
 
@@ -39,7 +46,6 @@ export const SESSION_EXPIRED_MESSAGE =
 interface AccountRow {
   id: string;
   preferred_display_name: string | null;
-  username: string | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -54,7 +60,6 @@ interface AccountSyncedSettingsRow {
 export interface Account {
   id: string;
   preferredDisplayName: string | null;
-  username: string | null;
   createdAt: string;
   updatedAt: string | null;
 }
@@ -64,11 +69,6 @@ export interface AccountSyncedSettings {
   settings: SyncedPreferenceState;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface AccountProfileInput {
-  displayName: string;
-  username: string;
 }
 
 export interface AccountAuthContextValue {
@@ -86,7 +86,6 @@ export interface AccountAuthContextValue {
   verifySignupOtp: (email: string, token: string) => Promise<void>;
   signOut: () => Promise<void>;
   saveDisplayName: (displayName: string) => Promise<void>;
-  saveProfile: (profile: AccountProfileInput) => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
   requestPasswordReset: (
     email: string,
@@ -104,13 +103,8 @@ const normalizeOptionalAccountText = (value: string | null | undefined) => {
   return trimmedValue.length > 0 ? trimmedValue : null;
 };
 
-export const normalizeAccountDisplayName = (
-  value: string | null | undefined,
-) => normalizeOptionalAccountText(value);
-
-export const normalizeAccountUsername = (
-  value: string | null | undefined,
-) => normalizeOptionalAccountText(value);
+export const normalizeAccountDisplayName = (value: string | null | undefined) =>
+  normalizeOptionalAccountText(value);
 
 export const normalizeAccountFlowReturnTo = (
   value: string | string[] | null | undefined,
@@ -144,7 +138,8 @@ export const buildAccountAuthRoute = (
   }
   if (extraParams) {
     for (const [key, value] of Object.entries(extraParams)) {
-      if (value) params.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
+      if (value)
+        params.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
     }
   }
   return params.length > 0 ? `${route}?${params.join("&")}` : route;
@@ -162,7 +157,6 @@ export const buildAccountAuthRedirectUrl = (
 const mapAccountRow = (row: AccountRow): Account => ({
   id: row.id,
   preferredDisplayName: normalizeAccountDisplayName(row.preferred_display_name),
-  username: normalizeAccountUsername(row.username),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -260,41 +254,6 @@ export const saveAccountDisplayName = async (
   return mapAccountRow(updatedAccount);
 };
 
-export const saveAccountProfile = async (
-  client: SupabaseClient,
-  userId: string,
-  profile: AccountProfileInput,
-) => {
-  const trimmedDisplayName = normalizeAccountDisplayName(profile.displayName);
-
-  if (!trimmedDisplayName) {
-    throw new Error("Account display name cannot be blank.");
-  }
-
-  const trimmedUsername = normalizeAccountUsername(profile.username);
-
-  if (!trimmedUsername) {
-    throw new Error("Account username cannot be blank.");
-  }
-
-  const { data: updatedAccount, error: updateError } = await client
-    .from("accounts")
-    .update({
-      preferred_display_name: trimmedDisplayName,
-      username: trimmedUsername,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId)
-    .select(ACCOUNT_SELECT_COLUMNS)
-    .single();
-
-  if (updateError || !updatedAccount) {
-    throw updateError ?? new Error("Unable to update the account profile.");
-  }
-
-  return mapAccountRow(updatedAccount);
-};
-
 export const loadAccountSyncedSettings = async (
   client: SupabaseClient,
   userId: string,
@@ -356,71 +315,81 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   const lastSyncedPreferenceSignatureRef = useRef<string | null>(null);
   const pendingManualSignOutRef = useRef(false);
 
-  const clearAuthenticatedState = useCallback((nextSessionNotice: string | null = null) => {
-    pendingManualSignOutRef.current = false;
-    activeSettingsUserIdRef.current = null;
-    lastSyncedPreferenceSignatureRef.current = null;
-    setSessionNotice(nextSessionNotice);
-    setSignedOutState(setStatus, setSession, setUser, setAccount);
-  }, []);
+  const clearAuthenticatedState = useCallback(
+    (nextSessionNotice: string | null = null) => {
+      pendingManualSignOutRef.current = false;
+      activeSettingsUserIdRef.current = null;
+      lastSyncedPreferenceSignatureRef.current = null;
+      setSessionNotice(nextSessionNotice);
+      setSignedOutState(setStatus, setSession, setUser, setAccount);
+    },
+    [],
+  );
 
-  const getSignedOutSessionNotice = useCallback(() =>
-    !pendingManualSignOutRef.current && activeSettingsUserIdRef.current !== null
-      ? SESSION_EXPIRED_MESSAGE
-      : null, []);
+  const getSignedOutSessionNotice = useCallback(
+    () =>
+      !pendingManualSignOutRef.current &&
+      activeSettingsUserIdRef.current !== null
+        ? SESSION_EXPIRED_MESSAGE
+        : null,
+    [],
+  );
 
-  const resolveAuthenticatedUser = useCallback(async (
-    client: SupabaseClient,
-    nextSession: Session,
-    shouldVerifyUser: boolean,
-  ) => {
-    let nextUser = nextSession.user ?? null;
+  const resolveAuthenticatedUser = useCallback(
+    async (
+      client: SupabaseClient,
+      nextSession: Session,
+      shouldVerifyUser: boolean,
+    ) => {
+      let nextUser = nextSession.user ?? null;
 
-    if (shouldVerifyUser || !nextUser) {
-      const { data: userData, error: userError } = await client.auth.getUser();
+      if (shouldVerifyUser || !nextUser) {
+        const { data: userData, error: userError } =
+          await client.auth.getUser();
 
-      if (userError || !userData.user) {
-        return null;
+        if (userError || !userData.user) {
+          return null;
+        }
+
+        nextUser = userData.user;
       }
 
-      nextUser = userData.user;
-    }
+      return nextUser;
+    },
+    [],
+  );
 
-    return nextUser;
-  }, []);
+  const syncAuthenticatedSettings = useCallback(
+    async (client: SupabaseClient, userId: string) => {
+      const localSyncedPreferences = getCurrentSyncedPreferenceState();
+      const persistedSyncedSettings = await loadAccountSyncedSettings(
+        client,
+        userId,
+      );
 
-  const syncAuthenticatedSettings = useCallback(async (
-    client: SupabaseClient,
-    userId: string,
-  ) => {
-    const localSyncedPreferences = getCurrentSyncedPreferenceState();
-    const persistedSyncedSettings = await loadAccountSyncedSettings(
-      client,
-      userId,
-    );
+      if (persistedSyncedSettings) {
+        const appliedSyncedPreferences = applySyncedPreferenceState(
+          persistedSyncedSettings.settings,
+          localSyncedPreferences,
+        );
 
-    if (persistedSyncedSettings) {
-      const appliedSyncedPreferences = applySyncedPreferenceState(
-        persistedSyncedSettings.settings,
+        lastSyncedPreferenceSignatureRef.current =
+          buildSyncedPreferenceSignature(appliedSyncedPreferences);
+        return;
+      }
+
+      const seededSyncedSettings = await saveAccountSyncedSettings(
+        client,
+        userId,
         localSyncedPreferences,
       );
 
       lastSyncedPreferenceSignatureRef.current = buildSyncedPreferenceSignature(
-        appliedSyncedPreferences,
+        seededSyncedSettings.settings,
       );
-      return;
-    }
-
-    const seededSyncedSettings = await saveAccountSyncedSettings(
-      client,
-      userId,
-      localSyncedPreferences,
-    );
-
-    lastSyncedPreferenceSignatureRef.current = buildSyncedPreferenceSignature(
-      seededSyncedSettings.settings,
-    );
-  }, []);
+    },
+    [],
+  );
 
   const resolveAccountStatus = (
     nextAccount: Account,
@@ -435,46 +404,49 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
       : "needsDisplayName";
   };
 
-  const syncAuthenticatedSession = useCallback(async (
-    nextSession: Session | null,
-    shouldVerifyUser = false,
-    authEvent?: AuthChangeEvent,
-  ) => {
-    const client = getSupabaseClient();
-    const signedOutSessionNotice = getSignedOutSessionNotice();
+  const syncAuthenticatedSession = useCallback(
+    async (
+      nextSession: Session | null,
+      shouldVerifyUser = false,
+      authEvent?: AuthChangeEvent,
+    ) => {
+      const client = getSupabaseClient();
+      const signedOutSessionNotice = getSignedOutSessionNotice();
 
-    if (!nextSession) {
-      clearAuthenticatedState(signedOutSessionNotice);
-      return;
-    }
+      if (!nextSession) {
+        clearAuthenticatedState(signedOutSessionNotice);
+        return;
+      }
 
-    const nextUser = await resolveAuthenticatedUser(
-      client,
-      nextSession,
-      shouldVerifyUser,
-    );
+      const nextUser = await resolveAuthenticatedUser(
+        client,
+        nextSession,
+        shouldVerifyUser,
+      );
 
-    if (!nextUser) {
-      clearAuthenticatedState(signedOutSessionNotice);
-      return;
-    }
+      if (!nextUser) {
+        clearAuthenticatedState(signedOutSessionNotice);
+        return;
+      }
 
-    const nextAccount = await bootstrapAccountRow(client, nextUser.id);
-    await syncAuthenticatedSettings(client, nextUser.id);
+      const nextAccount = await bootstrapAccountRow(client, nextUser.id);
+      await syncAuthenticatedSettings(client, nextUser.id);
 
-    activeSettingsUserIdRef.current = nextUser.id;
-    setSessionNotice(null);
+      activeSettingsUserIdRef.current = nextUser.id;
+      setSessionNotice(null);
 
-    setSession(nextSession);
-    setUser(nextUser);
-    setAccount(nextAccount);
-    setStatus(resolveAccountStatus(nextAccount, authEvent));
-  }, [
-    clearAuthenticatedState,
-    getSignedOutSessionNotice,
-    resolveAuthenticatedUser,
-    syncAuthenticatedSettings,
-  ]);
+      setSession(nextSession);
+      setUser(nextUser);
+      setAccount(nextAccount);
+      setStatus(resolveAccountStatus(nextAccount, authEvent));
+    },
+    [
+      clearAuthenticatedState,
+      getSignedOutSessionNotice,
+      resolveAuthenticatedUser,
+      syncAuthenticatedSettings,
+    ],
+  );
 
   useEffect(() => {
     if (!isConfigured) {
@@ -540,11 +512,12 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
       }
 
       const nextPreferences = serializeSyncedPreferenceState(state);
-      const nextPreferenceSignature = buildSyncedPreferenceSignature(
-        nextPreferences,
-      );
+      const nextPreferenceSignature =
+        buildSyncedPreferenceSignature(nextPreferences);
 
-      if (nextPreferenceSignature === lastSyncedPreferenceSignatureRef.current) {
+      if (
+        nextPreferenceSignature === lastSyncedPreferenceSignatureRef.current
+      ) {
         return;
       }
 
@@ -555,7 +528,8 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
 
       void saveAccountSyncedSettings(client, user.id, nextPreferences).catch(
         (error) => {
-          lastSyncedPreferenceSignatureRef.current = previousPreferenceSignature;
+          lastSyncedPreferenceSignatureRef.current =
+            previousPreferenceSignature;
           console.error(error);
         },
       );
@@ -563,11 +537,13 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   }, [isConfigured, user]);
 
   useEffect(() => {
-    if (!isConfigured || typeof window === "undefined") {
+    if (!isConfigured || !globalThis.window) {
       return;
     }
 
-    const browserWindow = window as Window & { __DONG_E2E__?: boolean };
+    const browserWindow = globalThis.window as Window & {
+      __DONG_E2E__?: boolean;
+    };
 
     if (!browserWindow.__DONG_E2E__) {
       return;
@@ -581,10 +557,13 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
       clearAuthenticatedState(SESSION_EXPIRED_MESSAGE);
     };
 
-    window.addEventListener("dong:e2e:session-expired", handleSessionExpired);
+    globalThis.window.addEventListener(
+      "dong:e2e:session-expired",
+      handleSessionExpired,
+    );
 
     return () => {
-      window.removeEventListener(
+      globalThis.window.removeEventListener(
         "dong:e2e:session-expired",
         handleSessionExpired,
       );
@@ -685,21 +664,6 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     setStatus("ready");
   };
 
-  const saveProfile = async (profile: AccountProfileInput) => {
-    const client = getSupabaseClient();
-
-    if (!user) {
-      throw new Error(
-        "Cannot save an account profile without a signed-in account.",
-      );
-    }
-
-    const nextAccount = await saveAccountProfile(client, user.id, profile);
-
-    setAccount(nextAccount);
-    setStatus("ready");
-  };
-
   const requestPasswordReset = async (
     email: string,
     returnTo?: string | null,
@@ -767,19 +731,18 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     }
 
     const config = getSupabasePublicConfig();
-    const response = await fetch(
-      `${config.url}/functions/v1/delete-account`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
+    const response = await fetch(`${config.url}/functions/v1/delete-account`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json",
       },
-    );
+    });
 
     if (!response.ok) {
-      const body = await response.json().catch(() => ({})) as { error?: string };
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
       throw new Error(body.error ?? "Failed to delete account.");
     }
 
@@ -800,7 +763,6 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
         verifySignupOtp,
         signOut,
         saveDisplayName,
-        saveProfile,
         changePassword,
         requestPasswordReset,
         completePasswordRecovery,

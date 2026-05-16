@@ -1,13 +1,11 @@
 Feature: Host Profile and Synced Settings
 
-    Scenario: Signed-in host updates profile details from preferences
+    Scenario: Signed-in host updates the display name from preferences
         Given the host profile settings flow is available
         And a signed-in host profile is restored in preferences
         When the host updates the profile display name to "Captain Updated"
-        And the host updates the profile username to "captain-updated"
         And the host saves the profile form
         Then the saved profile should show display name "Captain Updated"
-        And the saved profile should show username "captain-updated"
 
     Scenario: Invalid profile values show a clear validation message
         Given the host profile settings flow is available

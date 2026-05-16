@@ -8,12 +8,13 @@ import {
   SESSION_EXPIRED_MESSAGE,
   bootstrapAccountRow,
   normalizeAccountDisplayName,
-  normalizeAccountUsername,
-  saveAccountProfile,
   saveAccountDisplayName,
   useAccountAuth,
 } from "../../hooks/useAccountAuth";
-import { getCurrentSyncedPreferenceState, useGameStore } from "../../store/store";
+import {
+  getCurrentSyncedPreferenceState,
+  useGameStore,
+} from "../../store/store";
 import {
   getSupabaseClient,
   getSupabasePublicConfig,
@@ -61,10 +62,6 @@ const createAccountsTableMock = (
       accountRow = {
         id: values.id,
         preferred_display_name: null,
-        username:
-          (values.username as string | null | undefined) ??
-          accountRow?.username ??
-          null,
         created_at: "2026-05-10T00:00:00.000Z",
         updated_at: "2026-05-10T00:00:00.000Z",
       };
@@ -75,19 +72,15 @@ const createAccountsTableMock = (
       accountRow = {
         id: accountRow?.id ?? values.id,
         preferred_display_name:
-          Object.prototype.hasOwnProperty.call(values, "preferred_display_name")
-            ? ((values.preferred_display_name as string | null | undefined) ??
-              null)
+          typeof values.preferred_display_name === "string" ||
+          values.preferred_display_name === null
+            ? values.preferred_display_name
             : (accountRow?.preferred_display_name ?? null),
-        username:
-          Object.prototype.hasOwnProperty.call(values, "username")
-            ? ((values.username as string | null | undefined) ?? null)
-            : (accountRow?.username ?? null),
         created_at: accountRow?.created_at ?? "2026-05-10T00:00:00.000Z",
         updated_at:
-          (values.updated_at as string | null | undefined) ??
-          accountRow?.updated_at ??
-          "2026-05-10T00:00:00.000Z",
+          typeof values.updated_at === "string" || values.updated_at === null
+            ? values.updated_at
+            : (accountRow?.updated_at ?? "2026-05-10T00:00:00.000Z"),
       };
 
       return accountsTable;
@@ -118,13 +111,14 @@ const createSupabaseClientMock = (
       settingsRow = {
         account_id: values.account_id,
         settings_data:
-          values.settings_data ?? settingsRow?.settings_data ?? DEFAULT_SYNCED_PREFERENCES,
-        created_at:
-          settingsRow?.created_at ?? "2026-05-10T00:00:00.000Z",
+          values.settings_data ??
+          settingsRow?.settings_data ??
+          DEFAULT_SYNCED_PREFERENCES,
+        created_at: settingsRow?.created_at ?? "2026-05-10T00:00:00.000Z",
         updated_at:
-          (values.updated_at as string | null | undefined) ??
-          settingsRow?.updated_at ??
-          "2026-05-10T00:00:00.000Z",
+          typeof values.updated_at === "string" || values.updated_at === null
+            ? values.updated_at
+            : (settingsRow?.updated_at ?? "2026-05-10T00:00:00.000Z"),
       };
 
       return settingsTable;
@@ -133,16 +127,19 @@ const createSupabaseClientMock = (
   const auth = {
     getSession: jest.fn(async () => ({ data: { session: null }, error: null })),
     getUser: jest.fn(async () => ({ data: { user: null }, error: null })),
-    onAuthStateChange: jest.fn((callback: (event: unknown, nextSession: Session | null) => void) => {
-      authStateChangeCallback = callback;
+    onAuthStateChange: jest.fn(
+      (callback: (event: unknown, nextSession: Session | null) => void) => {
+        authStateChangeCallback = callback;
 
-      return {
-      data: {
-        subscription: {
-          unsubscribe: jest.fn(),
-        },
+        return {
+          data: {
+            subscription: {
+              unsubscribe: jest.fn(),
+            },
+          },
+        };
       },
-    };}),
+    ),
     signInWithPassword: jest.fn(),
     signUp: jest.fn(),
     signOut: jest.fn(async () => ({ error: null })),
@@ -177,13 +174,6 @@ describe("account auth foundation", () => {
     expect(normalizeAccountDisplayName("   ")).toBeNull();
   });
 
-  it("normalizes account usernames", () => {
-    expect(normalizeAccountUsername("  captain.owner  ")).toBe(
-      "captain.owner",
-    );
-    expect(normalizeAccountUsername("   ")).toBeNull();
-  });
-
   it("bootstraps a missing account row for the signed-in user", async () => {
     const client = createSupabaseClientMock();
 
@@ -214,30 +204,12 @@ describe("account auth foundation", () => {
     ).rejects.toThrow("Account display name cannot be blank.");
   });
 
-  it("rejects blank usernames before sending them to Postgres", async () => {
-    const client = createSupabaseClientMock();
-
-    await expect(
-      saveAccountProfile(
-        client as unknown as ReturnType<typeof getSupabaseClient>,
-        "host-1",
-        {
-          displayName: "Captain",
-          username: "   ",
-        },
-      ),
-    ).rejects.toThrow("Account username cannot be blank.");
-
-    expect(client.accounts.accountsTable.update).not.toHaveBeenCalled();
-  });
-
-  it("restores the saved profile fields from the account row", async () => {
+  it("restores the saved display name from the account row", async () => {
     mockHasSupabasePublicConfig.mockReturnValue(true);
 
     const client = createSupabaseClientMock({
       id: "host-restore",
       preferred_display_name: "Restored Captain",
-      username: "restored-handle",
       created_at: "2026-05-10T00:00:00.000Z",
       updated_at: "2026-05-10T00:00:00.000Z",
     });
@@ -288,17 +260,15 @@ describe("account auth foundation", () => {
 
     expect(observedAccount).toMatchObject({
       preferredDisplayName: "Restored Captain",
-      username: "restored-handle",
     });
   });
 
-  it("saves the signed-in profile fields and keeps the last saved profile on validation errors", async () => {
+  it("saves the signed-in display name and keeps the last saved profile on validation errors", async () => {
     mockHasSupabasePublicConfig.mockReturnValue(true);
 
     const client = createSupabaseClientMock({
       id: "host-profile",
       preferred_display_name: "Captain",
-      username: "captain-owner",
       created_at: "2026-05-10T00:00:00.000Z",
       updated_at: "2026-05-10T00:00:00.000Z",
     });
@@ -329,14 +299,12 @@ describe("account auth foundation", () => {
     );
 
     let observedAccount: ReturnType<typeof useAccountAuth>["account"] = null;
-    let saveProfile:
-      | ((profile: { displayName: string; username: string }) => Promise<void>)
-      | null = null;
+    let saveDisplayName: ((displayName: string) => Promise<void>) | null = null;
 
     const Probe = () => {
       const auth = useAccountAuth();
       observedAccount = auth.account;
-      saveProfile = auth.saveProfile;
+      saveDisplayName = auth.saveDisplayName;
       return null;
     };
 
@@ -353,29 +321,21 @@ describe("account auth foundation", () => {
     });
 
     await TestRenderer.act(async () => {
-      await saveProfile?.({
-        displayName: "Captain Updated",
-        username: "captain-updated",
-      });
+      await saveDisplayName?.("Captain Updated");
     });
 
     expect(observedAccount).toMatchObject({
       preferredDisplayName: "Captain Updated",
-      username: "captain-updated",
     });
 
     await expect(
       TestRenderer.act(async () => {
-        await saveProfile?.({
-          displayName: "   ",
-          username: "captain-updated",
-        });
+        await saveDisplayName?.("   ");
       }),
     ).rejects.toThrow("Account display name cannot be blank.");
 
     expect(observedAccount).toMatchObject({
       preferredDisplayName: "Captain Updated",
-      username: "captain-updated",
     });
   });
 
@@ -434,7 +394,11 @@ describe("account auth foundation", () => {
     );
 
     TestRenderer.create(
-      React.createElement(AccountAuthProvider, null, React.createElement(() => null)),
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(() => null),
+      ),
     );
 
     await TestRenderer.act(async () => {
@@ -503,7 +467,11 @@ describe("account auth foundation", () => {
     );
 
     TestRenderer.create(
-      React.createElement(AccountAuthProvider, null, React.createElement(() => null)),
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(() => null),
+      ),
     );
 
     await TestRenderer.act(async () => {
@@ -571,7 +539,11 @@ describe("account auth foundation", () => {
     );
 
     TestRenderer.create(
-      React.createElement(AccountAuthProvider, null, React.createElement(() => null)),
+      React.createElement(
+        AccountAuthProvider,
+        null,
+        React.createElement(() => null),
+      ),
     );
 
     await TestRenderer.act(async () => {
@@ -926,10 +898,11 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    const mockFetch = jest.fn(async () =>
-      new Response(JSON.stringify({ success: true }), { status: 200 }),
+    const mockFetch: typeof fetch = jest.fn(
+      async () =>
+        new Response(JSON.stringify({ success: true }), { status: 200 }),
     );
-    global.fetch = mockFetch as unknown as typeof fetch;
+    globalThis.fetch = mockFetch;
 
     let deleteAccount: (() => Promise<void>) | null = null;
     let observedStatus = "loading";
@@ -1003,11 +976,12 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    global.fetch = jest.fn(async () =>
-      new Response(JSON.stringify({ error: "Deletion failed" }), {
-        status: 500,
-      }),
-    ) as unknown as typeof fetch;
+    globalThis.fetch = jest.fn(
+      async () =>
+        new Response(JSON.stringify({ error: "Deletion failed" }), {
+          status: 500,
+        }),
+    ) as typeof fetch;
 
     let deleteAccount: (() => Promise<void>) | null = null;
 

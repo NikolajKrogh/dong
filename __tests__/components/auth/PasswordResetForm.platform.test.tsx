@@ -111,7 +111,10 @@ describe("PasswordResetForm", () => {
   });
 
   it("opens a recovery link and switches to the new-password form", async () => {
-    mockExchangeCodeForSession.mockResolvedValue({ data: { session: null }, error: null });
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
 
     const tree = TestRenderer.create(
       React.createElement(PasswordResetForm, {
@@ -123,7 +126,9 @@ describe("PasswordResetForm", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(mockExchangeCodeForSession).toHaveBeenCalledWith("recovery-code-123");
+    expect(mockExchangeCodeForSession).toHaveBeenCalledWith(
+      "recovery-code-123",
+    );
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);

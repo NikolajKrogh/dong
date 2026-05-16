@@ -100,7 +100,6 @@ const CLOUD_SYNCED_SETTINGS = createSyncedSettings({
 type MockAccountRow = {
   id: string;
   preferred_display_name: string | null;
-  username: string | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -123,7 +122,9 @@ const cloneSyncedSettings = (settings: SyncedPreferenceState) => ({
   theme: settings.theme,
   soundEnabled: settings.soundEnabled,
   commonMatchNotificationsEnabled: settings.commonMatchNotificationsEnabled,
-  configuredLeagues: settings.configuredLeagues.map((league) => ({ ...league })),
+  configuredLeagues: settings.configuredLeagues.map((league) => ({
+    ...league,
+  })),
   defaultSelectedLeagues: settings.defaultSelectedLeagues.map((league) => ({
     ...league,
   })),
@@ -134,7 +135,6 @@ const createMockAccountRow = (
 ): MockAccountRow => ({
   id: HOST_PROFILE_USER_ID,
   preferred_display_name: "Captain",
-  username: "captain",
   created_at: FIXED_TIMESTAMP,
   updated_at: FIXED_TIMESTAMP,
   ...overrides,
@@ -228,11 +228,13 @@ const fulfillJson = async (
   });
 };
 
-const readJsonRequestBody = (page: Parameters<Page["route"]>[1] extends (
-  route: infer RouteType,
-) => Promise<void>
-  ? RouteType
-  : never) => {
+const readJsonRequestBody = (
+  page: Parameters<Page["route"]>[1] extends (
+    route: infer RouteType,
+  ) => Promise<void>
+    ? RouteType
+    : never,
+) => {
   const body = page.request().postDataJSON() as
     | Record<string, unknown>
     | Record<string, unknown>[]
@@ -295,14 +297,10 @@ const installHostProfileMocks = async (page: Page) => {
       activeHostProfileState.account = {
         ...activeHostProfileState.account,
         preferred_display_name:
-          typeof body.preferred_display_name === "string"
-          || body.preferred_display_name === null
-            ? (body.preferred_display_name as string | null)
+          typeof body.preferred_display_name === "string" ||
+          body.preferred_display_name === null
+            ? body.preferred_display_name
             : activeHostProfileState.account.preferred_display_name,
-        username:
-          typeof body.username === "string" || body.username === null
-            ? (body.username as string | null)
-            : activeHostProfileState.account.username,
         updated_at:
           typeof body.updated_at === "string"
             ? body.updated_at
@@ -344,7 +342,8 @@ const installHostProfileMocks = async (page: Page) => {
             ? body.account_id
             : HOST_PROFILE_USER_ID,
         settings_data: nextSettings,
-        created_at: activeHostProfileState.settings?.created_at ?? FIXED_TIMESTAMP,
+        created_at:
+          activeHostProfileState.settings?.created_at ?? FIXED_TIMESTAMP,
         updated_at:
           typeof body.updated_at === "string"
             ? body.updated_at
@@ -402,7 +401,8 @@ const openPreferences = async (page: Page, baseURL?: string | null) => {
 const getSwitchState = async (page: Page, testID: string) => {
   return page.getByTestId(testID).evaluate((element) => {
     const nestedSwitch =
-      element instanceof HTMLInputElement || element.getAttribute("role") === "switch"
+      element instanceof HTMLInputElement ||
+      element.getAttribute("role") === "switch"
         ? element
         : element.querySelector('[role="switch"], input[type="checkbox"]');
 
@@ -426,8 +426,9 @@ Given(
 
     await page.addInitScript(() => {
       globalThis.localStorage.setItem("hasLaunched", "true");
-      (globalThis as typeof globalThis & { __DONG_E2E__?: boolean }).__DONG_E2E__ =
-        true;
+      (
+        globalThis as typeof globalThis & { __DONG_E2E__?: boolean }
+      ).__DONG_E2E__ = true;
     });
 
     await installHostProfileMocks(page);
@@ -446,12 +447,15 @@ Given(
   },
 );
 
-Given("the local preference state is seeded for first sync", async ({ page }) => {
-  activeHostProfileState = createMockHostProfileState({ settings: null });
-  expectedSeededSettings = cloneSyncedSettings(FIRST_SYNC_LOCAL_SETTINGS);
+Given(
+  "the local preference state is seeded for first sync",
+  async ({ page }) => {
+    activeHostProfileState = createMockHostProfileState({ settings: null });
+    expectedSeededSettings = cloneSyncedSettings(FIRST_SYNC_LOCAL_SETTINGS);
 
-  await seedSignedInHostState(page, FIRST_SYNC_LOCAL_SETTINGS);
-});
+    await seedSignedInHostState(page, FIRST_SYNC_LOCAL_SETTINGS);
+  },
+);
 
 Given(
   "cloud-backed settings already exist for the signed-in host",
@@ -472,15 +476,8 @@ When(
   },
 );
 
-When(
-  "the host updates the profile username to {string}",
-  async ({ page }, username: string) => {
-    await page.getByTestId("ProfileUsernameInput").fill(username);
-  },
-);
-
 When("the host saves the profile form", async ({ page }) => {
-  await page.getByText("Save profile", { exact: true }).click();
+  await page.getByText("Save display name", { exact: true }).click();
   await page.waitForLoadState("networkidle");
 });
 
@@ -525,15 +522,6 @@ Then(
 );
 
 Then(
-  "the saved profile should show username {string}",
-  async ({ page }, username: string) => {
-    await expect(page.getByTestId("ProfileUsernameInput")).toHaveValue(
-      username,
-    );
-  },
-);
-
-Then(
   "the profile validation message should say {string}",
   async ({ page }, message: string) => {
     await expect(page.getByTestId("ProfileValidationMessage")).toHaveText(
@@ -544,8 +532,7 @@ Then(
 
 Then(
   "the synced settings row should seed from the current local values",
-  async ({ page }) => {
-    void page;
+  async ({ page: _page }) => {
     expect(expectedSeededSettings).not.toBeNull();
     await expect
       .poll(() =>
@@ -579,11 +566,14 @@ Then(
       `${expectedSettings?.defaultSelectedLeagues.length ?? 0} selected`,
     );
 
-    const persistedState = await page.evaluate(({ storageKey }) => {
-      const rawState = globalThis.localStorage.getItem(storageKey);
+    const persistedState = await page.evaluate(
+      ({ storageKey }) => {
+        const rawState = globalThis.localStorage.getItem(storageKey);
 
-      return rawState ? JSON.parse(rawState) : null;
-    }, { storageKey: PERSISTED_STORE_KEY });
+        return rawState ? JSON.parse(rawState) : null;
+      },
+      { storageKey: PERSISTED_STORE_KEY },
+    );
 
     expect(persistedState?.state).toMatchObject(expectedSettings ?? {});
   },

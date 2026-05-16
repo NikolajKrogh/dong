@@ -121,7 +121,7 @@ npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/auth/Aut
 
 Signed-in hosts can now manage their profile and the cloud-backed preference subset directly from Settings.
 
-- The `Profile` section saves both the visible display name and the account username/handle to `public.accounts`.
+- The `Profile` section saves the visible display name to `public.accounts`.
 - The synced preference subset now round-trips through `public.settings.settings_data` for `theme`, `soundEnabled`, `commonMatchNotificationsEnabled`, `configuredLeagues`, and `defaultSelectedLeagues`.
 - The first authenticated restore seeds cloud settings from the device's current local preference values when no synced row exists yet.
 - Signing out or losing the session clears account-bound UI state without wiping the local device store, and Settings shows a recovery message when the session expires.

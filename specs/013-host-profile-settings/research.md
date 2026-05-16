@@ -26,11 +26,11 @@ Alternatives considered: Make Supabase the only source of truth for every prefer
 
 ## Decision 4: Keep validation non-unique and trim-only for profile text
 
-Decision: Enforce trimmed, non-empty validation on profile text fields and do not add uniqueness rules for the clarified profile identifiers.
+Decision: Enforce trimmed, non-empty validation on the display name and do not add uniqueness rules for the clarified profile identifier.
 
 Rationale: The clarified spec allows duplicate values and punctuation, so the implementation only needs to reject blank or whitespace-only submissions and keep the previous saved profile intact on validation failure.
 
-Alternatives considered: Unique username or handle enforcement; rejected by the clarified requirement. Regex-heavy handle rules; rejected because the clarified requirement intentionally keeps the rule set simple.
+Alternatives considered: Unique display-name enforcement; rejected because duplicates are allowed. Regex-heavy display-name rules; rejected because the clarified requirement intentionally keeps the rule set simple.
 
 ## Decision 5: Supabase posture and breaking-change review
 

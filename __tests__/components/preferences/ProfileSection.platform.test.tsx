@@ -76,11 +76,10 @@ describe("ProfileSection", () => {
     mockUseAccountAuth.mockReturnValue({
       account: {
         preferredDisplayName: "Captain",
-        username: "captain-owner",
       },
-      saveProfile: jest.fn(),
+      saveDisplayName: jest.fn(),
       status: "ready",
-    } as never);
+    });
 
     const renderer = TestRenderer.create(React.createElement(ProfileSection));
 
@@ -90,25 +89,25 @@ describe("ProfileSection", () => {
     const inputs = renderer.root.findAllByType(TextInput);
 
     expect(labels).toContain("Profile");
+    expect(labels).toContain("Host identity");
     expect(labels).toContain("Display name");
-    expect(labels).toContain("Username or handle");
+    expect(labels).toContain("Save display name");
+    expect(inputs).toHaveLength(1);
     expect(inputs[0].props.value).toBe("Captain");
-    expect(inputs[1].props.value).toBe("captain-owner");
 
     renderer.unmount();
   });
 
-  it("saves the edited profile fields", async () => {
-    const saveProfile = jest.fn(async () => undefined);
+  it("saves the edited display name", async () => {
+    const saveDisplayName = jest.fn(async () => undefined);
 
     mockUseAccountAuth.mockReturnValue({
       account: {
         preferredDisplayName: "Captain",
-        username: "captain-owner",
       },
-      saveProfile,
+      saveDisplayName,
       status: "ready",
-    } as never);
+    });
 
     const renderer = TestRenderer.create(React.createElement(ProfileSection));
 
@@ -121,45 +120,43 @@ describe("ProfileSection", () => {
     const inputs = renderer.root.findAllByType(TextInput);
     await TestRenderer.act(async () => {
       inputs[0].props.onChangeText("Captain Updated");
-      inputs[1].props.onChangeText("captain-updated");
     });
 
     const updatedInputs = renderer.root.findAllByType(TextInput);
 
     expect(updatedInputs[0].props.value).toBe("Captain Updated");
-    expect(updatedInputs[1].props.value).toBe("captain-updated");
 
-    const saveButton = renderer.root.findByProps({ label: "Save profile" });
+    const saveButton = renderer.root.findByProps({
+      label: "Save display name",
+    });
 
     await TestRenderer.act(async () => {
       saveButton.props.onPress();
       await Promise.resolve();
     });
 
-    expect(saveProfile).toHaveBeenCalledWith({
-      displayName: "Captain Updated",
-      username: "captain-updated",
-    });
+    expect(saveDisplayName).toHaveBeenCalledWith("Captain Updated");
 
     renderer.unmount();
   });
 
   it("shows the validation error message when saving fails", async () => {
-    const saveProfile = jest.fn(async () => {
-      throw new Error("Account username cannot be blank.");
+    const saveDisplayName = jest.fn(async () => {
+      throw new Error("Account display name cannot be blank.");
     });
 
     mockUseAccountAuth.mockReturnValue({
       account: {
         preferredDisplayName: "Captain",
-        username: "captain-owner",
       },
-      saveProfile,
+      saveDisplayName,
       status: "ready",
-    } as never);
+    });
 
     const renderer = TestRenderer.create(React.createElement(ProfileSection));
-    const saveButton = renderer.root.findByProps({ label: "Save profile" });
+    const saveButton = renderer.root.findByProps({
+      label: "Save display name",
+    });
 
     await TestRenderer.act(async () => {
       saveButton.props.onPress();
@@ -170,7 +167,7 @@ describe("ProfileSection", () => {
     const texts = renderer.root.findAllByType(Text);
     const labels = texts.flatMap((node: any) => node.props.children);
 
-    expect(labels).toContain("Account username cannot be blank.");
+    expect(labels).toContain("Account display name cannot be blank.");
 
     renderer.unmount();
   });

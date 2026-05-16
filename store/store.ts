@@ -2,9 +2,9 @@
  * @file store.ts
  * @description Global Zustand store defining core domain entities (Player, Match, GameSession) and state/actions for configuring, running, and persisting game sessions. Persists a curated subset of state to AsyncStorage.
  */
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
 
 type ThemeMode = "light" | "dark";
@@ -52,17 +52,17 @@ const normalizeLeagueEndpoint = (value: unknown): LeagueEndpoint | null => {
   const candidate = value as Partial<LeagueEndpoint>;
 
   if (
-    typeof candidate.code !== "string"
-    || candidate.code.trim().length === 0
-    || typeof candidate.name !== "string"
-    || candidate.name.trim().length === 0
+    typeof candidate.code !== "string" ||
+    candidate.code.trim().length === 0 ||
+    typeof candidate.name !== "string" ||
+    candidate.name.trim().length === 0
   ) {
     return null;
   }
 
   if (
-    typeof candidate.category === "string"
-    && candidate.category.trim().length > 0
+    typeof candidate.category === "string" &&
+    candidate.category.trim().length > 0
   ) {
     return {
       code: candidate.code,
@@ -118,7 +118,9 @@ export const hydrateSyncedPreferenceState = (
     return normalizedFallback;
   }
 
-  const candidate = value as Partial<Record<keyof SyncedPreferenceState, unknown>>;
+  const candidate = value as Partial<
+    Record<keyof SyncedPreferenceState, unknown>
+  >;
 
   return {
     theme:
@@ -261,7 +263,7 @@ interface GameState {
   setPlayerAssignments: (
     playerAssignments:
       | PlayerAssignments
-      | ((prev: PlayerAssignments) => PlayerAssignments)
+      | ((prev: PlayerAssignments) => PlayerAssignments),
   ) => void;
   /**
    * Sets matches per player configuration value.
@@ -367,11 +369,10 @@ export const useGameStore = create<GameState>()(
       removeLeague: (code) =>
         set((state) => ({
           configuredLeagues: state.configuredLeagues.filter(
-            (l) => l.code !== code
+            (l) => l.code !== code,
           ),
         })),
-      resetLeaguesToDefaults: () =>
-        set(createDefaultSyncedPreferenceState()),
+      resetLeaguesToDefaults: () => set(createDefaultSyncedPreferenceState()),
       setDefaultSelectedLeagues: (leagues) =>
         set({ defaultSelectedLeagues: leagues }),
 
@@ -417,8 +418,8 @@ export const useGameStore = create<GameState>()(
         history: state.history,
         ...serializeSyncedPreferenceState(state),
       }),
-    }
-  )
+    },
+  ),
 );
 
 export const getCurrentSyncedPreferenceState = (): SyncedPreferenceState =>

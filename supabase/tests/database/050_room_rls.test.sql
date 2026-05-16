@@ -364,7 +364,7 @@ SELECT is(
                     FROM room_rls_context
                 )
         ),
-    '2',
+        '2',
         'host can read the session participant rows'
     );
 SELECT is(
@@ -432,7 +432,7 @@ SELECT is(
                     FROM room_rls_context
                 )
         ),
-    '2',
+        '2',
         'participant can read the session participant rows'
     );
 SELECT is(

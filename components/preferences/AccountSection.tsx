@@ -3,12 +3,12 @@ import React from "react";
 import { Alert } from "react-native";
 import { Text, XStack, YStack, styled } from "tamagui";
 
-import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth,
 } from "../../hooks/useAccountAuth";
+import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 
 const AvatarCircle = styled(YStack, {
   width: 44,
@@ -95,11 +95,7 @@ const SignedInAccountContent = ({
       />
     ) : null}
 
-    <ShellActionButton
-      variant="surface"
-      label="Sign out"
-      onPress={onSignOut}
-    />
+    <ShellActionButton variant="surface" label="Sign out" onPress={onSignOut} />
 
     {isSignedIn ? (
       <ShellActionButton
@@ -141,7 +137,9 @@ const AccountSection = () => {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => { void deleteAccount(); },
+          onPress: () => {
+            void deleteAccount();
+          },
         },
       ],
     );

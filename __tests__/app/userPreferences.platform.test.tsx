@@ -136,7 +136,11 @@ jest.mock("../../components/preferences/AccountSection", () => {
       RN.View,
       { testID: "AccountSection" },
       R.createElement(RN.Text, null, "Account"),
-      R.createElement(RN.Text, null, "Sign in to create and manage multiplayer rooms."),
+      R.createElement(
+        RN.Text,
+        null,
+        "Sign in to create and manage multiplayer rooms.",
+      ),
     );
 });
 
