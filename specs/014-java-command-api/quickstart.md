@@ -7,7 +7,7 @@
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| Java | 21 LTS | `java -version` should report `21.x` |
+| Java | 17 LTS | `java -version` should report `17.x` |
 | Maven | 3.9.x | Or use the included `mvnw` wrapper (no pre-install needed) |
 | Supabase CLI | Latest | Required to get a local JWT for testing |
 

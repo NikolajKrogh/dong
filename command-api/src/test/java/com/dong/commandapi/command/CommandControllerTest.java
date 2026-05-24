@@ -1,6 +1,15 @@
 package com.dong.commandapi.command;
 
-import io.jsonwebtoken.Jwts;
+import static io.jsonwebtoken.security.Keys.hmacShaKeyFor;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,26 +21,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Date;
-import java.util.UUID;
-
-import static io.jsonwebtoken.security.Keys.hmacShaKeyFor;
-import static org.assertj.core.api.Assertions.assertThat;
+import io.jsonwebtoken.Jwts;
 
 /**
  * US4 — command envelope demonstration. Drives the full chain (auth + dispatch
  * + idempotency seam) with a real signed JWT.
  */
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {
-                "supabase.jwt-secret=" + CommandControllerTest.SECRET,
-                "supabase.url=http://localhost:9"
-        }
-)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "supabase.jwt-secret=" + CommandControllerTest.SECRET,
+        "supabase.url=http://localhost:9"
+})
 class CommandControllerTest {
 
     static final String SECRET = "test-secret-which-is-at-least-thirty-two-bytes-long";
@@ -102,7 +101,8 @@ class CommandControllerTest {
 
     @Test
     void unauthenticatedRequestIsRejected() {
-        // GET avoids HttpURLConnection streaming-mode limitation when reading a 401 response.
+        // GET avoids HttpURLConnection streaming-mode limitation when reading a 401
+        // response.
         ResponseEntity<String> res = restTemplate.exchange(
                 "/v1/rooms/room-test/commands/echo", HttpMethod.GET, null, String.class);
 

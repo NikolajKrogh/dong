@@ -1,14 +1,15 @@
 package com.dong.commandapi.health;
 
-import com.dong.commandapi.supabase.SupabaseClient;
-import com.dong.commandapi.supabase.SupabaseProperties;
+import java.time.Duration;
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.time.Instant;
+import com.dong.commandapi.supabase.SupabaseClient;
+import com.dong.commandapi.supabase.SupabaseProperties;
 
 /**
  * Reports Supabase reachability under the {@code supabase} health component.

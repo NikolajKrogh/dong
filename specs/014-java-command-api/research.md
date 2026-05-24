@@ -80,7 +80,7 @@
 
 **Decision**: Custom `OncePerRequestFilter` (`SupabaseJwtFilter`) + Spring Security `SecurityFilterChain` bean
 
-**Rationale**: With HS256 and JJWT, the idiomatic approach is a custom filter that extracts and validates the token, then sets a `UsernamePasswordAuthenticationToken` in the `SecurityContextHolder`. The `SecurityFilterChain` then uses `.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)`.
+**Rationale**: With HS256 and JJWT, the idiomatic approach is a custom filter that extracts and validates the token, then sets an `AuthenticatedHost` principal in the `SecurityContextHolder`. The filter is positioned via `.addFilterBefore(jwtFilter, AuthorizationFilter.class)` — after `ExceptionTranslationFilter` (order 3100) — so that `ExceptionTranslationFilter` wraps the filter and routes `InvalidTokenException` through `ApiAuthenticationEntryPoint` → 401 `ApiError`.
 
 Open paths (no auth required):
 - `GET /actuator/health`

@@ -13,7 +13,7 @@ POST /v1/rooms/{roomId}/commands/{commandType}
 | Parameter | Location | Type | Constraints |
 |-----------|----------|------|-------------|
 | `roomId` | Path | `String` | Non-empty; not validated for existence at bootstrap stage |
-| `commandType` | Path | `String` | Non-empty; echoed in response; not validated against a registry at bootstrap stage |
+| `commandType` | Path | `String` | Non-empty; echoed in response; validated against a handler registry at dispatch time; returns 422 `UNKNOWN_COMMAND` if no handler is registered |
 
 ---
 

@@ -11,7 +11,7 @@ The architecture is deliberately shaped so that the **scheduled** downstream wor
 
 ## Technical Context
 
-**Language/Version**: Java 21 LTS (required for Spring Boot 3.3.x; supported through 2031)  
+**Language/Version**: Java 17 LTS (baseline for Spring Boot 3.3.x; supported through 2029)  
 **Primary Dependencies**: Spring Boot 3.3.x (web, security, actuator, validation), springdoc-openapi-starter-webmvc-ui 2.5.x, JJWT 0.12.x (HS256), `logstash-logback-encoder`, Spring `RestClient` (bundled in spring-web, Boot 3.2+)  
 **Storage**: N/A — service is stateless; no database at this stage  
 **Testing**: JUnit 5 + Mockito; `@WebMvcTest` slices for controllers/filters, `@SpringBootTest(webEnvironment=RANDOM_PORT)` for integration; test tree mirrors `src/main` package-for-package  

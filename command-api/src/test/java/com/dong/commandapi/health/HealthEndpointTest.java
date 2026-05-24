@@ -21,7 +21,8 @@ import static org.mockito.Mockito.when;
         properties = {
                 "supabase.jwt-secret=test-secret-which-is-at-least-thirty-two-bytes-long",
                 "supabase.url=http://localhost:9",
-                "command-api.health.supabase.cache-ttl=0s"
+                "command-api.health.supabase.cache-ttl=0s",
+                "management.endpoint.health.show-details=always"
         }
 )
 class HealthEndpointTest {

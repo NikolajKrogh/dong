@@ -1,5 +1,6 @@
 package com.dong.commandapi.security;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
@@ -12,8 +13,8 @@ import java.util.List;
 @ConfigurationProperties(prefix = "command-api.cors")
 public record CorsProperties(
         boolean enabled,
-        List<String> allowedOrigins,
-        List<String> allowedMethods,
-        List<String> allowedHeaders
+        @NotNull List<String> allowedOrigins,
+        @NotNull List<String> allowedMethods,
+        @NotNull List<String> allowedHeaders
 ) {
 }

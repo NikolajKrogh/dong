@@ -9,13 +9,16 @@ Real room/gameplay commands and the ESPN proxy arrive in #133+.
 ## Quick Start
 
 **1. Compile the Java:**
+
 ```bash
 cd command-api
 ./mvnw.cmd clean verify
 ```
+
 All 20 tests must pass. (On Windows, use `.\mvnw.cmd`; on macOS/Linux, use `./mvnw`.)
 
 **2. Set environment variables and boot the service:**
+
 ```powershell
 # PowerShell (Windows)
 $env:SUPABASE_JWT_SECRET = "test-secret-which-is-at-least-thirty-two-bytes-long"
@@ -24,6 +27,7 @@ $env:SUPABASE_URL = "http://localhost:9"
 ```
 
 Or in bash:
+
 ```bash
 export SUPABASE_JWT_SECRET="test-secret-which-is-at-least-thirty-two-bytes-long"
 export SUPABASE_URL="http://localhost:9"
@@ -60,10 +64,10 @@ observability/ error/` (how it runs).
 cp .env.example .env   # then fill in SUPABASE_JWT_SECRET
 ```
 
-| Variable | Purpose |
-|----------|---------|
+| Variable              | Purpose                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------- |
 | `SUPABASE_JWT_SECRET` | HS256 secret to verify Supabase JWTs. Absent ⇒ service refuses to start (fail-closed). |
-| `SUPABASE_URL` | Supabase base URL for the health indicator. |
+| `SUPABASE_URL`        | Supabase base URL for the health indicator.                                            |
 
 ## Run
 

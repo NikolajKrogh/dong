@@ -3,12 +3,12 @@ name: command-api CI
 on:
   push:
     paths:
-      - 'command-api/**'
-      - '.github/workflows/java-ci.yml'
+      - "command-api/**"
+      - ".github/workflows/java-ci.yml"
   pull_request:
     paths:
-      - 'command-api/**'
-      - '.github/workflows/java-ci.yml'
+      - "command-api/**"
+      - ".github/workflows/java-ci.yml"
 
 jobs:
   build:
@@ -17,13 +17,15 @@ jobs:
       run:
         working-directory: command-api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@44c1b3b3d0c39062ee04e06e60afe08541ea5372  # v4
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@99b8673ea15601080d56b0991d4b1eda30162198  # v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
           cache: maven
 
       - name: Make mvnw executable

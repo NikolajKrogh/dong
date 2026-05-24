@@ -33,7 +33,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String correlationId = request.getHeader(HEADER);
-        if (!StringUtils.hasText(correlationId)) {
+        if (!StringUtils.hasText(correlationId) || !isValidCorrelationId(correlationId)) {
             correlationId = UUID.randomUUID().toString();
         }
         MDC.put(MDC_KEY, correlationId);
@@ -43,5 +43,9 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         } finally {
             MDC.remove(MDC_KEY);
         }
+    }
+
+    private boolean isValidCorrelationId(String id) {
+        return id.length() <= 128 && id.matches("^[a-zA-Z0-9_-]+$");
     }
 }

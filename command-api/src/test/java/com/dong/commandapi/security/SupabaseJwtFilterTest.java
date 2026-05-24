@@ -1,6 +1,17 @@
 package com.dong.commandapi.security;
 
-import io.jsonwebtoken.Jwts;
+import static io.jsonwebtoken.security.Keys.hmacShaKeyFor;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
+
+import javax.crypto.SecretKey;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -11,29 +22,17 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.Date;
-
-import static io.jsonwebtoken.security.Keys.hmacShaKeyFor;
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import io.jsonwebtoken.Jwts;
 
 /**
  * US2 — authenticated access enforcement. Drives the wired filter chain
  * against a protected path via MockMvc to avoid the HttpURLConnection
  * streaming-mode limitation on 401 responses.
  */
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        properties = {
-                "supabase.jwt-secret=" + SupabaseJwtFilterTest.SECRET,
-                "supabase.url=http://localhost:9"
-        }
-)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, properties = {
+        "supabase.jwt-secret=" + SupabaseJwtFilterTest.SECRET,
+        "supabase.url=http://localhost:9"
+})
 @AutoConfigureMockMvc
 class SupabaseJwtFilterTest {
 
