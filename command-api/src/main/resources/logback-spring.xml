@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Structured JSON logging (FR-011, SC-006). LogstashEncoder emits one JSON
+  object per line including MDC, so the correlationId set by CorrelationIdFilter
+  (ADR-6) appears on every log line and rejected requests stay traceable.
+-->
+<configuration>
+
+    <springProperty name="appName" source="spring.application.name" defaultValue="command-api"/>
+
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
+            <customFields>{"service":"${appName}"}</customFields>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="JSON"/>
+    </root>
+
+</configuration>

@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: command-api
+
+server:
+  port: 8080
+
+supabase:
+  jwt-secret: ${SUPABASE_JWT_SECRET}
+  url: ${SUPABASE_URL}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

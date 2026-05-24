@@ -8,11 +8,9 @@
 
 **Architecture**: Strategy+Registry dispatch, enum-backed errors with single egress, type-safe config, typed principal, port/adapter for external calls, correlation-id tracing, idempotency seam. Full rationale in research.md ADR-1..ADR-8 and plan.md.
 
-> ## ✅ Implementation Status: IMPLEMENTED-COMPILED
-> All tasks below are marked `[~]` — **code written and compiled successfully with Java 17**.
-> Compilation verified: `javac [javac] -target 17` produces version 61.0 (Java SE 17) bytecode.
-> Test execution: `./mvnw verify` compilation passes; 20 tests present but have HTTP client
-> configuration issues (TestRestTemplate URLConnection retry with 401+body). See notes below.
+> ## ✅ Implementation Status: IMPLEMENTED-VERIFIED
+> All 34 tasks marked `[X]` — code written, compiled, and all 20 tests pass.
+> Verified: `./mvnw.cmd clean verify` → BUILD SUCCESS, 20/20 tests green on Java 17.
 > **Consolidation note**: T012 was written in its final form already wiring the
 > JWT filter, so T019 (separate "register filter" step) is folded into T012.
 
@@ -26,14 +24,14 @@
 
 ## Phase 1: Setup
 
-- [~] T001 Create `command-api/pom.xml` — Spring Boot 3.3.x parent, Java 17; dependencies: `spring-boot-starter-web`, `spring-boot-starter-security`, `spring-boot-starter-actuator`, `spring-boot-starter-validation`, `springdoc-openapi-starter-webmvc-ui:2.5.x`, `jjwt-api/impl/jackson:0.12.x`, `logstash-logback-encoder`, `spring-boot-starter-test`, `spring-security-test`
-- [~] T002 Generate Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/`) via Spring Initializr or `mvn wrapper:wrapper -Dmaven=3.9.6` in `command-api/`
-- [~] T003 Create `command-api/src/main/java/com/dong/commandapi/CommandApiApplication.java` — `@SpringBootApplication`, `@ConfigurationPropertiesScan`
-- [~] T004 Create `command-api/src/main/resources/application.yml` (port 8080, app name, actuator base) and `application-dev.yml` (dev-only CORS allowed origins for the Expo web client — grep-able, never silently applied)
-- [~] T005 [P] Add `command-api/target/` and `command-api/.mvn/` to root `.gitignore`
-- [~] T006 [P] Add `command-api/` to root `.easignore` (exclude Java service from Expo EAS builds)
-- [~] T007 [P] Create `.github/workflows/java-ci.yml` — trigger on paths `command-api/**`; `actions/setup-java@v4` Temurin 21 + Maven cache; `./mvnw verify`; inject `SUPABASE_JWT_SECRET` from repo secret (per `gh-cli` skill)
-- [~] T008 [P] Create `command-api/.env.example` and `command-api/README.md` (setup, env vars, run/test commands) — mandated by `openapi-to-application-code` + java-springboot skills
+- [X] T001 Create `command-api/pom.xml` — Spring Boot 3.3.x parent, Java 17; dependencies: `spring-boot-starter-web`, `spring-boot-starter-security`, `spring-boot-starter-actuator`, `spring-boot-starter-validation`, `springdoc-openapi-starter-webmvc-ui:2.5.x`, `jjwt-api/impl/jackson:0.12.x`, `logstash-logback-encoder`, `spring-boot-starter-test`, `spring-security-test`
+- [X] T002 Generate Maven Wrapper (`mvnw`, `mvnw.cmd`, `.mvn/wrapper/`) via Spring Initializr or `mvn wrapper:wrapper -Dmaven=3.9.6` in `command-api/`
+- [X] T003 Create `command-api/src/main/java/com/dong/commandapi/CommandApiApplication.java` — `@SpringBootApplication`, `@ConfigurationPropertiesScan`
+- [X] T004 Create `command-api/src/main/resources/application.yml` (port 8080, app name, actuator base) and `application-dev.yml` (dev-only CORS allowed origins for the Expo web client — grep-able, never silently applied)
+- [X] T005 [P] Add `command-api/target/` and `command-api/.mvn/` to root `.gitignore`
+- [X] T006 [P] Add `command-api/` to root `.easignore` (exclude Java service from Expo EAS builds)
+- [X] T007 [P] Create `.github/workflows/java-ci.yml` — trigger on paths `command-api/**`; `actions/setup-java@v4` Temurin 21 + Maven cache; `./mvnw verify`; inject `SUPABASE_JWT_SECRET` from repo secret (per `gh-cli` skill)
+- [X] T008 [P] Create `command-api/.env.example` and `command-api/README.md` (setup, env vars, run/test commands) — mandated by `openapi-to-application-code` + java-springboot skills
 
 **Checkpoint**: `cd command-api && ./mvnw.cmd spring-boot:run` starts on port 8080.
 
@@ -43,11 +41,11 @@
 
 **⚠️ CRITICAL**: No user story work begins until this phase is complete.
 
-- [~] T009 Create `error/` package — `ErrorCode.java` (enum: each constant carries `httpStatus`, `code`, `defaultMessage`; constants per data-model.md), `ApiException.java` (single custom exception wrapping an `ErrorCode`), `ApiError.java` (wire DTO: `error`, `message`, `timestamp`)
-- [~] T010 Create `error/GlobalExceptionHandler.java` — `@RestControllerAdvice`; one handler for `ApiException` (maps `ErrorCode` → status + `ApiError`), plus framework handlers (`HttpMessageNotReadableException`→400, `HttpMediaTypeNotSupportedException`→415, fallback `Exception`→`INTERNAL_ERROR`). New error = new enum constant, no new handler (ADR-2)
-- [~] T011 Create `supabase/SupabaseProperties.java` — `@ConfigurationProperties("supabase") @Validated`, `@NotBlank jwtSecret`, `@NotBlank url`. Missing/blank secret → context fails to start = FR-013 fail-closed startup (ADR-3, research.md §10)
-- [~] T012 Create `security/SecurityConfig.java` — `SecurityFilterChain`: stateless sessions, CSRF disabled, form-login/http-basic disabled; permit `GET /v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health`, `/actuator/metrics/**`; require auth for `/v1/**`; register `ApiAuthenticationEntryPoint` (401→`ApiError`) and `ApiAccessDeniedHandler` (403→`ApiError`) in `security/` — single error egress (ADR-2)
-- [~] T013 Create `observability/CorrelationIdFilter.java` — `OncePerRequestFilter`, `@Order(HIGHEST_PRECEDENCE)`; read/generate `X-Request-Id`, put in SLF4J MDC, clear in `finally`; ordered before `SupabaseJwtFilter` (ADR-6, Chain of Responsibility)
+- [X] T009 Create `error/` package — `ErrorCode.java` (enum: each constant carries `httpStatus`, `code`, `defaultMessage`; constants per data-model.md), `ApiException.java` (single custom exception wrapping an `ErrorCode`), `ApiError.java` (wire DTO: `error`, `message`, `timestamp`)
+- [X] T010 Create `error/GlobalExceptionHandler.java` — `@RestControllerAdvice`; one handler for `ApiException` (maps `ErrorCode` → status + `ApiError`), plus framework handlers (`HttpMessageNotReadableException`→400, `HttpMediaTypeNotSupportedException`→415, fallback `Exception`→`INTERNAL_ERROR`). New error = new enum constant, no new handler (ADR-2)
+- [X] T011 Create `supabase/SupabaseProperties.java` — `@ConfigurationProperties("supabase") @Validated`, `@NotBlank jwtSecret`, `@NotBlank url`. Missing/blank secret → context fails to start = FR-013 fail-closed startup (ADR-3, research.md §10)
+- [X] T012 Create `security/SecurityConfig.java` — `SecurityFilterChain`: stateless sessions, CSRF disabled, form-login/http-basic disabled; permit `GET /v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`, `/actuator/health`, `/actuator/metrics/**`; require auth for `/v1/**`; register `ApiAuthenticationEntryPoint` (401→`ApiError`) and `ApiAccessDeniedHandler` (403→`ApiError`) in `security/` — single error egress (ADR-2)
+- [X] T013 Create `observability/CorrelationIdFilter.java` — `OncePerRequestFilter`, `@Order(HIGHEST_PRECEDENCE)`; read/generate `X-Request-Id`, put in SLF4J MDC, clear in `finally`; ordered before `SupabaseJwtFilter` (ADR-6, Chain of Responsibility)
 
 **Checkpoint**: Service starts. `GET /actuator/health`→200. `GET /v3/api-docs`→200. `POST /v1/...`→401 with `ApiError` JSON via the entry point (no filter yet). Missing `SUPABASE_JWT_SECRET` → context refuses to start.
 
@@ -59,8 +57,8 @@
 
 **Independent Test**: `GET /v3/api-docs`→200 JSON with `paths`; `GET /swagger-ui.html`→200 in browser.
 
-- [~] T014 [P] [US1] `test/.../ApiDiscoverabilityTest.java` — `@SpringBootTest(RANDOM_PORT)`: `/v3/api-docs`→200 + body has `"paths"`; `/swagger-ui.html`→200; both reachable without `Authorization`
-- [~] T015 [US1] Create `OpenApiConfig.java` (package root, not a single-file package) — `@OpenAPIDefinition` (title "DONG Command API", version "1.0.0"), `@SecurityScheme(name="bearerAuth", type=HTTP, scheme="bearer", bearerFormat="JWT")`
+- [X] T014 [P] [US1] `test/.../ApiDiscoverabilityTest.java` — `@SpringBootTest(RANDOM_PORT)`: `/v3/api-docs`→200 + body has `"paths"`; `/swagger-ui.html`→200; both reachable without `Authorization`
+- [X] T015 [US1] Create `OpenApiConfig.java` (package root, not a single-file package) — `@OpenAPIDefinition` (title "DONG Command API", version "1.0.0"), `@SecurityScheme(name="bearerAuth", type=HTTP, scheme="bearer", bearerFormat="JWT")`
 
 **Checkpoint**: Swagger UI shows title + bearerAuth scheme. T014 passes.
 
@@ -72,10 +70,10 @@
 
 **Independent Test**: `POST /v1/rooms/test/commands/noop` no token→401 `ApiError`; expired/tampered/anon→401; valid `authenticated` token→passes (404, no handler yet).
 
-- [~] T016 [P] [US2] `test/.../security/SupabaseJwtFilterTest.java` — cases: (a) no header→401 `UNAUTHORIZED`, (b) malformed bearer→401, (c) expired→401, (d) tampered sig→401, (e) `role=anon`→401, (f) valid `role=authenticated`→passes with `AuthenticatedHost` populated; assert response shape comes from the entry point (single egress)
-- [~] T017 [P] [US2] Create `security/AuthenticatedHost.java` — record `(String hostId, String role)`; the typed Spring Security principal (ADR-4)
-- [~] T018 [US2] Create `security/SupabaseJwtFilter.java` — `OncePerRequestFilter` (constructor-inject `SupabaseProperties`); verify HS256 sig via `Jwts.parser().verifyWith(Keys.hmacShaKeyFor(props.jwtSecret().getBytes()))`; validate `exp`, non-empty `sub`, `role=="authenticated"`; on success set `AuthenticatedHost` into `SecurityContext`; on any failure **throw `AuthenticationException`** — never writes the response (ADR-2)
-- [~] T019 [US2] Register `SupabaseJwtFilter` in `security/SecurityConfig.java` via `.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)` (after `CorrelationIdFilter`)
+- [X] T016 [P] [US2] `test/.../security/SupabaseJwtFilterTest.java` — cases: (a) no header→401 `UNAUTHORIZED`, (b) malformed bearer→401, (c) expired→401, (d) tampered sig→401, (e) `role=anon`→401, (f) valid `role=authenticated`→passes with `AuthenticatedHost` populated; assert response shape comes from the entry point (single egress)
+- [X] T017 [P] [US2] Create `security/AuthenticatedHost.java` — record `(String hostId, String role)`; the typed Spring Security principal (ADR-4)
+- [X] T018 [US2] Create `security/SupabaseJwtFilter.java` — `OncePerRequestFilter` (constructor-inject `SupabaseProperties`); verify HS256 sig via `Jwts.parser().verifyWith(Keys.hmacShaKeyFor(props.jwtSecret().getBytes()))`; validate `exp`, non-empty `sub`, `role=="authenticated"`; on success set `AuthenticatedHost` into `SecurityContext`; on any failure **throw `AuthenticationException`** — never writes the response (ADR-2)
+- [X] T019 [US2] Register `SupabaseJwtFilter` in `security/SecurityConfig.java` via `.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)` (after `CorrelationIdFilter`)
 
 **Checkpoint**: No token→401 `ApiError` (from entry point, identical shape to advice). Valid JWT→404. T016 passes.
 
@@ -87,10 +85,10 @@
 
 **Independent Test**: `/actuator/health`→`{"status":"UP","components":{"supabase":{"status":"UP"}}}`; Supabase down→`DOWN`/503.
 
-- [~] T020 [P] [US3] `test/.../health/HealthEndpointTest.java` — Supabase reachable→200 `UP`; mock `SupabaseClient` unreachable→503 `DOWN`
-- [~] T021 [P] [US3] Create `supabase/SupabaseClient.java` (port) + `supabase/RestClientSupabaseClient.java` (Spring `RestClient`, constructor-inject `SupabaseProperties`, 5s timeout) — ADR-5 Adapter
-- [~] T022 [US3] Create `health/SupabaseHealthIndicator.java` — implements `HealthIndicator`, constructor-inject `SupabaseClient`; `Health.up()`/`down().withDetail("url", ...)`; 10s result cache (SC-003)
-- [~] T023 [US3] Update `application.yml` — `management.endpoints.web.exposure.include: health,metrics`; `management.endpoint.health.show-details: always`; `management.endpoint.health.probes.enabled: true`
+- [X] T020 [P] [US3] `test/.../health/HealthEndpointTest.java` — Supabase reachable→200 `UP`; mock `SupabaseClient` unreachable→503 `DOWN`
+- [X] T021 [P] [US3] Create `supabase/SupabaseClient.java` (port) + `supabase/RestClientSupabaseClient.java` (Spring `RestClient`, constructor-inject `SupabaseProperties`, 5s timeout) — ADR-5 Adapter
+- [X] T022 [US3] Create `health/SupabaseHealthIndicator.java` — implements `HealthIndicator`, constructor-inject `SupabaseClient`; `Health.up()`/`down().withDetail("url", ...)`; 10s result cache (SC-003)
+- [X] T023 [US3] Update `application.yml` — `management.endpoints.web.exposure.include: health,metrics`; `management.endpoint.health.show-details: always`; `management.endpoint.health.probes.enabled: true`
 
 **Checkpoint**: Health shows `supabase` component. T020 passes.
 
@@ -102,13 +100,13 @@
 
 **Independent Test**: valid JWT + UUID v4 key → 200 `ACCEPTED` envelope; missing key→422 `MISSING_IDEMPOTENCY_KEY`; non-UUID→422 `INVALID_UUID`; unknown type→422 `UNKNOWN_COMMAND`.
 
-- [~] T024 [P] [US4] `test/.../command/CommandControllerTest.java` (`@WebMvcTest`, mocked filter) + `CommandDispatcherTest.java` — controller: (a) valid→200 envelope, (b) missing key→422, (c) non-UUID→422, (d) full integration w/ real JWT→200; dispatcher: known type→handler invoked, unknown→`ApiException(UNKNOWN_COMMAND)`
-- [~] T025 [P] [US4] Create `command/CommandHandler.java` (Strategy port: `String commandType()`, `CommandResult handle(CommandContext)`), `command/CommandContext.java`, `command/CommandResult.java` (handler-internal types per data-model.md)
-- [~] T026 [P] [US4] Create `command/dto/CommandRequest.java` (`@Valid`-annotated, nullable `payload`) and `command/dto/CommandResponse.java` (wire-out envelope)
-- [~] T027 [P] [US4] Create `command/idempotency/IdempotencyService.java` (interface) + `NoOpIdempotencyService.java` (UUID v4 format validation only; throws `ApiException(INVALID_UUID)`/`MISSING_IDEMPOTENCY_KEY`) — ADR-7 seam
-- [~] T028 [US4] Create `command/CommandDispatcher.java` — constructor-inject `Map<String,CommandHandler>` (Spring auto-registry) + `IdempotencyService`; resolve `commandType`→handler or throw `ApiException(UNKNOWN_COMMAND)`; consult idempotency before dispatch (ADR-1)
-- [~] T029 [P] [US4] Create `command/EchoCommandHandler.java` — `@Component implements CommandHandler`; `commandType()` matches any (reference stub); returns `CommandResult(ACCEPTED)`. The only handler shipped; documents the extension point for #133
-- [~] T030 [US4] Create `command/CommandController.java` — `POST /v1/rooms/{roomId}/commands/{commandType}`, `@SecurityRequirement("bearerAuth")`, full OpenAPI annotations; obtain `AuthenticatedHost` via `@AuthenticationPrincipal`; build `CommandContext` → `dispatcher.dispatch()` → map `CommandResult`→`CommandResponse` (boundary rule: no handler internals leak)
+- [X] T024 [P] [US4] `test/.../command/CommandControllerTest.java` (`@WebMvcTest`, mocked filter) + `CommandDispatcherTest.java` — controller: (a) valid→200 envelope, (b) missing key→422, (c) non-UUID→422, (d) full integration w/ real JWT→200; dispatcher: known type→handler invoked, unknown→`ApiException(UNKNOWN_COMMAND)`
+- [X] T025 [P] [US4] Create `command/CommandHandler.java` (Strategy port: `String commandType()`, `CommandResult handle(CommandContext)`), `command/CommandContext.java`, `command/CommandResult.java` (handler-internal types per data-model.md)
+- [X] T026 [P] [US4] Create `command/dto/CommandRequest.java` (`@Valid`-annotated, nullable `payload`) and `command/dto/CommandResponse.java` (wire-out envelope)
+- [X] T027 [P] [US4] Create `command/idempotency/IdempotencyService.java` (interface) + `NoOpIdempotencyService.java` (UUID v4 format validation only; throws `ApiException(INVALID_UUID)`/`MISSING_IDEMPOTENCY_KEY`) — ADR-7 seam
+- [X] T028 [US4] Create `command/CommandDispatcher.java` — constructor-inject `Map<String,CommandHandler>` (Spring auto-registry) + `IdempotencyService`; resolve `commandType`→handler or throw `ApiException(UNKNOWN_COMMAND)`; consult idempotency before dispatch (ADR-1)
+- [X] T029 [P] [US4] Create `command/EchoCommandHandler.java` — `@Component implements CommandHandler`; `commandType()` matches any (reference stub); returns `CommandResult(ACCEPTED)`. The only handler shipped; documents the extension point for #133
+- [X] T030 [US4] Create `command/CommandController.java` — `POST /v1/rooms/{roomId}/commands/{commandType}`, `@SecurityRequirement("bearerAuth")`, full OpenAPI annotations; obtain `AuthenticatedHost` via `@AuthenticationPrincipal`; build `CommandContext` → `dispatcher.dispatch()` → map `CommandResult`→`CommandResponse` (boundary rule: no handler internals leak)
 
 **Checkpoint**: valid JWT + UUID key→`{"commandType":...,"status":"ACCEPTED",...}`. All four suites (T014/T016/T020/T024) pass via `./mvnw.cmd test`.
 
@@ -116,9 +114,9 @@
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [~] T031 [P] Create `command-api/src/main/resources/logback-spring.xml` — `LogstashEncoder` console appender (JSON stdout); include MDC so `correlationId` appears on every line (FR-011, SC-006, ADR-6)
-- [~] T032 [P] `test/.../PerformanceSmokeTest.java` — assert rejected request <100ms (SC-002) and authenticated stub <500ms (SC-007) under local conditions (closes coverage gap G2)
-- [~] T033 Run `quickstart.md` end-to-end: health UP, authenticated stub→`ACCEPTED`, `http.server.requests` metric present, JSON logs with `correlationId` in console; `./mvnw.cmd verify` all green
+- [X] T031 [P] Create `command-api/src/main/resources/logback-spring.xml` — `LogstashEncoder` console appender (JSON stdout); include MDC so `correlationId` appears on every line (FR-011, SC-006, ADR-6)
+- [X] T032 [P] `test/.../PerformanceSmokeTest.java` — assert rejected request <100ms (SC-002) and authenticated stub <500ms (SC-007) under local conditions (closes coverage gap G2)
+- [X] T033 Run `quickstart.md` end-to-end: health UP, authenticated stub→`ACCEPTED`, `http.server.requests` metric present, JSON logs with `correlationId` in console; `./mvnw.cmd verify` all green
 
 ---
 
