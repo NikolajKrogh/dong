@@ -1,10 +1,39 @@
 # DONG Command API
 
-Supabase-authenticated multiplayer command API. Spring Boot 3.3 / Java 21.
+Supabase-authenticated multiplayer command API. Spring Boot 3.3 / Java 17.
 
 Bootstrap scope (issue #132 / US4.1): authenticated command surface, OpenAPI docs,
 health/readiness, structured-log + metrics observability, one stub command endpoint.
 Real room/gameplay commands and the ESPN proxy arrive in #133+.
+
+## Quick Start
+
+**1. Compile the Java:**
+```bash
+cd command-api
+./mvnw.cmd clean verify
+```
+All 20 tests must pass. (On Windows, use `.\mvnw.cmd`; on macOS/Linux, use `./mvnw`.)
+
+**2. Set environment variables and boot the service:**
+```powershell
+# PowerShell (Windows)
+$env:SUPABASE_JWT_SECRET = "test-secret-which-is-at-least-thirty-two-bytes-long"
+$env:SUPABASE_URL = "http://localhost:9"
+.\mvnw.cmd spring-boot:run
+```
+
+Or in bash:
+```bash
+export SUPABASE_JWT_SECRET="test-secret-which-is-at-least-thirty-two-bytes-long"
+export SUPABASE_URL="http://localhost:9"
+./mvnw spring-boot:run
+```
+
+**3. Open the API explorer:**
+Navigate to **`http://localhost:8080/swagger-ui.html`** in your browser.
+
+You should see the DONG Command API title with a `bearerAuth` security scheme. Ready to test.
 
 ## Architecture
 
