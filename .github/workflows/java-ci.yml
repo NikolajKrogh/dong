@@ -17,12 +17,12 @@ jobs:
       run:
         working-directory: command-api
     steps:
-      - uses: actions/checkout@44c1b3b3d0c39062ee04e06e60afe08541ea5372  # v4
+      - uses: actions/checkout@v4.1.7
         with:
           persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@99b8673ea15601080d56b0991d4b1eda30162198  # v4
+        uses: actions/setup-java@v4.2.2
         with:
           distribution: temurin
           java-version: "17"
