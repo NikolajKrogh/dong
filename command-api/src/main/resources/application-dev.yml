@@ -1,0 +1,18 @@
+# Dev-only profile. Activate with: --spring.profiles.active=dev
+# CORS is intentionally scoped here (grep-able) and NEVER applied silently in prod.
+# Consumed by SecurityConfig via CorsProperties-style binding.
+command-api:
+  cors:
+    enabled: true
+    allowed-origins:
+      - http://localhost:8081   # Expo web dev server
+      - http://localhost:19006  # Expo web (legacy port)
+    allowed-methods:
+      - GET
+      - POST
+      - OPTIONS
+    allowed-headers:
+      - Authorization
+      - Content-Type
+      - Idempotency-Key
+      - X-Request-Id

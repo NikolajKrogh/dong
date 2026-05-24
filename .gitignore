@@ -56,3 +56,6 @@ android
 .supabase/
 supabase/.env.local
 *.env.local
+
+# Java
+command-api/target
