@@ -1,11 +1,14 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
+**Feature Branch**: `[###-feature-name]`
+
+**Created**: [DATE]
+
+**Status**: Draft
+
 **Input**: User description: "$ARGUMENTS"
 
-## User Scenarios & Testing _(mandatory)_
+## User Scenarios & Testing *(mandatory)*
 
 <!--
   IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
@@ -18,7 +21,6 @@
   - Tested independently
   - Deployed independently
   - Demonstrated to users independently
-  - Described with Gherkin-style acceptance criteria using Given/When/Then
 -->
 
 ### User Story 1 - [Brief Title] (Priority: P1)
@@ -29,7 +31,7 @@
 
 **Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
 
-**Acceptance Scenarios (Gherkin style)**:
+**Acceptance Scenarios**:
 
 1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 2. **Given** [initial state], **When** [action], **Then** [expected outcome]
@@ -44,7 +46,7 @@
 
 **Independent Test**: [Describe how this can be tested independently]
 
-**Acceptance Scenarios (Gherkin style)**:
+**Acceptance Scenarios**:
 
 1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
@@ -58,7 +60,7 @@
 
 **Independent Test**: [Describe how this can be tested independently]
 
-**Acceptance Scenarios (Gherkin style)**:
+**Acceptance Scenarios**:
 
 1. **Given** [initial state], **When** [action], **Then** [expected outcome]
 
@@ -76,31 +78,7 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
-## Platform & State Impact _(mandatory when applicable)_
-
-<!--
-  ACTION REQUIRED: Complete this section whenever the feature changes UI,
-  authentication, persistence, or any shared multiplayer behavior.
--->
-
-- **Platform Behavior**: [Describe expected native and web behavior, or state why a platform is unaffected]
-- **Shared State Model**: [If shared state changes, identify the canonical source of truth and write path]
-- **Identity Model**: [Describe authenticated host, registered user, and guest behavior when relevant]
-- **Migration / Backfill**: [Describe persisted data migration, import, or backward-compatibility needs]
-
-## Delivery & Automation Impact _(mandatory)_
-
-<!--
-  ACTION REQUIRED: Complete this section for every feature. Every new feature
-  MUST define unit-test coverage. Features with substantial UI changes MUST
-  also define the required end-to-end coverage and the primary user journey.
--->
-
-- **Unit Test Coverage**: [Describe the new behavior that must be covered by unit tests]
-- **E2E Test Coverage**: [State whether the UI impact is substantial enough to require end-to-end coverage; if yes, identify the primary journey and affected platforms]
-- **Applicable Skills**: [List repository/platform/domain skills AI contributors MUST check before research or implementation, or state "None identified"]
-
-## Requirements _(mandatory)_
+## Requirements *(mandatory)*
 
 <!--
   ACTION REQUIRED: The content in this section represents placeholders.
@@ -115,17 +93,17 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
-_Example of marking unclear requirements:_
+*Example of marking unclear requirements:*
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
-### Key Entities _(include if feature involves data)_
+### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
-## Success Criteria _(mandatory)_
+## Success Criteria *(mandatory)*
 
 <!--
   ACTION REQUIRED: Define measurable success criteria.

@@ -3,6 +3,7 @@ package com.dong.commandapi.security;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -57,6 +58,7 @@ public class SecurityConfig {
                                 .httpBasic(basic -> basic.disable())
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(PUBLIC_PATHS).permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/v1/matches").permitAll()
                                                 .requestMatchers("/v1/**").authenticated()
                                                 .anyRequest().denyAll())
                                 .exceptionHandling(ex -> ex

@@ -9,7 +9,7 @@ playing drinking game **DONG**.
 It provides a digital platform for:
 
 - Managing game rules
-- Retrieving matches in a time window
+- Retrieving matches in a time window through the command-api proxy
 - Retrieving livescores
 
 ## Getting Started
@@ -47,6 +47,15 @@ npx supabase login
 ```
 
 After creating or changing `.env.local`, restart Expo so the `EXPO_PUBLIC_*` values are picked up by the bundle.
+
+For local command-api backed match discovery, add the Java service base URL to `.env.local` before running Expo:
+
+```env
+EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
+```
+
+Restart Expo after adding or changing `EXPO_PUBLIC_COMMAND_API_URL` so the match discovery client uses the updated backend URL.
+The setup-game flow now calls the public Java `GET /v1/matches` endpoint instead of ESPN directly for match discovery, and repeated identical backend lookups are reused inside the configured default `PT5M` cache window.
 
 ## Local Supabase (optional)
 

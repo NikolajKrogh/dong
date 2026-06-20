@@ -1,22 +1,111 @@
 import { useState, useEffect, useCallback } from "react";
 import {
+  ApiResponse,
   TeamWithLeague,
-  cleanTeamName,
-  formatDateForAPI,
 } from "../utils/matchUtils";
-import { ESPNResponse, ESPNEvent } from "../types/espn";
-import { cacheTeamLogo, cacheLeagueLogo } from "../utils/teamLogos";
 import { useGameStore } from "../store/store";
-import { LeagueEndpoint } from "../constants/leagues";
+import { AVAILABLE_LEAGUES, LeagueEndpoint } from "../constants/leagues";
+import {
+  getMatchDiscoveryApiClient,
+  type MatchDiscoveryRequest,
+  type NormalizedMatch,
+} from "../utils/commandApiClient";
 
-/**
- * Fetch raw data from a given ESPN endpoint.
- * @description Thin wrapper over global fetch for direct scoreboard calls.
- * @param url Endpoint URL.
- * @returns Fetch response promise.
- */
-const fetchDataFromESPN = async (url: string): Promise<Response> => {
-  return fetch(url);
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const RAW_NETWORK_ERROR_MESSAGE_REGEX =
+  /fetch failed|network request failed|load failed/i;
+const GENERIC_MATCH_DISCOVERY_ERROR_MESSAGE =
+  "Match discovery is temporarily unavailable.";
+
+const buildRequestedAt = (selectedDate?: string): string | undefined => {
+  if (!selectedDate || !DATE_ONLY_REGEX.test(selectedDate)) {
+    return undefined;
+  }
+
+  return `${selectedDate}T00:00:00.000Z`;
+};
+
+const buildLeagueLookup = (configuredLeagues: LeagueEndpoint[]) => {
+  const lookup = new Map<string, LeagueEndpoint>();
+
+  configuredLeagues.forEach((league) => {
+    lookup.set(league.code, league);
+  });
+
+  AVAILABLE_LEAGUES.forEach((league) => {
+    if (!lookup.has(league.code)) {
+      lookup.set(league.code, league);
+    }
+  });
+
+  return lookup;
+};
+
+const mapNormalizedMatchesToApiData = (
+  configuredLeagues: LeagueEndpoint[],
+  normalizedMatches: NormalizedMatch[],
+): ApiResponse[] => {
+  return configuredLeagues.map((league) => ({
+    name: league.name,
+    matches: normalizedMatches
+      .filter((match) => match.league === league.code)
+      .map((match) => ({
+        id: match.id,
+        team1: match.homeTeam,
+        team2: match.awayTeam,
+        date: match.startDateTime.split("T")[0] || "",
+        time: new Date(match.startDateTime).toTimeString().substring(0, 5),
+        venue: match.venue ?? "",
+      })),
+  }));
+};
+
+const extractTeamsFromNormalizedMatches = (
+  apiData: ApiResponse[],
+): TeamWithLeague[] => {
+  const allTeams: TeamWithLeague[] = [];
+  const processedTeams = new Set<string>();
+
+  apiData.forEach((leagueData) => {
+    leagueData.matches.forEach((match) => {
+      if (match.team1 && !processedTeams.has(match.team1)) {
+        processedTeams.add(match.team1);
+        allTeams.push({
+          key: `${match.team1}-${leagueData.name}`,
+          value: match.team1,
+          league: leagueData.name,
+        });
+      }
+
+      if (match.team2 && !processedTeams.has(match.team2)) {
+        processedTeams.add(match.team2);
+        allTeams.push({
+          key: `${match.team2}-${leagueData.name}`,
+          value: match.team2,
+          league: leagueData.name,
+        });
+      }
+    });
+  });
+
+  return allTeams.sort((a, b) => a.value.localeCompare(b.value));
+};
+
+const getClientSafeErrorMessage = (error: unknown) => {
+  if (!(error instanceof Error)) {
+    return GENERIC_MATCH_DISCOVERY_ERROR_MESSAGE;
+  }
+
+  const trimmedMessage = error.message.trim();
+
+  if (
+    trimmedMessage.length === 0 ||
+    RAW_NETWORK_ERROR_MESSAGE_REGEX.test(trimmedMessage)
+  ) {
+    return GENERIC_MATCH_DISCOVERY_ERROR_MESSAGE;
+  }
+
+  return trimmedMessage;
 };
 
 /**
@@ -47,7 +136,7 @@ export function useMatchData(selectedDate?: string) {
 
   /**
    * Fetch & process league scoreboards, building match + team collections.
-   * @description Handles logo caching, uniqueness filtering, sorting, and fallback population when requests fail.
+    * @description Handles uniqueness filtering, sorting, and client-safe error state when requests fail.
    */
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -55,198 +144,47 @@ export function useMatchData(selectedDate?: string) {
     setErrorMessage("");
 
     try {
-      /** Date parameter for API queries. */
-      const dateParam = formatDateForAPI(selectedDate);
-
-      /** League endpoints to query. */
       const leagueEndpoints = configuredLeagues;
-
-      /** Parallel fetch promises for each league scoreboard. */
-      const responses = await Promise.all(
-        leagueEndpoints.map((league) =>
-          fetchDataFromESPN(
-            `https://site.api.espn.com/apis/site/v2/sports/soccer/${league.code}/scoreboard?dates=${dateParam}`
-          )
-        )
-      );
-
-      /** Per-league match collections. */
-      const allData: any[] = [];
-      /** Unique teams aggregate. */
-      const allTeams: TeamWithLeague[] = [];
-      /** Map of leagues encountered. */
-      const leagueMap = new Map<string, LeagueEndpoint>();
-      /** Track team names already included. */
-      const processedTeams = new Set<string>();
-
-      for (let i = 0; i < responses.length; i++) {
-        const response = responses[i];
-
-        if (!response.ok) {
-          console.warn(
-            `API for ${leagueEndpoints[i].name} responded with status: ${response.status}`
-          );
-          continue; // Skip to the next league if the response is not OK
-        }
-
-        const data: ESPNResponse = await response.json();
-
-        // Cache team logos from event competitors
-        data.events.forEach((event: ESPNEvent) => {
-          if (event.competitions) {
-            event.competitions.forEach((competition) => {
-              if (competition.competitors) {
-                competition.competitors.forEach((competitor) => {
-                  if (competitor.team?.displayName && competitor.team?.logo) {
-                    cacheTeamLogo(
-                      competitor.team.displayName,
-                      competitor.team.logo
-                    );
-                  }
-                });
-              }
-            });
-          }
-        });
-
-        // Cache league logos
-        if (data.leagues && data.leagues.length > 0) {
-          for (const league of data.leagues) {
-            if (league.logos && league.logos.length > 0) {
-              const defaultLogo = league.logos.find(
-                (logo) =>
-                  (logo.rel?.includes?.("default") ?? false) ||
-                  (logo.rel?.includes?.("full") ?? false)
-              );
-
-              if (defaultLogo && defaultLogo.href) {
-                const appLeagueName = leagueEndpoints.find(
-                  (l) => l.code === league.slug
-                )?.name;
-
-                if (appLeagueName) {
-                  cacheLeagueLogo(appLeagueName, defaultLogo.href);
-                }
-              }
-            }
-          }
-        }
-
-        const leagueName = leagueEndpoints[i].name;
-        leagueMap.set(leagueName, {
-          name: leagueName,
-          code: leagueEndpoints[i].code,
-        });
-
-        // Process matches from events
-        const matches = data.events.map((event: ESPNEvent) => {
-          let homeTeam = "";
-          let awayTeam = "";
-
-          // Attempt to parse team names from event name or shortName
-          if (event.name && event.name.includes(" at ")) {
-            const parts = event.name.split(" at ");
-            awayTeam = parts[0].trim();
-            homeTeam = parts[1].trim();
-          } else if (event.shortName && event.shortName.includes(" @ ")) {
-            const parts = event.shortName.split(" @ ");
-            if (parts.length === 2) {
-              awayTeam = parts[0].trim();
-              homeTeam = parts[1].trim();
-            }
-          }
-          // Fallback or further parsing might be needed if names are not in "TeamA at TeamB" format
-
-          let time = "";
-          if (event.date) {
-            const dateObj = new Date(event.date);
-            time = dateObj.toTimeString().substring(0, 5); // HH:MM format
-          }
-
-          return {
-            id: event.id,
-            team1: homeTeam,
-            team2: awayTeam,
-            date: event.date?.split("T")[0] || "", // YYYY-MM-DD format
-            time: time,
-            venue: event.venue?.displayName || "",
-          };
-        });
-
-        allData.push({
-          name: leagueName,
-          matches: matches,
-        });
-
-        // Extract unique teams from the processed matches
-        matches.forEach((match) => {
-          if (match.team1 && !processedTeams.has(match.team1)) {
-            processedTeams.add(match.team1);
-            allTeams.push({
-              key: `${match.team1}-${leagueName}`, // Composite key
-              value: match.team1,
-              league: leagueName,
-            });
-          }
-
-          if (match.team2 && !processedTeams.has(match.team2)) {
-            processedTeams.add(match.team2);
-            allTeams.push({
-              key: `${match.team2}-${leagueName}`, // Composite key
-              value: match.team2,
-              league: leagueName,
-            });
-          }
-        });
+      if (leagueEndpoints.length === 0) {
+        setApiData([]);
+        setTeamsData([]);
+        setAvailableLeagues([]);
+        return;
       }
 
-      setApiData(allData);
-      setAvailableLeagues(Array.from(leagueMap.values()));
-
-      const sortedTeams = allTeams.sort((a, b) =>
-        a.value.localeCompare(b.value)
+      const leagueLookup = buildLeagueLookup(leagueEndpoints);
+      const request: MatchDiscoveryRequest = {
+        leagueCodes: leagueEndpoints.map((league) => league.code),
+        requestedAt: buildRequestedAt(selectedDate),
+      };
+      const normalizedMatches = await getMatchDiscoveryApiClient().discoverMatches(
+        request,
       );
-      setTeamsData(sortedTeams);
+
+      const availableLeagueCodes = new Set(request.leagueCodes);
+      const resolvedAvailableLeagues = request.leagueCodes
+        .map((leagueCode) => leagueLookup.get(leagueCode))
+        .filter((league): league is LeagueEndpoint => Boolean(league))
+        .filter((league) => availableLeagueCodes.has(league.code));
+
+      const groupedApiData = mapNormalizedMatchesToApiData(
+        resolvedAvailableLeagues,
+        normalizedMatches,
+      );
+
+      setApiData(groupedApiData);
+      setAvailableLeagues(resolvedAvailableLeagues);
+      setTeamsData(extractTeamsFromNormalizedMatches(groupedApiData));
     } catch (error) {
       console.error(
         "Error fetching teams:",
         error instanceof Error ? error.message : String(error)
       );
       setIsError(true);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to load teams"
-      );
-
-      // Provide fallback data in case of an error
-      const fallbackTeams = [
-        "Arsenal",
-        "Aston Villa",
-        "Bournemouth",
-        "Brentford",
-        "Brighton & Hove Albion",
-        "Chelsea",
-        "Crystal Palace",
-        "Everton",
-        "Fulham",
-        "Leicester City",
-        "Liverpool",
-        "Manchester City",
-        "Manchester United",
-        "Newcastle United",
-        "Nottingham Forest",
-        "Southampton",
-        "Tottenham Hotspur",
-        "West Ham United",
-        "Wolverhampton Wanderers",
-        "Ipswich Town",
-      ].map((team) => ({
-        key: team,
-        value: cleanTeamName(team),
-        league: "Premier League",
-      }));
-
-      setTeamsData(fallbackTeams);
-      setAvailableLeagues([{ name: "Premier League", code: "eng.1" }]);
+      setErrorMessage(getClientSafeErrorMessage(error));
+      setApiData([]);
+      setTeamsData([]);
+      setAvailableLeagues([]);
     } finally {
       setIsLoading(false);
     }
