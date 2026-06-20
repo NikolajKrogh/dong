@@ -9,8 +9,15 @@ import java.util.UUID;
 
 /**
  * Bootstrap implementation: validates the {@code Idempotency-Key} is a
- * well-formed UUID v4. No deduplication storage (out of scope per spec
- * Assumptions); #133 replaces this with a persistent implementation.
+ * well-formed UUID v4 and nothing more.
+ *
+ * <p><strong>This performs NO deduplication.</strong> Two requests carrying the
+ * same key are both executed — replaying a command re-runs it. That is only safe
+ * while every {@link com.dong.commandapi.command.CommandHandler} is side-effect
+ * free (currently just {@code echo}). The first state-mutating command MUST
+ * replace this with a persistent dedup store in the same change; issue #133
+ * tracks that work, and {@code IdempotencyStubGuardTest} fails if a second
+ * handler is wired before then.
  */
 @Service
 public class NoOpIdempotencyService implements IdempotencyService {

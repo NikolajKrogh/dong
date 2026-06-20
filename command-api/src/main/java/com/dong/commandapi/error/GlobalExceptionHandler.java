@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -54,6 +55,14 @@ public class GlobalExceptionHandler {
                 .map(fe -> fe.getField() + " " + fe.getDefaultMessage())
                 .orElse(ErrorCode.BAD_REQUEST.defaultMessage());
         log.warn("Request validation failed: {}", detail);
+        return ResponseEntity.status(ErrorCode.BAD_REQUEST.httpStatus())
+                .body(ApiError.of(ErrorCode.BAD_REQUEST, detail));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String detail = ex.getName() + " has an invalid value.";
+        log.warn("Request parameter type mismatch for {}: {}", ex.getName(), ex.getValue());
         return ResponseEntity.status(ErrorCode.BAD_REQUEST.httpStatus())
                 .body(ApiError.of(ErrorCode.BAD_REQUEST, detail));
     }

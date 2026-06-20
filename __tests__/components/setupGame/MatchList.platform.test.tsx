@@ -221,6 +221,11 @@ const renderMatchList = (overrides: Record<string, unknown> = {}) => {
 describe("MatchList platform adoption", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockMatchTeamsData.splice(0, mockMatchTeamsData.length);
+    mockApiData.splice(0, mockApiData.length);
+    mockAvailableLeagues.splice(0, mockAvailableLeagues.length);
+    mockAllTeamsData.splice(0, mockAllTeamsData.length);
+    mockFilteredTeamsData.splice(0, mockFilteredTeamsData.length);
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
@@ -300,5 +305,49 @@ describe("MatchList platform adoption", () => {
     expect(layout.props.style).toEqual(mockStyles.matchListLayout);
     expect(controls.props.style).toEqual(mockStyles.matchListControls);
     expect(results.props.style).toEqual(mockStyles.matchListResults);
+  });
+
+  it("passes backend-backed grouped matches through the existing MatchFilter consumer shape", () => {
+    mockMatchDataState.isLoading = false;
+    mockMatchTeamsData.push(
+      {
+        key: "Arsenal-Premier League",
+        value: "Arsenal",
+        league: "Premier League",
+      },
+      {
+        key: "Chelsea-Premier League",
+        value: "Chelsea",
+        league: "Premier League",
+      },
+    );
+    mockApiData.push({
+      name: "Premier League",
+      matches: [
+        {
+          id: "backend-1",
+          team1: "Arsenal",
+          team2: "Chelsea",
+          date: "2026-05-24",
+          time: "19:00",
+          venue: "Emirates Stadium",
+        },
+      ],
+    });
+    mockAvailableLeagues.push({ name: "Premier League", code: "eng.1" });
+
+    const renderer = renderMatchList();
+    const matchFilter = renderer.root.findByProps({ testID: "MatchFilter" });
+
+    expect(matchFilter.props.filteredMatches).toEqual([
+      {
+        id: "backend-1",
+        team1: "Arsenal",
+        team2: "Chelsea",
+        date: "2026-05-24",
+        time: "19:00",
+        venue: "Emirates Stadium",
+      },
+    ]);
   });
 });
