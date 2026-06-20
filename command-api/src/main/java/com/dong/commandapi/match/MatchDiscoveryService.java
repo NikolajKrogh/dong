@@ -55,7 +55,7 @@ public class MatchDiscoveryService {
             EspnClient espnClient,
             Clock clock
     ) {
-        this(properties, matchNormalizer, espnClient, new MatchCacheService(properties, clock), clock);
+        this(properties, matchNormalizer, espnClient, new MatchCacheService(properties), clock);
     }
 
     MatchDiscoveryService(

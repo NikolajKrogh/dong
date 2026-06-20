@@ -15,6 +15,8 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(
@@ -33,30 +35,31 @@ class MatchDiscoveryPerformanceTest {
     private EspnClient espnClient;
 
     @Test
-    void repeatedIdenticalQueriesStayResponsiveAfterTheCacheWarms() {
-        LocalDate requestedDate = LocalDate.of(2026, 5, 25);
+    void repeatedIdenticalQueriesServeFromCacheWithoutRefetchingUpstream() {
+        // A date no other test uses, so this shares the Spring context's singleton
+        // cache yet still starts cold here — keeping the fetch count deterministic.
+        LocalDate requestedDate = LocalDate.of(2026, 7, 15);
         when(espnClient.fetchScoreboard("eng.1", requestedDate)).thenReturn(scoreboard(
                 "401791345",
                 "Chelsea at Arsenal",
-                OffsetDateTime.parse("2026-05-25T19:00:00Z"),
+                OffsetDateTime.parse("2026-07-15T19:00:00Z"),
                 "pre",
                 "Emirates Stadium",
                 competition(
                         competitor("home", "Arsenal", "0"),
                         competitor("away", "Chelsea", "0"))));
 
-        String requestPath = "/v1/matches?leagueCode=eng.1&requestedAt=2026-05-25T00:00:00.000Z";
+        String requestPath = "/v1/matches?leagueCode=eng.1&requestedAt=2026-07-15T00:00:00.000Z";
 
         ResponseEntity<String> warmupResponse = restTemplate.getForEntity(requestPath, String.class);
-        assertThat(warmupResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        long start = System.nanoTime();
         ResponseEntity<String> cachedResponse = restTemplate.getForEntity(requestPath, String.class);
-        long elapsedMillis = (System.nanoTime() - start) / 1_000_000;
 
+        assertThat(warmupResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(cachedResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(cachedResponse.getBody()).contains("\"league\":\"eng.1\"");
-        assertThat(elapsedMillis).isLessThan(250L);
+        // The cache, not a wall-clock latency threshold, is what we assert: the
+        // second identical request must be served without a second upstream fetch.
+        verify(espnClient, times(1)).fetchScoreboard("eng.1", requestedDate);
     }
 
     private static EspnScoreboardResponse scoreboard(

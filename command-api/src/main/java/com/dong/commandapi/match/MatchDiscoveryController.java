@@ -31,7 +31,9 @@ public class MatchDiscoveryController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Normalized match list returned"),
             @ApiResponse(responseCode = "400", description = "Invalid requestedAt or unsupported leagueCode"),
-            @ApiResponse(responseCode = "503", description = "Match discovery is not fully implemented yet")
+            @ApiResponse(responseCode = "502", description = "Upstream match provider returned an invalid response"),
+            @ApiResponse(responseCode = "503", description = "Upstream match provider is unavailable"),
+            @ApiResponse(responseCode = "500", description = "Unexpected server error")
     })
     public List<NormalizedMatch> discover(
             @Parameter(description = "Repeat leagueCode to request one or more supported leagues")

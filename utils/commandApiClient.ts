@@ -113,18 +113,39 @@ const readErrorMessage = async (response: Response) => {
   return `Command API request failed with status ${response.status}.`;
 };
 
+const MATCH_DISCOVERY_TIMEOUT_MS = 10_000;
+
 export const createMatchDiscoveryApiClient = (
   fetchFn: typeof fetch = fetch,
   config: CommandApiConfig = getCommandApiConfig(),
 ): MatchDiscoveryApiClient => {
   return {
     async discoverMatches(request) {
-      const response = await fetchFn(buildMatchDiscoveryUrl(config, request), {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(
+        () => controller.abort(),
+        MATCH_DISCOVERY_TIMEOUT_MS,
+      );
+      let response: Response;
+
+      try {
+        response = await fetchFn(buildMatchDiscoveryUrl(config, request), {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          signal: controller.signal,
+        });
+      } catch (error) {
+        // A stalled connection aborts via the timeout above; surface it as a
+        // clear, client-safe message rather than the raw AbortError.
+        if (controller.signal.aborted) {
+          throw new Error("Match discovery request timed out.");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (!response.ok) {
         throw new Error(await readErrorMessage(response));

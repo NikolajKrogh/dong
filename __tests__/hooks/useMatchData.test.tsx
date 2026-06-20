@@ -141,6 +141,72 @@ describe("useMatchData", () => {
     });
   });
 
+  it("keeps a team that appears in more than one league as a per-league option", async () => {
+    // Stable reference: a fresh array each render would retrigger the effect.
+    const multiLeague = [
+      { code: "eng.1", name: "Premier League", category: "Europe" },
+      { code: "eng.fa", name: "FA Cup", category: "Europe" },
+    ];
+    mockUseGameStore.mockImplementation(
+      (selector: (state: { configuredLeagues: unknown[] }) => unknown) =>
+        selector({ configuredLeagues: multiLeague }),
+    );
+    mockDiscoverMatches.mockResolvedValueOnce([
+      {
+        id: "league-match",
+        league: "eng.1",
+        homeTeam: "Arsenal",
+        awayTeam: "Chelsea",
+        startDateTime: "2026-05-24T19:00:00Z",
+        status: "scheduled",
+      },
+      {
+        id: "cup-match",
+        league: "eng.fa",
+        homeTeam: "Arsenal",
+        awayTeam: "Manchester City",
+        startDateTime: "2026-05-25T19:00:00Z",
+        status: "scheduled",
+      },
+    ]);
+
+    let observedHook:
+      | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>
+      | undefined;
+
+    const Probe = () => {
+      const { useMatchData } = require("../../hooks/useMatchData");
+
+      observedHook = useMatchData("2026-05-24");
+      return null;
+    };
+
+    let renderer: TestRenderer.ReactTestRenderer;
+
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // "Arsenal" must survive in both leagues rather than being deduped away.
+    expect(observedHook?.teamsData).toHaveLength(4);
+    expect(observedHook?.teamsData).toEqual(
+      expect.arrayContaining([
+        {
+          key: "Arsenal-Premier League",
+          value: "Arsenal",
+          league: "Premier League",
+        },
+        { key: "Arsenal-FA Cup", value: "Arsenal", league: "FA Cup" },
+      ]),
+    );
+
+    await TestRenderer.act(async () => {
+      renderer.unmount();
+    });
+  });
+
   it("returns empty grouped results when the command API returns no matches", async () => {
     mockDiscoverMatches.mockResolvedValueOnce([]);
 

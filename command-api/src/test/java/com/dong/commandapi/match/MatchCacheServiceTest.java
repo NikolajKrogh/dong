@@ -1,15 +1,12 @@
 package com.dong.commandapi.match;
 
 import com.dong.commandapi.match.dto.NormalizedMatch;
+import com.github.benmanes.caffeine.cache.Ticker;
 import org.junit.jupiter.api.Test;
 
-import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -27,13 +24,13 @@ class MatchCacheServiceTest {
 
     @Test
     void returnsCachedResultsUntilConfiguredTtlExpiresUsingTheInjectedClock() {
-        AdjustableClock clock = new AdjustableClock(Instant.parse("2026-05-24T10:15:30Z"), ZoneOffset.UTC);
+        AdjustableTicker ticker = new AdjustableTicker();
         MatchDiscoveryProperties properties = new MatchDiscoveryProperties(
                 Duration.ofMinutes(5),
                 "https://site.api.espn.com/apis/site/v2/sports/soccer",
                 List.of("eng.1"),
                 null);
-        MatchCacheService cacheService = new MatchCacheService(properties, clock);
+        MatchCacheService cacheService = new MatchCacheService(properties, ticker);
         String cacheKey = MatchQuery.cacheKey(LocalDate.of(2026, 5, 24), "eng.1");
         AtomicInteger invocationCount = new AtomicInteger();
         Supplier<List<NormalizedMatch>> loader = () -> List.of(match("match-" + invocationCount.incrementAndGet()));
@@ -41,10 +38,10 @@ class MatchCacheServiceTest {
         List<NormalizedMatch> firstResult = cacheService.getOrLoad(cacheKey, loader);
         List<NormalizedMatch> secondResult = cacheService.getOrLoad(cacheKey, loader);
 
-        clock.advance(Duration.ofMinutes(4).plusSeconds(59));
+        ticker.advance(Duration.ofMinutes(4).plusSeconds(59));
         List<NormalizedMatch> cachedResult = cacheService.getOrLoad(cacheKey, loader);
 
-        clock.advance(Duration.ofSeconds(2));
+        ticker.advance(Duration.ofSeconds(2));
         List<NormalizedMatch> refreshedResult = cacheService.getOrLoad(cacheKey, loader);
 
         assertThat(firstResult).extracting(NormalizedMatch::id).containsExactly("match-1");
@@ -56,13 +53,13 @@ class MatchCacheServiceTest {
 
     @Test
     void coalescesInFlightLoadsForIdenticalQueries() throws InterruptedException, ExecutionException, TimeoutException {
-        AdjustableClock clock = new AdjustableClock(Instant.parse("2026-05-24T10:15:30Z"), ZoneOffset.UTC);
+        AdjustableTicker ticker = new AdjustableTicker();
         MatchDiscoveryProperties properties = new MatchDiscoveryProperties(
                 Duration.ofMinutes(5),
                 "https://site.api.espn.com/apis/site/v2/sports/soccer",
                 List.of("eng.1"),
                 null);
-        MatchCacheService cacheService = new MatchCacheService(properties, clock);
+        MatchCacheService cacheService = new MatchCacheService(properties, ticker);
         String cacheKey = MatchQuery.cacheKey(LocalDate.of(2026, 5, 24), "eng.1");
         AtomicInteger invocationCount = new AtomicInteger();
         CountDownLatch loaderStarted = new CountDownLatch(1);
@@ -121,33 +118,18 @@ class MatchCacheServiceTest {
                 "Emirates Stadium");
     }
 
-    private static final class AdjustableClock extends Clock {
+    /** Monotonic, manually-advanced ticker (the Caffeine-recommended test approach). */
+    private static final class AdjustableTicker implements Ticker {
 
-        private Instant currentInstant;
-        private final ZoneId zoneId;
-
-        private AdjustableClock(Instant currentInstant, ZoneId zoneId) {
-            this.currentInstant = currentInstant;
-            this.zoneId = zoneId;
-        }
+        private long nanos;
 
         @Override
-        public ZoneId getZone() {
-            return zoneId;
-        }
-
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return new AdjustableClock(currentInstant, zone);
-        }
-
-        @Override
-        public Instant instant() {
-            return currentInstant;
+        public long read() {
+            return nanos;
         }
 
         private void advance(Duration duration) {
-            currentInstant = currentInstant.plus(duration);
+            nanos += duration.toNanos();
         }
     }
 }

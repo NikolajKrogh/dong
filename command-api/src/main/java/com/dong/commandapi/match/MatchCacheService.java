@@ -7,7 +7,6 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.Clock;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -19,9 +18,9 @@ import java.util.function.Supplier;
  * cached and retries on the next request, while healthy leagues stay warm.
  *
  * <p>Backed by Caffeine: {@code maximumSize} bounds memory on the public,
- * unauthenticated endpoint, {@code expireAfterWrite} drives the TTL (via an
- * injectable {@link Clock} for testing), and {@code get(key, loader)} coalesces
- * concurrent identical loads while never caching a thrown exception.
+ * unauthenticated endpoint, {@code expireAfterWrite} drives the TTL off a
+ * monotonic {@link Ticker} (overridable in tests), and {@code get(key, loader)}
+ * coalesces concurrent identical loads while never caching a thrown exception.
  */
 @Service
 public class MatchCacheService {
@@ -30,16 +29,17 @@ public class MatchCacheService {
 
     @Autowired
     public MatchCacheService(MatchDiscoveryProperties properties) {
-        this(properties, Clock.systemUTC());
+        this(properties, Ticker.systemTicker());
     }
 
-    MatchCacheService(MatchDiscoveryProperties properties, Clock clock) {
-        Clock effectiveClock = clock == null ? Clock.systemUTC() : clock;
-        Ticker ticker = () -> effectiveClock.millis() * 1_000_000L;
+    // Caffeine's expireAfterWrite assumes a monotonic time source, so the ticker
+    // (system in prod, a manual-advancing one in tests) must never use wall-clock
+    // time, which can jump backwards on NTP/clock adjustments.
+    MatchCacheService(MatchDiscoveryProperties properties, Ticker ticker) {
         this.cache = Caffeine.newBuilder()
                 .expireAfterWrite(properties.ttl())
                 .maximumSize(properties.cacheMaximumSize())
-                .ticker(ticker)
+                .ticker(ticker == null ? Ticker.systemTicker() : ticker)
                 .executor(Runnable::run)
                 .build();
     }

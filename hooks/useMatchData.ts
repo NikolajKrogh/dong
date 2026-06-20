@@ -68,19 +68,23 @@ const extractTeamsFromNormalizedMatches = (
 
   apiData.forEach((leagueData) => {
     leagueData.matches.forEach((match) => {
-      if (match.team1 && !processedTeams.has(match.team1)) {
-        processedTeams.add(match.team1);
+      // Dedupe per (team, league): the same team name can legitimately appear in
+      // more than one league, and each is a distinct selectable option.
+      const team1Key = `${match.team1}-${leagueData.name}`;
+      if (match.team1 && !processedTeams.has(team1Key)) {
+        processedTeams.add(team1Key);
         allTeams.push({
-          key: `${match.team1}-${leagueData.name}`,
+          key: team1Key,
           value: match.team1,
           league: leagueData.name,
         });
       }
 
-      if (match.team2 && !processedTeams.has(match.team2)) {
-        processedTeams.add(match.team2);
+      const team2Key = `${match.team2}-${leagueData.name}`;
+      if (match.team2 && !processedTeams.has(team2Key)) {
+        processedTeams.add(team2Key);
         allTeams.push({
-          key: `${match.team2}-${leagueData.name}`,
+          key: team2Key,
           value: match.team2,
           league: leagueData.name,
         });
