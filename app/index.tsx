@@ -9,6 +9,7 @@ import React, {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   Image,
   Modal,
   ScrollView,
@@ -33,7 +34,9 @@ import AppIcon from "../components/AppIcon";
 import { GuestJoinModal } from "../components/guestJoin/GuestJoinModal";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { ShellActionButton, ShellCard, ShellScreen } from "../components/ui";
+import { useAccountAuth } from "../hooks/useAccountAuth";
 import { useGuestRoomJoin } from "../hooks/useGuestRoomJoin";
+import { useHostRoomCreate } from "../hooks/useHostRoomCreate";
 import { PlatformAnimation } from "../platform";
 import { isWideLayout } from "./style/responsive";
 import { useColors } from "./style/theme";
@@ -300,6 +303,12 @@ const HomeScreen = () => {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const wideLayout = isWideLayout(width);
   const { players, matches, history, resetState } = useGameStore();
+  const { account } = useAccountAuth();
+  const {
+    isCreating: isCreatingRoom,
+    error: createRoomError,
+    createRoom,
+  } = useHostRoomCreate();
   const {
     session: guestRoomSession,
     error: guestRoomError,
@@ -470,6 +479,42 @@ const HomeScreen = () => {
                 totalDrinks={totalDrinks}
                 onPress={handleOpenHistory}
               />
+            )}
+
+            {account !== null && (
+              <>
+                <ShellActionButton
+                  variant="primary"
+                  label={isCreatingRoom ? "Creating Room…" : "Create Room"}
+                  testID="home-create-room-button"
+                  disabled={isCreatingRoom}
+                  icon={
+                    isCreatingRoom ? (
+                      <ActivityIndicator color={colors.white} />
+                    ) : (
+                      <AppIcon
+                        name="people-outline"
+                        size={22}
+                        color={colors.white}
+                      />
+                    )
+                  }
+                  onPress={() => {
+                    void createRoom();
+                  }}
+                  widthMode={wideLayout ? "wide" : undefined}
+                  style={{ marginTop: 16 }}
+                />
+
+                {createRoomError !== null && (
+                  <Text
+                    testID="home-create-room-error"
+                    style={styles.createRoomError}
+                  >
+                    {createRoomError}
+                  </Text>
+                )}
+              </>
             )}
 
             <ShellActionButton

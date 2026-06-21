@@ -9,6 +9,16 @@ const mockUseGuestRoomJoin = jest.fn(() => ({
   submitGuestJoin: jest.fn(),
 }));
 
+const mockUseAccountAuth = jest.fn(() => ({
+  account: null as { id: string } | null,
+}));
+
+const mockUseHostRoomCreate = jest.fn(() => ({
+  isCreating: false,
+  error: null as string | null,
+  createRoom: jest.fn(),
+}));
+
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
   height: 844,
@@ -18,6 +28,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 
 jest.mock("react-native", () => {
   return {
+    ActivityIndicator: "ActivityIndicator",
     View: "View",
     Text: "Text",
     Pressable: "Pressable",
@@ -37,6 +48,14 @@ jest.mock("../../platform", () => ({
 
 jest.mock("../../hooks/useGuestRoomJoin", () => ({
   useGuestRoomJoin: () => mockUseGuestRoomJoin(),
+}));
+
+jest.mock("../../hooks/useAccountAuth", () => ({
+  useAccountAuth: () => mockUseAccountAuth(),
+}));
+
+jest.mock("../../hooks/useHostRoomCreate", () => ({
+  useHostRoomCreate: () => mockUseHostRoomCreate(),
 }));
 
 jest.mock("expo-router", () => ({

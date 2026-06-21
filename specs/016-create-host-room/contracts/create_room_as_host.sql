@@ -1,0 +1,30 @@
+-- Contract: create_room_as_host
+-- Migration: supabase/migrations/029_host_create_room.sql
+--
+-- Public entry point (called by Supabase JS client):
+--   SELECT public.create_room_as_host();
+--
+-- Caller:   authenticated Supabase user (host)
+-- Auth:     SECURITY DEFINER; caller identity via auth.uid() internally
+-- Grant:    EXECUTE to authenticated; REVOKE from anon and PUBLIC
+--
+-- Response shape (jsonb):
+-- {
+--   "sessionId":          "<uuid string>",
+--   "joinCode":           "<6-digit numeric string, zero-padded>",
+--   "hostParticipantId":  "<uuid string>",
+--   "hostDisplayName":    "<string>"
+-- }
+--
+-- Behaviour:
+--   - If host already has a joinable room: returns that room's data, no insert.
+--   - If host has no joinable room: creates session + participant atomically.
+--   - Join code is unique across all non-completed sessions (partial unique index).
+--
+-- Error conditions (SQLSTATE P0001 via RAISE EXCEPTION):
+--   'not_authenticated'          — auth.uid() is null (caller not signed in)
+--   'create_room_code_exhausted' — 5 code generation attempts all collided (extremely unlikely)
+--
+-- Example (Supabase JS client):
+--   const { data, error } = await supabase.rpc('create_room_as_host');
+--   // data: HostRoomCreateResponse

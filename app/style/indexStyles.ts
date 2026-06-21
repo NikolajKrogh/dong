@@ -331,5 +331,11 @@ export default function createStyles(colors: Colors) {
       width: 400,
       height: 400,
     } as ViewStyle,
+    createRoomError: {
+      color: colors.danger,
+      fontSize: 14,
+      textAlign: "center",
+      marginTop: 8,
+    },
   });
 }

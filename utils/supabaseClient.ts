@@ -7,6 +7,7 @@ import type {
   GuestRoomJoinResponse,
   GuestRoomSnapshot,
 } from "../types/guestRoom";
+import type { HostRoomCreateResponse } from "../types/hostRoom";
 import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
@@ -30,10 +31,15 @@ export interface GuestRoomRpcClient {
   getGuestRoomSnapshot(guestToken: string): Promise<GuestRoomSnapshot>;
 }
 
+export interface HostRoomRpcClient {
+  createRoomAsHost(): Promise<HostRoomCreateResponse>;
+}
+
 let cachedSupabaseClient: SupabaseClient | null = null;
 let cachedLegacyHistoryImportRpcClient: LegacyHistoryImportRpcClient | null =
   null;
 let cachedGuestRoomRpcClient: GuestRoomRpcClient | null = null;
+let cachedHostRoomRpcClient: HostRoomRpcClient | null = null;
 
 const readTrimmedEnvValue = (value: string | undefined) => {
   if (typeof value !== "string") {
@@ -177,4 +183,34 @@ export const getGuestRoomRpcClient = () => {
   cachedGuestRoomRpcClient ??= createGuestRoomRpcClient();
 
   return cachedGuestRoomRpcClient;
+};
+
+export const createHostRoomRpcClient = (
+  client: SupabaseClient = getSupabaseClient(),
+): HostRoomRpcClient => {
+  return {
+    async createRoomAsHost() {
+      const { data, error } = await client
+        .rpc("create_room_as_host")
+        .overrideTypes<HostRoomCreateResponse, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase create_room_as_host returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+  };
+};
+
+export const getHostRoomRpcClient = () => {
+  cachedHostRoomRpcClient ??= createHostRoomRpcClient();
+
+  return cachedHostRoomRpcClient;
 };

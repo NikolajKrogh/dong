@@ -36,6 +36,22 @@ export const LEGACY_HISTORY_IMPORT_USER_ID =
 export const LEGACY_HISTORY_IMPORT_USER_EMAIL =
   "legacy-import@example.com" as const;
 
+export const HOST_ROOM_CREATE_RPC_PATH =
+  "**/rest/v1/rpc/create_room_as_host" as const;
+
+export const HOST_ROOM_USER_ID =
+  "22222222-2222-2222-2222-222222222222" as const;
+
+export const HOST_ROOM_USER_EMAIL = "host-room@example.com" as const;
+
+export const HOST_ROOM_DISPLAY_NAME = "Alice Host" as const;
+
+export const HOST_ROOM_JOIN_CODE = "123456" as const;
+
+export const HOST_ROOM_SESSION_ID = "host-room-session-1" as const;
+
+export const HOST_ROOM_PARTICIPANT_ID = "host-room-participant-1" as const;
+
 export const GUEST_ROOM_JOIN_RPC_PATH =
   "**/rest/v1/rpc/join_room_as_guest" as const;
 
@@ -380,6 +396,108 @@ export const seedLegacyHistoryImportState = async (page: Page) => {
 
   await page.reload();
   await waitForBrowserFlowReady(page);
+};
+
+export const buildHostRoomAuthSession = () => ({
+  access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.host-room-access-token",
+  refresh_token: "host-room-refresh-token",
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  token_type: "bearer",
+  user: {
+    id: HOST_ROOM_USER_ID,
+    aud: "authenticated",
+    role: "authenticated",
+    email: HOST_ROOM_USER_EMAIL,
+    app_metadata: {},
+    user_metadata: {},
+    identities: [],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+});
+
+export const buildHostRoomAuthUser = () => ({
+  id: HOST_ROOM_USER_ID,
+  aud: "authenticated",
+  role: "authenticated",
+  email: HOST_ROOM_USER_EMAIL,
+  app_metadata: {},
+  user_metadata: {},
+  identities: [],
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+export const buildHostRoomAccountRow = () => ({
+  id: HOST_ROOM_USER_ID,
+  preferred_display_name: HOST_ROOM_DISPLAY_NAME,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+export const buildHostRoomSettingsRow = () => ({
+  account_id: HOST_ROOM_USER_ID,
+  settings_data: {},
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+export const buildHostRoomCreateResponse = () => ({
+  sessionId: HOST_ROOM_SESSION_ID,
+  joinCode: HOST_ROOM_JOIN_CODE,
+  hostParticipantId: HOST_ROOM_PARTICIPANT_ID,
+  hostDisplayName: HOST_ROOM_DISPLAY_NAME,
+});
+
+export const mockHostRoomServices = async (page: Page) => {
+  await page.route("**/auth/v1/user", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomAuthUser()),
+    });
+  });
+
+  await page.route("**/rest/v1/accounts**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomAccountRow()),
+    });
+  });
+
+  await page.route("**/rest/v1/settings**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomSettingsRow()),
+    });
+  });
+
+  await page.route(HOST_ROOM_CREATE_RPC_PATH, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomCreateResponse()),
+    });
+  });
+};
+
+export const seedHostRoomAuthSession = async (page: Page) => {
+  const authSession = buildHostRoomAuthSession();
+
+  await page.addInitScript(
+    ({ authStorageKey, session, launchedKey }) => {
+      globalThis.localStorage.setItem(launchedKey, "true");
+      globalThis.localStorage.setItem(authStorageKey, JSON.stringify(session));
+    },
+    {
+      authStorageKey: LEGACY_HISTORY_IMPORT_AUTH_STORAGE_KEY,
+      session: authSession,
+      launchedKey: "hasLaunched",
+    },
+  );
 };
 
 const buildGuestFixtureParticipant = (
