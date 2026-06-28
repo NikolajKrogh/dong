@@ -19,6 +19,32 @@ const mockUseHostRoomCreate = jest.fn(() => ({
   createRoom: jest.fn(),
 }));
 
+const mockUseMyActiveRoom = jest.fn(() => ({
+  activeRoom: null as { sessionId: string } | null,
+  isLoading: false,
+  refresh: jest.fn(),
+}));
+
+const mockUseRegisteredRoomJoin = jest.fn(() => ({
+  isJoining: false,
+  error: null as string | null,
+  conflictRoom: null,
+  joinRoom: jest.fn(),
+  clearConflict: jest.fn(),
+}));
+
+const mockUseRoomExit = jest.fn(() => ({
+  isExiting: false,
+  error: null as string | null,
+  pendingSuccessorChoice: false,
+  eligibleSuccessors: [],
+  needsCloseConfirm: false,
+  exitRoom: jest.fn(),
+  confirmSuccessor: jest.fn(),
+  confirmClose: jest.fn(),
+  cancel: jest.fn(),
+}));
+
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
   height: 844,
@@ -36,6 +62,7 @@ jest.mock("react-native", () => {
     Modal: "Modal",
     Image: "Image",
     ScrollView: "ScrollView",
+    TextInput: "TextInput",
     useWindowDimensions: () => mockUseWindowDimensions(),
   };
 });
@@ -56,6 +83,18 @@ jest.mock("../../hooks/useAccountAuth", () => ({
 
 jest.mock("../../hooks/useHostRoomCreate", () => ({
   useHostRoomCreate: () => mockUseHostRoomCreate(),
+}));
+
+jest.mock("../../hooks/useMyActiveRoom", () => ({
+  useMyActiveRoom: () => mockUseMyActiveRoom(),
+}));
+
+jest.mock("../../hooks/useRegisteredRoomJoin", () => ({
+  useRegisteredRoomJoin: () => mockUseRegisteredRoomJoin(),
+}));
+
+jest.mock("../../hooks/useRoomExit", () => ({
+  useRoomExit: () => mockUseRoomExit(),
 }));
 
 jest.mock("expo-router", () => ({

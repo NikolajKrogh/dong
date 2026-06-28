@@ -14,6 +14,7 @@ import {
   Modal,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -37,6 +38,9 @@ import { ShellActionButton, ShellCard, ShellScreen } from "../components/ui";
 import { useAccountAuth } from "../hooks/useAccountAuth";
 import { useGuestRoomJoin } from "../hooks/useGuestRoomJoin";
 import { useHostRoomCreate } from "../hooks/useHostRoomCreate";
+import { useMyActiveRoom } from "../hooks/useMyActiveRoom";
+import { useRegisteredRoomJoin } from "../hooks/useRegisteredRoomJoin";
+import { useRoomExit } from "../hooks/useRoomExit";
 import { PlatformAnimation } from "../platform";
 import { isWideLayout } from "./style/responsive";
 import { useColors } from "./style/theme";
@@ -309,6 +313,19 @@ const HomeScreen = () => {
     error: createRoomError,
     createRoom,
   } = useHostRoomCreate();
+  const { activeRoom, refresh: refreshActiveRoom } = useMyActiveRoom(
+    account !== null,
+  );
+  const {
+    isJoining: isJoiningRoom,
+    error: joinRoomError,
+    conflictRoom,
+    joinRoom: joinRegisteredRoom,
+    clearConflict,
+  } = useRegisteredRoomJoin();
+  const exit = useRoomExit();
+  const [isJoinModalVisible, setIsJoinModalVisible] = useState(false);
+  const [registeredJoinCode, setRegisteredJoinCode] = useState("");
   const {
     session: guestRoomSession,
     error: guestRoomError,
@@ -357,6 +374,144 @@ const HomeScreen = () => {
   const handleStartNewGame = useCallback(() => {
     router.push("/setupGame");
   }, [router]);
+
+  const handleReturnToRoom = useCallback(() => {
+    if (!activeRoom) {
+      return;
+    }
+    router.push({
+      pathname: "/lobby/[sessionId]",
+      params: {
+        sessionId: activeRoom.sessionId,
+        participantId: activeRoom.participantId,
+      },
+    });
+  }, [activeRoom, router]);
+
+  const handleSubmitRegisteredJoin = useCallback(async () => {
+    const response = await joinRegisteredRoom(registeredJoinCode);
+    if (response) {
+      setIsJoinModalVisible(false);
+      setRegisteredJoinCode("");
+      router.push({
+        pathname: "/lobby/[sessionId]",
+        params: {
+          sessionId: response.sessionId,
+          participantId: response.participantId,
+        },
+      });
+    }
+    // On already_in_active_room, joinRegisteredRoom returns null and sets
+    // conflictRoom — the modal renders the "Leave current room & switch" affordance.
+  }, [joinRegisteredRoom, registeredJoinCode, router]);
+
+  const handleLeaveCurrentAndSwitch = useCallback(async () => {
+    if (!conflictRoom) {
+      return;
+    }
+    const result = await exit.exitRoom(
+      conflictRoom.sessionId,
+      conflictRoom.role,
+    );
+    // If exit needs a host successor choice, the modal stays open; the chooser
+    // surfaces via exit.pendingSuccessorChoice (rendered below).
+    if (!result) {
+      return;
+    }
+    await refreshActiveRoom();
+    clearConflict();
+    // Retry the original join with the same code.
+    const response = await joinRegisteredRoom(registeredJoinCode);
+    if (response) {
+      setIsJoinModalVisible(false);
+      setRegisteredJoinCode("");
+      router.push({
+        pathname: "/lobby/[sessionId]",
+        params: {
+          sessionId: response.sessionId,
+          participantId: response.participantId,
+        },
+      });
+    }
+  }, [
+    clearConflict,
+    conflictRoom,
+    exit,
+    joinRegisteredRoom,
+    refreshActiveRoom,
+    registeredJoinCode,
+    router,
+  ]);
+
+  const handleChooseSuccessorOnHome = useCallback(
+    async (participantId: string) => {
+      if (!conflictRoom) {
+        return;
+      }
+      const result = await exit.confirmSuccessor(
+        conflictRoom.sessionId,
+        participantId,
+      );
+      if (!result) {
+        return;
+      }
+      await refreshActiveRoom();
+      clearConflict();
+      const response = await joinRegisteredRoom(registeredJoinCode);
+      if (response) {
+        setIsJoinModalVisible(false);
+        setRegisteredJoinCode("");
+        router.push({
+          pathname: "/lobby/[sessionId]",
+          params: {
+            sessionId: response.sessionId,
+            participantId: response.participantId,
+          },
+        });
+      }
+    },
+    [
+      clearConflict,
+      conflictRoom,
+      exit,
+      joinRegisteredRoom,
+      refreshActiveRoom,
+      registeredJoinCode,
+      router,
+    ],
+  );
+
+  const handleConfirmCloseOnHome = useCallback(async () => {
+    if (!conflictRoom) {
+      return;
+    }
+    const result = await exit.confirmClose(conflictRoom.sessionId);
+    if (!result) {
+      return;
+    }
+    await refreshActiveRoom();
+    clearConflict();
+    const response = await joinRegisteredRoom(registeredJoinCode);
+    if (response) {
+      setIsJoinModalVisible(false);
+      setRegisteredJoinCode("");
+      router.push({
+        pathname: "/lobby/[sessionId]",
+        params: {
+          sessionId: response.sessionId,
+          participantId: response.participantId,
+        },
+      });
+    }
+  }, [
+    clearConflict,
+    conflictRoom,
+    exit,
+    joinRegisteredRoom,
+    refreshActiveRoom,
+    registeredJoinCode,
+    router,
+  ]);
 
   const handleOpenHistory = useCallback(() => {
     router.push("/history");
@@ -481,6 +636,18 @@ const HomeScreen = () => {
               />
             )}
 
+            {account !== null && activeRoom !== null && (
+              <ShellActionButton
+                variant="primary"
+                label="Return to room"
+                testID="home-return-to-room"
+                icon={<AppIcon name="people" size={22} color={colors.white} />}
+                onPress={handleReturnToRoom}
+                widthMode={wideLayout ? "wide" : undefined}
+                style={{ marginTop: 16 }}
+              />
+            )}
+
             {account !== null && (
               <>
                 <ShellActionButton
@@ -514,6 +681,22 @@ const HomeScreen = () => {
                     {createRoomError}
                   </Text>
                 )}
+
+                <ShellActionButton
+                  variant="secondary"
+                  label="Join Room"
+                  testID="home-join-registered-button"
+                  icon={
+                    <AppIcon
+                      name="people-outline"
+                      size={22}
+                      color={colors.white}
+                    />
+                  }
+                  onPress={() => setIsJoinModalVisible(true)}
+                  widthMode={wideLayout ? "wide" : undefined}
+                  style={{ marginTop: 16 }}
+                />
               </>
             )}
 
@@ -596,6 +779,172 @@ const HomeScreen = () => {
             session={guestRoomSession}
             visible={isGuestJoinModalVisible}
           />
+
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={isJoinModalVisible}
+            onRequestClose={() => {
+              setIsJoinModalVisible(false);
+              clearConflict();
+              exit.cancel();
+            }}
+          >
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+                {conflictRoom === null && !exit.pendingSuccessorChoice && !exit.needsCloseConfirm ? (
+                  <>
+                    <Text style={styles.modalTitle}>Join Room</Text>
+                    <Text style={styles.modalText}>
+                      Enter the room code to join as a member.
+                    </Text>
+                    <TextInput
+                      testID="home-join-registered-code"
+                      value={registeredJoinCode}
+                      onChangeText={setRegisteredJoinCode}
+                      placeholder="Room code"
+                      placeholderTextColor={colors.textPlaceholder}
+                      autoCapitalize="characters"
+                      style={{
+                        width: "100%",
+                        borderWidth: 1,
+                        borderColor: colors.borderLight,
+                        borderRadius: 8,
+                        padding: 12,
+                        marginBottom: 12,
+                        color: colors.textPrimary,
+                      }}
+                    />
+                    {joinRoomError !== null && (
+                      <Text
+                        testID="home-join-registered-error"
+                        style={styles.createRoomError}
+                      >
+                        {joinRoomError}
+                      </Text>
+                    )}
+                    <View style={styles.modalButtons}>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.buttonCancel]}
+                        onPress={() => setIsJoinModalVisible(false)}
+                      >
+                        <Text style={styles.textStyle}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        testID="home-join-registered-submit"
+                        style={[styles.modalButton, styles.buttonConfirm]}
+                        disabled={isJoiningRoom}
+                        onPress={() => {
+                          void handleSubmitRegisteredJoin();
+                        }}
+                      >
+                        <Text style={styles.textStyle}>
+                          {isJoiningRoom ? "Joining…" : "Join"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : null}
+
+                {conflictRoom !== null && !exit.pendingSuccessorChoice && !exit.needsCloseConfirm ? (
+                  <>
+                    <Text style={styles.modalTitle}>You're in another room</Text>
+                    <Text style={styles.modalText}>
+                      {conflictRoom.role === "owner"
+                        ? "You're hosting a room. Leave it (handover or close) and join this one?"
+                        : "Leave your current room and join this one?"}
+                    </Text>
+                    {exit.error !== null && (
+                      <Text style={styles.createRoomError}>{exit.error}</Text>
+                    )}
+                    <View style={styles.modalButtons}>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.buttonCancel]}
+                        onPress={() => {
+                          clearConflict();
+                          setIsJoinModalVisible(false);
+                        }}
+                      >
+                        <Text style={styles.textStyle}>Stay</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        testID="home-conflict-leave-and-switch"
+                        style={[styles.modalButton, styles.buttonConfirm]}
+                        disabled={exit.isExiting}
+                        onPress={() => {
+                          void handleLeaveCurrentAndSwitch();
+                        }}
+                      >
+                        <Text style={styles.textStyle}>
+                          {exit.isExiting ? "Leaving…" : "Leave & Join"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : null}
+
+                {exit.pendingSuccessorChoice ? (
+                  <>
+                    <Text style={styles.modalTitle}>Choose a new host</Text>
+                    <Text style={styles.modalText}>
+                      Pick which signed-in player should take over your current
+                      room.
+                    </Text>
+                    {exit.eligibleSuccessors.map((candidate) => (
+                      <TouchableOpacity
+                        key={candidate.id}
+                        testID={`home-conflict-successor-${candidate.id}`}
+                        style={[styles.modalButton, styles.buttonConfirm, { marginTop: 8 }]}
+                        onPress={() => {
+                          void handleChooseSuccessorOnHome(candidate.id);
+                        }}
+                      >
+                        <Text style={styles.textStyle}>
+                          {candidate.displayName}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.buttonCancel, { marginTop: 12 }]}
+                      onPress={exit.cancel}
+                    >
+                      <Text style={styles.textStyle}>Cancel</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : null}
+
+                {exit.needsCloseConfirm ? (
+                  <>
+                    <Text style={styles.modalTitle}>Everyone left</Text>
+                    <Text style={styles.modalText}>
+                      There's no one left to take over. Close the room and join
+                      the new one?
+                    </Text>
+                    <View style={styles.modalButtons}>
+                      <TouchableOpacity
+                        style={[styles.modalButton, styles.buttonCancel]}
+                        onPress={exit.cancel}
+                      >
+                        <Text style={styles.textStyle}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        testID="home-conflict-close-confirm"
+                        style={[styles.modalButton, styles.buttonConfirm]}
+                        disabled={exit.isExiting}
+                        onPress={() => {
+                          void handleConfirmCloseOnHome();
+                        }}
+                      >
+                        <Text style={styles.textStyle}>
+                          {exit.isExiting ? "Closing…" : "Close & Join"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                ) : null}
+              </View>
+            </View>
+          </Modal>
         </SafeAreaView>
       </ShellScreen>
     </>

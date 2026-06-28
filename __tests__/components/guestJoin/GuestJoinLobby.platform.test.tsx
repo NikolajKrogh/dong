@@ -53,10 +53,11 @@ describe("GuestJoinLobby", () => {
     const textContents = textNodes.flatMap((node: any) => node.props.children);
     const renderedText = textContents.join("");
 
-    expect(renderedText).toContain("Room ROOM42");
+    expect(renderedText).toContain("Guest Room");
+    expect(renderedText).not.toContain("ROOM42");
     expect(renderedText).toContain("Current state: joinable");
     expect(renderedText).toContain(
-      "You are connected as Casey. Guest access is temporary and only applies to room ROOM42 on this device.",
+      "You are connected as Casey. Guest access is temporary and only applies to this room on this device.",
     );
     expect(renderedText).toContain("Host Owner · registered");
     expect(renderedText).toContain("Casey · guest");

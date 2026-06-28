@@ -94,11 +94,13 @@ When("the mocked host starts gameplay", async ({ page: _page }) => {
 });
 
 Then("the guest lobby summary should be visible", async ({ page }) => {
-  const roomSummary = page.getByText("Room ROOM42", { exact: true });
+  const roomSummary = page.getByText("Guest Room", { exact: true });
 
   await roomSummary.scrollIntoViewIfNeeded();
   await expect(roomSummary).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("Participants", { exact: true })).toBeVisible();
+  // Code must be hidden from guests (FR-0A7: host-only join code)
+  await expect(page.getByText(/Room ROOM\d/)).toHaveCount(0);
 });
 
 
@@ -131,10 +133,10 @@ Then(
 
 Then(
   "the guest lobby should explain the temporary guest access for room {string}",
-  async ({ page }, roomCode: string) => {
+  async ({ page }, _roomCode: string) => {
     await expect(
       page.getByText(
-        `Guest access is temporary and only applies to room ${roomCode} on this device.`,
+        "Guest access is temporary and only applies to this room on this device.",
         { exact: false },
       ),
     ).toBeVisible();

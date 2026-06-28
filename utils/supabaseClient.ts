@@ -9,6 +9,13 @@ import type {
 } from "../types/guestRoom";
 import type { HostRoomCreateResponse } from "../types/hostRoom";
 import type {
+  HostLeaveResponse,
+  MemberLeaveResponse,
+  MyActiveRoom,
+  RegisteredJoinResponse,
+  RoomSnapshot,
+} from "../types/room";
+import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
 } from "../types/legacyHistoryImport";
@@ -29,7 +36,22 @@ export interface GuestRoomRpcClient {
     request: GuestRoomJoinRequest,
   ): Promise<GuestRoomJoinResponse>;
   getGuestRoomSnapshot(guestToken: string): Promise<GuestRoomSnapshot>;
+  leaveRoomAsGuest(guestToken: string): Promise<void>;
 }
+
+export interface RoomRpcClient {
+  joinRoomAsRegistered(joinCode: string): Promise<RegisteredJoinResponse>;
+  getRoomSnapshot(sessionId: string): Promise<RoomSnapshot>;
+  getMyActiveRoom(): Promise<MyActiveRoom | null>;
+  leaveRoomAsMember(sessionId: string): Promise<MemberLeaveResponse>;
+  leaveRoomAsHost(
+    sessionId: string,
+    successorParticipantId?: string,
+  ): Promise<HostLeaveResponse>;
+}
+
+/** Shared poll interval for every lobby view (host, member, guest). */
+export const LOBBY_POLL_INTERVAL_MS = 4000;
 
 export interface HostRoomRpcClient {
   createRoomAsHost(): Promise<HostRoomCreateResponse>;
@@ -40,6 +62,7 @@ let cachedLegacyHistoryImportRpcClient: LegacyHistoryImportRpcClient | null =
   null;
 let cachedGuestRoomRpcClient: GuestRoomRpcClient | null = null;
 let cachedHostRoomRpcClient: HostRoomRpcClient | null = null;
+let cachedRoomRpcClient: RoomRpcClient | null = null;
 
 const readTrimmedEnvValue = (value: string | undefined) => {
   if (typeof value !== "string") {
@@ -176,6 +199,16 @@ export const createGuestRoomRpcClient = (
 
       return data;
     },
+
+    async leaveRoomAsGuest(guestToken) {
+      const { error } = await client.rpc("leave_room_as_guest", {
+        guest_token: guestToken,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
   };
 };
 
@@ -213,4 +246,97 @@ export const getHostRoomRpcClient = () => {
   cachedHostRoomRpcClient ??= createHostRoomRpcClient();
 
   return cachedHostRoomRpcClient;
+};
+
+export const createRoomRpcClient = (
+  client: SupabaseClient = getSupabaseClient(),
+): RoomRpcClient => {
+  return {
+    async joinRoomAsRegistered(joinCode) {
+      const { data, error } = await client
+        .rpc("join_room_as_registered", { join_code: joinCode })
+        .overrideTypes<RegisteredJoinResponse, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase join_room_as_registered returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+
+    async getRoomSnapshot(sessionId) {
+      const { data, error } = await client
+        .rpc("get_room_snapshot", { session_id: sessionId })
+        .overrideTypes<RoomSnapshot, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase get_room_snapshot returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+
+    async getMyActiveRoom() {
+      const { data, error } = await client
+        .rpc("get_my_active_room")
+        .overrideTypes<MyActiveRoom | null, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      return data ?? null;
+    },
+
+    async leaveRoomAsMember(sessionId) {
+      const { data, error } = await client
+        .rpc("leave_room_as_member", { session_id: sessionId })
+        .overrideTypes<MemberLeaveResponse, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      return data ?? { sessionId, status: "left" };
+    },
+
+    async leaveRoomAsHost(sessionId, successorParticipantId) {
+      const { data, error } = await client
+        .rpc("leave_room_as_host", {
+          session_id: sessionId,
+          successor_participant_id: successorParticipantId ?? null,
+        })
+        .overrideTypes<HostLeaveResponse, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase leave_room_as_host returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+  };
+};
+
+export const getRoomRpcClient = () => {
+  cachedRoomRpcClient ??= createRoomRpcClient();
+
+  return cachedRoomRpcClient;
 };
