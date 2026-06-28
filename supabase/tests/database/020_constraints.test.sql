@@ -71,7 +71,7 @@ SELECT is(
                 JOIN pg_type t ON t.oid = e.enumtypid
             WHERE t.typname = 'session_state'
         ),
-        'joinable,in_progress,completed',
+        'joinable,in_progress,completed,closed',
         'session_state enum contains expected values'
     );
 SELECT is(

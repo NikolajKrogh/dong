@@ -25,9 +25,7 @@ export const useHostRoomCreate = (): UseHostRoomCreateResult => {
         pathname: "/lobby/[sessionId]",
         params: {
           sessionId: response.sessionId,
-          joinCode: response.joinCode,
-          hostParticipantId: response.hostParticipantId,
-          hostDisplayName: response.hostDisplayName,
+          participantId: response.hostParticipantId,
         },
       });
     } catch (err) {

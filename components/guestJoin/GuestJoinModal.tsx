@@ -73,7 +73,7 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
     : null;
   const title = session ? "Guest Room Active" : "Join as a guest";
   const subtitle = session
-    ? `Room ${session.snapshot.joinCode} · Connected as ${session.grant.displayName}`
+    ? `Connected as ${session.grant.displayName}`
     : "Enter a room to play";
   const headerIconColor = session ? theme.success.val : theme.primary.val;
   const headerBackground = session

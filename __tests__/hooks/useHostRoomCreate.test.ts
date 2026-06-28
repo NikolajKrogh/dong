@@ -93,9 +93,7 @@ describe("useHostRoomCreate", () => {
       pathname: "/lobby/[sessionId]",
       params: {
         sessionId: "abc-session",
-        joinCode: "654321",
-        hostParticipantId: "abc-participant",
-        hostDisplayName: "Alice",
+        participantId: "abc-participant",
       },
     });
   });

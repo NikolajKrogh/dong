@@ -135,7 +135,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'game_sessions'
         ),
-        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at',
+        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at,last_activity_at',
         'game_sessions has expected columns'
     );
 SELECT is(
@@ -290,7 +290,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'participants'
         ),
-        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO',
+        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO,left_at:timestamp with time zone:YES',
         'participants columns, types, and nullability match expectations'
     );
 SELECT ok(

@@ -210,6 +210,15 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
 
   const leaveRoom = useCallback(async () => {
     stopPolling();
+    const guestToken = sessionRef.current?.grant.guestToken ?? null;
+    if (guestToken) {
+      // Best-effort server-side removal so the host's roster updates (FR-003).
+      try {
+        await getGuestRoomRpcClient().leaveRoomAsGuest(guestToken);
+      } catch {
+        // Ignore — local session is cleared regardless.
+      }
+    }
     await clearGuestRoomSessionGrant();
     setSession(null);
     setStatus("idle");

@@ -12,7 +12,7 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({ session }) => {
     <YStack gap="$4">
       <YStack gap="$2">
         <Text color="$color" fontSize={24} fontWeight="700">
-          Room {session.snapshot.joinCode}
+          Guest Room
         </Text>
         <Text color="$colorMuted" fontSize={14}>
           Current state: {session.snapshot.state}
@@ -21,8 +21,7 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({ session }) => {
 
       <Text color="$colorMuted" fontSize={14} lineHeight={20}>
         You are connected as {session.grant.displayName}. Guest access is
-        temporary and only applies to room {session.snapshot.joinCode} on this
-        device.
+        temporary and only applies to this room on this device.
       </Text>
 
       <Text color="$color" fontSize={16} fontWeight="700">

@@ -450,6 +450,38 @@ export const buildHostRoomCreateResponse = () => ({
   hostDisplayName: HOST_ROOM_DISPLAY_NAME,
 });
 
+export const HOST_ROOM_SNAPSHOT_RPC_PATH =
+  "**/rest/v1/rpc/get_room_snapshot" as const;
+
+export const HOST_ROOM_MY_ACTIVE_RPC_PATH =
+  "**/rest/v1/rpc/get_my_active_room" as const;
+
+export const buildHostRoomSnapshot = (
+  extraParticipants: {
+    id: string;
+    displayName: string;
+    membershipType: "registered" | "guest";
+    sessionRole: "owner" | "member";
+  }[] = [],
+) => ({
+  sessionId: HOST_ROOM_SESSION_ID,
+  joinCode: HOST_ROOM_JOIN_CODE,
+  state: "joinable",
+  commonMatchId: null,
+  participants: [
+    {
+      id: HOST_ROOM_PARTICIPANT_ID,
+      displayName: HOST_ROOM_DISPLAY_NAME,
+      membershipType: "registered",
+      sessionRole: "owner",
+      currentDrinkTotal: 0,
+    },
+    ...extraParticipants.map((p) => ({ ...p, currentDrinkTotal: 0 })),
+  ],
+  matches: [],
+  assignments: [],
+});
+
 export const mockHostRoomServices = async (page: Page) => {
   await page.route("**/auth/v1/user", async (route) => {
     await route.fulfill({
@@ -482,6 +514,78 @@ export const mockHostRoomServices = async (page: Page) => {
       body: JSON.stringify(buildHostRoomCreateResponse()),
     });
   });
+
+  await page.route(HOST_ROOM_MY_ACTIVE_RPC_PATH, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(null),
+    });
+  });
+
+  await page.route(HOST_ROOM_SNAPSHOT_RPC_PATH, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomSnapshot(extraSnapshotParticipants)),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/join_room_as_registered", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        participantId: "joined-member-1",
+        sessionId: HOST_ROOM_SESSION_ID,
+        joinCode: HOST_ROOM_JOIN_CODE,
+        displayName: HOST_ROOM_DISPLAY_NAME,
+        membershipType: "registered",
+        sessionRole: "member",
+        snapshot: buildHostRoomSnapshot(extraSnapshotParticipants),
+      }),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/leave_room_as_host", async (route) => {
+    const body = route.request().postDataJSON() as {
+      successor_participant_id?: string | null;
+    };
+    if (!body?.successor_participant_id && extraSnapshotParticipants.length > 1) {
+      // >1 eligible and no choice → server asks for a successor.
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "successor_required", code: "P0001" }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        status: "transferred",
+        sessionId: HOST_ROOM_SESSION_ID,
+        newHostParticipantId:
+          body?.successor_participant_id ?? "auto-successor-1",
+        newHostDisplayName: "New Host",
+        snapshot: buildHostRoomSnapshot(),
+      }),
+    });
+  });
+};
+
+let extraSnapshotParticipants: {
+  id: string;
+  displayName: string;
+  membershipType: "registered" | "guest";
+  sessionRole: "owner" | "member";
+}[] = [];
+
+export const setHostRoomSnapshotParticipants = (
+  participants: typeof extraSnapshotParticipants,
+) => {
+  extraSnapshotParticipants = participants;
 };
 
 export const seedHostRoomAuthSession = async (page: Page) => {
