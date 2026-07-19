@@ -52,10 +52,10 @@
 
 ---
 
-## Phase 5: Spring Boot 3.3.5 → 3.5.x (US2) — branch `tech-debt/05-spring-boot-3.5` (parallel-safe with Phases 3–4; no skill applies — plain Maven upgrade)
+## Phase 5: Spring Boot 3.3.5 → 3.5.x (US2) — branch `tech-debt/05-spring-boot-3.5` (parallel-safe with Phases 3–4; no skill applies — plain Maven upgrade) — ✅ pushed, PR [#173](https://github.com/NikolajKrogh/dong/pull/173) open (stacked on #169)
 
-- [ ] T015 [US2] In `command-api/pom.xml`: parent → latest 3.5.x; `springdoc.version` 2.6.0 → 2.8.x; `logstash.version` 7.4 → 8.x; remove `maven-compiler-plugin` 3.10.1 pin incl. `fork`/`executable=javac` override (Boot parent manages it). Leave jjwt/caffeine/jacoco/dependency-check
-- [ ] T016 [US2] Verify per quickstart.md: `mvnw clean verify` green (env vars set), `/swagger-ui` + `/v3/api-docs` serve, jacoco 0.60 floor holds
+- [x] T015 [US2] In `command-api/pom.xml`: parent 3.3.5 → **3.5.3** (verified latest stable 3.5.x via Maven Central, not assumed); `springdoc.version` 2.6.0 → **2.8.6**; `logstash.version` 7.4 → **8.1**; removed the `maven-compiler-plugin` 3.10.1 pin (incl. `fork`/`executable=javac` override) — redundant given `<java.version>17</java.version>` already lets the Boot parent manage it. jjwt/caffeine/jacoco/dependency-check left unchanged.
+- [x] T016 [US2] Verified: `mvnw clean verify` → BUILD SUCCESS, 75/75 tests passing, jacoco "All coverage checks have been met" (0.60 floor holds). Manually started the service (`mvnw spring-boot:run`) and confirmed `/swagger-ui/index.html` and `/v3/api-docs` both return 200, with `/v3/api-docs` serving a valid OpenAPI 3.1.0 document listing the real endpoints. CI confirmed green on GitHub: `build` (command-api CI / java-ci.yml) passes on both push and pull_request runs.
 - [ ] ~~T017~~ **DEFERRED — not part of the Phase 5 PR.** Relocated to Phase 11 (see T041a below): after feature 018 merges, re-run `mvnw verify` on master since 018's new command-api handlers only compile under 3.5 once both have landed. Left as a strikethrough placeholder here so Phase 5's own checklist doesn't carry a weeks-open checkbox.
 
 ---
