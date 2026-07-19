@@ -24,12 +24,6 @@ export default defineConfig({
   testDir,
   timeout: 30_000,
   retries: 0,
-  // The webServer below is a single dev-mode (SSR-per-request) Expo/Metro
-  // instance shared by every worker and both projects. Under CI's default
-  // worker concurrency it was observed to crash mid-run (ERR_CONNECTION_REFUSED
-  // partway through; see specs/019-harden-codebase-foundations/tasks.md T008) —
-  // capping to 1 worker in CI serializes all requests to keep it alive.
-  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL,
     headless: true,
@@ -56,6 +50,16 @@ export default defineConfig({
     port: webPort,
     reuseExistingServer: true,
     env: {
+      // The dev-mode Expo/Metro server does SSR-per-request with no
+      // production build, and its heap grows over the course of a long
+      // e2e run until it hits Node's default old-space limit and crashes
+      // with "FATAL ERROR: Reached heap limit ... JavaScript heap out of
+      // memory" (surfaced ERR_CONNECTION_REFUSED downstream once the
+      // process died — see specs/019-harden-codebase-foundations/tasks.md
+      // T008/T008b). Raising the heap ceiling gives it enough room to
+      // finish the suite; GitHub-hosted ubuntu-latest runners have ample
+      // RAM to spare for this.
+      NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=6144",
       EXPO_PUBLIC_SUPABASE_URL:
         process.env.EXPO_PUBLIC_SUPABASE_URL ??
         LEGACY_HISTORY_IMPORT_SUPABASE_URL,
