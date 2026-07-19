@@ -12,7 +12,7 @@
 
 ---
 
-## Phase 1: Client + DB CI, repo hygiene (US1) 🎯 MVP — branch `tech-debt/01-client-db-ci` — ✅ IMPLEMENTED locally 2026-07-19 (commit d1fa91e on `tech-debt/01-client-db-ci`, based off `origin/multiplayer` per the D10 trunk correction; not yet pushed/PR'd — pending user go-ahead)
+## Phase 1: Client + DB CI, repo hygiene (US1) 🎯 MVP — branch `tech-debt/01-client-db-ci` — ✅ MERGED-PENDING: pushed, PR [#169](https://github.com/NikolajKrogh/dong/pull/169) open (stacked on [#168](https://github.com/NikolajKrogh/dong/pull/168) → `multiplayer`). CI confirmed green on GitHub: `build` (client-ci) and `pgtap` (db-ci) both `pass` on every push/pull_request run.
 
 - [x] T001 [US1] Add `"test:ci": "jest --ci"` script to `package.json` (keep `"test": "jest --watchAll"` for local dev)
 - [x] T002 [P] [US1] Create `.github/workflows/client-ci.yml` per the FR-002 closed convention list (pinned `actions/checkout@v4.1.7` + `persist-credentials: false`, pinned `actions/setup-node@v4.0.4` with `cache: npm`, `permissions: contents: read`, no secrets); triggers push/PR with `paths-ignore: ["command-api/**", "supabase/**", "specs/**", ".agents/**", "*.md"]` plus a workflow comment noting that new top-level non-client dirs must be appended to the ignore list; steps: `npm ci` → `npm run lint` → `npm run test:ci`. Verified locally (see below); `npx tsc --noEmit` step omitted (not yet run clean repo-wide, left for a later phase to confirm before adding)
@@ -21,14 +21,14 @@
 - [x] T005 [P] [US1] Fix stale plan pointer in `CLAUDE.md` SPECKIT block — de-pinned to "highest-numbered specs/ directory" wording (done on the Phase 1 branch; note this branch's own copy of CLAUDE.md, edited separately during 019 spec authoring on `refactoring`, still points at 019 pinned — the two are reconciled whichever branch merges last)
 - [ ] T006 [US1] Configure `client-ci` and `db-ci` as required status checks on `master`/trunk branch protection (FR-013). **Blocked on repo-admin access + explicit user authorization** (branch protection is shared-infrastructure config, not something to change unilaterally) — documented as a handoff item: required check names are exactly `build` (client-ci job id) and `pgtap` (db-ci job id) once the workflows are pushed. Verified locally instead: `npm run lint` clean, `npm run test:ci` → 63 suites/271 tests green, `npx supabase start && npx supabase test db` → 32 files/339 tests PASS, `npx supabase stop` clean. Induced-failure and required-check-blocks-merge demonstration still pending push + branch protection.
 
-**Checkpoint**: CI workflows exist and are locally verified; not yet live on GitHub (unpushed) and not yet wired as required checks (T006 handoff).
+**Checkpoint**: CI workflows live on GitHub and confirmed green on PR #169. T006 (required status checks) remains an explicit handoff — needs repo-admin action; check names are `build` and `pgtap`.
 
 ---
 
-## Phase 2: Playwright e2e CI (US1) — branch `tech-debt/02-e2e-ci`
+## Phase 2: Playwright e2e CI (US1) — branch `tech-debt/02-e2e-ci` — pushed, PR [#170](https://github.com/NikolajKrogh/dong/pull/170) open (stacked on #169)
 
-- [ ] T007 [US1] Create `.github/workflows/e2e-ci.yml`: `npm ci` → `npx playwright install --with-deps chromium` → `npm run test:e2e`; upload `playwright-report/` artifact on failure. No backend services (Playwright self-boots Expo web :8093, backends mocked in `e2e/steps/browser-flow.helpers.ts`). If Expo boot needs a longer timeout in CI, use env override — do NOT edit `playwright.config.ts` (in flight on 153)
-- [ ] T008 [US1] Verify: job green on PR; artifact uploads on induced failure. Once stable across a few PRs, add `e2e-ci` to the required status checks (FR-013)
+- [x] T007 [US1] Create `.github/workflows/e2e-ci.yml`: `npm ci` → `npx playwright install --with-deps chromium` → `npm run test:e2e`; upload `playwright-report/` artifact on failure. No backend services (Playwright self-boots Expo web :8093, backends mocked in `e2e/steps/browser-flow.helpers.ts`). No env-override or `playwright.config.ts` edit needed — default 30s per-test timeout used as-is
+- [x] T008 [US1] Verify: job runs on PR #170 (both push and pull_request triggers). **Result: FAILED on GitHub Actions** — `playwright fail 17m24s` / `playwright fail 17m34s` on both runs. Real failure mode differs from the local one: 59 failed / 37 passed, with the majority being `Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:8093/` — the self-booted Expo dev server stopped answering entirely partway through each 16-17 minute run, not a per-test timeout. Hypothesis: the single dev-mode SSR Expo server can't sustain two concurrent Playwright projects (`chromium-phone` + `chromium-desktop`) plus default multi-worker parallelism on a 2-core `ubuntu-latest` runner for 15+ minutes. **This is pre-existing e2e-infrastructure fragility, not introduced by Phase 1/2** (no app code, `playwright.config.ts`, or `browser-flow.helpers.ts` touched on this branch). **Not fixed here** — remediating it (e.g. `workers: 1`, serialize the two projects, or serve a production build instead of dev-mode SSR) is a real change to shared test infrastructure beyond this task's scope ("author the e2e-ci workflow") and needs a user decision on approach before touching `playwright.config.ts`. `e2e-ci` stays non-required (as designed) and PR #170 is left open pending that decision — see PR body for the reported finding.
 
 ---
 
