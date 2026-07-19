@@ -39,6 +39,11 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Debug runner resources (temporary, for investigating server crash)
+        run: |
+          echo "CPUs: $(nproc)"
+          free -h
+
       - name: Run e2e suite
         run: npm run test:e2e
 
