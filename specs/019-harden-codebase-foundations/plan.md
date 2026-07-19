@@ -38,7 +38,7 @@ Remediate the eight highest-priority findings of the 2026-07-19 tech-debt audit 
 | II. Server-Authoritative Shared State | PASS — no shared-state paths touched; command-api upgrade is dependency-only. |
 | III. Event-Backed Game History | PASS — no schema or event changes; pgTAP suite gains CI enforcement (strengthens this principle). |
 | IV. Supabase-First, Java by Exception | PASS — no new endpoints or CRUD layers anywhere. |
-| V. Story-First Delivery With Required Coverage | PASS — stories are independently deliverable PRs; unit tests accompany every extraction; no substantial UI change, so no *new* e2e journeys are required, but existing e2e suites become CI gates (exceeds requirement). |
+| V. Story-First Delivery With Required Coverage | PASS — stories are independently deliverable PRs; unit tests accompany every extraction; no substantial UI change, so no *new* e2e journeys are required. (Note: a Phase 2 attempt to add an e2e CI job was abandoned per research.md D11 — existing e2e suites remain a manual/local verification tool, not a CI gate, in this feature.) |
 | VI. Skill-First AI Execution | PASS — applicable skills identified: `.agents/skills/upgrading-expo` (mandatory for Phase 12), `react-native-testing` (hook back-fill), `github-ops` (workflows), `refactor` (decompositions). Where no skill applies (e.g., pom upgrades) that is stated in tasks. |
 
 ## Project Structure
@@ -63,7 +63,7 @@ specs/019-harden-codebase-foundations/
 ├── java-ci.yml              # existing — convention template
 ├── client-ci.yml            # NEW (Phase 1): lint + jest --ci
 ├── db-ci.yml                # NEW (Phase 1): supabase start + pgTAP
-└── e2e-ci.yml               # NEW (Phase 2): Playwright + self-booted Expo web
+# e2e-ci.yml — Phase 2 attempted and ABANDONED (research.md D11); not shipped
 
 command-api/pom.xml          # Phase 5: Boot 3.5.x, springdoc 2.8.x, logstash 8.x
 
@@ -96,7 +96,7 @@ __tests__/utils/             # Phases 6–7, 11: espnParsing, svgArc, homeStats 
 
 ## Phase Sequencing (execution order and gates)
 
-1. **P1 Client+DB CI** → 2. **P2 e2e CI** → 3. **P3 axios/node-fetch removal** → 4. **P4 ESLint 9 + TS** → 5. **P5 Spring Boot 3.5** (independent, may run parallel to 3–4) → 6. **P6 ESPN consolidation** → 7. **P7 gameProgress decomposition** (needs P6 types) → 8. **P8 useAccountAuth split** → 9. **P9 hook tests trivial/medium** → 10. **P10 hook tests complex** (needs P7) → **=== GATE: feature 018 merged ===** → 11. **P11 app/index.tsx decomposition + useMyActiveRoom test** → 12. **P12 Expo SDK upgrade** (last; requires P11 merged; follow `.agents/skills/upgrading-expo`). Gate fallback and freeze-list freshness rules: see spec.md Assumptions.
+1. **P1 Client+DB CI** → 2. **P2 e2e CI (attempted, abandoned — see research.md D11; not shipped, PR closed unmerged)** → 3. **P3 axios/node-fetch removal** → 4. **P4 ESLint 9 + TS** → 5. **P5 Spring Boot 3.5** (independent, may run parallel to 3–4) → 6. **P6 ESPN consolidation** → 7. **P7 gameProgress decomposition** (needs P6 types) → 8. **P8 useAccountAuth split** → 9. **P9 hook tests trivial/medium** → 10. **P10 hook tests complex** (needs P7) → **=== GATE: feature 018 merged ===** → 11. **P11 app/index.tsx decomposition + useMyActiveRoom test** → 12. **P12 Expo SDK upgrade** (last; requires P11 merged; follow `.agents/skills/upgrading-expo`). Gate fallback and freeze-list freshness rules: see spec.md Assumptions.
 
 Full per-phase detail (branches, exact edits, risks) lives in [tasks.md](./tasks.md); verification commands in [quickstart.md](./quickstart.md); decision rationale in [research.md](./research.md).
 

@@ -25,7 +25,8 @@ As a contributor, when I open a PR touching the Expo client or the Supabase sche
 1. **Given** a PR that modifies client source, **When** CI runs, **Then** ESLint and the full Jest suite execute in non-watch mode and gate the merge.
 2. **Given** a PR that modifies `supabase/**`, **When** CI runs, **Then** the local Supabase stack boots and all pgTAP tests execute and gate the merge.
 3. **Given** a PR that modifies only `command-api/**`, **When** CI runs, **Then** the client and DB workflows are skipped (path filters) and the existing Java workflow still runs.
-4. **Given** the follow-up e2e job is enabled, **When** its nightly schedule fires (or it's manually dispatched) and new commits have landed since its last run, **Then** the Playwright BDD suite runs against a self-booted Expo web server with mocked backends; if nothing has landed since the last run, the job skips itself.
+
+> **Scope note**: a fourth acceptance scenario originally covered a follow-up CI job running the Playwright e2e suite. That was attempted and abandoned — see research.md D11. Three fix attempts each surfaced a different real problem (a dev-server memory leak too large to fix by raising heap limits, then a dev-vs-production behavioral regression once the leak was worked around), and continuing would have meant debugging application behavior rather than authoring CI. The Playwright suite itself is untouched and still runs via `npm run test:e2e` locally/manually; there is simply no CI automation for it in this feature.
 
 ---
 
@@ -109,7 +110,7 @@ As a maintainer, the app targets the current Expo SDK (from 52), including the `
 
 ### Edge Cases
 
-- CI on a docs-only PR: path filters must skip all three heavy workflows.
+- CI on a docs-only PR: path filters must skip both heavy workflows (client-ci, db-ci).
 - pgTAP job when Docker/Supabase boot is slow: `health_timeout` is 2m in `supabase/config.toml`; the job must fail loudly, not hang.
 - Fetch replacement in `useTeamData`: axios rejects on non-2xx and auto-parses JSON; the fetch version must replicate both or error states change silently.
 - Characterization fixtures for ESPN parsing must cover: own goals, penalties, red/yellow cards, missing `athletesInvolved`, matches without statistics, plus malformed-input cases — empty `competitions`, missing `status`, malformed event — asserting the current behavior (parser returns `null`). Nothing is excluded from fixture scope.
@@ -135,7 +136,7 @@ As a maintainer, the app targets the current Expo SDK (from 52), including the `
 - **FR-010**: Of the 11 hooks named in US5, the 10 that survive Phase 6 MUST gain unit tests following the react-test-renderer Probe pattern (mocking the `utils/supabaseClient` RPC factories, `expo-router`, and `fetch` as applicable); `useTeamFiltering` is deleted rather than tested (see US5).
 - **FR-011**: The client MUST be upgraded to the current Expo SDK following `.agents/skills/upgrading-expo`, including `expo-av` → `expo-audio` inside `platform/audio/`.
 - **FR-012**: Work MUST be delivered as one PR per plan phase, each branched from `origin/multiplayer` and independently revertible; phases touching in-flight 018 files MUST wait for the 018 merge gate.
-- **FR-013**: The `client-ci` and `db-ci` jobs MUST be configured as required status checks on trunk branch protection as part of Phase 1 acceptance; the gate MUST be proven once by an induced-failure demonstration on a scratch branch. If the implementer lacks repo-admin rights to configure branch protection, Phase 1 MAY still merge with the workflows green, provided the exact required-check names are documented in the PR description as an explicit handoff item for whoever holds admin rights — FR-013 is then satisfied only once that handoff is actioned. **`e2e-ci` does NOT join as a required check** (superseded design decision, recorded in research.md D11): a full serialized run takes 30–40+ minutes, too slow to gate every PR, so it runs nightly instead (schedule + workflow_dispatch, skipping automatically when nothing has landed since the last run) and is a regression-monitoring signal, not a merge gate.
+- **FR-013**: The `client-ci` and `db-ci` jobs MUST be configured as required status checks on trunk branch protection as part of Phase 1 acceptance; the gate MUST be proven once by an induced-failure demonstration on a scratch branch. If the implementer lacks repo-admin rights to configure branch protection, Phase 1 MAY still merge with the workflows green, provided the exact required-check names are documented in the PR description as an explicit handoff item for whoever holds admin rights — FR-013 is then satisfied only once that handoff is actioned. **A third `e2e-ci` job is explicitly OUT OF SCOPE for this feature** (decision recorded in research.md D11, superseding all earlier e2e-ci plans in this document): three separate fix attempts each surfaced a different unresolved problem in making the Playwright suite reliable under CI, and continuing would have meant debugging application runtime behavior rather than authoring a workflow. No e2e CI job ships as part of this feature; `npm run test:e2e` remains a local/manual verification step only.
 - **FR-014**: Infrastructure-caused CI failures (Docker daemon, image pulls, registry outages) fail the run red — no automatic retry; re-runs are manual. A test observed to fail intermittently MUST be fixed or skipped-with-linked-issue within one working day; merging on a red required check is never permitted.
 - **FR-015**: If a merged phase later breaks `master`, the default remedy is a same-day revert of that phase's PR; fix-forward is allowed only when the fix is demonstrably smaller than the revert.
 
@@ -153,7 +154,7 @@ No new persisted entities. TypeScript type relocations only (see data-model.md):
 - **SC-004**: ESPN payload parsing has exactly one implementation with 0 `any`-typed parse paths (down from 3), with fixture tests. Verified by grep: ESPN field access (`competitions[0]`, `homeAway`, `athletesInvolved`) appears only in `utils/espnParsing.ts` and its tests. The openfootball JSON parser in `useTeamData` is not ESPN parsing and is out of scope of this criterion.
 - **SC-005**: No file among the decomposition targets and their extracted modules exceeds 400 physical lines (`wc -l`); all pre-existing tests pass unmodified in each decomposition PR (rule expires at Phase 12 per FR-009).
 - **SC-006**: `npx expo-doctor` reports no issues on the current SDK; `expo-av` no longer appears in `package.json`.
-- **SC-007**: Zero end-user-visible behavior changes, verified on the e2e-covered journeys plus the quickstart manual smoke list; screens covered by neither are accepted as documented residual risk.
+- **SC-007**: Zero end-user-visible behavior changes, verified via manual/local `npm run test:e2e` runs plus the quickstart manual smoke list (no e2e CI ships in this feature — see FR-013); screens covered by neither are accepted as documented residual risk.
 
 ## Assumptions
 
@@ -170,7 +171,7 @@ Audit item numbers (1–8) appear only in the origin note above and in research.
 | FR | Tasks | SC |
 |---|---|---|
 | FR-001 | T002, T003 | SC-001 |
-| FR-002 | T002, T003, T007 | SC-001 |
+| FR-002 | T002, T003 | SC-001 |
 | FR-003 | T001 | SC-001 |
 | FR-004 | T004, T005 | SC-007 |
 | FR-005 | T015–T016 (T017 deferred to Phase 11) | SC-002 |
@@ -181,6 +182,6 @@ Audit item numbers (1–8) appear only in the origin note above and in research.
 | FR-010 | T030–T040, T046, T054 | SC-003 |
 | FR-011 | T048–T053 | SC-006 |
 | FR-012 | all phases | SC-007 |
-| FR-013 | T006, T008 | SC-001 |
+| FR-013 | T006 (e2e-ci: abandoned, T007-T008d document why) | SC-001 |
 | FR-014 | T006 (policy; applies ongoing) | SC-001 |
 | FR-015 | policy; applies to every merged phase | SC-007 |

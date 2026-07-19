@@ -24,7 +24,9 @@ npm run db:start
 npm run db:test          # 33 pgTAP files, all must pass
 npm run db:stop
 
-# E2E (Phases 2, 7, 11, 12) — boots Expo web itself, no backend needed
+# E2E (manual/local only — Phase 2's CI job was attempted and abandoned,
+# see research.md D11; these commands remain useful for local verification
+# in Phases 7, 11, 12) — boots Expo web itself, no backend needed
 npm run test:e2e
 npm run test:e2e:home    # home-shell flows (Phase 11 especially)
 
@@ -36,12 +38,12 @@ cd command-api; .\mvnw.cmd clean verify
 
 ## Per-phase acceptance checks
 
-Manual checks below are pass/fail against the stated expected outcome — record the observed outcome so a second person reaches the same verdict. Per SC-007, behavior preservation is claimed only for e2e-covered journeys plus these manual checks; anything covered by neither is documented residual risk.
+Manual checks below are pass/fail against the stated expected outcome — record the observed outcome so a second person reaches the same verdict. Per SC-007, behavior preservation is claimed via manual/local `test:e2e` runs plus these manual checks (no e2e CI ships — see FR-013); anything covered by neither is documented residual risk.
 
 | Phase | Beyond the standard matrix, verify |
 |---|---|
 | 1 CI | Both new workflows green on the PR; a deliberately broken test on a scratch branch turns `client-ci` red AND blocks merge (required status checks configured per FR-013); docs-only commit skips all heavy workflows; `git ls-files test-results/` returns nothing. |
-| 2 e2e CI | Workflow green; on induced failure, `playwright-report/` uploads as artifact. |
+| 2 e2e CI | **Abandoned** — three fix attempts failed to make the Playwright suite reliable in CI (research.md D11); PR closed unmerged. No verification step; nothing ships. |
 | 3 axios | `git grep -E "axios|node-fetch" -- ':!package-lock.json'` → no hits; setupGame team pickers still populate (manual web check: `npx expo start --web`, setup flow). |
 | 4 ESLint 9 | `npm run lint` picks up `eslint.config.js` (delete legacy files first so fallback is impossible); zero errors. |
 | 5 Boot 3.5 | `mvnw clean verify` green; run the app and check `http://localhost:8080/swagger-ui` and `/v3/api-docs` serve; jacoco check still passes at 0.60 floor. |
@@ -54,5 +56,5 @@ Manual checks below are pass/fail against the stated expected outcome — record
 
 ## Definition of done (feature level)
 
-- All 12 phase PRs merged; CI (client, DB, e2e, java) green on master.
+- All 12 phase PRs merged (Phase 2's e2e-ci excepted — abandoned, not shipped); CI (client, DB, java) green on trunk.
 - SC-001…SC-007 from [spec.md](./spec.md) hold; hook coverage 21/21; `expo-av` gone; Boot on 3.5.x; ESLint 9; zero `any`-typed ESPN parse paths.
