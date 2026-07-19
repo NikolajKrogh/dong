@@ -1,5 +1,6 @@
 package com.dong.commandapi.command;
 
+import com.dong.commandapi.command.idempotency.IdempotencyDecision;
 import com.dong.commandapi.command.idempotency.IdempotencyService;
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
@@ -14,9 +15,12 @@ import java.util.stream.Collectors;
 /**
  * Registry (ADR-1). Auto-collects every {@link CommandHandler} bean into a map
  * keyed by {@link CommandHandler#commandType()}. Consults the idempotency seam
- * (ADR-7) before invoking the resolved handler.
+ * (ADR-7) both before AND after invoking the resolved handler: a fresh key
+ * reserves and proceeds; a replay short-circuits to the cached result without
+ * re-invoking the handler; a handler failure releases the reservation so the
+ * same key can be retried from scratch (research.md R7).
  *
- * <p>#133 adds a handler bean → it self-registers here. No edits to this class.
+ * <p>A new handler bean self-registers here — no edits to this class.
  */
 @Component
 public class CommandDispatcher {
@@ -39,7 +43,21 @@ public class CommandDispatcher {
                     "No handler registered for command type '" + context.commandType() + "'");
         }
 
-        CommandResult result = handler.handle(context);
+        IdempotencyDecision decision = idempotencyService.reserve(
+                idempotencyKey, context.commandType(), context.roomId(), context.host());
+        if (decision instanceof IdempotencyDecision.Replay replay) {
+            return new DispatchResult(idempotencyKey, replay.cachedResult());
+        }
+
+        CommandResult result;
+        try {
+            result = handler.handle(context);
+        } catch (RuntimeException ex) {
+            idempotencyService.release(idempotencyKey, context.host());
+            throw ex;
+        }
+
+        idempotencyService.complete(idempotencyKey, result, context.host());
         return new DispatchResult(idempotencyKey, result);
     }
 

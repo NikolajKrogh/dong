@@ -2,10 +2,14 @@ package com.dong.commandapi.command;
 
 import static io.jsonwebtoken.security.Keys.hmacShaKeyFor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -13,6 +17,7 @@ import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,11 +26,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import com.dong.commandapi.supabase.SupabaseRestClient;
+
 import io.jsonwebtoken.Jwts;
 
 /**
  * US4 — command envelope demonstration. Drives the full chain (auth + dispatch
- * + idempotency seam) with a real signed JWT.
+ * + idempotency seam) with a real signed JWT. {@link SupabaseRestClient} is mocked:
+ * {@code PersistentIdempotencyService} (research.md R7) now calls a real
+ * {@code command_idempotency} RPC on every dispatch, and this test is about the
+ * controller/dispatch/auth wiring, not live Supabase connectivity.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "supabase.jwt-secret=" + CommandControllerTest.SECRET,
@@ -38,6 +48,9 @@ class CommandControllerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @MockBean
+    private SupabaseRestClient supabaseRestClient;
 
     private String validJwt() {
         return Jwts.builder()
@@ -65,7 +78,11 @@ class CommandControllerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void validRequestReturnsAcceptedEnvelope() {
+        when(supabaseRestClient.rpc(anyString(), any(), anyString(), any()))
+                .thenReturn(Map.of("outcome", "reserved"));
+
         ResponseEntity<String> res = post("echo", UUID.randomUUID().toString(), true);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);

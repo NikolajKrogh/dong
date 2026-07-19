@@ -20,7 +20,15 @@ public enum ErrorCode {
     UPSTREAM_BAD_RESPONSE(HttpStatus.BAD_GATEWAY, "The upstream match provider returned an invalid response."),
     UPSTREAM_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "The upstream match provider is unavailable."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred."),
-    SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "A required dependency is unavailable.");
+    SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "A required dependency is unavailable."),
+    ROOM_NOT_FOUND(HttpStatus.UNPROCESSABLE_ENTITY, "The requested room does not exist in the system."),
+    INVALID_ROOM_STATE(HttpStatus.UNPROCESSABLE_ENTITY, "The room state is not in the joinable lobby state."),
+    EMPTY_PARTICIPANTS(HttpStatus.UNPROCESSABLE_ENTITY, "At least one valid participant must be in the room."),
+    EMPTY_MATCHES(HttpStatus.UNPROCESSABLE_ENTITY, "At least one match must be selected for the room."),
+    MISSING_COMMON_MATCH(HttpStatus.UNPROCESSABLE_ENTITY, "No common match is currently designated for the room."),
+    INVALID_COMMON_MATCH(HttpStatus.UNPROCESSABLE_ENTITY, "The common match designated is not in the selected matches pool."),
+    UNASSIGNED_PARTICIPANTS(HttpStatus.UNPROCESSABLE_ENTITY, "Every participant must be assigned at least one match (excluding the common match)."),
+    IDEMPOTENCY_KEY_REUSE(HttpStatus.CONFLICT, "This Idempotency-Key was already used for a different room or command.");
 
     private final HttpStatus httpStatus;
     private final String defaultMessage;

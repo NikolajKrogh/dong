@@ -20,6 +20,8 @@ export interface UseRoomLobbyResult {
   joinCode: string | null;
   /** True when the room closed/expired, or the viewer is no longer a participant. */
   roomEnded: boolean;
+  /** True once the host has started the game (FR-012) — drives the auto-redirect to /gameProgress. */
+  gameStarted: boolean;
   error: string | null;
   refresh: () => Promise<void>;
 }
@@ -90,6 +92,7 @@ export const useRoomLobby = (
     state: snapshot?.state ?? null,
     joinCode,
     roomEnded,
+    gameStarted: snapshot?.state === "in_progress",
     error,
     refresh,
   };

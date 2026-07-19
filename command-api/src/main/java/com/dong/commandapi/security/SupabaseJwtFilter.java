@@ -95,6 +95,6 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
             throw new InvalidTokenException("Token role is not '" + AUTHENTICATED_ROLE + "'");
         }
 
-        return new AuthenticatedHost(subject, role.toString());
+        return new AuthenticatedHost(subject, role.toString(), token);
     }
 }

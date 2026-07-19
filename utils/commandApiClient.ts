@@ -161,3 +161,93 @@ export const getMatchDiscoveryApiClient = () => {
 
   return cachedMatchDiscoveryApiClient;
 };
+
+export interface StartGameCommandResponse {
+  commandType: string;
+  roomId: string;
+  idempotencyKey: string;
+  status: string;
+  timestamp: string;
+}
+
+export interface StartGameApiClient {
+  /**
+   * Submits the start-game command. `idempotencyKey` MUST be generated once per
+   * logical attempt (see `generateIdempotencyKey`) and reused verbatim if the
+   * caller retries that same attempt (e.g. after a timeout) — that is what makes
+   * a double-submit safe server-side (FR-013/SC-005).
+   */
+  startGame(
+    roomId: string,
+    accessToken: string,
+    idempotencyKey: string,
+  ): Promise<StartGameCommandResponse>;
+}
+
+/** RFC 4122 v4 UUID. No crypto dependency required — this is an idempotency
+ * correlation id, not a security credential. */
+export const generateIdempotencyKey = (): string => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const random = (Math.random() * 16) | 0;
+    const value = c === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+};
+
+const START_GAME_TIMEOUT_MS = 10_000;
+
+export const createStartGameApiClient = (
+  fetchFn: typeof fetch = fetch,
+  config: CommandApiConfig = getCommandApiConfig(),
+): StartGameApiClient => {
+  return {
+    async startGame(roomId, accessToken, idempotencyKey) {
+      const normalizedBaseUrl = config.baseUrl.endsWith("/")
+        ? config.baseUrl.slice(0, -1)
+        : config.baseUrl;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(
+        () => controller.abort(),
+        START_GAME_TIMEOUT_MS,
+      );
+      let response: Response;
+
+      try {
+        response = await fetchFn(
+          `${normalizedBaseUrl}/v1/rooms/${encodeURIComponent(roomId)}/commands/start-game`,
+          {
+            method: "POST",
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${accessToken}`,
+              "Idempotency-Key": idempotencyKey,
+            },
+            signal: controller.signal,
+          },
+        );
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error("Start game request timed out.");
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      if (!response.ok) {
+        throw new Error(await readErrorMessage(response));
+      }
+
+      return (await response.json()) as StartGameCommandResponse;
+    },
+  };
+};
+
+let cachedStartGameApiClient: StartGameApiClient | null = null;
+
+export const getStartGameApiClient = () => {
+  cachedStartGameApiClient ??= createStartGameApiClient();
+
+  return cachedStartGameApiClient;
+};

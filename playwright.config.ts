@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { defineBddConfig } from "playwright-bdd";
 import {
+  CONFIGURE_START_GAME_COMMAND_API_URL,
   LEGACY_HISTORY_IMPORT_ANON_KEY,
   LEGACY_HISTORY_IMPORT_PUBLISHABLE_KEY,
   LEGACY_HISTORY_IMPORT_SUPABASE_URL,
@@ -58,6 +59,9 @@ export default defineConfig({
       EXPO_PUBLIC_SUPABASE_ANON_KEY:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
         LEGACY_HISTORY_IMPORT_ANON_KEY,
+      EXPO_PUBLIC_COMMAND_API_URL:
+        process.env.EXPO_PUBLIC_COMMAND_API_URL ??
+        CONFIGURE_START_GAME_COMMAND_API_URL,
     },
   },
 });

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -13,19 +14,28 @@ import javax.crypto.SecretKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
+import com.dong.commandapi.supabase.SupabaseRestClient;
+
 import io.jsonwebtoken.Jwts;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 /**
  * Coarse latency guard (SC-002 reject &lt;100ms, SC-007 authenticated
  * &lt;500ms).
  * Generous bounds — catches a misconfigured filter doing blocking I/O, not a
- * micro-benchmark. Warms up first to exclude JIT/context cost.
+ * micro-benchmark. Warms up first to exclude JIT/context cost. {@link SupabaseRestClient}
+ * is mocked so the authenticated timing measures dispatch/idempotency-store overhead,
+ * not a real network round trip to Supabase.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "supabase.jwt-secret=" + PerformanceSmokeTest.SECRET,
@@ -38,6 +48,9 @@ class PerformanceSmokeTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @MockBean
+    private SupabaseRestClient supabaseRestClient;
 
     private HttpEntity<String> body(boolean auth) {
         HttpHeaders h = new HttpHeaders();
@@ -73,7 +86,11 @@ class PerformanceSmokeTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void authenticatedRequestIsWithinBudget() {
+        when(supabaseRestClient.rpc(anyString(), any(), anyString(), any()))
+                .thenReturn(Map.of("outcome", "reserved"));
+
         timeMillis(true); // warmup
         assertThat(timeMillis(true)).isLessThan(500L);
     }

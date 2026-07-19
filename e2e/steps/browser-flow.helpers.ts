@@ -21,6 +21,10 @@ export const PERSISTED_STORE_KEY = "dong-storage" as const;
 export const LEGACY_HISTORY_IMPORT_SUPABASE_URL =
   "http://127.0.0.1:55321" as const;
 
+/** Fake command-api origin — never actually started; every call is intercepted via page.route. */
+export const CONFIGURE_START_GAME_COMMAND_API_URL =
+  "http://127.0.0.1:55322" as const;
+
 export const LEGACY_HISTORY_IMPORT_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0" as const;
 
@@ -456,6 +460,47 @@ export const HOST_ROOM_SNAPSHOT_RPC_PATH =
 export const HOST_ROOM_MY_ACTIVE_RPC_PATH =
   "**/rest/v1/rpc/get_my_active_room" as const;
 
+export interface ConfigureStartGameMatch {
+  id: string;
+  sourceProvider: string;
+  sourceMatchId: string | null;
+  homeTeamName: string;
+  awayTeamName: string;
+  kickoffAt: string | null;
+  homeScore: number;
+  awayScore: number;
+}
+
+export interface ConfigureStartGameAssignment {
+  participantId: string;
+  matchId: string;
+}
+
+/**
+ * Mutable room-configuration state (018-configure-start-game) shared by the
+ * `add_room_match` / `set_common_match` / `set_room_assignments` /
+ * `start-game` route mocks below, and read back into every polled snapshot —
+ * so a full host journey (select matches → common match → assignments →
+ * start) is reflected across repeated `get_room_snapshot` polls. Defaults
+ * match the previous hardcoded snapshot, so other host-room features that
+ * never call `resetConfigureStartGameState` are unaffected.
+ */
+let configureStartGameState: {
+  roomState: "joinable" | "in_progress";
+  commonMatchId: string | null;
+  matches: ConfigureStartGameMatch[];
+  assignments: ConfigureStartGameAssignment[];
+} = { roomState: "joinable", commonMatchId: null, matches: [], assignments: [] };
+
+export const resetConfigureStartGameState = () => {
+  configureStartGameState = {
+    roomState: "joinable",
+    commonMatchId: null,
+    matches: [],
+    assignments: [],
+  };
+};
+
 export const buildHostRoomSnapshot = (
   extraParticipants: {
     id: string;
@@ -466,8 +511,8 @@ export const buildHostRoomSnapshot = (
 ) => ({
   sessionId: HOST_ROOM_SESSION_ID,
   joinCode: HOST_ROOM_JOIN_CODE,
-  state: "joinable",
-  commonMatchId: null,
+  state: configureStartGameState.roomState,
+  commonMatchId: configureStartGameState.commonMatchId,
   participants: [
     {
       id: HOST_ROOM_PARTICIPANT_ID,
@@ -478,8 +523,8 @@ export const buildHostRoomSnapshot = (
     },
     ...extraParticipants.map((p) => ({ ...p, currentDrinkTotal: 0 })),
   ],
-  matches: [],
-  assignments: [],
+  matches: configureStartGameState.matches,
+  assignments: configureStartGameState.assignments,
 });
 
 export const mockHostRoomServices = async (page: Page) => {
@@ -803,4 +848,164 @@ export const mockGuestRoomRpcServices = async (
     getLatestJoinResponse: () => latestJoinResponse,
     getLatestJoinRequest: () => guestRoomJoinRpcLastRequest,
   };
+};
+
+export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
+  {
+    id: "espn-fixture-1",
+    league: "eng.1",
+    homeTeam: "Arsenal",
+    awayTeam: "Chelsea",
+    startDateTime: new Date().toISOString(),
+    status: "scheduled" as const,
+  },
+  {
+    id: "espn-fixture-2",
+    league: "eng.1",
+    homeTeam: "Liverpool",
+    awayTeam: "Everton",
+    startDateTime: new Date().toISOString(),
+    status: "scheduled" as const,
+  },
+];
+
+/**
+ * Mocks the room-configuration Supabase RPCs (add_room_match, set_common_match,
+ * set_room_assignments) plus the Java command-api's match discovery and
+ * start-game endpoints, on top of `mockHostRoomServices`. All state mutates the
+ * shared `configureStartGameState` so a full host journey is reflected across
+ * repeated `get_room_snapshot` polls (018-configure-start-game).
+ */
+export const mockConfigureStartGameServices = async (page: Page) => {
+  resetConfigureStartGameState();
+
+  await page.route("**/rest/v1/rpc/add_room_match", async (route) => {
+    const body = route.request().postDataJSON() as {
+      source_provider: string;
+      source_match_id: string | null;
+      home_team_name: string;
+      away_team_name: string;
+      kickoff_at: string | null;
+    };
+    const existing = configureStartGameState.matches.find(
+      (match) =>
+        match.sourceProvider === body.source_provider &&
+        match.sourceMatchId === body.source_match_id,
+    );
+    const id = existing?.id ?? `match-${configureStartGameState.matches.length + 1}`;
+    if (!existing) {
+      configureStartGameState.matches.push({
+        id,
+        sourceProvider: body.source_provider,
+        sourceMatchId: body.source_match_id,
+        homeTeamName: body.home_team_name,
+        awayTeamName: body.away_team_name,
+        kickoffAt: body.kickoff_at,
+        homeScore: 0,
+        awayScore: 0,
+      });
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(id),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/set_common_match", async (route) => {
+    const body = route.request().postDataJSON() as { match_id: string };
+    configureStartGameState.commonMatchId = body.match_id;
+    await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+  });
+
+  await page.route("**/rest/v1/rpc/set_room_assignments", async (route) => {
+    const body = route.request().postDataJSON() as {
+      assignments: ConfigureStartGameAssignment[];
+    };
+    configureStartGameState.assignments = body.assignments;
+    await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+  });
+
+  await page.route(`${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
+    });
+  });
+
+  await page.route(
+    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/rooms/*/commands/start-game`,
+    async (route) => {
+      // Mirrors StartGameCommandHandler's FR-006–FR-009 checks closely enough for e2e coverage.
+      if (configureStartGameState.roomState !== "joinable") {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "INVALID_ROOM_STATE",
+            message: "The room state is not in the joinable lobby state.",
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        return;
+      }
+      if (configureStartGameState.matches.length === 0) {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "EMPTY_MATCHES",
+            message: "At least one match must be selected for the room.",
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        return;
+      }
+      if (!configureStartGameState.commonMatchId) {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "MISSING_COMMON_MATCH",
+            message: "No common match is currently designated for the room.",
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        return;
+      }
+      const assignedParticipantIds = new Set(
+        configureStartGameState.assignments
+          .filter((assignment) => assignment.matchId !== configureStartGameState.commonMatchId)
+          .map((assignment) => assignment.participantId),
+      );
+      if (!assignedParticipantIds.has(HOST_ROOM_PARTICIPANT_ID)) {
+        await route.fulfill({
+          status: 422,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "UNASSIGNED_PARTICIPANTS",
+            message:
+              "Every participant must be assigned at least one match (excluding the common match).",
+            timestamp: new Date().toISOString(),
+          }),
+        });
+        return;
+      }
+
+      configureStartGameState.roomState = "in_progress";
+      const idempotencyKey = route.request().headers()["idempotency-key"] ?? "unknown";
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          commandType: "start-game",
+          roomId: HOST_ROOM_SESSION_ID,
+          idempotencyKey,
+          status: "ACCEPTED",
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    },
+  );
 };
