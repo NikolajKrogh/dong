@@ -1,6 +1,6 @@
 # dong Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-05-24
+Auto-generated from all feature plans. Last updated: 2026-06-28
 
 ## Active Technologies
 - TypeScript 5.3.3 in an Expo SDK 52 / React Native 0.76.9 workspace + Expo Router 4, React 18.3.1, Zustand 5, AsyncStorage, `react-native-toast-message`, existing `platform/` adapters, and new `tamagui` + `@tamagui/babel-plugin` foundation dependencies (112-setup-game-assignments)
@@ -31,6 +31,8 @@ Auto-generated from all feature plans. Last updated: 2026-05-24
 - Supabase Postgres for account and settings rows; AsyncStorage remains the local device fallback and game-state store (131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account)
 - Java 17 / Spring Boot 3.3.5 for `command-api` + TypeScript 5.3.3 / Expo SDK 52 for the client hook migration + Spring Boot 3.3.5 (web, security, validation, actuator), springdoc-openapi 2.6.0, JJWT 0.12.6, existing Spring `RestClient`, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage, `react-test-renderer` (152-espn-match-proxy)
 - N/A for backend persistence; in-memory TTL cache only; existing AsyncStorage state/logo caches remain unchanged (152-espn-match-proxy)
+- Java 17 for command-api, TypeScript 5.3.3 in an Expo SDK 52 / React Native 0.76.9 workspace. + Spring Boot 3.3.5 (web, security, validation, actuator), JJWT 0.12.6, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage. (153-configure-start-game)
+- PostgreSQL (Supabase local stack) with local migrations and RLS. (153-configure-start-game)
 
 - TypeScript 5.3.3 in an Expo SDK 52 / React Native 0.76.9 workspace + Expo Router 4, React 18.3.1, Zustand 5, AsyncStorage, `expo-av`, `react-native-date-picker`, `react-native-ui-datepicker`, `lottie-react-native`, `react-native-gesture-handler`, `react-native-reanimated`, Jest-Expo 52 (111-add-platform-abstractions)
 - Existing Zustand + AsyncStorage persistence remains unchanged; no new storage for this feature (111-add-platform-abstractions)
@@ -53,9 +55,9 @@ npm test; npm run lint
 Markdown documentation artifact inside a TypeScript 5.3.3 / Expo SDK 52 workspace: Follow standard conventions
 
 ## Recent Changes
+- 153-configure-start-game: Added Java 17 for command-api, TypeScript 5.3.3 in an Expo SDK 52 / React Native 0.76.9 workspace. + Spring Boot 3.3.5 (web, security, validation, actuator), JJWT 0.12.6, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage.
 - 152-espn-match-proxy: Added Java 17 / Spring Boot 3.3.5 for `command-api` + TypeScript 5.3.3 / Expo SDK 52 for the client hook migration + Spring Boot 3.3.5 (web, security, validation, actuator), springdoc-openapi 2.6.0, JJWT 0.12.6, existing Spring `RestClient`, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage, `react-test-renderer`
 - 131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, Zustand 5, AsyncStorage, Tamagui 1.141.5, @supabase/supabase-js 2.105.4, react-native-safe-area-context, react-native-toast-message, react-native-reanimated, playwright-bdd 8.5.0, @playwright/test 1.59.1
-- 131-us32-allow-a-guest-to-join-a-room-from-their-own-device-without-creating-an-account: Added TypeScript 5.3.3 + Expo SDK 52, React Native 0.76.9, React 18.3.1, Expo Router 4, `@supabase/supabase-js` 2.105.4, Zustand 5, AsyncStorage, `react-native-safe-area-context`, `react-native-toast-message`, `react-native-reanimated`, `playwright-bdd` 8.5.0, `@playwright/test` 1.59.1
 
 
 

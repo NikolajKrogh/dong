@@ -137,6 +137,7 @@ command-api:
 supabase:
   jwt-secret: ${SUPABASE_JWT_SECRET}
   url: ${SUPABASE_URL}
+  anon-key: ${SUPABASE_ANON_KEY:}
 
 management:
   endpoints:

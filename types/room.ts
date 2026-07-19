@@ -70,6 +70,21 @@ export interface MyActiveRoom {
   joinCode: string | null;
 }
 
+/** Request shape for `add_room_match` (US1). */
+export interface AddRoomMatchRequest {
+  sourceProvider: string;
+  sourceMatchId: string | null;
+  homeTeamName: string;
+  awayTeamName: string;
+  kickoffAt: string | null;
+}
+
+/** One entry of the bulk `set_room_assignments` payload (US3). */
+export interface RoomAssignmentInput {
+  participantId: string;
+  matchId: string;
+}
+
 /** Error codes raised by the room RPCs (PostgrestError.message). */
 export const ROOM_ERROR = {
   notAuthenticated: "not_authenticated",
@@ -80,4 +95,6 @@ export const ROOM_ERROR = {
   notHost: "not_host",
   successorRequired: "successor_required",
   successorNotEligible: "successor_not_eligible",
+  matchNotFound: "match_not_found",
+  invalidAssignment: "invalid_assignment",
 } as const;

@@ -9,10 +9,12 @@ import type {
 } from "../types/guestRoom";
 import type { HostRoomCreateResponse } from "../types/hostRoom";
 import type {
+  AddRoomMatchRequest,
   HostLeaveResponse,
   MemberLeaveResponse,
   MyActiveRoom,
   RegisteredJoinResponse,
+  RoomAssignmentInput,
   RoomSnapshot,
 } from "../types/room";
 import type {
@@ -48,6 +50,16 @@ export interface RoomRpcClient {
     sessionId: string,
     successorParticipantId?: string,
   ): Promise<HostLeaveResponse>;
+  addRoomMatch(
+    sessionId: string,
+    request: AddRoomMatchRequest,
+  ): Promise<string>;
+  removeRoomMatch(sessionId: string, matchId: string): Promise<void>;
+  setCommonMatch(sessionId: string, matchId: string): Promise<void>;
+  setRoomAssignments(
+    sessionId: string,
+    assignments: RoomAssignmentInput[],
+  ): Promise<void>;
 }
 
 /** Shared poll interval for every lobby view (host, member, guest). */
@@ -331,6 +343,63 @@ export const createRoomRpcClient = (
       }
 
       return data;
+    },
+
+    async addRoomMatch(sessionId, request) {
+      const { data, error } = await client.rpc("add_room_match", {
+        session_id: sessionId,
+        source_provider: request.sourceProvider,
+        source_match_id: request.sourceMatchId,
+        home_team_name: request.homeTeamName,
+        away_team_name: request.awayTeamName,
+        kickoff_at: request.kickoffAt,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error("Supabase add_room_match returned no response payload.");
+      }
+
+      return data as string;
+    },
+
+    async removeRoomMatch(sessionId, matchId) {
+      const { error } = await client.rpc("remove_room_match", {
+        session_id: sessionId,
+        match_id: matchId,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async setCommonMatch(sessionId, matchId) {
+      const { error } = await client.rpc("set_common_match", {
+        session_id: sessionId,
+        match_id: matchId,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async setRoomAssignments(sessionId, assignments) {
+      const { error } = await client.rpc("set_room_assignments", {
+        session_id: sessionId,
+        assignments: assignments.map((assignment) => ({
+          participantId: assignment.participantId,
+          matchId: assignment.matchId,
+        })),
+      });
+
+      if (error) {
+        throw error;
+      }
     },
   };
 };

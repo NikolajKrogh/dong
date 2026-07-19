@@ -1,23 +1,21 @@
 package com.dong.commandapi.command.idempotency;
 
-import com.dong.commandapi.command.CommandHandler;
-import com.dong.commandapi.command.EchoCommandHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Guards the deliberately-incomplete idempotency stub.
+ * Regression guard, not a bootstrap tripwire anymore.
  *
- * <p>{@link NoOpIdempotencyService} validates the {@code Idempotency-Key} format
- * but performs NO deduplication (issue #133), so a replayed command re-executes.
- * That is only safe while every wired {@link CommandHandler} is side-effect free.
- * This test fails the moment a second handler is added, forcing whoever adds the
- * first state-mutating command to replace the no-op store in the same change.
+ * <p>This test originally forced whoever wired the first state-mutating
+ * {@code CommandHandler} to replace the bootstrap {@code NoOpIdempotencyService}
+ * (format validation only, no dedup) with a persistent store in the same change —
+ * see git history / research.md R7 for the migration. That work has landed
+ * ({@link PersistentIdempotencyService}, backed by {@code public.command_idempotency}),
+ * so the original no-op class is gone entirely. What remains is a cheap regression
+ * check: the wired {@link IdempotencyService} must never silently become a no-op again.
  */
 @SpringBootTest(properties = {
         "supabase.jwt-secret=test-secret-which-is-at-least-thirty-two-bytes-long",
@@ -26,21 +24,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class IdempotencyStubGuardTest {
 
     @Autowired
-    private List<CommandHandler> commandHandlers;
-
-    @Autowired
     private IdempotencyService idempotencyService;
 
     @Test
-    void onlyTheNonMutatingEchoHandlerIsWiredWhileIdempotencyIsANoOp() {
-        assertThat(idempotencyService).isInstanceOf(NoOpIdempotencyService.class);
-
-        assertThat(commandHandlers)
-                .as("NoOpIdempotencyService performs no deduplication (#133): a replayed command "
-                        + "re-executes, which is only safe while all command handlers are side-effect "
-                        + "free. If you are adding a state-mutating command, replace "
-                        + "NoOpIdempotencyService with a persistent idempotency store in the same change.")
-                .singleElement()
-                .isInstanceOf(EchoCommandHandler.class);
+    void persistentIdempotencyServiceIsWired() {
+        assertThat(idempotencyService)
+                .as("The dispatch-layer idempotency store must be a persistent implementation "
+                        + "(research.md R7) — a replayed/in-flight command relies on real dedup, "
+                        + "not just Idempotency-Key format validation.")
+                .isInstanceOf(PersistentIdempotencyService.class);
     }
 }

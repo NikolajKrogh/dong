@@ -102,4 +102,25 @@ describe("useRoomLobby", () => {
     expect(result()?.roomEnded).toBe(true);
     unmount();
   });
+
+  it("flags gameStarted once the snapshot state transitions to in_progress (FR-012)", async () => {
+    mockGetRoomRpcClient.mockReturnValue({
+      getRoomSnapshot: jest.fn(async () => snapshot({ state: "joinable" })),
+    } as never);
+
+    const { result, unmount } = await renderLobby("session-1", "owner-1");
+    expect(result()?.gameStarted).toBe(false);
+    unmount();
+  });
+
+  it("flags gameStarted true when the room is in_progress", async () => {
+    mockGetRoomRpcClient.mockReturnValue({
+      getRoomSnapshot: jest.fn(async () => snapshot({ state: "in_progress" })),
+    } as never);
+
+    const { result, unmount } = await renderLobby("session-1", "owner-1");
+    expect(result()?.gameStarted).toBe(true);
+    expect(result()?.roomEnded).toBe(false);
+    unmount();
+  });
 });
