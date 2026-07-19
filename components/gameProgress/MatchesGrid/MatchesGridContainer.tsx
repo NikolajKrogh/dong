@@ -2,7 +2,7 @@ import React, { useCallback, useState } from "react";
 import { View, FlatList, useWindowDimensions } from "react-native";
 import { MatchesGridProps, SortField, SortDirection } from "./types";
 import { Match, Player } from "../../../store/store";
-import { MatchWithScore } from "../../../hooks/useLiveScores";
+import { MatchWithScore } from "../../../types/matchScores";
 import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
 import { useColors } from "../../../app/style/theme";
 

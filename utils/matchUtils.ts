@@ -166,39 +166,61 @@ export interface TeamWithLeague {
 }
 
 /**
- * Extract home/away team names.
- * @description Parses ESPN event competitors or falls back to name/shortName heuristics.
- * @param {any} event ESPN event.
- * @returns {{homeTeam:string;awayTeam:string}} Extracted names.
+ * Filter matches by date and optional time range.
+ * @description Returns only matches on selectedDate and within the inclusive time window when both start/end provided;
+ * original list when no filters active.
+ * @param apiData Input matches.
+ * @param selectedDate YYYY-MM-DD date.
+ * @param startTime Start time HH:MM.
+ * @param endTime End time HH:MM.
+ * @returns Filtered matches array.
  */
-export function extractTeamsFromESPNEvent(event: any): {
-  homeTeam: string;
-  awayTeam: string;
-} {
-  const result = { homeTeam: "", awayTeam: "" };
+export function filterMatchesByDateAndTime(
+  apiData: MatchData[],
+  selectedDate: string,
+  startTime: string,
+  endTime: string,
+): MatchData[] {
+  const hasTimeFilter = Boolean(startTime && endTime);
+  const hasDateFilter = Boolean(selectedDate);
 
-  if (
-    event.competitions &&
-    event.competitions[0] &&
-    event.competitions[0].competitors
-  ) {
-    const competitors = event.competitions[0].competitors;
-    competitors.forEach((team: any) => {
-      if (team.homeAway === "home") {
-        result.homeTeam = team.team?.displayName || team.team?.name || "";
-      } else if (team.homeAway === "away") {
-        result.awayTeam = team.team?.displayName || team.team?.name || "";
-      }
-    });
-  } else if (event.name && event.name.includes(" at ")) {
-    const parts = event.name.split(" at ");
-    result.awayTeam = parts[0].trim();
-    result.homeTeam = parts[1].trim();
-  } else if (event.shortName && event.shortName.includes(" @ ")) {
-    const parts = event.shortName.split(" @ ");
-    result.awayTeam = parts[0].trim();
-    result.homeTeam = parts[1].trim();
+  // Return original data if no filters are applied or if apiData is empty
+  if ((!hasTimeFilter && !hasDateFilter) || !apiData || apiData.length === 0) {
+    return apiData;
   }
 
-  return result;
+  // Filter the data based on active filters
+  return apiData.filter((match) => {
+    let includeMatch = true;
+
+    // Apply date filter if active
+    if (hasDateFilter) {
+      includeMatch = match.date === selectedDate;
+    }
+
+    // Apply time filter only if the date filter passed (or wasn't active) and time filter is active
+    if (includeMatch && hasTimeFilter) {
+      if (match.time) {
+        // Ensure match has a time to compare
+        const matchMinutes = convertTimeToMinutes(match.time);
+        const startMinutes = convertTimeToMinutes(startTime);
+        const endMinutes = convertTimeToMinutes(endTime);
+
+        // Check if match time falls within the specified range
+        // Also handles cases where time conversion might fail (returns -1)
+        if (matchMinutes !== -1 && startMinutes !== -1 && endMinutes !== -1) {
+          includeMatch =
+            matchMinutes >= startMinutes && matchMinutes <= endMinutes;
+        } else {
+          // If any time conversion failed, exclude the match for safety or log an error
+          includeMatch = false;
+        }
+      } else {
+        // If time filter is active but match has no time, exclude it
+        includeMatch = false;
+      }
+    }
+    return includeMatch;
+  });
 }
+

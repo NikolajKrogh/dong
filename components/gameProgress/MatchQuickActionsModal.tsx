@@ -20,7 +20,7 @@ import Svg, { Path, Rect } from "react-native-svg";
 import { Match, Player } from "../../store/store";
 import { Ionicons } from "@expo/vector-icons";
 import { useTeamLogo } from "../../hooks/useTeamLogo";
-import { MatchWithScore } from "../../hooks/useLiveScores";
+import { MatchWithScore } from "../../types/matchScores";
 import { useColors } from "../../app/style/theme";
 
 /** Props for MatchQuickActionsModal. */
