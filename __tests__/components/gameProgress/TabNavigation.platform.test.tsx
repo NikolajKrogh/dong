@@ -74,16 +74,17 @@ describe("TabNavigation platform adoption", () => {
       require("../../../components/gameProgress/TabNavigation").default;
 
     const renderer = TestRenderer.create(
-      React.createElement(TabNavigation, {
-        activeTab: "matches",
-        setActiveTab,
-        matchesCount: 2,
-        playersCount: 4,
-        children: [
-          React.createElement(View, { key: "matches" }),
-          React.createElement(View, { key: "players" }),
-        ],
-      }),
+      React.createElement(
+        TabNavigation,
+        {
+          activeTab: "matches",
+          setActiveTab,
+          matchesCount: 2,
+          playersCount: 4,
+        },
+        React.createElement(View, { key: "matches" }),
+        React.createElement(View, { key: "players" }),
+      ),
     );
 
     expect(mockPlatformSwipeTabs).toHaveBeenCalledWith(
@@ -114,16 +115,17 @@ describe("TabNavigation platform adoption", () => {
       require("../../../components/gameProgress/TabNavigation").default;
 
     const renderer = TestRenderer.create(
-      React.createElement(TabNavigation, {
-        activeTab: "matches",
-        setActiveTab,
-        matchesCount: 2,
-        playersCount: 4,
-        children: [
-          React.createElement(View, { key: "matches" }),
-          React.createElement(View, { key: "players" }),
-        ],
-      }),
+      React.createElement(
+        TabNavigation,
+        {
+          activeTab: "matches",
+          setActiveTab,
+          matchesCount: 2,
+          playersCount: 4,
+        },
+        React.createElement(View, { key: "matches" }),
+        React.createElement(View, { key: "players" }),
+      ),
     );
 
     const tabBarContainer = renderer.root.findByProps({

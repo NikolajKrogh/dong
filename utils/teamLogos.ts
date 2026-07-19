@@ -20,8 +20,8 @@ try {
         process.env.NODE_ENV === "test")
     )
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     AsyncStorageRef =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       require("@react-native-async-storage/async-storage").default;
   }
 } catch {
