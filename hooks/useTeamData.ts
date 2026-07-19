@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { TeamWithLeague } from "../utils/matchUtils";
 
 /**
@@ -53,10 +52,17 @@ export const useTeamData = () => {
         // Fetch data from each URL
         const responses = await Promise.all(
           leagueUrls.map((url, index) =>
-            axios.get(url).then((res) => ({
-              data: res.data,
-              leagueName: leagueNames[index],
-            })),
+            fetch(url).then(async (res) => {
+              if (!res.ok) {
+                throw new Error(
+                  `Failed to fetch ${url}: ${res.status} ${res.statusText}`,
+                );
+              }
+              return {
+                data: await res.json(),
+                leagueName: leagueNames[index],
+              };
+            }),
           ),
         );
 
