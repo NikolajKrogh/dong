@@ -24,6 +24,12 @@ export default defineConfig({
   testDir,
   timeout: 30_000,
   retries: 0,
+  // The webServer below is a single dev-mode (SSR-per-request) Expo/Metro
+  // instance shared by every worker and both projects. Under CI's default
+  // worker concurrency it was observed to crash mid-run (ERR_CONNECTION_REFUSED
+  // partway through; see specs/019-harden-codebase-foundations/tasks.md T008) —
+  // capping to 1 worker in CI serializes all requests to keep it alive.
+  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL,
     headless: true,
