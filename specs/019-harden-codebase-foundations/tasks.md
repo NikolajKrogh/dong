@@ -36,11 +36,11 @@
 
 ---
 
-## Phase 3: Remove axios + node-fetch (US2) — branch `tech-debt/03-remove-axios-node-fetch`
+## Phase 3: Remove axios + node-fetch (US2) — branch `tech-debt/03-remove-axios-node-fetch` — ✅ pushed, PR [#171](https://github.com/NikolajKrogh/dong/pull/171) open (stacked on #169)
 
-- [ ] T009 [US2] Replace `axios.get` in `hooks/useTeamData.ts` (import line 2, call ~line 56 inside `Promise.all`) with `fetch` + explicit `if (!res.ok) throw` + `res.json()` — must replicate axios's reject-on-non-2xx so error states are identical
-- [ ] T010 [US2] Remove `axios` and `node-fetch` from `package.json` dependencies; refresh lockfile
-- [ ] T011 [US2] Verify: `git grep -E "axios|node-fetch" -- ':!package-lock.json'` clean; lint + jest green; setupGame team pickers populate on web
+- [x] T009 [US2] Replace `axios.get` in `hooks/useTeamData.ts` (import line 2, call ~line 56 inside `Promise.all`) with `fetch` + explicit `if (!res.ok) throw` + `res.json()` — must replicate axios's reject-on-non-2xx so error states are identical
+- [x] T010 [US2] Remove `axios` and `node-fetch` from `package.json` dependencies; refresh lockfile (136 lines removed)
+- [x] T011 [US2] Verify: `git grep -E "axios|node-fetch" -- ':!package-lock.json'` clean (only doc/spec text and an unrelated skill-file comment remain); lint clean; `npx jest --ci` → 63 suites/271 tests green; setupGame team pickers manually verified — navigated to the Matches step on web and confirmed via browser console that the exact fetch pattern used correctly retrieves/parses openfootball data (380 matches, correct shape), no CORS issues. CI confirmed green on GitHub: `build` (client-ci) passes on both push and pull_request runs.
 
 ---
 
