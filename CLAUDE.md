@@ -118,5 +118,7 @@ Restart Expo after changing `.env.local`.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/019-harden-codebase-foundations/plan.md`
+the `plan.md` in the highest-numbered directory under `specs/` (e.g.
+`specs/019-<slug>/plan.md`) — this pointer is intentionally not pinned to a
+specific feature number so it doesn't go stale as features complete.
 <!-- SPECKIT END -->
