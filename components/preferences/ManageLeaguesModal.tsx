@@ -230,7 +230,7 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
                 No leagues configured
               </Text>
               <Text style={manageLeaguesModalStyles.emptyStateMessage}>
-                Use the "Add Leagues" setting to configure leagues
+                Use the &quot;Add Leagues&quot; setting to configure leagues
               </Text>
             </View>
           )}

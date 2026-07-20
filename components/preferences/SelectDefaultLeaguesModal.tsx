@@ -208,8 +208,8 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
                 No Configured Leagues
               </Text>
               <Text style={selectDefaultLeaguesModalStyles.emptyStateMessage}>
-                Please add leagues via "Manage Configured Leagues" or "Add New
-                Leagues" first.
+                Please add leagues via &quot;Manage Configured Leagues&quot; or
+                &quot;Add New Leagues&quot; first.
               </Text>
             </View>
           )}
