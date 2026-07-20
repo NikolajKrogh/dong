@@ -82,7 +82,9 @@ describe("useLiveScores", () => {
     expect(observedHook?.stopPolling).toBe(initialStopPolling);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -125,7 +127,9 @@ describe("useLiveScores", () => {
     expect(clearIntervalSpy).not.toHaveBeenCalled();
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
 
     expect(clearIntervalSpy).toHaveBeenCalledTimes(1);

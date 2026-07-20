@@ -59,3 +59,7 @@ supabase/.env.local
 
 # Java
 command-api/target
+
+# Test artifacts
+test-results/
+playwright-report/

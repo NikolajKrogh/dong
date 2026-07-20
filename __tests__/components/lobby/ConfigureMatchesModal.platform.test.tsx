@@ -80,7 +80,9 @@ describe("ConfigureMatchesModal", () => {
         awayTeamName: "Chelsea",
       }),
     );
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("disables the add button for a fixture already in the room", async () => {
@@ -118,7 +120,9 @@ describe("ConfigureMatchesModal", () => {
       testID: "configure-match-add-espn-1",
     });
     expect(addButton.props.disabled).toBe(true);
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("shows an error message when the catalog fails to load", async () => {
@@ -134,7 +138,9 @@ describe("ConfigureMatchesModal", () => {
 
     const error = renderer.root.findByProps({ testID: "configure-matches-error" });
     expect(error.props.children).toBe("Match discovery is temporarily unavailable.");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("calls onClose when Done is pressed", async () => {
@@ -153,6 +159,8 @@ describe("ConfigureMatchesModal", () => {
     });
 
     expect(onClose).toHaveBeenCalledTimes(1);
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

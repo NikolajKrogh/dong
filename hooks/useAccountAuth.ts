@@ -1,13 +1,6 @@
-import type {
-  AuthChangeEvent,
-  Session,
-  SupabaseClient,
-  User,
-} from "@supabase/supabase-js";
-import * as Linking from "expo-linking";
+import type { Session, User } from "@supabase/supabase-js";
 import React, {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -15,23 +8,31 @@ import React, {
 } from "react";
 
 import {
-  applySyncedPreferenceState,
-  getCurrentSyncedPreferenceState,
-  hydrateSyncedPreferenceState,
-  serializeSyncedPreferenceState,
-  type SyncedPreferenceState,
-  useGameStore,
-} from "../store/store";
+  saveAccountDisplayName,
+  type Account,
+} from "../utils/accountRepository";
+import { buildAccountAuthRedirectUrl } from "../utils/accountAuthRoutes";
 import {
   getSupabaseClient,
   getSupabasePublicConfig,
   hasSupabasePublicConfig,
 } from "../utils/supabaseClient";
+import { useAccountSessionSync } from "./useAccountSessionSync";
+import { useAccountSettingsSync } from "./useAccountSettingsSync";
 
-const ACCOUNT_SELECT_COLUMNS =
-  "id, preferred_display_name, created_at, updated_at";
-const SETTINGS_SELECT_COLUMNS =
-  "account_id, settings_data, created_at, updated_at";
+export type { Account, AccountSyncedSettings } from "../utils/accountRepository";
+export {
+  bootstrapAccountRow,
+  loadAccountSyncedSettings,
+  saveAccountDisplayName,
+  saveAccountSyncedSettings,
+} from "../utils/accountRepository";
+export {
+  buildAccountAuthRedirectUrl,
+  buildAccountAuthRoute,
+  normalizeAccountDisplayName,
+  normalizeAccountFlowReturnTo,
+} from "../utils/accountAuthRoutes";
 
 export type AccountAuthStatus =
   | "loading"
@@ -42,34 +43,6 @@ export type AccountAuthStatus =
 
 export const SESSION_EXPIRED_MESSAGE =
   "Your session ended. Sign in again to keep managing your profile and synced settings.";
-
-interface AccountRow {
-  id: string;
-  preferred_display_name: string | null;
-  created_at: string;
-  updated_at: string | null;
-}
-
-interface AccountSyncedSettingsRow {
-  account_id: string;
-  settings_data: unknown;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Account {
-  id: string;
-  preferredDisplayName: string | null;
-  createdAt: string;
-  updatedAt: string | null;
-}
-
-export interface AccountSyncedSettings {
-  accountId: string;
-  settings: SyncedPreferenceState;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface AccountAuthContextValue {
   status: AccountAuthStatus;
@@ -97,209 +70,6 @@ export interface AccountAuthContextValue {
 
 const AccountAuthContext = createContext<AccountAuthContextValue | null>(null);
 
-const normalizeOptionalAccountText = (value: string | null | undefined) => {
-  const trimmedValue = value?.trim() ?? "";
-
-  return trimmedValue.length > 0 ? trimmedValue : null;
-};
-
-export const normalizeAccountDisplayName = (value: string | null | undefined) =>
-  normalizeOptionalAccountText(value);
-
-export const normalizeAccountFlowReturnTo = (
-  value: string | string[] | null | undefined,
-): string | null => {
-  if (Array.isArray(value)) {
-    return normalizeAccountFlowReturnTo(value[0]);
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-
-  return trimmedValue.startsWith("/") ? trimmedValue : null;
-};
-
-export const buildAccountAuthRoute = (
-  route:
-    | "/auth"
-    | "/auth/onboarding"
-    | "/auth/reset-password"
-    | "/auth/change-password",
-  returnTo?: string | null,
-  extraParams?: Record<string, string>,
-): string => {
-  const normalizedReturnTo = normalizeAccountFlowReturnTo(returnTo);
-  const params: string[] = [];
-  if (normalizedReturnTo) {
-    params.push(`returnTo=${encodeURIComponent(normalizedReturnTo)}`);
-  }
-  if (extraParams) {
-    for (const [key, value] of Object.entries(extraParams)) {
-      if (value)
-        params.push(`${encodeURIComponent(key)}=${encodeURIComponent(value)}`);
-    }
-  }
-  return params.length > 0 ? `${route}?${params.join("&")}` : route;
-};
-
-export const buildAccountAuthRedirectUrl = (
-  route:
-    | "/auth"
-    | "/auth/onboarding"
-    | "/auth/reset-password"
-    | "/auth/change-password",
-  returnTo?: string | null,
-) => Linking.createURL(buildAccountAuthRoute(route, returnTo));
-
-const mapAccountRow = (row: AccountRow): Account => ({
-  id: row.id,
-  preferredDisplayName: normalizeAccountDisplayName(row.preferred_display_name),
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
-
-const mapAccountSyncedSettingsRow = (
-  row: AccountSyncedSettingsRow,
-): AccountSyncedSettings => ({
-  accountId: row.account_id,
-  settings: hydrateSyncedPreferenceState(row.settings_data),
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
-
-const buildSyncedPreferenceSignature = (settings: SyncedPreferenceState) =>
-  JSON.stringify(serializeSyncedPreferenceState(settings));
-
-const setSignedOutState = (
-  setStatus: React.Dispatch<React.SetStateAction<AccountAuthStatus>>,
-  setSession: React.Dispatch<React.SetStateAction<Session | null>>,
-  setUser: React.Dispatch<React.SetStateAction<User | null>>,
-  setAccount: React.Dispatch<React.SetStateAction<Account | null>>,
-) => {
-  setStatus("signedOut");
-  setSession(null);
-  setUser(null);
-  setAccount(null);
-};
-
-export const bootstrapAccountRow = async (
-  client: SupabaseClient,
-  userId: string,
-) => {
-  const { data: existingAccount, error: fetchError } = await client
-    .from("accounts")
-    .select(ACCOUNT_SELECT_COLUMNS)
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  if (existingAccount) {
-    return mapAccountRow(existingAccount);
-  }
-
-  const { error: insertError } = await client.from("accounts").insert({
-    id: userId,
-  });
-
-  if (insertError && insertError.code !== "23505") {
-    throw insertError;
-  }
-
-  const { data: bootstrappedAccount, error: refetchError } = await client
-    .from("accounts")
-    .select(ACCOUNT_SELECT_COLUMNS)
-    .eq("id", userId)
-    .single();
-
-  if (refetchError || !bootstrappedAccount) {
-    throw refetchError ?? new Error("Unable to bootstrap the account.");
-  }
-
-  return mapAccountRow(bootstrappedAccount);
-};
-
-export const saveAccountDisplayName = async (
-  client: SupabaseClient,
-  userId: string,
-  displayName: string,
-) => {
-  const trimmedDisplayName = normalizeAccountDisplayName(displayName);
-
-  if (!trimmedDisplayName) {
-    throw new Error("Account display name cannot be blank.");
-  }
-
-  const { data: updatedAccount, error: updateError } = await client
-    .from("accounts")
-    .update({
-      preferred_display_name: trimmedDisplayName,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", userId)
-    .select(ACCOUNT_SELECT_COLUMNS)
-    .single();
-
-  if (updateError || !updatedAccount) {
-    throw (
-      updateError ?? new Error("Unable to update the account display name.")
-    );
-  }
-
-  return mapAccountRow(updatedAccount);
-};
-
-export const loadAccountSyncedSettings = async (
-  client: SupabaseClient,
-  userId: string,
-) => {
-  const { data: existingSettings, error: fetchError } = await client
-    .from("settings")
-    .select(SETTINGS_SELECT_COLUMNS)
-    .eq("account_id", userId)
-    .maybeSingle();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  if (!existingSettings) {
-    return null;
-  }
-
-  return mapAccountSyncedSettingsRow(existingSettings);
-};
-
-export const saveAccountSyncedSettings = async (
-  client: SupabaseClient,
-  userId: string,
-  settings: SyncedPreferenceState,
-) => {
-  const { data: updatedSettings, error: updateError } = await client
-    .from("settings")
-    .upsert(
-      {
-        account_id: userId,
-        settings_data: serializeSyncedPreferenceState(settings),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "account_id" },
-    )
-    .select(SETTINGS_SELECT_COLUMNS)
-    .single();
-
-  if (updateError || !updatedSettings) {
-    throw updateError ?? new Error("Unable to update the account settings.");
-  }
-
-  return mapAccountSyncedSettingsRow(updatedSettings);
-};
-
 export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
@@ -315,226 +85,26 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   const lastSyncedPreferenceSignatureRef = useRef<string | null>(null);
   const pendingManualSignOutRef = useRef(false);
 
-  const clearAuthenticatedState = useCallback(
-    (nextSessionNotice: string | null = null) => {
-      pendingManualSignOutRef.current = false;
-      activeSettingsUserIdRef.current = null;
-      lastSyncedPreferenceSignatureRef.current = null;
-      setSessionNotice(nextSessionNotice);
-      setSignedOutState(setStatus, setSession, setUser, setAccount);
-    },
-    [],
-  );
-
-  const getSignedOutSessionNotice = useCallback(
-    () =>
-      !pendingManualSignOutRef.current &&
-      activeSettingsUserIdRef.current !== null
-        ? SESSION_EXPIRED_MESSAGE
-        : null,
-    [],
-  );
-
-  const resolveAuthenticatedUser = useCallback(
-    async (
-      client: SupabaseClient,
-      nextSession: Session,
-      shouldVerifyUser: boolean,
-    ) => {
-      let nextUser = nextSession.user ?? null;
-
-      if (shouldVerifyUser || !nextUser) {
-        const { data: userData, error: userError } =
-          await client.auth.getUser();
-
-        if (userError || !userData.user) {
-          return null;
-        }
-
-        nextUser = userData.user;
-      }
-
-      return nextUser;
-    },
-    [],
-  );
-
-  const syncAuthenticatedSettings = useCallback(
-    async (client: SupabaseClient, userId: string) => {
-      const localSyncedPreferences = getCurrentSyncedPreferenceState();
-      const persistedSyncedSettings = await loadAccountSyncedSettings(
-        client,
-        userId,
-      );
-
-      if (persistedSyncedSettings) {
-        const appliedSyncedPreferences = applySyncedPreferenceState(
-          persistedSyncedSettings.settings,
-          localSyncedPreferences,
-        );
-
-        lastSyncedPreferenceSignatureRef.current =
-          buildSyncedPreferenceSignature(appliedSyncedPreferences);
-        return;
-      }
-
-      const seededSyncedSettings = await saveAccountSyncedSettings(
-        client,
-        userId,
-        localSyncedPreferences,
-      );
-
-      lastSyncedPreferenceSignatureRef.current = buildSyncedPreferenceSignature(
-        seededSyncedSettings.settings,
-      );
-    },
-    [],
-  );
-
-  const resolveAccountStatus = (
-    nextAccount: Account,
-    authEvent?: AuthChangeEvent,
-  ): AccountAuthStatus => {
-    if (authEvent === "PASSWORD_RECOVERY") {
-      return "recoveringPassword";
-    }
-
-    return normalizeAccountDisplayName(nextAccount.preferredDisplayName)
-      ? "ready"
-      : "needsDisplayName";
-  };
-
-  const syncAuthenticatedSession = useCallback(
-    async (
-      nextSession: Session | null,
-      shouldVerifyUser = false,
-      authEvent?: AuthChangeEvent,
-    ) => {
-      const client = getSupabaseClient();
-      const signedOutSessionNotice = getSignedOutSessionNotice();
-
-      if (!nextSession) {
-        clearAuthenticatedState(signedOutSessionNotice);
-        return;
-      }
-
-      const nextUser = await resolveAuthenticatedUser(
-        client,
-        nextSession,
-        shouldVerifyUser,
-      );
-
-      if (!nextUser) {
-        clearAuthenticatedState(signedOutSessionNotice);
-        return;
-      }
-
-      const nextAccount = await bootstrapAccountRow(client, nextUser.id);
-      await syncAuthenticatedSettings(client, nextUser.id);
-
-      activeSettingsUserIdRef.current = nextUser.id;
-      setSessionNotice(null);
-
-      setSession(nextSession);
-      setUser(nextUser);
-      setAccount(nextAccount);
-      setStatus(resolveAccountStatus(nextAccount, authEvent));
-    },
-    [
-      clearAuthenticatedState,
-      getSignedOutSessionNotice,
-      resolveAuthenticatedUser,
-      syncAuthenticatedSettings,
-    ],
-  );
-
-  useEffect(() => {
-    if (!isConfigured) {
-      return;
-    }
-
-    const client = getSupabaseClient();
-    let isMounted = true;
-
-    const restoreSession = async () => {
-      const { data: sessionData, error: sessionError } =
-        await client.auth.getSession();
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (sessionError || !sessionData.session) {
-        clearAuthenticatedState();
-        return;
-      }
-
-      try {
-        await syncAuthenticatedSession(sessionData.session, true);
-      } catch (error) {
-        if (isMounted) {
-          clearAuthenticatedState();
-        }
-
-        console.error(error);
-      }
-    };
-
-    void restoreSession();
-
-    const { data } = client.auth.onAuthStateChange((event, nextSession) => {
-      void syncAuthenticatedSession(nextSession, false, event).catch(
-        (error) => {
-          console.error(error);
-          if (isMounted) {
-            clearAuthenticatedState();
-          }
-        },
-      );
+  const { clearAuthenticatedState, syncAuthenticatedSession } =
+    useAccountSessionSync({
+      isConfigured,
+      sessionExpiredMessage: SESSION_EXPIRED_MESSAGE,
+      activeSettingsUserIdRef,
+      lastSyncedPreferenceSignatureRef,
+      pendingManualSignOutRef,
+      setStatus,
+      setSession,
+      setSessionNotice,
+      setUser,
+      setAccount,
     });
 
-    return () => {
-      isMounted = false;
-      data.subscription.unsubscribe();
-    };
-  }, [clearAuthenticatedState, isConfigured, syncAuthenticatedSession]);
-
-  useEffect(() => {
-    if (!isConfigured || !user || !activeSettingsUserIdRef.current) {
-      return;
-    }
-
-    const client = getSupabaseClient();
-
-    return useGameStore.subscribe((state) => {
-      if (activeSettingsUserIdRef.current !== user.id) {
-        return;
-      }
-
-      const nextPreferences = serializeSyncedPreferenceState(state);
-      const nextPreferenceSignature =
-        buildSyncedPreferenceSignature(nextPreferences);
-
-      if (
-        nextPreferenceSignature === lastSyncedPreferenceSignatureRef.current
-      ) {
-        return;
-      }
-
-      const previousPreferenceSignature =
-        lastSyncedPreferenceSignatureRef.current;
-
-      lastSyncedPreferenceSignatureRef.current = nextPreferenceSignature;
-
-      void saveAccountSyncedSettings(client, user.id, nextPreferences).catch(
-        (error) => {
-          lastSyncedPreferenceSignatureRef.current =
-            previousPreferenceSignature;
-          console.error(error);
-        },
-      );
-    });
-  }, [isConfigured, user]);
+  useAccountSettingsSync({
+    isConfigured,
+    user,
+    activeSettingsUserIdRef,
+    lastSyncedPreferenceSignatureRef,
+  });
 
   useEffect(() => {
     if (!isConfigured || !globalThis.window) {

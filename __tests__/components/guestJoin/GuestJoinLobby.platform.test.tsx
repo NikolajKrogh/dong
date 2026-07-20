@@ -1,12 +1,13 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import { GuestJoinLobby } from "../../../components/guestJoin/GuestJoinLobby";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
 describe("GuestJoinLobby", () => {
   it("renders the joined room code, state, and participant summaries", () => {
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         null,

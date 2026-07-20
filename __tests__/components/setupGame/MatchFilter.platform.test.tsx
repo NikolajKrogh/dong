@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockPlatformDatePicker = jest.fn(() => null);
 const mockPlatformTimePicker = jest.fn(() => null);
@@ -76,7 +77,7 @@ describe("MatchFilter platform adoption", () => {
     const MatchFilter =
       require("../../../components/setupGame/MatchFilter").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(MatchFilter, {
         selectedDate: "2026-04-11",
         startTime: "15:00",

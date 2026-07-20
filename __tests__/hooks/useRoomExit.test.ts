@@ -44,7 +44,10 @@ const render = () => {
     observed = useRoomExit();
     return null;
   };
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
   return { result: () => observed, renderer };
 };
 
@@ -64,7 +67,9 @@ describe("useRoomExit", () => {
       await flush();
     });
     expect(leaveRoomAsMember).toHaveBeenCalledWith("s1");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("auto-transfers as host when the server resolves it", async () => {
@@ -85,7 +90,9 @@ describe("useRoomExit", () => {
     });
     expect((response as { status: string }).status).toBe("transferred");
     expect(result()?.pendingSuccessorChoice).toBe(false);
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("prompts for a successor when several are eligible", async () => {
@@ -107,7 +114,9 @@ describe("useRoomExit", () => {
     });
     expect(result()?.pendingSuccessorChoice).toBe(true);
     expect(result()?.eligibleSuccessors).toHaveLength(2);
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("falls through to a close confirmation when everyone left mid-choice", async () => {
@@ -126,6 +135,8 @@ describe("useRoomExit", () => {
       await flush();
     });
     expect(result()?.needsCloseConfirm).toBe(true);
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 import { TouchableOpacity, View } from "react-native";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -21,6 +22,7 @@ jest.mock("../../../platform", () => ({
 }));
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   Text: "Text",
   TouchableOpacity: "TouchableOpacity",
   View: "View",
@@ -73,22 +75,23 @@ describe("TabNavigation platform adoption", () => {
     const TabNavigation =
       require("../../../components/gameProgress/TabNavigation").default;
 
-    const renderer = TestRenderer.create(
-      React.createElement(TabNavigation, {
-        activeTab: "matches",
-        setActiveTab,
-        matchesCount: 2,
-        playersCount: 4,
-        children: [
-          React.createElement(View, { key: "matches" }),
-          React.createElement(View, { key: "players" }),
-        ],
-      }),
+    const renderer = actCreate(
+      React.createElement(
+        TabNavigation,
+        {
+          activeTab: "matches",
+          setActiveTab,
+          matchesCount: 2,
+          playersCount: 4,
+        },
+        React.createElement(View, { key: "matches" }),
+        React.createElement(View, { key: "players" }),
+      ),
     );
 
     expect(mockPlatformSwipeTabs).toHaveBeenCalledWith(
       expect.objectContaining({ activeIndex: 0 }),
-      {},
+      undefined,
     );
 
     const buttons = renderer.root.findAllByType(TouchableOpacity);
@@ -98,7 +101,9 @@ describe("TabNavigation platform adoption", () => {
     });
 
     expect(setActiveTab).toHaveBeenCalledWith("players");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("adds explicit wide-layout treatment for desktop-width tabs", () => {
@@ -113,17 +118,18 @@ describe("TabNavigation platform adoption", () => {
     const TabNavigation =
       require("../../../components/gameProgress/TabNavigation").default;
 
-    const renderer = TestRenderer.create(
-      React.createElement(TabNavigation, {
-        activeTab: "matches",
-        setActiveTab,
-        matchesCount: 2,
-        playersCount: 4,
-        children: [
-          React.createElement(View, { key: "matches" }),
-          React.createElement(View, { key: "players" }),
-        ],
-      }),
+    const renderer = actCreate(
+      React.createElement(
+        TabNavigation,
+        {
+          activeTab: "matches",
+          setActiveTab,
+          matchesCount: 2,
+          playersCount: 4,
+        },
+        React.createElement(View, { key: "matches" }),
+        React.createElement(View, { key: "players" }),
+      ),
     );
 
     const tabBarContainer = renderer.root.findByProps({

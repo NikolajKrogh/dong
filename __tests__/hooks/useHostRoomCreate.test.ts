@@ -50,13 +50,25 @@ describe("useHostRoomCreate", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
-
-    await TestRenderer.act(async () => {
-      await observedHook?.createRoom();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    TestRenderer.act(() => {
+      renderer = TestRenderer.create(React.createElement(Probe));
     });
 
-    renderer.unmount();
+    let createRoomPromise: ReturnType<
+      NonNullable<UseHostRoomCreateResult["createRoom"]>
+    >;
+    TestRenderer.act(() => {
+      createRoomPromise = observedHook!.createRoom();
+    });
+
+    await TestRenderer.act(async () => {
+      await createRoomPromise;
+    });
+
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
 
     expect(isCreatingStates).toContain(false);
     expect(isCreatingStates).toContain(true);
@@ -81,13 +93,18 @@ describe("useHostRoomCreate", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    let renderer!: TestRenderer.ReactTestRenderer;
+    TestRenderer.act(() => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+    });
 
     await TestRenderer.act(async () => {
       await observedHook?.createRoom();
     });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/lobby/[sessionId]",
@@ -112,13 +129,18 @@ describe("useHostRoomCreate", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    let renderer!: TestRenderer.ReactTestRenderer;
+    TestRenderer.act(() => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+    });
 
     await TestRenderer.act(async () => {
       await observedHook?.createRoom();
     });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
 
     expect(observedHook?.error).toBe("not_authenticated");
     expect(mockPush).not.toHaveBeenCalled();
@@ -138,13 +160,18 @@ describe("useHostRoomCreate", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    let renderer!: TestRenderer.ReactTestRenderer;
+    TestRenderer.act(() => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+    });
 
     await TestRenderer.act(async () => {
       await observedHook?.createRoom();
     });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
 
     expect(observedHook?.isCreating).toBe(false);
   });

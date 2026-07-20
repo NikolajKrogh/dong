@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -52,6 +53,7 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
   Text: "Text",
   FlatList: "FlatList",
@@ -118,7 +120,7 @@ const renderPlayerList = () => {
   const PlayerList =
     require("../../../components/setupGame/PlayerList").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(PlayerList, {
       players: [
         { id: "p1", name: "Alice" },

@@ -346,7 +346,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
                       onPress={handleAddHomeTeam}
                     >
                       <Text style={styles.addNewButtonText}>
-                        Add "{homeSearchTerm}"
+                        Add &quot;{homeSearchTerm}&quot;
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -359,7 +359,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
                     onPress={handleAddHomeTeam}
                   >
                     <Text style={styles.addNewButtonText}>
-                      Add "{homeSearchTerm}" as new team
+                      Add &quot;{homeSearchTerm}&quot; as new team
                     </Text>
                   </TouchableOpacity>
                 ) : null
@@ -416,7 +416,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
                       onPress={handleAddAwayTeam}
                     >
                       <Text style={styles.addNewButtonText}>
-                        Add "{awaySearchTerm}"
+                        Add &quot;{awaySearchTerm}&quot;
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -429,7 +429,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
                     onPress={handleAddAwayTeam}
                   >
                     <Text style={styles.addNewButtonText}>
-                      Add "{awaySearchTerm}" as new team
+                      Add &quot;{awaySearchTerm}&quot; as new team
                     </Text>
                   </TouchableOpacity>
                 ) : null

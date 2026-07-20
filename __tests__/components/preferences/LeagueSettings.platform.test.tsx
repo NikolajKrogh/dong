@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 jest.mock("../../../app/style/theme", () => ({
   useColors: () => ({
@@ -62,7 +63,7 @@ describe("LeagueSettings shell adoption", () => {
     const LeagueSettings =
       require("../../../components/preferences/LeagueSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LeagueSettings, {
         configuredLeagues: [
           { code: "EPL", name: "Premier League" },
@@ -84,14 +85,16 @@ describe("LeagueSettings shell adoption", () => {
     expect(textContents).toContain("Add New Leagues");
     expect(textContents).toContain("Set Default Leagues");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("displays correct league count", () => {
     const LeagueSettings =
       require("../../../components/preferences/LeagueSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LeagueSettings, {
         configuredLeagues: [
           { code: "EPL", name: "Premier League" },
@@ -111,7 +114,9 @@ describe("LeagueSettings shell adoption", () => {
 
     expect(textContents).toContain("3 leagues");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("routes the league actions through the provided handlers", () => {
@@ -121,7 +126,7 @@ describe("LeagueSettings shell adoption", () => {
     const LeagueSettings =
       require("../../../components/preferences/LeagueSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LeagueSettings, {
         configuredLeagues: [{ code: "EPL", name: "Premier League" }],
         onManageLeaguesPress,
@@ -147,6 +152,8 @@ describe("LeagueSettings shell adoption", () => {
     expect(onSetDefaultLeaguesPress).toHaveBeenCalled();
     expect(textContents).toContain("Tap to set");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

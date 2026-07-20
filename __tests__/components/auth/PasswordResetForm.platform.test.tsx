@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import PasswordResetForm from "../../../components/auth/PasswordResetForm";
 
@@ -98,7 +99,7 @@ describe("PasswordResetForm", () => {
   });
 
   it("renders the recovery email request form by default", () => {
-    const tree = TestRenderer.create(React.createElement(PasswordResetForm));
+    const tree = actCreate(React.createElement(PasswordResetForm));
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);
@@ -116,7 +117,7 @@ describe("PasswordResetForm", () => {
       error: null,
     });
 
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(PasswordResetForm, {
         recoveryCode: "recovery-code-123",
       }),

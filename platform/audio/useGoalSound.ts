@@ -14,13 +14,11 @@ interface UseGoalSoundOptions {
 
 const getExpoAudioModule = (): AudioModuleLike | null => {
   try {
-    const expoAv = require("expo-av");
+    const expoAudio = require("expo-audio");
 
     return {
-      Sound: expoAv.Audio.Sound,
-      setAudioModeAsync: expoAv.Audio.setAudioModeAsync,
-      InterruptionModeIOS: expoAv.InterruptionModeIOS,
-      InterruptionModeAndroid: expoAv.InterruptionModeAndroid,
+      createPlayer: (asset) => expoAudio.createAudioPlayer(asset),
+      setAudioModeAsync: expoAudio.setAudioModeAsync,
     };
   } catch {
     return null;

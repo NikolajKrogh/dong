@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockSetTheme = jest.fn();
 
@@ -65,7 +66,7 @@ describe("AppearanceSettings shell adoption", () => {
     const AppearanceSettings =
       require("../../../components/preferences/AppearanceSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(AppearanceSettings)
     );
 
@@ -80,14 +81,16 @@ describe("AppearanceSettings shell adoption", () => {
     expect(switches).toHaveLength(1);
     expect(switches[0].props.value).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("calls setTheme with 'dark' when switch is toggled on", () => {
     const AppearanceSettings =
       require("../../../components/preferences/AppearanceSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(AppearanceSettings)
     );
 
@@ -100,14 +103,16 @@ describe("AppearanceSettings shell adoption", () => {
 
     expect(mockSetTheme).toHaveBeenCalledWith("dark");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("calls setTheme with 'light' when switch is toggled off", () => {
     const AppearanceSettings =
       require("../../../components/preferences/AppearanceSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(AppearanceSettings)
     );
 
@@ -120,6 +125,8 @@ describe("AppearanceSettings shell adoption", () => {
 
     expect(mockSetTheme).toHaveBeenCalledWith("light");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

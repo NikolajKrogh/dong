@@ -1,0 +1,47 @@
+name: client CI
+
+# Path-ignore list (FR-002c): keep this in sync whenever a new top-level
+# non-client directory is added. False positives (an unrelated dir triggers
+# this workflow) are acceptable; false negatives (a client change is skipped)
+# are not — see specs/019-harden-codebase-foundations/spec.md Edge Cases.
+on:
+  push:
+    paths-ignore:
+      - "command-api/**"
+      - "supabase/**"
+      - "specs/**"
+      - ".agents/**"
+      - "*.md"
+  pull_request:
+    paths-ignore:
+      - "command-api/**"
+      - "supabase/**"
+      - "specs/**"
+      - ".agents/**"
+      - "*.md"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4.0.4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:ci

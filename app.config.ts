@@ -8,7 +8,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: "./assets/icons/ios_light.png",
   scheme: "myapp",
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     icon: {
@@ -35,6 +34,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     "expo-router",
+    "expo-asset",
+    "expo-audio",
     [
       "expo-splash-screen",
       {

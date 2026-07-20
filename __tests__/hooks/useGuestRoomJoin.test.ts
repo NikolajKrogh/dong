@@ -148,7 +148,9 @@ describe("useGuestRoomJoin", () => {
     expect(observedHook?.status).toBe("joined");
     expect(observedHook?.session?.snapshot.joinCode).toBe("ROOM42");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("reuses the same guest token across retries until the join succeeds", async () => {
@@ -203,7 +205,9 @@ describe("useGuestRoomJoin", () => {
     });
     expect(mockCreateGuestRoomToken).toHaveBeenCalledTimes(1);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("rejects blank guest names before calling the guest join RPC", async () => {
@@ -235,7 +239,9 @@ describe("useGuestRoomJoin", () => {
     expect(observedHook?.status).toBe("failed");
     expect(observedHook?.error).toBe("Enter a guest name to join the room.");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("maps room-not-found join failures to clear user-facing copy", async () => {
@@ -274,7 +280,9 @@ describe("useGuestRoomJoin", () => {
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("maps closed-room join failures to clear user-facing copy", async () => {
@@ -311,6 +319,8 @@ describe("useGuestRoomJoin", () => {
       "This room is no longer accepting guest joins.",
     );
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

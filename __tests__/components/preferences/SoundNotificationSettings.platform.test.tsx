@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 jest.mock("../../../app/style/theme", () => ({
   useColors: () => ({
@@ -54,7 +55,7 @@ describe("SoundNotificationSettings", () => {
     const SoundNotificationSettings =
       require("../../../components/preferences/SoundNotificationSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(SoundNotificationSettings, {
         soundEnabled: true,
         setSoundEnabled: jest.fn(),
@@ -74,7 +75,9 @@ describe("SoundNotificationSettings", () => {
     expect(toggles[0].props.value).toBe(true);
     expect(toggles[1].props.value).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("calls the synced setting setters when the toggles change", () => {
@@ -83,7 +86,7 @@ describe("SoundNotificationSettings", () => {
     const SoundNotificationSettings =
       require("../../../components/preferences/SoundNotificationSettings").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(SoundNotificationSettings, {
         soundEnabled: true,
         setSoundEnabled,
@@ -103,6 +106,8 @@ describe("SoundNotificationSettings", () => {
     expect(setSoundEnabled).toHaveBeenCalledWith(false);
     expect(setCommonMatchNotificationsEnabled).toHaveBeenCalledWith(true);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

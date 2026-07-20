@@ -117,7 +117,9 @@ describe("useGuestRoomSession", () => {
     expect(observedHook?.status).toBe("joined");
     expect(observedHook?.session?.grant.guestToken).toBe("guest-token-1");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("refreshes the current room snapshot and keeps the persisted grant", async () => {
@@ -154,7 +156,9 @@ describe("useGuestRoomSession", () => {
     expect(mockSaveGuestRoomSessionGrant).toHaveBeenCalledWith(persistedGrant);
     expect(observedHook?.session?.snapshot.state).toBe("in_play");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("polls the joined room snapshot so host gameplay transitions appear without rejoining", async () => {
@@ -195,7 +199,9 @@ describe("useGuestRoomSession", () => {
     expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
     expect(observedHook?.session?.snapshot.state).toBe("in_play");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("clears the persisted grant and marks the session expired when the server rejects it as expired", async () => {
@@ -230,7 +236,9 @@ describe("useGuestRoomSession", () => {
       "Your guest access expired. Rejoin the room to continue.",
     );
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("keeps the current session when a refresh fails for a non-expired reason", async () => {
@@ -268,7 +276,9 @@ describe("useGuestRoomSession", () => {
     expect(observedHook?.session?.grant.guestToken).toBe("guest-token-1");
     expect(observedHook?.error).toBe("Unable to refresh the room right now.");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("removes the persisted grant when the guest leaves the room", async () => {
@@ -303,6 +313,8 @@ describe("useGuestRoomSession", () => {
     expect(observedHook?.session).toBeNull();
     expect(observedHook?.error).toBeNull();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

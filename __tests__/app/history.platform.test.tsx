@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -54,6 +55,7 @@ const mockHistoryStyles = new Proxy(
 const mockCreateHistoryStyles = jest.fn(() => mockHistoryStyles);
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
   Text: "Text",
   FlatList: "FlatList",
@@ -67,8 +69,8 @@ jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-jest.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({ goBack: mockGoBack }),
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ back: mockGoBack }),
 }));
 
 jest.mock("../../store/store", () => ({
@@ -173,7 +175,7 @@ jest.mock("../../components/history/historyUtils", () => ({
 const renderHistoryScreen = () => {
   const HistoryScreen = require("../../app/history").default;
 
-  return TestRenderer.create(React.createElement(HistoryScreen));
+  return actCreate(React.createElement(HistoryScreen));
 };
 
 describe("HistoryScreen responsive layout", () => {
@@ -223,7 +225,9 @@ describe("HistoryScreen responsive layout", () => {
       mockHistoryStyles.listContentWide,
     );
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
 
     mockUseWindowDimensions.mockReturnValue({
       width: 1280,
