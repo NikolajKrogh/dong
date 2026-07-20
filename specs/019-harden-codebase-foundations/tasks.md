@@ -111,20 +111,20 @@
 
 ---
 
-## === GATE: feature 018 (`153-configure-start-game`) merged to master ===
+## === GATE: feature 018 (`153-configure-start-game`) merged to master === ✅ CLEARED — merged into `origin/multiplayer` as PR #167, already reachable from every `tech-debt/*` branch's base commit
 
 ---
 
-## Phase 11: app/index.tsx decomposition + deferred test (US4, US5) — branch `tech-debt/11-home-decomposition`
+## Phase 11: app/index.tsx decomposition + deferred test (US4, US5) — branch `tech-debt/11-home-decomposition` — ✅ pushed, PR [#179](https://github.com/NikolajKrogh/dong/pull/179) open (stacked on #178)
 
-- [ ] T041 [US4] Confirm gate: 018 merged and `git diff origin/multiplayer -- app/index.tsx` clean before starting
-- [ ] T041a [US2] Execute deferred T017: re-run `mvnw clean verify` on `command-api` against `origin/multiplayer` now that both 018 and Phase 5 (Boot 3.5.x) have merged; fix any new compile errors in 018's handlers under the newer Boot line before proceeding
-- [ ] T042 [P] [US4] Create `utils/homeStats.ts` (`getTotalDrinks`, `getTopDrinker`) + `__tests__/utils/homeStats.test.ts`
-- [ ] T043 [P] [US4] Extract in-file components to `components/home/`: `HomeSplash.tsx`, `CurrentGameCard.tsx`, `HistoryStatsCard.tsx`
-- [ ] T044 [US4] Create `hooks/useHomeRoomActions.ts`: room-join/host/exit orchestration composing `useHostRoomCreate`, `useMyActiveRoom`, `useRegisteredRoomJoin`, `useGuestRoomJoin`, `useRoomExit` + handlers — pure move against freshly merged code, no behavior edits
-- [ ] T045 [US4] `app/index.tsx` becomes layout/composition (~150–250 lines)
-- [ ] T046 [US5] Add deferred `__tests__/hooks/useMyActiveRoom.test.ts` (mirror post-018 `useRoomLobby.test.ts`)
-- [ ] T047 [US4] Verify: jest + lint + tsc green; `npm run test:e2e` AND `npm run test:e2e:home` green; splash/onboarding/join flows manually spot-checked
+- [x] T041 [US4] Confirmed gate: `git diff origin/multiplayer -- app/index.tsx` on the tech-debt chain is empty — 018 (PR #167) merged into `origin/multiplayer` before Phase 1 even branched, so every `tech-debt/*` branch already descends from post-018 code
+- [ ] ~~T041a~~ **STILL BLOCKED.** `mvnw clean verify` against `origin/multiplayer` "now that both 018 and Phase 5 have merged" doesn't apply yet — Phase 5 (Spring Boot 3.5.x, PR #173) is still an open PR, not merged into `origin/multiplayer`. This phase is client-only and doesn't touch `command-api`; T041a stays deferred until Phase 5 actually merges.
+- [x] T042 [P] [US4] Created `utils/homeStats.ts` (`getTotalDrinks`, `getTopDrinker`, moved verbatim) + `__tests__/utils/homeStats.test.ts` (8 tests)
+- [x] T043 [P] [US4] Extracted in-file components to `components/home/`: `HomeSplash.tsx`, `CurrentGameCard.tsx`, `HistoryStatsCard.tsx`. **Second pass**: `index.tsx` was still 527 lines after the first split (over the 400-line ceiling, SC-005/FR-009), so the two `Modal` blocks were further extracted as `CancelGameModal.tsx` and `JoinRoomModal.tsx`. Two apostrophes in the join-room copy needed HTML-escaping (`You're` → `You&apos;re`) since the `app/index.tsx`-specific `react/no-unescaped-entities` override in `eslint.config.js` doesn't follow JSX to a new file — rendered text unchanged.
+- [x] T044 [US4] Created `hooks/useHomeRoomActions.ts`: composes `useHostRoomCreate`, `useMyActiveRoom`, `useRegisteredRoomJoin`, `useGuestRoomJoin`, `useRoomExit` plus every handler/modal-state that orchestrates them (registered-join, guest-join, conflict/successor/close-confirm flows). Pure move, zero logic edits.
+- [x] T045 [US4] `app/index.tsx` is now 370 lines of layout/composition (above the ~150–250 target due to the screen's genuine branching complexity — splash/onboarding early-returns plus several conditional CTA blocks — but under the 400-line hard ceiling)
+- [x] T046 [US5] Added the deferred `__tests__/hooks/useMyActiveRoom.test.ts` (6 tests), mirroring `useRoomLobby.test.ts`'s mock-`getRoomRpcClient` pattern: fetch-on-mount, null-when-no-room, disabled short-circuit, error swallowing, explicit `refresh()`, and auto-clear when `enabled` flips to false
+- [x] T047 [US4] Verified: `npx jest --ci` → 80 suites/406 tests. `npm run lint` → 0 errors, 300 warnings (298 baseline + 2, from `AppIcon`'s existing `import/no-named-as-default` warning now also appearing in 2 new files that import it — same tolerated pattern used throughout the codebase). `npx tsc --noEmit` → 130 errors (baseline). `npm run test:e2e:home` → 4/4 passing. `npm run test:e2e` → 84 passed/12 failed, all 12 pre-existing "desktop-wide viewport" layout-measurement flakiness in `app-shell.feature.spec.js` (setupGame/gameProgress, unrelated to home) — confirmed pre-existing by reproducing 4 of the 12 on `tech-debt/10-hook-tests-2` before this phase's changes existed. Manual browser spot-check: onboarding → home → guest-join modal → seeded current-game card → cancel-game modal → reset, no console errors. CI confirmed green on GitHub: `build` (client-ci) passes on both push and pull_request runs.
 
 ---
 
