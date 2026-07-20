@@ -63,7 +63,7 @@ interface MatchListProps {
  * The component uses several custom hooks for data fetching and processing:
  * - `useMatchData`: Fetches match data for a given date.
  * - `useTeamData`: Fetches team data from league JSON files.
- * - `useTeamFiltering`: Filters teams based on selected leagues.
+ * - `useMatchListFilters`: Filters teams and matches based on selected leagues/date/time.
  * - `useMatchProcessing`: Handles batch processing of matches.
  *
  * @param {MatchListProps} props - The props for the MatchList component.

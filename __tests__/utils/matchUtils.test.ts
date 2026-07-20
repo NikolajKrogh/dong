@@ -2,7 +2,6 @@ import {
   formatDateForAPI,
   cleanTeamName,
   convertTimeToMinutes,
-  extractTeamsFromESPNEvent,
 } from "../../utils/matchUtils";
 
 // Helper function to get today's date in YYYYMMDD format
@@ -91,110 +90,6 @@ describe("Match Utilities", () => {
       expect(convertTimeToMinutes("")).toBe(-1);
       expect(convertTimeToMinutes(":")).toBe(-1);
       expect(convertTimeToMinutes("invalid")).toBe(-1);
-    });
-  });
-
-  describe("extractTeamsFromESPNEvent", () => {
-    it("should extract teams from competitors array", () => {
-      const event = {
-        competitions: [
-          {
-            competitors: [
-              { homeAway: "home", team: { displayName: "Home Team FC" } },
-              { homeAway: "away", team: { name: "Away Team AFC" } },
-            ],
-          },
-        ],
-      };
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "Home Team FC",
-        awayTeam: "Away Team AFC",
-      });
-    });
-
-    it("should extract teams using fallback team name properties", () => {
-      const event = {
-        competitions: [
-          {
-            competitors: [
-              { homeAway: "home", team: { name: "Home Team Name" } },
-              { homeAway: "away", team: { shortDisplayName: "AwayTeam" } }, // Fallback if displayName/name missing
-            ],
-          },
-        ],
-      };
-      // Note: The current implementation only checks displayName then name.
-      // It won't find shortDisplayName unless the function is modified.
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "Home Team Name",
-        awayTeam: "", // Because shortDisplayName isn't checked
-      });
-    });
-
-    it("should extract teams from event name ('Away at Home')", () => {
-      const event = {
-        name: "Team B at Team A",
-      };
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "Team A",
-        awayTeam: "Team B",
-      });
-    });
-
-    it("should extract teams from event shortName ('Away @ Home')", () => {
-      const event = {
-        shortName: "TB @ TA",
-      };
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "TA",
-        awayTeam: "TB",
-      });
-    });
-
-    it("should prioritize competitors array over name/shortName", () => {
-      const event = {
-        name: "Wrong Away at Wrong Home",
-        shortName: "WA @ WH",
-        competitions: [
-          {
-            competitors: [
-              { homeAway: "home", team: { displayName: "Correct Home" } },
-              { homeAway: "away", team: { displayName: "Correct Away" } },
-            ],
-          },
-        ],
-      };
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "Correct Home",
-        awayTeam: "Correct Away",
-      });
-    });
-
-    it("should return empty strings if no team info found", () => {
-      const event = {
-        someOtherProperty: "value",
-      };
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "",
-        awayTeam: "",
-      });
-    });
-
-    it("should handle missing team objects within competitors", () => {
-      const event = {
-        competitions: [
-          {
-            competitors: [
-              { homeAway: "home" /* missing team */ },
-              { homeAway: "away", team: { displayName: "Away Team" } },
-            ],
-          },
-        ],
-      };
-      expect(extractTeamsFromESPNEvent(event)).toEqual({
-        homeTeam: "",
-        awayTeam: "Away Team",
-      });
     });
   });
 });

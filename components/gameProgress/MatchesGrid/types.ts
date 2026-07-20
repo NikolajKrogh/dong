@@ -1,5 +1,5 @@
 import { Match, Player } from "../../../store/store";
-import { MatchWithScore } from "../../../hooks/useLiveScores";
+import { MatchWithScore } from "../../../types/matchScores";
 
 // Define sorting options
 /** Sort field keys for matches list/grid. */
