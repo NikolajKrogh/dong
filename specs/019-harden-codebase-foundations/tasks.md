@@ -87,15 +87,17 @@
 
 ---
 
-## Phase 9: Hook tests, trivial/medium tier (US5) — branch `tech-debt/09-hook-tests-1` (use `react-native-testing` skill; pattern per research.md D7)
+## Phase 9: Hook tests, trivial/medium tier (US5) — branch `tech-debt/09-hook-tests-1` — ✅ pushed, PR [#177](https://github.com/NikolajKrogh/dong/pull/177) open (stacked on #176)
 
-- [ ] T030 [P] [US5] `__tests__/hooks/useTeamLogo.test.ts` (mock `utils/teamLogos`)
-- [ ] T031 [P] [US5] `__tests__/hooks/usePlayerSuggestions.test.ts` (seed `useGameStore` history; pure derivation, no async)
-- [ ] T032 [P] [US5] `__tests__/hooks/usePersistedTeamLogos.test.ts` (assert side-effect calls on `utils/teamLogos` mocks)
-- [ ] T033 [P] [US5] `__tests__/hooks/useLeagueLogo.test.ts` (mock fetch + AsyncStorage; cover asset → cache → ESPN priority and unmount guard)
-- [ ] T034 [P] [US5] `__tests__/hooks/useMatchListFilters.test.ts` (test reducer actions directly + one Probe pass)
-- [ ] T054 [P] [US5] `__tests__/hooks/useTeamData.test.ts` (mock `fetch` across the 7 league `Promise.all` calls; covers the Phase 3 fetch-replacement success/error paths, completing FR-010's 10-of-11-hooks coverage)
-- [ ] T035 [US5] Verify: each file green in isolation; full jest + lint green. NOTE: `useMyActiveRoom` deliberately deferred to Phase 11 (its mock seam `utils/supabaseClient.ts` and reference test are in flight on 153)
+**Skill note**: the plan named `react-native-testing`, but that skill documents `@testing-library/react-native` (RNTL), which is not a dependency of this project (verified via `package.json`). Followed the project's actual established convention instead — `react-test-renderer` + a Probe component + `TestRenderer.act` — matching `useHostRoomCreate.test.ts`/`useRoomLobby.test.ts`.
+
+- [x] T030 [P] [US5] `__tests__/hooks/useTeamLogo.test.ts` (7 tests): mocks `utils/teamLogos`; covers hardcoded > cached > default priority, async resolution, error handling (logs + keeps default), and re-resolution when the team name prop changes
+- [x] T031 [P] [US5] `__tests__/hooks/usePlayerSuggestions.test.ts` (7 tests): seeds `useGameStore.setState({ history })` directly (no mock); covers stats aggregation, average-drinks-per-game sort with recency tiebreak, case-insensitive search filtering, and the 6-item cap
+- [x] T032 [P] [US5] `__tests__/hooks/usePersistedTeamLogos.test.ts` (5 tests): mocks `utils/teamLogos`; asserts `clearOverriddenLogos` + AsyncStorage-load side-effect calls, the hardcoded-logo skip, home/away name dedup, and error handling
+- [x] T033 [P] [US5] `__tests__/hooks/useLeagueLogo.test.ts` (6 tests): mocks `global.fetch` + uses the real (auto-mocked) AsyncStorage; covers local-asset → AsyncStorage-cache → ESPN-API priority and the unmount guard. Also characterizes a pre-existing quirk (not touched): `isLoading` never resolves to `false` when there's no local asset, no cache, and no `leagueCode` — documented as actual behavior rather than "fixed"
+- [x] T034 [P] [US5] `__tests__/hooks/useMatchListFilters.test.ts` (10 tests): each reducer action (`toggleLeague`, `setSelectedDate`, `setStartTime`/`setEndTime`, `syncLeagues`, `addCustomTeam`) exercised via its exposed callback in one Probe render, plus derived state (team options, filter-active flags, display-name cleaning)
+- [ ] ~~T054~~ **DEFERRED.** `useTeamData.test.ts` (fetch-mock coverage) assumes Phase 3's axios→fetch replacement (PR #171) is already present. It isn't in this branch's lineage: Phase 3 branches independently from the Phase 1 commit and was never stacked into the 04→06→07→08→09 chain, so `hooks/useTeamData.ts` here still imports `axios`. Writing a fetch-based test now would need rewriting once Phase 3 actually merges — deferred rather than written against a premise the current code doesn't match.
+- [x] T035 [US5] Verified: each file green in isolation and together. `npx jest --ci` → 70 suites/334 tests (was 65/299 — +5 suites/+35 tests). `npm run lint` → 0 errors, 298 warnings (baseline). `npx tsc --noEmit` → 130 errors (baseline). `useMyActiveRoom` deliberately deferred to Phase 11 per the original plan (its mock seam `utils/supabaseClient.ts` and reference test are in flight on 153). CI confirmed green on GitHub: `build` (client-ci) passes on both push and pull_request runs.
 
 ---
 
