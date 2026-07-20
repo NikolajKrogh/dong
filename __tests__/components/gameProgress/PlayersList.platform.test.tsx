@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -75,7 +76,7 @@ const renderPlayersList = () => {
   const PlayersList =
     require("../../../components/gameProgress/PlayersList").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(PlayersList, {
       players: [
         { id: "p1", name: "Alice", drinksTaken: 1 },

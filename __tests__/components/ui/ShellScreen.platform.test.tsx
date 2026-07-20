@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 jest.mock("tamagui", () => {
   const ReactLocal = require("react");
@@ -17,7 +18,7 @@ describe("ShellScreen primitive", () => {
   it("uses a dedicated centering viewport and keeps maxWidth on the content node", () => {
     const { ShellScreen } = require("../../../components/ui/ShellScreen");
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(
         ShellScreen,
         {
@@ -41,7 +42,7 @@ describe("ShellScreen primitive", () => {
   it("leaves the viewport uncentered when centerContent is false", () => {
     const { ShellScreen } = require("../../../components/ui/ShellScreen");
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(
         ShellScreen,
         null,

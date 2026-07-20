@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -102,7 +103,7 @@ describe("PlayerComparisonModal responsive layout", () => {
     const PlayerComparisonModal =
       require("../../../components/history/PlayerComparisonModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(PlayerComparisonModal, {
         visible: true,
         onClose: jest.fn(),
@@ -126,7 +127,7 @@ describe("PlayerComparisonModal responsive layout", () => {
     const PlayerComparisonModal =
       require("../../../components/history/PlayerComparisonModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(PlayerComparisonModal, {
         visible: true,
         onClose: jest.fn(),

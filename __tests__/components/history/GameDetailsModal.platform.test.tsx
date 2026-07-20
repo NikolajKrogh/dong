@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -87,7 +88,7 @@ describe("GameDetailsModal responsive layout", () => {
     const GameDetailsModal =
       require("../../../components/history/GameDetailsModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(GameDetailsModal, {
         visible: true,
         onClose: jest.fn(),
@@ -109,7 +110,7 @@ describe("GameDetailsModal responsive layout", () => {
     const GameDetailsModal =
       require("../../../components/history/GameDetailsModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(GameDetailsModal, {
         visible: true,
         onClose: jest.fn(),

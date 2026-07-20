@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -195,7 +196,7 @@ jest.mock("@expo/vector-icons", () => ({
 const renderMatchList = (overrides: Record<string, unknown> = {}) => {
   const MatchList = require("../../../components/setupGame/MatchList").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(MatchList, {
       matches: [
         {
@@ -244,11 +245,13 @@ describe("MatchList platform adoption", () => {
 
     expect(mockPlatformAnimation).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "loading" }),
-      {},
+      undefined,
     );
 
     TestRenderer.act(() => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 

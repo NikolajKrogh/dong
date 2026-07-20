@@ -28,7 +28,10 @@ const renderHookProbe = (
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
 
   return { renderer, getLatest: () => latest as HookResult };
 };
@@ -42,7 +45,9 @@ describe("useMatchListFilters", () => {
       { name: "Championship", code: "eng.2" },
     ]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("seeds selectedLeagues from stored default leagues when provided", () => {
@@ -50,7 +55,9 @@ describe("useMatchListFilters", () => {
 
     expect(getLatest().selectedLeagues).toEqual([BUNDESLIGA]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("toggleLeague (via handleLeagueChange) adds an unselected league and removes a selected one", () => {
@@ -66,7 +73,9 @@ describe("useMatchListFilters", () => {
     });
     expect(getLatest().selectedLeagues).toEqual([CHAMPIONSHIP]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("setSelectedDate updates selectedDate", () => {
@@ -78,7 +87,9 @@ describe("useMatchListFilters", () => {
 
     expect(getLatest().selectedDate).toBe("2026-03-14");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("setStartTime and setEndTime update the time range independently", () => {
@@ -95,7 +106,9 @@ describe("useMatchListFilters", () => {
     });
     expect(getLatest().endTime).toBe("18:30");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("syncSelectedLeagues (syncLeagues) replaces the entire selection", () => {
@@ -107,7 +120,9 @@ describe("useMatchListFilters", () => {
 
     expect(getLatest().selectedLeagues).toEqual([CHAMPIONSHIP, BUNDESLIGA]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("addCustomHomeTeam (addCustomTeam) appends a home-side team option built from the current selection", () => {
@@ -126,7 +141,9 @@ describe("useMatchListFilters", () => {
       getLatest().awayTeamOptions.map((t) => t.value),
     ).toContain("My Custom FC");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("addCustomAwayTeam derives the custom team's league from the first selected league", () => {
@@ -141,7 +158,9 @@ describe("useMatchListFilters", () => {
     );
     expect(wildcard?.league).toBe("Bundesliga");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("derives isDateFilterActive/isTimeFilterActive from current state", () => {
@@ -150,7 +169,9 @@ describe("useMatchListFilters", () => {
     expect(getLatest().isDateFilterActive).toBe(true);
     expect(getLatest().isTimeFilterActive).toBe(true);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("cleans FC-style prefixes/suffixes when building team display names", () => {
@@ -163,6 +184,8 @@ describe("useMatchListFilters", () => {
     );
     expect(arsenal?.displayName).toBe("Arsenal");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

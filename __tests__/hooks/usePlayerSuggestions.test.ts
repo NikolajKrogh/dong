@@ -48,7 +48,10 @@ const renderHookProbe = (searchQuery: string) => {
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
 
   return { renderer, getLatest: () => latest };
 };
@@ -64,7 +67,9 @@ describe("usePlayerSuggestions", () => {
     expect(getLatest()?.hasHistory).toBe(false);
     expect(getLatest()?.playerSuggestions).toEqual([]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("aggregates games played, total drinks, and average across multiple sessions", () => {
@@ -90,7 +95,9 @@ describe("usePlayerSuggestions", () => {
       lastPlayed: "2026-01-08T00:00:00.000Z",
     });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("sorts by descending average drinks per game", () => {
@@ -106,7 +113,9 @@ describe("usePlayerSuggestions", () => {
 
     expect(names).toEqual(["HeavyDrinker", "LightDrinker"]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("breaks near-equal averages by most recent play date", () => {
@@ -124,7 +133,9 @@ describe("usePlayerSuggestions", () => {
 
     expect(names).toEqual(["Newer", "Older"]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("filters suggestions case-insensitively by the search query", () => {
@@ -140,7 +151,9 @@ describe("usePlayerSuggestions", () => {
 
     expect(names).toEqual(["Alice"]);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("caps suggestions at 6 players", () => {
@@ -159,7 +172,9 @@ describe("usePlayerSuggestions", () => {
 
     expect(getLatest()?.playerSuggestions).toHaveLength(6);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("defaults missing drinksTaken to zero", () => {
@@ -174,6 +189,8 @@ describe("usePlayerSuggestions", () => {
 
     expect(alice).toMatchObject({ totalDrinks: 0, averageDrinksPerGame: 0 });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

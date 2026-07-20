@@ -155,7 +155,6 @@ const HomeScreen = () => {
     <>
       <StatusBar
         style={colors.background === "#f5f5f5" ? "dark" : "light"}
-        backgroundColor={styles.safeArea.backgroundColor}
       />
       <ShellScreen
         padded={false}

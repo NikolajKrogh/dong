@@ -29,19 +29,22 @@ describe("platform gesture adapters", () => {
         PlatformSwipeTabs,
       } = require("../../platform/gestures/PlatformSwipeTabs");
 
-      const tree = TestRenderer.create(
-        React.createElement(
-          PlatformSwipeTabs,
-          {
-            activeIndex: 1,
-            onIndexChange: jest.fn(),
-            pageWidth: 320,
-            pageStyle: { width: 999 },
-          },
-          React.createElement(Text, null, "Matches"),
-          React.createElement(Text, null, "Players"),
-        ),
-      );
+      let tree!: import("react-test-renderer").ReactTestRenderer;
+      TestRenderer.act(() => {
+        tree = TestRenderer.create(
+          React.createElement(
+            PlatformSwipeTabs,
+            {
+              activeIndex: 1,
+              onIndexChange: jest.fn(),
+              pageWidth: 320,
+              pageStyle: { width: 999 },
+            },
+            React.createElement(Text, null, "Matches"),
+            React.createElement(Text, null, "Players"),
+          ),
+        );
+      });
 
       expect(
         tree.root.findAllByType(Text).map((node: any) => node.props.children),

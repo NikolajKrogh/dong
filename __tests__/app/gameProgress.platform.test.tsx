@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -151,7 +152,7 @@ jest.mock("../../components/gameProgress/FooterButtons", () => {
 const renderGameProgressScreen = () => {
   const GameProgressScreen = require("../../app/gameProgress").default;
 
-  return TestRenderer.create(React.createElement(GameProgressScreen));
+  return actCreate(React.createElement(GameProgressScreen));
 };
 
 describe("GameProgressScreen responsive layout", () => {

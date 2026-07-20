@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -44,7 +45,7 @@ const renderTabNavigation = (activeTab = "players") => {
   const TabNavigation =
     require("../../../components/setupGame/TabNavigation").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(TabNavigation, {
       activeTab,
       setActiveTab: jest.fn(),

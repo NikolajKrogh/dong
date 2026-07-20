@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -51,7 +52,7 @@ describe("SortHistoryModal responsive layout", () => {
     const SortHistoryModal =
       require("../../../components/history/SortHistoryModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(SortHistoryModal, {
         visible: true,
         sortField: "date",
@@ -83,7 +84,7 @@ describe("SortHistoryModal responsive layout", () => {
     const SortHistoryModal =
       require("../../../components/history/SortHistoryModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(SortHistoryModal, {
         visible: true,
         sortField: "date",

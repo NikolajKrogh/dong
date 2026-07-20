@@ -1,3 +1,5 @@
+import type { ReactElement } from "react";
+import type { RefreshControlProps } from "react-native";
 import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../types/matchScores";
 
@@ -25,7 +27,7 @@ export interface MatchesGridProps {
   /** Optional live match score snapshots. */
   liveMatches?: MatchWithScore[];
   /** Optional refresh control element. */
-  refreshControl?: React.ReactElement;
+  refreshControl?: ReactElement<RefreshControlProps>;
   /** Trigger manual refresh. */
   onRefresh: () => void;
   /** True while refresh is in progress. */

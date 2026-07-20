@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 import { TouchableOpacity, View } from "react-native";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -73,7 +74,7 @@ describe("TabNavigation platform adoption", () => {
     const TabNavigation =
       require("../../../components/gameProgress/TabNavigation").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(
         TabNavigation,
         {
@@ -89,7 +90,7 @@ describe("TabNavigation platform adoption", () => {
 
     expect(mockPlatformSwipeTabs).toHaveBeenCalledWith(
       expect.objectContaining({ activeIndex: 0 }),
-      {},
+      undefined,
     );
 
     const buttons = renderer.root.findAllByType(TouchableOpacity);
@@ -99,7 +100,9 @@ describe("TabNavigation platform adoption", () => {
     });
 
     expect(setActiveTab).toHaveBeenCalledWith("players");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("adds explicit wide-layout treatment for desktop-width tabs", () => {
@@ -114,7 +117,7 @@ describe("TabNavigation platform adoption", () => {
     const TabNavigation =
       require("../../../components/gameProgress/TabNavigation").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(
         TabNavigation,
         {

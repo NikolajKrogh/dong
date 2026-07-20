@@ -44,7 +44,10 @@ const renderHookProbe = (getPlayersWhoDrink: (matchId: string) => string[]) => {
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
 
   return { renderer, getLatest: () => latest as Hook };
 };
@@ -70,7 +73,9 @@ describe("useGoalToastQueue", () => {
     expect(payload.text1).toBe("Arsenal FC 1-0 Chelsea FC");
     expect(payload.text2).toBe("Alice should drink!");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("formats the message for more than 3 affected players", async () => {
@@ -91,7 +96,9 @@ describe("useGoalToastQueue", () => {
     const [payload] = mockToastShow.mock.calls[0] as [{ text2: string }];
     expect(payload.text2).toBe("Alice, Bob and 3 others should drink!");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("does not enqueue (or show) a toast when no players are affected", async () => {
@@ -105,7 +112,9 @@ describe("useGoalToastQueue", () => {
 
     expect(mockToastShow).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("shows queued toasts one at a time, advancing only after onHide fires", async () => {
@@ -134,7 +143,9 @@ describe("useGoalToastQueue", () => {
 
     expect(mockToastShow).toHaveBeenCalledTimes(2);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("includes the scoring team in the toast props", async () => {
@@ -151,6 +162,8 @@ describe("useGoalToastQueue", () => {
     ];
     expect(payload.props).toEqual({ scoringTeam: "away" });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

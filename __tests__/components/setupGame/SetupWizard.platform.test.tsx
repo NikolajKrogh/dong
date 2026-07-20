@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -71,7 +72,7 @@ const renderSetupWizard = () => {
   const SetupWizard =
     require("../../../components/setupGame/SetupWizard").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(SetupWizard, {
       playersStep: React.createElement("View", { testID: "PlayersStep" }),
       matchesStep: React.createElement("View", { testID: "MatchesStep" }),

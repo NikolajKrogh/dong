@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -98,7 +99,7 @@ const renderAssignmentSection = () => {
   const AssignmentSection =
     require("../../../components/setupGame/AssignmentSection").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(AssignmentSection, {
       players: [
         { id: "p1", name: "Alice" },

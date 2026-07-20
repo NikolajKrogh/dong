@@ -92,7 +92,10 @@ const renderHookProbe = () => {
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
 
   return { renderer, phases, getLatest: () => latest as UseLegacyHistoryImportResult };
 };
@@ -125,7 +128,9 @@ describe("useLegacyHistoryImport", () => {
     );
     expect(getLatest().canStartImport).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("reports the missing-history reason when there is no local history, regardless of config", async () => {
@@ -146,7 +151,9 @@ describe("useLegacyHistoryImport", () => {
     );
     expect(getLatest().canStartImport).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("gates on authentication: unauthenticated + configured + has history -> ready with an auth reason", async () => {
@@ -166,7 +173,9 @@ describe("useLegacyHistoryImport", () => {
     expect(getLatest().availabilityReason).toBe("Sign in to import this history.");
     expect(getLatest().canStartImport).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("allows starting the import once configured, authenticated, and history/claimants exist", async () => {
@@ -186,7 +195,9 @@ describe("useLegacyHistoryImport", () => {
     expect(getLatest().canStartImport).toBe(true);
     expect(getLatest().availabilityReason).toBeNull();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("transitions checking -> ready -> importing -> completed on a successful import", async () => {
@@ -208,8 +219,21 @@ describe("useLegacyHistoryImport", () => {
 
     const claimant = getLatest().claimantOptions[0];
 
+    let importHistoryPromise: ReturnType<
+      UseLegacyHistoryImportResult["importHistory"]
+    >;
+    TestRenderer.act(() => {
+      importHistoryPromise = getLatest().importHistory(claimant);
+    });
+
+    for (let i = 0; i < 5 && !phases.includes("importing"); i++) {
+      await TestRenderer.act(async () => {
+        await Promise.resolve();
+      });
+    }
+
     await TestRenderer.act(async () => {
-      await getLatest().importHistory(claimant);
+      await importHistoryPromise;
     });
 
     expect(importLegacyHistory).toHaveBeenCalledTimes(1);
@@ -220,7 +244,9 @@ describe("useLegacyHistoryImport", () => {
       expect.arrayContaining(["checking", "ready", "importing", "completed"]),
     );
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("transitions to failed and allows retry when the RPC rejects", async () => {
@@ -252,7 +278,9 @@ describe("useLegacyHistoryImport", () => {
     expect(getLatest().importError).toBe("network unreachable");
     expect(getLatest().canRetryImport).toBe(true);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("importHistory short-circuits with a config error and never calls the RPC client when unconfigured", async () => {
@@ -278,7 +306,9 @@ describe("useLegacyHistoryImport", () => {
     );
     expect(mockGetLegacyHistoryImportRpcClient).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("importHistory short-circuits with an auth error and never calls the RPC client when unauthenticated", async () => {
@@ -303,7 +333,9 @@ describe("useLegacyHistoryImport", () => {
     expect(getLatest().importError).toBe("Sign in to import this history.");
     expect(mockGetLegacyHistoryImportRpcClient).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("returns the cached result without re-calling the RPC when already completed", async () => {
@@ -337,6 +369,8 @@ describe("useLegacyHistoryImport", () => {
 
     expect(importLegacyHistory).toHaveBeenCalledTimes(1);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

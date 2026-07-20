@@ -44,7 +44,9 @@ describe("useLeagueLogo", () => {
     expect(getLatest()?.isLoading).toBe(false);
     expect(getLatest()?.logoSource).toBeDefined();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("falls back to a cached AsyncStorage entry when no local asset matches", async () => {
@@ -65,7 +67,9 @@ describe("useLeagueLogo", () => {
     });
     expect(getLatest()?.isLoading).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("fetches from the ESPN API and caches the result when nothing is local or cached", async () => {
@@ -104,7 +108,9 @@ describe("useLeagueLogo", () => {
     });
     expect(getLatest()?.isLoading).toBe(false);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("does not call the API when no leagueCode is provided, and leaves isLoading true (no completion path)", async () => {
@@ -122,7 +128,9 @@ describe("useLeagueLogo", () => {
     expect(getLatest()?.logoSource).toBeUndefined();
     expect(getLatest()?.isLoading).toBe(true);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("stops loading and logs when the API response is not ok", async () => {
@@ -144,7 +152,9 @@ describe("useLeagueLogo", () => {
     expect(getLatest()?.logoSource).toBeUndefined();
 
     consoleWarnSpy.mockRestore();
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("does not update state after unmount (unmount guard)", async () => {
@@ -167,7 +177,9 @@ describe("useLeagueLogo", () => {
       await Promise.resolve();
     });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
 
     await TestRenderer.act(async () => {
       resolveFetch({

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 type ExchangeCodeForSessionResult = {
   data: { session: null };
@@ -121,7 +122,7 @@ describe("AuthForm", () => {
   });
 
   it("renders the sign-in form by default", () => {
-    const tree = TestRenderer.create(React.createElement(AuthForm));
+    const tree = actCreate(React.createElement(AuthForm));
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);
     const textContents = textNodes.flatMap((node: any) => node.props.children);
@@ -138,7 +139,7 @@ describe("AuthForm", () => {
       error: null,
     });
 
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(AuthForm, {
         confirmationCode: "confirmation-code-123",
       }),

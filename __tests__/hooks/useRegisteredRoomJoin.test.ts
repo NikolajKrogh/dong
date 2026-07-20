@@ -21,7 +21,10 @@ const render = () => {
     observed = useRegisteredRoomJoin();
     return null;
   };
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
   return { result: () => observed, renderer };
 };
 
@@ -49,7 +52,9 @@ describe("useRegisteredRoomJoin", () => {
     expect(joinRoomAsRegistered).toHaveBeenCalledWith("123456");
     expect((response as { sessionId: string }).sessionId).toBe("s1");
     expect(result()?.error).toBeNull();
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("surfaces the conflicting room on already_in_active_room", async () => {
@@ -73,7 +78,9 @@ describe("useRegisteredRoomJoin", () => {
     });
     expect(result()?.conflictRoom?.sessionId).toBe("current-1");
     expect(result()?.error).toBeNull();
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("maps room_not_found to friendly copy", async () => {
@@ -90,6 +97,8 @@ describe("useRegisteredRoomJoin", () => {
     expect(result()?.error).toBe(
       "We couldn't find that room. Check the code and try again.",
     );
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

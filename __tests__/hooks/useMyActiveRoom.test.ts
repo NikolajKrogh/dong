@@ -152,6 +152,8 @@ describe("useMyActiveRoom", () => {
     expect(observedStates[observedStates.length - 1]?.activeRoom).toBeNull();
     expect(getMyActiveRoom).toHaveBeenCalledTimes(1);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

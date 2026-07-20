@@ -81,7 +81,7 @@ export const CORE_CAPABILITY_DESCRIPTORS: Record<
       {
         capability: "audio",
         platform: "ios",
-        driver: "expo-av",
+        driver: "expo-audio",
         entryPoint: "platform/audio/useGoalSound",
         behaviorClass: "full",
         notes: "Keeps native audio mode setup inside the adapter.",
@@ -89,7 +89,7 @@ export const CORE_CAPABILITY_DESCRIPTORS: Record<
       {
         capability: "audio",
         platform: "android",
-        driver: "expo-av",
+        driver: "expo-audio",
         entryPoint: "platform/audio/useGoalSound",
         behaviorClass: "full",
         notes: "Keeps ducking and interruption handling inside the adapter.",
@@ -97,7 +97,7 @@ export const CORE_CAPABILITY_DESCRIPTORS: Record<
       {
         capability: "audio",
         platform: "web",
-        driver: "expo-av",
+        driver: "expo-audio",
         entryPoint: "platform/audio/useGoalSound",
         behaviorClass: "degraded",
         notes:

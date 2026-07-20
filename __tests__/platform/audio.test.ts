@@ -1,36 +1,25 @@
 import { createSoundController } from "../../platform/audio/createSoundController";
+import type { AudioPlaybackStatus } from "../../platform/audio/types";
 
 describe("platform audio adapters", () => {
   it("plays the goal sound only when playback is allowed", async () => {
-    let playbackStatusHandler:
-      | ((status: {
-          isLoaded: boolean;
-          isPlaying?: boolean;
-          positionMillis?: number;
-          durationMillis?: number;
-        }) => void)
-      | undefined;
+    let playbackStatusHandler: ((status: AudioPlaybackStatus) => void) | undefined;
 
-    const sound = {
-      playAsync: jest.fn().mockResolvedValue(undefined),
-      stopAsync: jest.fn().mockResolvedValue(undefined),
-      unloadAsync: jest.fn().mockResolvedValue(undefined),
-      getStatusAsync: jest.fn().mockResolvedValue({
-        isLoaded: true,
-        isPlaying: false,
-      }),
-      setOnPlaybackStatusUpdate: jest.fn((callback) => {
+    const player = {
+      playing: false,
+      volume: 1,
+      play: jest.fn(),
+      pause: jest.fn(),
+      remove: jest.fn(),
+      addListener: jest.fn((_event: string, callback: (status: AudioPlaybackStatus) => void) => {
         playbackStatusHandler = callback;
+        return { remove: jest.fn() };
       }),
     };
 
     const audioModule = {
       setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
-      Sound: {
-        createAsync: jest.fn().mockResolvedValue({ sound }),
-      },
-      InterruptionModeIOS: { MixWithOthers: "mix" },
-      InterruptionModeAndroid: { DuckOthers: "duck" },
+      createPlayer: jest.fn().mockReturnValue(player),
     };
 
     const playbackTransitions: boolean[] = [];
@@ -48,21 +37,22 @@ describe("platform audio adapters", () => {
     ).resolves.toBe(true);
 
     expect(audioModule.setAudioModeAsync).toHaveBeenCalledTimes(1);
-    expect(audioModule.Sound.createAsync).toHaveBeenCalledTimes(1);
-    expect(sound.playAsync).toHaveBeenCalledTimes(1);
+    expect(audioModule.createPlayer).toHaveBeenCalledTimes(1);
+    expect(player.play).toHaveBeenCalledTimes(1);
     expect(controller.getIsPlaying()).toBe(true);
     expect(playbackTransitions).toContain(true);
 
     playbackStatusHandler?.({
       isLoaded: true,
-      isPlaying: false,
-      positionMillis: 1200,
-      durationMillis: 1200,
+      playing: false,
+      currentTime: 1.2,
+      duration: 1.2,
+      didJustFinish: true,
     });
 
     await Promise.resolve();
 
-    expect(sound.unloadAsync).toHaveBeenCalledTimes(1);
+    expect(player.remove).toHaveBeenCalledTimes(1);
     expect(controller.getIsPlaying()).toBe(false);
     expect(playbackTransitions).toContain(false);
   });
@@ -70,9 +60,7 @@ describe("platform audio adapters", () => {
   it("does not start playback while hidden", async () => {
     const audioModule = {
       setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
-      Sound: {
-        createAsync: jest.fn(),
-      },
+      createPlayer: jest.fn(),
     };
 
     const controller = createSoundController({ audioModule });
@@ -85,26 +73,22 @@ describe("platform audio adapters", () => {
     ).resolves.toBe(false);
 
     expect(audioModule.setAudioModeAsync).not.toHaveBeenCalled();
-    expect(audioModule.Sound.createAsync).not.toHaveBeenCalled();
+    expect(audioModule.createPlayer).not.toHaveBeenCalled();
   });
 
-  it("stops and unloads the current sound", async () => {
-    const sound = {
-      playAsync: jest.fn().mockResolvedValue(undefined),
-      stopAsync: jest.fn().mockResolvedValue(undefined),
-      unloadAsync: jest.fn().mockResolvedValue(undefined),
-      getStatusAsync: jest.fn().mockResolvedValue({
-        isLoaded: true,
-        isPlaying: true,
-      }),
-      setOnPlaybackStatusUpdate: jest.fn(),
+  it("stops and removes the current player", async () => {
+    const player = {
+      playing: true,
+      volume: 1,
+      play: jest.fn(),
+      pause: jest.fn(),
+      remove: jest.fn(),
+      addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
     };
 
     const audioModule = {
       setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
-      Sound: {
-        createAsync: jest.fn().mockResolvedValue({ sound }),
-      },
+      createPlayer: jest.fn().mockReturnValue(player),
     };
 
     const controller = createSoundController({ audioModule });
@@ -116,8 +100,8 @@ describe("platform audio adapters", () => {
 
     await controller.stop();
 
-    expect(sound.stopAsync).toHaveBeenCalledTimes(1);
-    expect(sound.unloadAsync).toHaveBeenCalledTimes(1);
+    expect(player.pause).toHaveBeenCalledTimes(1);
+    expect(player.remove).toHaveBeenCalledTimes(1);
     expect(controller.getIsPlaying()).toBe(false);
   });
 });

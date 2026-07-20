@@ -2,7 +2,7 @@
  * @file history.tsx
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useReducer } from "react";
 import {
   ActivityIndicator,
@@ -134,7 +134,7 @@ const historyViewReducer = (
  * @returns {JSX.Element} React element for the history screen.
  */
 const HistoryScreen = () => {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const wideLayout = isWideLayout(width);
   const { history } = useGameStore();
@@ -269,7 +269,7 @@ const HistoryScreen = () => {
           contentMaxWidth={wideLayout ? 1120 : undefined}
         >
           <HistoryHeader
-            onBack={() => navigation.goBack()}
+            onBack={() => router.back()}
             showSortButton={false}
             sortDirection="desc"
             onOpenSortModal={() => undefined}
@@ -299,7 +299,7 @@ const HistoryScreen = () => {
         contentMaxWidth={wideLayout ? 1120 : undefined}
       >
         <HistoryHeader
-          onBack={() => navigation.goBack()}
+          onBack={() => router.back()}
           showSortButton={activeTabIndex === 0}
           sortDirection={sortDirection}
           onOpenSortModal={() =>

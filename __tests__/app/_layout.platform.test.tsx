@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../test-utils/render";
 
 jest.mock("expo-router", () => ({
   Stack: Object.assign(
@@ -37,7 +38,7 @@ jest.mock("../../store/store", () => ({
 describe("Root shell provider regression", () => {
   it("wraps the shell in TamaguiAppProvider", () => {
     const Layout = require("../../app/_layout").default;
-    const tree = TestRenderer.create(React.createElement(Layout));
+    const tree = actCreate(React.createElement(Layout));
 
     // The root tree should contain a TamaguiProvider from the TamaguiAppProvider wrapper
     // After T012 integrates TamaguiAppProvider, this provider element will exist.
@@ -47,7 +48,7 @@ describe("Root shell provider regression", () => {
 
   it("keeps Toast inside the themed shell", () => {
     const Layout = require("../../app/_layout").default;
-    const tree = TestRenderer.create(React.createElement(Layout));
+    const tree = actCreate(React.createElement(Layout));
     const root = tree.root;
 
     // Toast must be a descendant (not a sibling of) the shell root
@@ -59,7 +60,7 @@ describe("Root shell provider regression", () => {
 
   it("preserves PlatformGestureRoot as the gesture handler wrapper", () => {
     const Layout = require("../../app/_layout").default;
-    const tree = TestRenderer.create(React.createElement(Layout));
+    const tree = actCreate(React.createElement(Layout));
     // The layout still renders (gesture root is present in the tree)
     expect(tree.toJSON()).not.toBeNull();
   });
