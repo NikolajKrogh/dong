@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseLegacyHistoryImport = jest.fn();
 
@@ -170,7 +171,7 @@ describe("LegacyHistoryImport Settings UI", () => {
     const LegacyHistoryImportSection =
       require("../../../components/preferences/LegacyHistoryImportSection").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LegacyHistoryImportSection),
     );
 
@@ -188,7 +189,9 @@ describe("LegacyHistoryImport Settings UI", () => {
     );
     expect(action.props.disabled).toBe(true);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("renders the in-progress state", () => {
@@ -223,7 +226,7 @@ describe("LegacyHistoryImport Settings UI", () => {
     const LegacyHistoryImportSection =
       require("../../../components/preferences/LegacyHistoryImportSection").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LegacyHistoryImportSection),
     );
 
@@ -238,7 +241,9 @@ describe("LegacyHistoryImport Settings UI", () => {
     expect(textContents).toContain("Importing...");
     expect(action.props.disabled).toBe(true);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("starts the import after the user selects a claimant", async () => {
@@ -277,7 +282,7 @@ describe("LegacyHistoryImport Settings UI", () => {
     const LegacyHistoryImportSection =
       require("../../../components/preferences/LegacyHistoryImportSection").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LegacyHistoryImportSection),
     );
 
@@ -295,7 +300,9 @@ describe("LegacyHistoryImport Settings UI", () => {
 
     expect(importHistory).toHaveBeenCalledWith(claimant);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("renders the completed state and disables the action", () => {
@@ -338,7 +345,7 @@ describe("LegacyHistoryImport Settings UI", () => {
     const LegacyHistoryImportSection =
       require("../../../components/preferences/LegacyHistoryImportSection").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LegacyHistoryImportSection),
     );
 
@@ -357,7 +364,9 @@ describe("LegacyHistoryImport Settings UI", () => {
     expect(action.props.disabled).toBe(true);
     expect(action.props.label).toBe("Import Complete");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("renders the retry state after a failed import", () => {
@@ -400,7 +409,7 @@ describe("LegacyHistoryImport Settings UI", () => {
     const LegacyHistoryImportSection =
       require("../../../components/preferences/LegacyHistoryImportSection").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LegacyHistoryImportSection),
     );
 
@@ -418,14 +427,16 @@ describe("LegacyHistoryImport Settings UI", () => {
     expect(action.props.disabled).toBe(false);
     expect(action.props.label).toBe("Retry Import");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("shows ambiguous claimant guardrails in the claimant modal", () => {
     const LegacyHistoryImportClaimantModal =
       require("../../../components/preferences/LegacyHistoryImportClaimantModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(LegacyHistoryImportClaimantModal, {
         visible: true,
         isImporting: false,
@@ -461,6 +472,8 @@ describe("LegacyHistoryImport Settings UI", () => {
       "Unavailable: duplicate name in 1 saved session.",
     );
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

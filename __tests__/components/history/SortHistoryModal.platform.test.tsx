@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -9,6 +10,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   Modal: "Modal",
   Text: "Text",
   TouchableOpacity: "TouchableOpacity",
@@ -51,7 +53,7 @@ describe("SortHistoryModal responsive layout", () => {
     const SortHistoryModal =
       require("../../../components/history/SortHistoryModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(SortHistoryModal, {
         visible: true,
         sortField: "date",
@@ -83,7 +85,7 @@ describe("SortHistoryModal responsive layout", () => {
     const SortHistoryModal =
       require("../../../components/history/SortHistoryModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(SortHistoryModal, {
         visible: true,
         sortField: "date",

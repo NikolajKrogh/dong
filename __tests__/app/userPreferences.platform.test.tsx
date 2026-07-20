@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -192,7 +193,7 @@ describe("UserPreferences shell adoption", () => {
   it("renders the account gate alongside public settings", () => {
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = (TestRenderer as any).create(React.createElement(Screen));
+    const renderer = actCreate(React.createElement(Screen));
 
     const { Text } = require("react-native");
     const texts = renderer.root.findAllByType(Text);
@@ -209,19 +210,23 @@ describe("UserPreferences shell adoption", () => {
     expect(textContents).toContain("History Import");
     expect(textContents).toContain("View Onboarding");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("keeps the shared shell unconstrained on phone-sized viewports", () => {
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = (TestRenderer as any).create(React.createElement(Screen));
+    const renderer = actCreate(React.createElement(Screen));
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
     expect(shell.props.centerContent).toBe(false);
     expect(shell.props.contentMaxWidth).toBeUndefined();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("centers the shared shell on desktop-wide viewports", () => {
@@ -234,24 +239,28 @@ describe("UserPreferences shell adoption", () => {
 
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = (TestRenderer as any).create(React.createElement(Screen));
+    const renderer = actCreate(React.createElement(Screen));
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
     expect(shell.props.centerContent).toBe(true);
     expect(shell.props.contentMaxWidth).toBe(960);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("renders SafeAreaView as root wrapper", () => {
     const Screen = require("../../app/userPreferences").default;
 
-    const renderer = (TestRenderer as any).create(React.createElement(Screen));
+    const renderer = actCreate(React.createElement(Screen));
 
     // SafeAreaView is mocked to pass children through, so the component renders
     // without error — confirming it wraps in SafeAreaView
     expect(renderer.toJSON()).toBeTruthy();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

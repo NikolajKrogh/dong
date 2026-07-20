@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -9,6 +10,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   Text: "Text",
   TouchableOpacity: "TouchableOpacity",
   View: "View",
@@ -55,7 +57,7 @@ describe("HistoryHeader responsive layout", () => {
     const HistoryHeader =
       require("../../../components/history/HistoryHeader").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(HistoryHeader, {
         title: "Game History",
         onBack,
@@ -92,7 +94,7 @@ describe("HistoryHeader responsive layout", () => {
     const HistoryHeader =
       require("../../../components/history/HistoryHeader").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(HistoryHeader, {
         title: "Game History",
         onBack: jest.fn(),

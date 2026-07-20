@@ -27,7 +27,10 @@ const renderHookProbe = (teamName: string) => {
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
 
   return { renderer, observedSources, getLatest: () => latest };
 };
@@ -43,7 +46,9 @@ describe("useTeamLogo", () => {
     expect(getLatest()).toBe(DEFAULT_LOGO);
     expect(mockGetHardcodedTeamLogoOnly).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("returns the default logo immediately for a whitespace-only team name", () => {
@@ -51,7 +56,9 @@ describe("useTeamLogo", () => {
 
     expect(getLatest()).toBe(DEFAULT_LOGO);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("returns a hardcoded logo synchronously without checking the async cache", async () => {
@@ -68,7 +75,9 @@ describe("useTeamLogo", () => {
     expect(getLatest()).toBe(HARDCODED_LOGO);
     expect(mockGetTeamLogo).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("falls back to the default logo, then updates to the persisted API logo", async () => {
@@ -86,7 +95,9 @@ describe("useTeamLogo", () => {
 
     expect(getLatest()).toEqual({ uri: "https://example.com/logo.png" });
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("stays on the default logo when no persisted logo is found", async () => {
@@ -102,7 +113,9 @@ describe("useTeamLogo", () => {
 
     expect(getLatest()).toBe(DEFAULT_LOGO);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("logs and keeps the default logo when the persisted lookup rejects", async () => {
@@ -123,7 +136,9 @@ describe("useTeamLogo", () => {
     expect(consoleErrorSpy).toHaveBeenCalled();
 
     consoleErrorSpy.mockRestore();
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("re-resolves the logo when the team name changes", async () => {
@@ -140,7 +155,10 @@ describe("useTeamLogo", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    let renderer!: TestRenderer.ReactTestRenderer;
+    TestRenderer.act(() => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+    });
 
     await TestRenderer.act(async () => {
       await Promise.resolve();
@@ -156,6 +174,8 @@ describe("useTeamLogo", () => {
 
     expect(latest).toBe(HARDCODED_LOGO);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

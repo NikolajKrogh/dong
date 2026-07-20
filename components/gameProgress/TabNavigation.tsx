@@ -1,6 +1,7 @@
-import React, { ReactNode, useMemo, useState } from "react";
+import React, { ReactElement, ReactNode, useMemo, useState } from "react";
 import {
   LayoutChangeEvent,
+  RefreshControlProps,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -28,7 +29,7 @@ interface TabNavigationProps {
   /** Count of items for the 'players' tab (displayed as a badge). */
   playersCount: number;
   /** Optional RefreshControl applied only to the first (matches) tab. */
-  refreshControl?: React.ReactElement;
+  refreshControl?: ReactElement<RefreshControlProps>;
 }
 
 /**

@@ -137,7 +137,9 @@ describe("useMatchData", () => {
     ]);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -203,7 +205,9 @@ describe("useMatchData", () => {
     );
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -239,7 +243,9 @@ describe("useMatchData", () => {
     ]);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -274,7 +280,9 @@ describe("useMatchData", () => {
     expect(observedHook?.availableLeagues).toEqual([]);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 });

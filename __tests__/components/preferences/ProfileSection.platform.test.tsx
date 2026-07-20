@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import ProfileSection from "../../../components/preferences/ProfileSection";
 import { useAccountAuth } from "../../../hooks/useAccountAuth";
@@ -81,7 +82,7 @@ describe("ProfileSection", () => {
       status: "ready",
     });
 
-    const renderer = TestRenderer.create(React.createElement(ProfileSection));
+    const renderer = actCreate(React.createElement(ProfileSection));
 
     const { Text, TextInput } = require("react-native");
     const texts = renderer.root.findAllByType(Text);
@@ -95,7 +96,9 @@ describe("ProfileSection", () => {
     expect(inputs).toHaveLength(1);
     expect(inputs[0].props.value).toBe("Captain");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("saves the edited display name", async () => {
@@ -109,7 +112,7 @@ describe("ProfileSection", () => {
       status: "ready",
     });
 
-    const renderer = TestRenderer.create(React.createElement(ProfileSection));
+    const renderer = actCreate(React.createElement(ProfileSection));
 
     const { TextInput } = require("react-native");
 
@@ -137,7 +140,9 @@ describe("ProfileSection", () => {
 
     expect(saveDisplayName).toHaveBeenCalledWith("Captain Updated");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("shows the validation error message when saving fails", async () => {
@@ -153,7 +158,7 @@ describe("ProfileSection", () => {
       status: "ready",
     });
 
-    const renderer = TestRenderer.create(React.createElement(ProfileSection));
+    const renderer = actCreate(React.createElement(ProfileSection));
     const saveButton = renderer.root.findByProps({
       label: "Save display name",
     });
@@ -169,6 +174,8 @@ describe("ProfileSection", () => {
 
     expect(labels).toContain("Account display name cannot be blank.");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

@@ -4,24 +4,13 @@ import {
   type GoalSoundRequest,
   type GoalSoundPlayOptions,
   type SoundController,
-  type AudioPlaybackStatus,
-  type SoundInstance,
+  type AudioPlayerLike,
 } from "./types";
 
 const defaultGoalSoundRequest: GoalSoundRequest = {
   asset: require("../../assets/sounds/dong.mp3"),
   volume: 1,
   shouldMixWithOthers: true,
-};
-
-const isPlaybackComplete = (status: AudioPlaybackStatus): boolean => {
-  return (
-    status.isLoaded &&
-    !status.isPlaying &&
-    typeof status.positionMillis === "number" &&
-    typeof status.durationMillis === "number" &&
-    status.positionMillis >= status.durationMillis
-  );
 };
 
 interface CreateSoundControllerOptions {
@@ -35,7 +24,8 @@ export const createSoundController = ({
   onError,
   onPlaybackStateChange,
 }: CreateSoundControllerOptions = {}): SoundController => {
-  let sound: SoundInstance | null = null;
+  let player: AudioPlayerLike | null = null;
+  let subscription: { remove(): void } | null = null;
   let isPlaying = false;
 
   const setPlayingState = (nextState: boolean) => {
@@ -44,31 +34,28 @@ export const createSoundController = ({
   };
 
   const stop = async () => {
-    if (!sound) {
+    if (!player) {
       setPlayingState(false);
       return;
     }
 
-    const currentSound = sound;
-    sound = null;
+    const currentPlayer = player;
+    player = null;
+    subscription?.remove();
+    subscription = null;
     setPlayingState(false);
 
     try {
-      const status = await currentSound.getStatusAsync();
-      if (status.isLoaded) {
-        if (status.isPlaying) {
-          await currentSound.stopAsync();
-        }
-        await currentSound.unloadAsync();
-      }
+      currentPlayer.pause();
+      currentPlayer.remove();
     } catch (error) {
       onError?.(error);
     }
   };
 
-  const bindPlaybackListener = (createdSound: SoundInstance) => {
-    createdSound.setOnPlaybackStatusUpdate((status) => {
-      if (isPlaybackComplete(status)) {
+  const bindPlaybackListener = (createdPlayer: AudioPlayerLike) => {
+    subscription = createdPlayer.addListener("playbackStatusUpdate", (status) => {
+      if (status.didJustFinish) {
         void stop();
       }
     });
@@ -85,30 +72,20 @@ export const createSoundController = ({
 
       try {
         await audioModule.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-          staysActiveInBackground: false,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-          interruptionModeIOS:
-            audioModule.InterruptionModeIOS?.MixWithOthers,
-          interruptionModeAndroid:
-            audioModule.InterruptionModeAndroid?.DuckOthers,
+          playsInSilentMode: true,
+          shouldPlayInBackground: false,
+          interruptionMode: "mixWithOthers",
         });
 
-        const { sound: createdSound } = await audioModule.Sound.createAsync(
-          request.asset,
-          {
-            volume: request.volume ?? 1,
-          }
-        );
+        const createdPlayer = audioModule.createPlayer(request.asset);
+        createdPlayer.volume = request.volume ?? 1;
 
-        sound = createdSound;
-        bindPlaybackListener(createdSound);
-        await createdSound.playAsync();
+        player = createdPlayer;
+        bindPlaybackListener(createdPlayer);
+        createdPlayer.play();
         return true;
       } catch (error) {
-        sound = null;
+        player = null;
         setPlayingState(false);
         onError?.(error);
         return false;

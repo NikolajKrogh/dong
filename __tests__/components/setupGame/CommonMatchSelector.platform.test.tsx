@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -48,6 +49,7 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
   Text: "Text",
   TouchableOpacity: "TouchableOpacity",
@@ -96,7 +98,7 @@ const renderCommonMatchSelector = () => {
   const CommonMatchSelector =
     require("../../../components/setupGame/CommonMatchSelector").default;
 
-  return TestRenderer.create(
+  return actCreate(
     React.createElement(CommonMatchSelector, {
       matches: [
         {

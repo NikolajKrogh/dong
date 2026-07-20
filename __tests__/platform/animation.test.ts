@@ -34,13 +34,16 @@ describe("platform animation adapters", () => {
         PlatformAnimation,
       } = require("../../platform/animation/PlatformAnimation.tsx");
 
-      const tree = TestRenderer.create(
-        React.createElement(PlatformAnimation, {
-          kind: "loading",
-          source: {},
-          fallback: React.createElement(Text, null, "Loading fallback"),
-        }),
-      );
+      let tree!: import("react-test-renderer").ReactTestRenderer;
+      TestRenderer.act(() => {
+        tree = TestRenderer.create(
+          React.createElement(PlatformAnimation, {
+            kind: "loading",
+            source: {},
+            fallback: React.createElement(Text, null, "Loading fallback"),
+          }),
+        );
+      });
 
       expect(tree.toJSON()).toMatchObject({
         type: "View",

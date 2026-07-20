@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../test-utils/render";
 import AppIcon from "../../components/AppIcon";
 
 jest.mock("@expo/vector-icons", () => {
@@ -20,7 +21,7 @@ describe("AppIcon", () => {
     ["funnel-outline", "funnel-outline"],
     ["person-circle-outline", "person-circle-outline"],
   ] as const)("renders %s through Ionicons", (name, expectedIconName) => {
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       <AppIcon name={name} size={24} color="#123456" />,
     );
 
@@ -29,11 +30,13 @@ describe("AppIcon", () => {
     expect(icon.props.children).toBe(
       `Icon:${expectedIconName} Size:24 Color:#123456`,
     );
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("forwards style to the Ionicons renderer", () => {
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       <AppIcon
         name="arrow-back"
         size={20}
@@ -45,6 +48,8 @@ describe("AppIcon", () => {
     const icon = renderer.root.findByProps({ testID: "ionicon" });
 
     expect(icon.props.style).toMatchObject({ marginRight: 8, opacity: 0.5 });
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

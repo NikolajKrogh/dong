@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import UsernameOnboardingForm from "../../../components/auth/UsernameOnboardingForm";
 
@@ -78,7 +79,7 @@ jest.mock("../../../components/ui", () => ({
 
 describe("UsernameOnboardingForm", () => {
   it("renders the required display-name onboarding form", () => {
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(UsernameOnboardingForm),
     );
 

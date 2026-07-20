@@ -61,7 +61,9 @@ describe("usePersistedTeamLogos", () => {
     expect(mockClearOverriddenLogos).not.toHaveBeenCalled();
     expect(mockGetTeamLogo).not.toHaveBeenCalled();
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("clears overridden logos and loads persisted logos for teams without hardcoded assets", async () => {
@@ -90,7 +92,9 @@ describe("usePersistedTeamLogos", () => {
       expect.anything(),
     );
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("skips the AsyncStorage lookup for teams that already have a hardcoded logo", async () => {
@@ -110,7 +114,9 @@ describe("usePersistedTeamLogos", () => {
     expect(mockGetTeamLogo).not.toHaveBeenCalledWith("Arsenal FC");
     expect(mockGetTeamLogo).toHaveBeenCalledWith("Chelsea FC");
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("deduplicates identical home/away team names across matches", async () => {
@@ -130,7 +136,9 @@ describe("usePersistedTeamLogos", () => {
 
     expect(mockGetTeamLogo).toHaveBeenCalledTimes(2);
 
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("logs and continues when a persisted lookup rejects", async () => {
@@ -157,6 +165,8 @@ describe("usePersistedTeamLogos", () => {
     expect(mockGetTeamLogo).toHaveBeenCalledWith("Chelsea FC");
 
     consoleErrorSpy.mockRestore();
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

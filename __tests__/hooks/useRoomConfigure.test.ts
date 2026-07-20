@@ -79,7 +79,10 @@ const render = (snapshot: RoomSnapshot | null, onMutated?: () => void) => {
     observed = useRoomConfigure(snapshot, onMutated);
     return null;
   };
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Probe));
+  });
   return { result: () => observed, renderer };
 };
 
@@ -109,7 +112,9 @@ describe("useRoomConfigure", () => {
     );
     expect(onMutated).toHaveBeenCalledTimes(1);
     expect(result()?.error).toBeNull();
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("surfaces a friendly error when removing a match fails", async () => {
@@ -125,7 +130,9 @@ describe("useRoomConfigure", () => {
     });
 
     expect(result()?.error).toBe("not_host");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("maps match_not_found to a friendly, actionable message", async () => {
@@ -143,7 +150,9 @@ describe("useRoomConfigure", () => {
     expect(result()?.error).toBe(
       "That match is no longer in the room. Refresh and try again.",
     );
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("maps invalid_assignment to a friendly, actionable message", async () => {
@@ -163,7 +172,9 @@ describe("useRoomConfigure", () => {
     expect(result()?.error).toBe(
       "One of those assignments referenced a participant or match that's no longer in the room.",
     );
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("sets the common match", async () => {
@@ -177,7 +188,9 @@ describe("useRoomConfigure", () => {
     });
 
     expect(setCommonMatch).toHaveBeenCalledWith("s1", "match-2");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("randomizes assignments across the pool, excluding the Common Match", async () => {
@@ -199,7 +212,9 @@ describe("useRoomConfigure", () => {
     assignments.forEach((assignment) => {
       expect(assignment.matchId).toBe("match-2"); // the only non-common match available
     });
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("does not call the RPC when there is no assignable match besides the common one", async () => {
@@ -218,7 +233,9 @@ describe("useRoomConfigure", () => {
 
     expect(setRoomAssignments).not.toHaveBeenCalled();
     expect(result()?.error).toContain("Common Match");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("dispatches start-game with a bearer token and a generated idempotency key", async () => {
@@ -249,7 +266,9 @@ describe("useRoomConfigure", () => {
     expect(success).toBe(true);
     expect(mockGenerateIdempotencyKey).toHaveBeenCalledTimes(1);
     expect(startGame).toHaveBeenCalledWith("s1", "jwt-123", "fixed-idempotency-key");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 
   it("reuses the same idempotency key across a retry of the same attempt", async () => {
@@ -290,6 +309,8 @@ describe("useRoomConfigure", () => {
     expect(mockGenerateIdempotencyKey).toHaveBeenCalledTimes(1);
     expect(startGame).toHaveBeenNthCalledWith(1, "s1", "jwt-123", "fixed-idempotency-key");
     expect(startGame).toHaveBeenNthCalledWith(2, "s1", "jwt-123", "fixed-idempotency-key");
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

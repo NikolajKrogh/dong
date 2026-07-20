@@ -97,7 +97,10 @@ const renderHarness = (
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Harness));
+  let renderer!: TestRenderer.ReactTestRenderer;
+  TestRenderer.act(() => {
+    renderer = TestRenderer.create(React.createElement(Harness));
+  });
 
   return { renderer, getLatest: () => latest as HarnessResult };
 };
@@ -136,7 +139,9 @@ describe("useMatchProcessing", () => {
       expect(getLatest().processingState.totalToProcess).toBe(1);
       expect(getLatest().isProcessing).toBe(false);
 
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
 
     it("does not call setGlobalMatches when every candidate already exists", () => {
@@ -166,7 +171,9 @@ describe("useMatchProcessing", () => {
       );
 
       consoleWarnSpy.mockRestore();
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -189,7 +196,9 @@ describe("useMatchProcessing", () => {
       expect(setGlobalMatches).not.toHaveBeenCalled();
 
       consoleWarnSpy.mockRestore();
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
 
     it("warns and ignores a new startProcessing call while one is already in progress", () => {
@@ -217,7 +226,9 @@ describe("useMatchProcessing", () => {
       );
 
       consoleWarnSpy.mockRestore();
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -264,7 +275,9 @@ describe("useMatchProcessing", () => {
       expect(getLatest().processingState.matchesSkipped).toBe(0);
       expect(getLatest().isProcessing).toBe(false);
 
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
 
     it("skips a candidate that becomes a duplicate mid-batch (added by an earlier candidate in the same run)", async () => {
@@ -296,7 +309,9 @@ describe("useMatchProcessing", () => {
       expect(getLatest().processingState.matchesAdded).toBe(1);
       expect(getLatest().matches).toHaveLength(1);
 
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 });

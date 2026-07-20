@@ -128,7 +128,9 @@ describe("useGameProgressController (integration)", () => {
     expect(migrated?.awayGoals).toBe(3);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -143,7 +145,9 @@ describe("useGameProgressController (integration)", () => {
     expect(stopPolling).not.toHaveBeenCalled();
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
 
     expect(stopPolling).toHaveBeenCalled();
@@ -171,7 +175,9 @@ describe("useGameProgressController (integration)", () => {
     expect(payload.text2).toBe("Alice, Bob should drink!");
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -195,7 +201,9 @@ describe("useGameProgressController (integration)", () => {
     expect(getLatest().matches.find((m) => m.id === "m1")?.homeGoals).toBe(1);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -213,7 +221,9 @@ describe("useGameProgressController (integration)", () => {
     expect(getLatest().matches.find((m) => m.id === "m1")?.homeGoals).toBe(0);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -246,7 +256,9 @@ describe("useGameProgressController (integration)", () => {
     ).toBe(0);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -272,7 +284,9 @@ describe("useGameProgressController (integration)", () => {
 
     consoleErrorSpy.mockRestore();
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -298,7 +312,9 @@ describe("useGameProgressController (integration)", () => {
     expect(useGameStore.getState().matches).toEqual([]);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 
@@ -327,7 +343,9 @@ describe("useGameProgressController (integration)", () => {
     expect(getLatest().isQuickActionsVisible).toBe(false);
 
     await TestRenderer.act(async () => {
-      renderer.unmount();
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
     });
   });
 });

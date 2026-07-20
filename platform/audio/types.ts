@@ -14,35 +14,27 @@ export interface GoalSoundRequest {
 
 export interface AudioPlaybackStatus {
   isLoaded: boolean;
-  isPlaying?: boolean;
-  positionMillis?: number;
-  durationMillis?: number;
+  playing?: boolean;
+  currentTime?: number;
+  duration?: number;
+  didJustFinish?: boolean;
 }
 
-export interface SoundInstance {
-  playAsync(): Promise<unknown>;
-  stopAsync(): Promise<unknown>;
-  unloadAsync(): Promise<unknown>;
-  getStatusAsync(): Promise<AudioPlaybackStatus>;
-  setOnPlaybackStatusUpdate(
-    callback: (status: AudioPlaybackStatus) => void,
-  ): void;
+export interface AudioPlayerLike {
+  playing: boolean;
+  volume: number;
+  play(): void;
+  pause(): void;
+  remove(): void;
+  addListener(
+    event: "playbackStatusUpdate",
+    listener: (status: AudioPlaybackStatus) => void,
+  ): { remove(): void };
 }
 
 export interface AudioModuleLike {
-  Sound: {
-    createAsync(
-      asset: number,
-      initialStatus?: Record<string, unknown>,
-    ): Promise<{ sound: SoundInstance }>;
-  };
+  createPlayer(asset: number): AudioPlayerLike;
   setAudioModeAsync(config: Record<string, unknown>): Promise<unknown>;
-  InterruptionModeIOS?: {
-    MixWithOthers?: unknown;
-  };
-  InterruptionModeAndroid?: {
-    DuckOthers?: unknown;
-  };
 }
 
 export interface GoalSoundPlayOptions extends AudioPlaybackGate {

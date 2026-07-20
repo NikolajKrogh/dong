@@ -1,6 +1,7 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { Pressable, View } from "react-native";
+import { actCreate } from "../../test-utils/render";
+import { View } from "react-native";
 
 const mockPlatformGestureView = jest.fn(
   ({ children }: { children: React.ReactNode }) => {
@@ -30,23 +31,28 @@ describe("OnboardingScreen platform adoption", () => {
     const OnboardingScreen =
       require("../../components/OnboardingScreen").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(OnboardingScreen, { onFinish }),
     );
 
     expect(mockPlatformGestureView).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "onboardingSwipe" }),
-      {},
+      undefined,
     );
 
+    // react-test-renderer under React 19 no longer matches memo-wrapped
+    // built-ins (e.g. RN's Pressable) via findAllByType, so query by props.
+    const findPressables = () =>
+      renderer.root.findAll(
+        (node) => typeof node.props.onPress === "function",
+      );
+
     const pressSkip = () => {
-      const buttons = renderer.root.findAllByType(Pressable);
-      buttons[0].props.onPress();
+      findPressables()[0].props.onPress();
     };
 
     const pressContinue = () => {
-      const buttons = renderer.root.findAllByType(Pressable);
-      buttons[1].props.onPress();
+      findPressables()[1].props.onPress();
     };
 
     TestRenderer.act(() => {
@@ -73,6 +79,8 @@ describe("OnboardingScreen platform adoption", () => {
     });
 
     expect(onFinish).toHaveBeenCalledTimes(1);
-    renderer.unmount();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
   });
 });

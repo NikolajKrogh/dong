@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -9,6 +10,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   Modal: "Modal",
   ScrollView: "ScrollView",
   Text: "Text",
@@ -102,7 +104,7 @@ describe("PlayerComparisonModal responsive layout", () => {
     const PlayerComparisonModal =
       require("../../../components/history/PlayerComparisonModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(PlayerComparisonModal, {
         visible: true,
         onClose: jest.fn(),
@@ -126,7 +128,7 @@ describe("PlayerComparisonModal responsive layout", () => {
     const PlayerComparisonModal =
       require("../../../components/history/PlayerComparisonModal").default;
 
-    const renderer = TestRenderer.create(
+    const renderer = actCreate(
       React.createElement(PlayerComparisonModal, {
         visible: true,
         onClose: jest.fn(),

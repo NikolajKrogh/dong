@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import AccountSection from "../../../components/preferences/AccountSection";
 import { useAccountAuth } from "../../../hooks/useAccountAuth";
@@ -114,7 +115,7 @@ describe("AccountSection", () => {
       user: null,
     } as never);
 
-    const tree = TestRenderer.create(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(AccountSection));
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);
@@ -152,7 +153,7 @@ describe("AccountSection", () => {
       user: { id: "host-1" },
     } as never);
 
-    const tree = TestRenderer.create(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(AccountSection));
 
     const finishButton = findButtonByLabel(tree, "Finish account setup");
 
@@ -187,7 +188,7 @@ describe("AccountSection", () => {
       user: { id: "host-1" },
     } as never);
 
-    const tree = TestRenderer.create(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(AccountSection));
 
     const signOutButton = findButtonByLabel(tree, "Sign out");
 
@@ -219,7 +220,7 @@ describe("AccountSection", () => {
       user: null,
     } as never);
 
-    const tree = TestRenderer.create(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(AccountSection));
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);

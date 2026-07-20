@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import { GuestJoinForm } from "../../../components/guestJoin/GuestJoinForm";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
@@ -19,7 +20,7 @@ jest.mock("../../../components/ui", () => ({
 
 describe("GuestJoinForm", () => {
   it("renders the room-code and guest-name inputs with the join action", () => {
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         null,
@@ -53,7 +54,7 @@ describe("GuestJoinForm", () => {
   it("wires the submit action and renders an error message when provided", () => {
     const onSubmit = jest.fn();
 
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         null,
