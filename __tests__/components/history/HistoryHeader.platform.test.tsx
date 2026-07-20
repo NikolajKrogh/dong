@@ -10,6 +10,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   Text: "Text",
   TouchableOpacity: "TouchableOpacity",
   View: "View",

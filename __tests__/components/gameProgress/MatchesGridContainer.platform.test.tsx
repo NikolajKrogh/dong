@@ -16,6 +16,7 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   FlatList: "FlatList",
   View: "View",
   useWindowDimensions: () => mockUseWindowDimensions(),

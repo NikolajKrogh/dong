@@ -55,6 +55,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 
 jest.mock("react-native", () => {
   return {
+    Platform: { OS: "web", select: (o: any) => o.web ?? o.default },
     ActivityIndicator: "ActivityIndicator",
     View: "View",
     Text: "Text",

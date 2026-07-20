@@ -33,6 +33,7 @@ const mockStoreState = {
 };
 
 jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
