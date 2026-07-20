@@ -101,13 +101,13 @@
 
 ---
 
-## Phase 10: Hook tests, complex tier (US5) — branch `tech-debt/10-hook-tests-2` (needs Phase 7)
+## Phase 10: Hook tests, complex tier (US5) — branch `tech-debt/10-hook-tests-2` (needs Phase 7) — ✅ pushed, PR [#178](https://github.com/NikolajKrogh/dong/pull/178) open (stacked on #177)
 
-- [ ] T036 [P] [US5] `__tests__/hooks/useLegacyHistoryImport.test.ts`: phase machine (`checking→ready→importing→completed/failed`) + auth gating (mock `getLegacyHistoryImportRpcClient`, `getSupabaseClient().auth.getUser`, `hasSupabasePublicConfig`)
-- [ ] T037 [P] [US5] `__tests__/hooks/useMatchProcessing.test.ts`: `jest.useFakeTimers()` + `advanceTimersByTime` for the 50ms polling loop — no real waits
-- [ ] T038 [P] [US5] Extend direct tests for the 7 extracted gameProgress reducers/helpers; `__tests__/hooks/useGoalToastQueue.test.ts`
-- [ ] T039 [US5] Slim Probe-based integration test of the composed `useGameProgressController` (mock `useLiveScores`, `expo-router`, platform hooks)
-- [ ] T040 [US5] Verify: jest + lint green; zero flaky timer patterns
+- [x] T036 [P] [US5] `__tests__/hooks/useLegacyHistoryImport.test.ts` (9 tests): mocks `getLegacyHistoryImportRpcClient`, `getSupabaseClient`, `hasSupabasePublicConfig`; covers the phase machine (`checking→ready→importing→completed/failed`), auth/config gating with the correct `availabilityReason` per state, and `importHistory`'s short-circuit + cached-result paths
+- [x] T037 [P] [US5] `__tests__/hooks/useMatchProcessing.test.ts` (6 tests): `jest.useFakeTimers()` + `advanceTimersByTimeAsync` (async-aware variant, needed since the hook's own polling loop is itself promise-based) driving the 100ms kick-off timer and 50ms polling loop — no real waits. Covers the batch path (`setGlobalMatches`), guard clauses, and the sequential path end-to-end via a stateful test harness component (using refs, not plain arrays, so call-tracking survives the re-renders `handleAddMatch` triggers — an early version silently lost data by recreating the tracking array every render)
+- [x] T038 [P] [US5] `hooks/gameProgress/*.test.ts` (20 tests): direct tests for all 7 extracted pure reducers/helpers (`gameProgressUiReducer`, `toastQueueReducer`, `migrateLegacyMatch`, `calculateToastScoreDisplay`, `applyHomeGoalUpdate`, `applyAwayGoalUpdate`, `updateMatchForGoal`). `__tests__/hooks/useGoalToastQueue.test.ts` (5 tests): message formatting, one-at-a-time toast display gated on `onHide`, scoring-team props
+- [x] T039 [US5] `__tests__/hooks/useGameProgressController.test.ts` (9 tests): slim Probe-based integration test of the composed controller, mocking `useLiveScores`, `expo-router`, and the platform hooks (`useAppVisibility`/`useGoalSound`) while exercising the real Zustand store. Covers legacy-match migration on mount, polling start/stop, the full goal→sound→toast pipeline (incl. the common-match notification toggle), drink increment/decrement floor, refresh error handling, and end-game/navigation wiring
+- [x] T040 [US5] Verified: `npx jest --ci` → 78 suites/392 tests (was 70/334 — +8 suites/+58 tests). `npm run lint` → 0 errors, 298 warnings (baseline). `npx tsc --noEmit` → 130 errors (baseline). Zero flaky timer patterns — all fake-timer advances go through `advanceTimersByTimeAsync` inside `TestRenderer.act`, and every `renderer.unmount()` is also `act`-wrapped after an early run showed cross-test effect/subscription leakage when it wasn't. CI confirmed green on GitHub: `build` (client-ci) passes on both push and pull_request runs.
 
 ---
 
