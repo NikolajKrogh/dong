@@ -131,15 +131,22 @@ describe("SelectableMatchList", () => {
     ).toBe(false);
   });
 
-  it("renders a grid when asked and a FlatList otherwise", () => {
+  it("renders a grid when asked and a list otherwise", () => {
+    // Asserted through the grid container style rather than findAllByType, since
+    // react-native is string-mocked in this suite and the element types aren't
+    // real components.
     const grid = render({ useGridLayout: true });
-    expect(grid.root.findAllByType("FlatList")).toHaveLength(0);
     expect(
       grid.root.findAllByProps({ style: mockStyles.gridContainer }).length,
     ).toBeGreaterThan(0);
+    expect(
+      grid.root.findAllByProps({ style: mockStyles.gridItem }).length,
+    ).toBeGreaterThan(0);
 
     const list = render({ useGridLayout: false });
-    expect(list.root.findAllByType("FlatList")).toHaveLength(1);
+    expect(
+      list.root.findAllByProps({ style: mockStyles.gridContainer }),
+    ).toHaveLength(0);
   });
 
   it("omits per-match testIDs when no prefix is given", () => {

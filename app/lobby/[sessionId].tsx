@@ -18,6 +18,7 @@ import { Text, XStack, YStack } from "tamagui";
 
 import { ConfigureMatchesModal } from "../../components/lobby/ConfigureMatchesModal";
 import { ParticipantList } from "../../components/lobby/ParticipantList";
+import { PlayerPickPanel } from "../../components/lobby/PlayerPickPanel";
 import { RoomEndedNotice } from "../../components/lobby/RoomEndedNotice";
 import { SuccessorChooserModal } from "../../components/lobby/SuccessorChooserModal";
 import { ShellActionButton, ShellScreen } from "../../components/ui";
@@ -31,6 +32,13 @@ const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
   automatic: "Automatic",
   host_assigned: "Host-assigned",
   player_picked: "Player-picked",
+};
+
+/** Kebab-case suffixes for the mode selector's testIDs. */
+const MODE_TEST_IDS: Record<AssignmentMode, string> = {
+  automatic: "automatic",
+  host_assigned: "host-assigned",
+  player_picked: "player-picked",
 };
 
 const normalizeParam = (value: string | string[] | undefined): string =>
@@ -232,6 +240,70 @@ const LobbyScreen = () => {
     isParticipantShort(participant.id),
   );
 
+  // ---------------------------------------------------------------------------
+  // Player-picked mode (#185). The pick panel renders for the host and members
+  // alike — the host is an ordinary participant who picks their own matches.
+  // ---------------------------------------------------------------------------
+  const picks = useMemo(
+    () => lobby.snapshot?.picks ?? [],
+    [lobby.snapshot?.picks],
+  );
+  const isPlayerPicked = assignmentMode === "player_picked";
+  const canPick = isPlayerPicked && lobby.state === "joinable";
+
+  // RoomMatchSummary → the shared renderer's view-model, minus the Common Match
+  // (FR-040a). Mapped here rather than inside the panel because the guest
+  // surface's match type doesn't unify with this one.
+  const pickableMatches = useMemo(
+    () =>
+      (lobby.snapshot?.matches ?? [])
+        .filter((match) => match.id !== commonMatchId)
+        .map((match) => ({
+          id: match.id,
+          homeTeam: match.homeTeamName,
+          awayTeam: match.awayTeamName,
+          startTime: match.kickoffAt ?? undefined,
+        })),
+    [lobby.snapshot?.matches, commonMatchId],
+  );
+
+  const myPicks = useMemo(
+    () =>
+      participantId
+        ? picks
+            .filter((pick) => pick.participantId === participantId)
+            .map((pick) => pick.matchId)
+        : [],
+    [picks, participantId],
+  );
+
+  // FR-042: everyone sees how far everyone else has progressed.
+  const pickProgress = useMemo(() => {
+    if (!isPlayerPicked) {
+      return undefined;
+    }
+    return participants.reduce<
+      Record<string, { picked: number; total: number }>
+    >((accumulator, participant) => {
+      accumulator[participant.id] = {
+        picked: picks.filter((pick) => pick.participantId === participant.id)
+          .length,
+        total: plan.matchesPerPlayer,
+      };
+      return accumulator;
+    }, {});
+  }, [isPlayerPicked, participants, picks, plan.matchesPerPlayer]);
+
+  const pickPanel = canPick ? (
+    <PlayerPickPanel
+      matches={pickableMatches}
+      myPicks={myPicks}
+      cap={plan.matchesPerPlayer}
+      onSetPicks={configure.setMyPicks}
+      isBusy={configure.isBusy}
+    />
+  ) : null;
+
   // set_room_assignments replaces the room's *entire* assignment set on every
   // call (migration 035) — toggling one participant's one match means
   // reconstructing the full desired array from the current snapshot, not
@@ -286,7 +358,10 @@ const LobbyScreen = () => {
                 </YStack>
               ) : null}
 
-              <ParticipantList participants={lobby.participants} />
+              <ParticipantList
+                participants={lobby.participants}
+                pickProgress={pickProgress}
+              />
 
               {isHost && lobby.snapshot ? (
                 <YStack gap="$3">
@@ -360,24 +435,32 @@ const LobbyScreen = () => {
                       Assignment mode
                     </Text>
                     <XStack gap="$2">
-                      {(["automatic", "host_assigned"] as const).map(
-                        (mode) => (
-                          <ShellActionButton
-                            key={mode}
-                            variant={
-                              assignmentMode === mode ? "primary" : "surface"
-                            }
-                            size="small"
-                            widthMode="content"
-                            label={ASSIGNMENT_MODE_LABELS[mode]}
-                            testID={`lobby-assignment-mode-${mode === "host_assigned" ? "host-assigned" : mode}`}
-                            disabled={configure.isBusy}
-                            onPress={() => handleSelectMode(mode)}
-                          />
-                        ),
-                      )}
+                      {(
+                        [
+                          "automatic",
+                          "host_assigned",
+                          "player_picked",
+                        ] as const
+                      ).map((mode) => (
+                        <ShellActionButton
+                          key={mode}
+                          variant={
+                            assignmentMode === mode ? "primary" : "surface"
+                          }
+                          size="small"
+                          widthMode="content"
+                          label={ASSIGNMENT_MODE_LABELS[mode]}
+                          testID={`lobby-assignment-mode-${MODE_TEST_IDS[mode]}`}
+                          disabled={configure.isBusy}
+                          onPress={() => handleSelectMode(mode)}
+                        />
+                      ))}
                     </XStack>
                   </YStack>
+
+                  {/* The host picks their own matches like any other
+                      participant (FR-038). */}
+                  {pickPanel}
 
                   {assignmentMode === "host_assigned" ? (
                     <YStack
@@ -650,7 +733,9 @@ const LobbyScreen = () => {
               ) : (
                 <YStack gap="$2">
                   <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-                    Waiting for the host to start the game…
+                    {canPick
+                      ? "Pick your matches while you wait for the host to start."
+                      : "Waiting for the host to start the game…"}
                   </Text>
                   <Text
                     testID="lobby-assignment-mode-readonly"
@@ -659,6 +744,9 @@ const LobbyScreen = () => {
                   >
                     Assignment mode: {ASSIGNMENT_MODE_LABELS[assignmentMode]}
                   </Text>
+
+                  {/* A member's own pick control — the same panel the host uses. */}
+                  {pickPanel}
                   <Text
                     testID="lobby-assignment-requirement"
                     color="$colorMuted"

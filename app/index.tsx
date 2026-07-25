@@ -65,6 +65,8 @@ const HomeScreen = () => {
     guestRoomError,
     isGuestJoinSubmitting,
     submitGuestJoin,
+    setGuestPicks,
+    isGuestPickBusy,
     isGuestJoinModalVisible,
     guestJoinCode,
     setGuestJoinCode,
@@ -320,6 +322,8 @@ const HomeScreen = () => {
             onGuestNameChange={setGuestName}
             onJoinCodeChange={setGuestJoinCode}
             onLeaveRoom={handleLeaveGuestJoin}
+            onSetPicks={setGuestPicks}
+            isPickBusy={isGuestPickBusy}
             onSubmit={() => {
               void submitGuestJoin(guestJoinCode, guestName);
             }}

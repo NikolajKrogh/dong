@@ -40,6 +40,8 @@ export const useHomeRoomActions = () => {
     isSubmitting: isGuestJoinSubmitting,
     leaveRoom: leaveGuestRoom,
     submitGuestJoin,
+    setMyPicks: setGuestPicks,
+    isBusy: isGuestPickBusy,
   } = useGuestRoomJoin();
   const [isGuestJoinModalVisible, setIsGuestJoinModalVisible] = useState(false);
   const [guestJoinCode, setGuestJoinCode] = useState("");
@@ -237,6 +239,8 @@ export const useHomeRoomActions = () => {
     guestRoomError,
     isGuestJoinSubmitting,
     submitGuestJoin,
+    setGuestPicks,
+    isGuestPickBusy,
     isGuestJoinModalVisible,
     guestJoinCode,
     setGuestJoinCode,

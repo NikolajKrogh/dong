@@ -342,9 +342,11 @@ describe("useGuestRoomSession", () => {
       setMyRoomPicksAsGuest,
     } as never);
 
-    let observedHook: UseGuestRoomSessionResult | null = null;
+    const observed: { current: UseGuestRoomSessionResult | null } = {
+      current: null,
+    };
     const Probe = () => {
-      observedHook = useGuestRoomSession();
+      observed.current = useGuestRoomSession();
       return null;
     };
     const renderer = TestRenderer.create(React.createElement(Probe));
@@ -356,7 +358,7 @@ describe("useGuestRoomSession", () => {
     const callsBefore = getGuestRoomSnapshot.mock.calls.length;
 
     await TestRenderer.act(async () => {
-      await observedHook?.setMyPicks(["match-1", "match-2"]);
+      await observed.current?.setMyPicks(["match-1", "match-2"]);
       await flushEffects();
     });
 
@@ -368,8 +370,8 @@ describe("useGuestRoomSession", () => {
     // The write is followed by a refresh, so the next replace-all submission is
     // built from fresh picks rather than stale ones.
     expect(getGuestRoomSnapshot.mock.calls.length).toBeGreaterThan(callsBefore);
-    expect(observedHook?.isBusy).toBe(false);
-    expect(observedHook?.error).toBeNull();
+    expect(observed.current?.isBusy).toBe(false);
+    expect(observed.current?.error).toBeNull();
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -401,9 +403,11 @@ describe("useGuestRoomSession", () => {
       setMyRoomPicksAsGuest,
     } as never);
 
-    let observedHook: UseGuestRoomSessionResult | null = null;
+    const observed: { current: UseGuestRoomSessionResult | null } = {
+      current: null,
+    };
     const Probe = () => {
-      observedHook = useGuestRoomSession();
+      observed.current = useGuestRoomSession();
       return null;
     };
     const renderer = TestRenderer.create(React.createElement(Probe));
@@ -414,11 +418,11 @@ describe("useGuestRoomSession", () => {
 
     let pending: Promise<void> | undefined;
     await TestRenderer.act(async () => {
-      pending = observedHook?.setMyPicks(["match-1"]);
+      pending = observed.current?.setMyPicks(["match-1"]);
       await flushEffects();
     });
 
-    expect(observedHook?.isBusy).toBe(true);
+    expect(observed.current?.isBusy).toBe(true);
 
     await TestRenderer.act(async () => {
       releaseRefresh?.();
@@ -426,7 +430,7 @@ describe("useGuestRoomSession", () => {
       await flushEffects();
     });
 
-    expect(observedHook?.isBusy).toBe(false);
+    expect(observed.current?.isBusy).toBe(false);
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -447,9 +451,11 @@ describe("useGuestRoomSession", () => {
       setMyRoomPicksAsGuest,
     } as never);
 
-    let observedHook: UseGuestRoomSessionResult | null = null;
+    const observed: { current: UseGuestRoomSessionResult | null } = {
+      current: null,
+    };
     const Probe = () => {
-      observedHook = useGuestRoomSession();
+      observed.current = useGuestRoomSession();
       return null;
     };
     const renderer = TestRenderer.create(React.createElement(Probe));
@@ -459,14 +465,14 @@ describe("useGuestRoomSession", () => {
     });
 
     await TestRenderer.act(async () => {
-      await observedHook?.setMyPicks(["a", "b", "c"]);
+      await observed.current?.setMyPicks(["a", "b", "c"]);
       await flushEffects();
     });
 
-    expect(observedHook?.error).not.toBeNull();
-    expect(observedHook?.isBusy).toBe(false);
+    expect(observed.current?.error).not.toBeNull();
+    expect(observed.current?.isBusy).toBe(false);
     // A refused pick must not tear down the session -- the guest is still joined.
-    expect(observedHook?.status).toBe("joined");
+    expect(observed.current?.status).toBe("joined");
 
     TestRenderer.act(() => {
       renderer.unmount();
