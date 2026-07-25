@@ -477,20 +477,30 @@ export interface ConfigureStartGameAssignment {
 }
 
 /**
- * Mutable room-configuration state (018-configure-start-game) shared by the
- * `add_room_match` / `set_common_match` / `set_room_assignments` /
- * `start-game` route mocks below, and read back into every polled snapshot —
- * so a full host journey (select matches → common match → assignments →
- * start) is reflected across repeated `get_room_snapshot` polls. Defaults
- * match the previous hardcoded snapshot, so other host-room features that
- * never call `resetConfigureStartGameState` are unaffected.
+ * Mutable room-configuration state shared by the `add_room_match` /
+ * `set_common_match` / `set_room_assignment_settings` / `start-game` route
+ * mocks below, and read back into every polled snapshot — so a full host
+ * journey (select matches → common match → start, with the server generating
+ * assignments — specs/020-canonical-assignment-generation) is reflected
+ * across repeated `get_room_snapshot` polls. Defaults match the previous
+ * hardcoded snapshot, so other host-room features that never call
+ * `resetConfigureStartGameState` are unaffected.
  */
 let configureStartGameState: {
   roomState: "joinable" | "in_progress";
   commonMatchId: string | null;
   matches: ConfigureStartGameMatch[];
   assignments: ConfigureStartGameAssignment[];
-} = { roomState: "joinable", commonMatchId: null, matches: [], assignments: [] };
+  matchesPerPlayer: number;
+  sharedMatchesPerPair: number;
+} = {
+  roomState: "joinable",
+  commonMatchId: null,
+  matches: [],
+  assignments: [],
+  matchesPerPlayer: 1,
+  sharedMatchesPerPair: 0,
+};
 
 export const resetConfigureStartGameState = () => {
   configureStartGameState = {
@@ -498,6 +508,8 @@ export const resetConfigureStartGameState = () => {
     commonMatchId: null,
     matches: [],
     assignments: [],
+    matchesPerPlayer: 1,
+    sharedMatchesPerPair: 0,
   };
 };
 
@@ -508,24 +520,53 @@ export const buildHostRoomSnapshot = (
     membershipType: "registered" | "guest";
     sessionRole: "owner" | "member";
   }[] = [],
-) => ({
-  sessionId: HOST_ROOM_SESSION_ID,
-  joinCode: HOST_ROOM_JOIN_CODE,
-  state: configureStartGameState.roomState,
-  commonMatchId: configureStartGameState.commonMatchId,
-  participants: [
-    {
-      id: HOST_ROOM_PARTICIPANT_ID,
-      displayName: HOST_ROOM_DISPLAY_NAME,
-      membershipType: "registered",
-      sessionRole: "owner",
-      currentDrinkTotal: 0,
+) => {
+  const participantCount = 1 + extraParticipants.length;
+  const matchesPerPlayer = configureStartGameState.matchesPerPlayer;
+  const sharedMatchesPerPair = configureStartGameState.sharedMatchesPerPair;
+  const effectivePerPlayer = Math.max(
+    matchesPerPlayer,
+    sharedMatchesPerPair * Math.max(participantCount - 1, 0),
+  );
+  const requiredPoolSize =
+    1 +
+    (sharedMatchesPerPair * (participantCount * (participantCount - 1))) / 2 +
+    participantCount *
+      (effectivePerPlayer -
+        sharedMatchesPerPair * Math.max(participantCount - 1, 0));
+  const relaxedFloor = 1 + effectivePerPlayer;
+  const poolSize = configureStartGameState.matches.length;
+
+  return {
+    sessionId: HOST_ROOM_SESSION_ID,
+    joinCode: HOST_ROOM_JOIN_CODE,
+    state: configureStartGameState.roomState,
+    commonMatchId: configureStartGameState.commonMatchId,
+    participants: [
+      {
+        id: HOST_ROOM_PARTICIPANT_ID,
+        displayName: HOST_ROOM_DISPLAY_NAME,
+        membershipType: "registered",
+        sessionRole: "owner",
+        currentDrinkTotal: 0,
+      },
+      ...extraParticipants.map((p) => ({ ...p, currentDrinkTotal: 0 })),
+    ],
+    matches: configureStartGameState.matches,
+    assignments: configureStartGameState.assignments,
+    assignmentPlan: {
+      participantCount,
+      poolSize,
+      matchesPerPlayer,
+      sharedMatchesPerPair,
+      effectivePerPlayer,
+      requiredPoolSize,
+      relaxedFloor,
+      feasible: poolSize >= requiredPoolSize,
+      startable: poolSize >= relaxedFloor,
     },
-    ...extraParticipants.map((p) => ({ ...p, currentDrinkTotal: 0 })),
-  ],
-  matches: configureStartGameState.matches,
-  assignments: configureStartGameState.assignments,
-});
+  };
+};
 
 export const mockHostRoomServices = async (page: Page) => {
   await page.route("**/auth/v1/user", async (route) => {
@@ -871,10 +912,13 @@ export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
 
 /**
  * Mocks the room-configuration Supabase RPCs (add_room_match, set_common_match,
- * set_room_assignments) plus the Java command-api's match discovery and
- * start-game endpoints, on top of `mockHostRoomServices`. All state mutates the
- * shared `configureStartGameState` so a full host journey is reflected across
- * repeated `get_room_snapshot` polls (018-configure-start-game).
+ * set_room_assignments, set_room_assignment_settings) plus the Java command-api's
+ * match discovery and start-game endpoints, on top of `mockHostRoomServices`. All
+ * state mutates the shared `configureStartGameState` so a full host journey is
+ * reflected across repeated `get_room_snapshot` polls. The start-game mock
+ * generates assignments itself, standing in for the server-side canonical
+ * generation this feature added (specs/020-canonical-assignment-generation) —
+ * the host journey no longer includes a manual randomize/assign step.
  */
 export const mockConfigureStartGameServices = async (page: Page) => {
   resetConfigureStartGameState();
@@ -926,6 +970,20 @@ export const mockConfigureStartGameServices = async (page: Page) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "" });
   });
 
+  await page.route(
+    "**/rest/v1/rpc/set_room_assignment_settings",
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        matches_per_player: number;
+        shared_matches_per_pair: number;
+      };
+      configureStartGameState.matchesPerPlayer = body.matches_per_player;
+      configureStartGameState.sharedMatchesPerPair =
+        body.shared_matches_per_pair;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+    },
+  );
+
   await page.route(`${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`, async (route) => {
     await route.fulfill({
       status: 200,
@@ -937,7 +995,10 @@ export const mockConfigureStartGameServices = async (page: Page) => {
   await page.route(
     `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/rooms/*/commands/start-game`,
     async (route) => {
-      // Mirrors StartGameCommandHandler's FR-006–FR-009 checks closely enough for e2e coverage.
+      // Mirrors start_game_session's own guards closely enough for e2e coverage
+      // (specs/020-canonical-assignment-generation) -- note assignments are no
+      // longer a precondition (FR-019): the mock generates them here, standing
+      // in for the server-side generation this feature moved into the RPC.
       if (configureStartGameState.roomState !== "joinable") {
         await route.fulfill({
           status: 422,
@@ -974,26 +1035,23 @@ export const mockConfigureStartGameServices = async (page: Page) => {
         });
         return;
       }
-      const assignedParticipantIds = new Set(
-        configureStartGameState.assignments
-          .filter((assignment) => assignment.matchId !== configureStartGameState.commonMatchId)
-          .map((assignment) => assignment.participantId),
-      );
-      if (!assignedParticipantIds.has(HOST_ROOM_PARTICIPANT_ID)) {
-        await route.fulfill({
-          status: 422,
-          contentType: "application/json",
-          body: JSON.stringify({
-            error: "UNASSIGNED_PARTICIPANTS",
-            message:
-              "Every participant must be assigned at least one match (excluding the common match).",
-            timestamp: new Date().toISOString(),
-          }),
-        });
-        return;
-      }
 
+      // Stand-in for server-side canonical generation: the host gets the
+      // Common Match plus its configured per-player count from the rest of
+      // the selected pool.
+      const commonMatchId = configureStartGameState.commonMatchId;
+      const additionalMatches = configureStartGameState.matches
+        .filter((match) => match.id !== commonMatchId)
+        .slice(0, configureStartGameState.matchesPerPlayer);
+      configureStartGameState.assignments = [
+        { participantId: HOST_ROOM_PARTICIPANT_ID, matchId: commonMatchId },
+        ...additionalMatches.map((match) => ({
+          participantId: HOST_ROOM_PARTICIPANT_ID,
+          matchId: match.id,
+        })),
+      ];
       configureStartGameState.roomState = "in_progress";
+
       const idempotencyKey = route.request().headers()["idempotency-key"] ?? "unknown";
       await route.fulfill({
         status: 200,

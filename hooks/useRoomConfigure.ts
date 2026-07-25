@@ -4,6 +4,7 @@ import {
   ROOM_ERROR,
   type AddRoomMatchRequest,
   type RoomAssignmentInput,
+  type RoomAssignmentSettingsRequest,
   type RoomSnapshot,
 } from "../types/room";
 import {
@@ -19,11 +20,20 @@ export interface UseRoomConfigureResult {
   removeMatch: (matchId: string) => Promise<void>;
   setCommonMatch: (matchId: string) => Promise<void>;
   setAssignments: (assignments: RoomAssignmentInput[]) => Promise<void>;
-  /** Randomly assigns every participant one match from the pool, excluding the Common Match (FR-008). */
-  randomizeAssignments: () => Promise<void>;
-  /** Returns true once the server accepts the start (clients then detect the
-   * `in_progress` transition via the regular lobby snapshot poll, per FR-012). */
-  startGame: () => Promise<boolean>;
+  /** Sets the room's per-player match count and shared-per-pair count (FR-028 to FR-031).
+   * Only meaningful while the room is `joinable`; only the host may call it. */
+  setAssignmentSettings: (
+    settings: RoomAssignmentSettingsRequest,
+  ) => Promise<void>;
+  /**
+   * Starts the game. `relaxConstraints` MUST only be passed as `true` after
+   * the host has been shown the room's assignment-plan shortfall (from the
+   * polled snapshot's `assignmentPlan`) and explicitly chosen to proceed —
+   * there is no separate preview call (FR-013 to FR-015, research.md R2).
+   * Returns true once the server accepts the start (clients then detect the
+   * `in_progress` transition via the regular lobby snapshot poll, per FR-024).
+   */
+  startGame: (relaxConstraints?: boolean) => Promise<boolean>;
 }
 
 const CLIENT_SAFE_ERROR_MESSAGE_REGEX = /fetch failed|network request failed|load failed/i;
@@ -39,6 +49,10 @@ const ROOM_ERROR_MESSAGES: Partial<Record<string, string>> = {
     "That match is no longer in the room. Refresh and try again.",
   [ROOM_ERROR.invalidAssignment]:
     "One of those assignments referenced a participant or match that's no longer in the room.",
+  [ROOM_ERROR.invalidAssignmentSettings]:
+    "Match counts must be zero or a positive number.",
+  [ROOM_ERROR.perPlayerCountBelowMinimum]:
+    "That per-player count is too low for the current shared-matches setting and roster size.",
 };
 
 const friendlyMessage = (err: unknown): string => {
@@ -57,17 +71,8 @@ const friendlyMessage = (err: unknown): string => {
   return "Something went wrong. Please try again.";
 };
 
-const shuffled = <T,>(items: T[]): T[] => {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j] as T, copy[i] as T];
-  }
-  return copy;
-};
-
 /**
- * Mutation actions for the host's room-configuration lobby (US1-US3). Operates on
+ * Mutation actions for the host's room-configuration lobby. Operates on
  * a `RoomSnapshot` supplied by the caller (typically `useRoomLobby`'s polled
  * snapshot) rather than fetching its own — every successful mutation calls
  * `onMutated` so the caller can immediately refresh that snapshot.
@@ -131,62 +136,54 @@ export const useRoomConfigure = (
     [run],
   );
 
-  const randomizeAssignments = useCallback(async () => {
-    if (!snapshot) {
-      return;
-    }
-    const assignablePool = snapshot.matches.filter(
-      (match) => match.id !== snapshot.commonMatchId,
-    );
-    if (assignablePool.length === 0) {
-      setError(
-        "Add at least one match besides the Common Match before randomizing assignments.",
-      );
-      return;
-    }
-    const shuffledPool = shuffled(assignablePool);
-    const assignments: RoomAssignmentInput[] = snapshot.participants.map(
-      (participant, index) => ({
-        participantId: participant.id,
-        matchId: (shuffledPool[index % shuffledPool.length] as (typeof shuffledPool)[number]).id,
+  const setAssignmentSettings = useCallback(
+    (settings: RoomAssignmentSettingsRequest) =>
+      run(async (sessionId) => {
+        await getRoomRpcClient().setRoomAssignmentSettings(
+          sessionId,
+          settings,
+        );
       }),
-    );
-    await setAssignments(assignments);
-  }, [snapshot, setAssignments]);
+    [run],
+  );
 
-  const startGame = useCallback(async (): Promise<boolean> => {
-    if (!snapshot) {
-      return false;
-    }
-    setIsBusy(true);
-    setError(null);
-    try {
-      const { data: sessionData, error: sessionError } =
-        await getSupabaseClient().auth.getSession();
-      if (sessionError || !sessionData.session) {
-        setError("You must be signed in to start the game.");
+  const startGame = useCallback(
+    async (relaxConstraints?: boolean): Promise<boolean> => {
+      if (!snapshot) {
         return false;
       }
+      setIsBusy(true);
+      setError(null);
+      try {
+        const { data: sessionData, error: sessionError } =
+          await getSupabaseClient().auth.getSession();
+        if (sessionError || !sessionData.session) {
+          setError("You must be signed in to start the game.");
+          return false;
+        }
 
-      startGameIdempotencyKeyRef.current ??= generateIdempotencyKey();
+        startGameIdempotencyKeyRef.current ??= generateIdempotencyKey();
 
-      await getStartGameApiClient().startGame(
-        snapshot.sessionId,
-        sessionData.session.access_token,
-        startGameIdempotencyKeyRef.current,
-      );
+        await getStartGameApiClient().startGame(
+          snapshot.sessionId,
+          sessionData.session.access_token,
+          startGameIdempotencyKeyRef.current,
+          relaxConstraints ?? false,
+        );
 
-      // Success clears the key: a future distinct "Start Game" click is a new
-      // logical attempt and must get a fresh key.
-      startGameIdempotencyKeyRef.current = null;
-      return true;
-    } catch (startError) {
-      setError(friendlyMessage(startError));
-      return false;
-    } finally {
-      setIsBusy(false);
-    }
-  }, [snapshot]);
+        // Success clears the key: a future distinct "Start Game" click is a new
+        // logical attempt and must get a fresh key.
+        startGameIdempotencyKeyRef.current = null;
+        return true;
+      } catch (startError) {
+        setError(friendlyMessage(startError));
+        return false;
+      } finally {
+        setIsBusy(false);
+      }
+    },
+    [snapshot],
+  );
 
   return {
     isBusy,
@@ -195,7 +192,7 @@ export const useRoomConfigure = (
     removeMatch,
     setCommonMatch,
     setAssignments,
-    randomizeAssignments,
+    setAssignmentSettings,
     startGame,
   };
 };

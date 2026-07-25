@@ -36,6 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-router",
     "expo-asset",
     "expo-audio",
+    "expo-web-browser",
     [
       "expo-splash-screen",
       {

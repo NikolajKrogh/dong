@@ -176,11 +176,17 @@ export interface StartGameApiClient {
    * logical attempt (see `generateIdempotencyKey`) and reused verbatim if the
    * caller retries that same attempt (e.g. after a timeout) — that is what makes
    * a double-submit safe server-side (FR-013/SC-005).
+   *
+   * `relaxConstraints` MUST be set only after the host has been shown the
+   * room's assignment-plan shortfall (from the polled snapshot) and explicitly
+   * chosen to proceed. The room is untouched until this call — there is no
+   * separate "preview" request (FR-014, research.md R2).
    */
   startGame(
     roomId: string,
     accessToken: string,
     idempotencyKey: string,
+    relaxConstraints?: boolean,
   ): Promise<StartGameCommandResponse>;
 }
 
@@ -201,7 +207,7 @@ export const createStartGameApiClient = (
   config: CommandApiConfig = getCommandApiConfig(),
 ): StartGameApiClient => {
   return {
-    async startGame(roomId, accessToken, idempotencyKey) {
+    async startGame(roomId, accessToken, idempotencyKey, relaxConstraints) {
       const normalizedBaseUrl = config.baseUrl.endsWith("/")
         ? config.baseUrl.slice(0, -1)
         : config.baseUrl;
@@ -220,9 +226,13 @@ export const createStartGameApiClient = (
             method: "POST",
             headers: {
               Accept: "application/json",
+              "Content-Type": "application/json",
               Authorization: `Bearer ${accessToken}`,
               "Idempotency-Key": idempotencyKey,
             },
+            body: JSON.stringify({
+              relaxConstraints: relaxConstraints ?? false,
+            }),
             signal: controller.signal,
           },
         );

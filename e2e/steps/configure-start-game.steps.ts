@@ -43,15 +43,28 @@ When(
   },
 );
 
-When("the host randomizes assignments", async ({ page }) => {
-  await page.getByTestId("lobby-randomize-assignments").click();
-});
-
 When("the host taps the Start Game button", async ({ page }) => {
   const startButton = page.getByTestId("lobby-start-game");
   await expect(startButton).toBeVisible({ timeout: 10_000 });
   await startButton.click();
 });
+
+When(
+  "the host raises the matches-per-player count to {int}",
+  async ({ page }, target: number) => {
+    const increment = page.getByTestId("lobby-matches-per-player-increment");
+    const value = page.getByTestId("lobby-matches-per-player-value");
+    await expect(increment).toBeVisible({ timeout: 10_000 });
+
+    const current = Number((await value.textContent()) ?? "0");
+    for (let step = current; step < target; step += 1) {
+      await increment.click();
+      // Each click round-trips through the mocked set_room_assignment_settings
+      // RPC and the next get_room_snapshot poll before the displayed value updates.
+      await expect(value).toHaveText(String(step + 1), { timeout: 10_000 });
+    }
+  },
+);
 
 Then("the host is redirected to the active gameplay dashboard", async ({ page }) => {
   await page.waitForURL(/\/gameProgress/, { timeout: 10_000 });
@@ -64,5 +77,14 @@ Then(
     await expect(error).toBeVisible({ timeout: 10_000 });
     await expect(error).toContainText(/match/i);
     await expect(page).toHaveURL(/\/lobby\//);
+  },
+);
+
+Then(
+  "the host sees a hard-floor shortfall warning and the Start Game button is disabled",
+  async ({ page }) => {
+    const warning = page.getByTestId("lobby-start-game-hard-floor-warning");
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("lobby-start-game")).toBeDisabled();
   },
 );
