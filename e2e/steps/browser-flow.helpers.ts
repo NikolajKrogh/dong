@@ -489,6 +489,7 @@ export interface ConfigureStartGameAssignment {
 let configureStartGameState: {
   roomState: "joinable" | "in_progress";
   commonMatchId: string | null;
+  assignmentMode: "automatic" | "host_assigned" | "player_picked";
   matches: ConfigureStartGameMatch[];
   assignments: ConfigureStartGameAssignment[];
   matchesPerPlayer: number;
@@ -496,6 +497,7 @@ let configureStartGameState: {
 } = {
   roomState: "joinable",
   commonMatchId: null,
+  assignmentMode: "automatic",
   matches: [],
   assignments: [],
   matchesPerPlayer: 1,
@@ -506,6 +508,7 @@ export const resetConfigureStartGameState = () => {
   configureStartGameState = {
     roomState: "joinable",
     commonMatchId: null,
+    assignmentMode: "automatic",
     matches: [],
     assignments: [],
     matchesPerPlayer: 1,
@@ -542,6 +545,7 @@ export const buildHostRoomSnapshot = (
     joinCode: HOST_ROOM_JOIN_CODE,
     state: configureStartGameState.roomState,
     commonMatchId: configureStartGameState.commonMatchId,
+    assignmentMode: configureStartGameState.assignmentMode,
     participants: [
       {
         id: HOST_ROOM_PARTICIPANT_ID,
@@ -980,6 +984,16 @@ export const mockConfigureStartGameServices = async (page: Page) => {
       configureStartGameState.matchesPerPlayer = body.matches_per_player;
       configureStartGameState.sharedMatchesPerPair =
         body.shared_matches_per_pair;
+      await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+    },
+  );
+
+  await page.route(
+    "**/rest/v1/rpc/set_room_assignment_mode",
+    async (route) => {
+      const body = route.request().postDataJSON() as { mode: string };
+      configureStartGameState.assignmentMode =
+        body.mode as typeof configureStartGameState.assignmentMode;
       await route.fulfill({ status: 200, contentType: "application/json", body: "" });
     },
   );

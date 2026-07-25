@@ -10,6 +10,7 @@ import type {
 import type { HostRoomCreateResponse } from "../types/hostRoom";
 import type {
   AddRoomMatchRequest,
+  AssignmentMode,
   HostLeaveResponse,
   MemberLeaveResponse,
   MyActiveRoom,
@@ -64,6 +65,10 @@ export interface RoomRpcClient {
   setRoomAssignmentSettings(
     sessionId: string,
     settings: RoomAssignmentSettingsRequest,
+  ): Promise<void>;
+  setRoomAssignmentMode(
+    sessionId: string,
+    mode: AssignmentMode,
   ): Promise<void>;
 }
 
@@ -412,6 +417,17 @@ export const createRoomRpcClient = (
         session_id: sessionId,
         matches_per_player: settings.matchesPerPlayer,
         shared_matches_per_pair: settings.sharedMatchesPerPair,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async setRoomAssignmentMode(sessionId, mode) {
+      const { error } = await client.rpc("set_room_assignment_mode", {
+        session_id: sessionId,
+        mode,
       });
 
       if (error) {

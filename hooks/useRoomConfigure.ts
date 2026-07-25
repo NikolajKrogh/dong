@@ -3,6 +3,7 @@ import { useCallback, useRef, useState } from "react";
 import {
   ROOM_ERROR,
   type AddRoomMatchRequest,
+  type AssignmentMode,
   type RoomAssignmentInput,
   type RoomAssignmentSettingsRequest,
   type RoomSnapshot,
@@ -25,6 +26,11 @@ export interface UseRoomConfigureResult {
   setAssignmentSettings: (
     settings: RoomAssignmentSettingsRequest,
   ) => Promise<void>;
+  /** Sets the room's assignment mode (FR-026, FR-029, FR-030). Only
+   * meaningful while the room is `joinable`; only the host may call it. The
+   * caller is responsible for the discard-draft confirmation (FR-030a) —
+   * this method performs the mutation unconditionally once invoked. */
+  setAssignmentMode: (mode: AssignmentMode) => Promise<void>;
   /**
    * Starts the game. `relaxConstraints` MUST only be passed as `true` after
    * the host has been shown the room's assignment-plan shortfall (from the
@@ -53,6 +59,8 @@ const ROOM_ERROR_MESSAGES: Partial<Record<string, string>> = {
     "Match counts must be zero or a positive number.",
   [ROOM_ERROR.perPlayerCountBelowMinimum]:
     "That per-player count is too low for the current shared-matches setting and roster size.",
+  [ROOM_ERROR.invalidAssignmentMode]:
+    "That isn't a valid assignment mode. Refresh and try again.",
 };
 
 const friendlyMessage = (err: unknown): string => {
@@ -147,6 +155,14 @@ export const useRoomConfigure = (
     [run],
   );
 
+  const setAssignmentMode = useCallback(
+    (mode: AssignmentMode) =>
+      run(async (sessionId) => {
+        await getRoomRpcClient().setRoomAssignmentMode(sessionId, mode);
+      }),
+    [run],
+  );
+
   const startGame = useCallback(
     async (relaxConstraints?: boolean): Promise<boolean> => {
       if (!snapshot) {
@@ -193,6 +209,7 @@ export const useRoomConfigure = (
     setCommonMatch,
     setAssignments,
     setAssignmentSettings,
+    setAssignmentMode,
     startGame,
   };
 };
