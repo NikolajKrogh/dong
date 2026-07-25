@@ -72,6 +72,7 @@ const baseSnapshot: RoomSnapshot = {
     },
   ],
   assignments: [],
+  picks: [],
   assignmentPlan: {
     participantCount: 2,
     poolSize: 2,

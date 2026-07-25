@@ -33,6 +33,20 @@ export interface RoomAssignmentSummary {
 }
 
 /**
+ * One participant's pre-start pick in player-picked mode (FR-038, FR-042).
+ *
+ * Distinct from `RoomAssignmentSummary` even though the shape matches: picks are
+ * drafts held in `public.assignment_picks` and written by the participant
+ * themselves, while assignments are the settled set the server authors at start.
+ * The lobby derives every participant's progress from this array rather than
+ * from a server-computed field (specs/022-player-picked-mode research.md R7).
+ */
+export interface RoomPickSummary {
+  participantId: string;
+  matchId: string;
+}
+
+/**
  * Server-computed feasibility read for the room's current roster, pool, and
  * assignment settings (FR-012, FR-033). Pure read — recomputed on every
  * snapshot poll, never mutated directly.
@@ -58,6 +72,10 @@ export interface RoomSnapshot {
   participants: RoomParticipantSummary[];
   matches: RoomMatchSummary[];
   assignments: RoomAssignmentSummary[];
+  /** Pre-start player-picked draft picks for every participant (FR-042). Empty
+   * outside player-picked mode, and never the source of a started game's
+   * assignments — see `assignments` for that. */
+  picks: RoomPickSummary[];
   assignmentPlan: AssignmentPlan;
 }
 
@@ -131,6 +149,12 @@ export const ROOM_ERROR = {
   insufficientMatchPool: "insufficient_match_pool",
   assignmentConstraintsUnsatisfiable: "assignment_constraints_unsatisfiable",
   invalidAssignmentMode: "invalid_assignment_mode",
+  /** A pick submission exceeded the room's per-player count (FR-040). */
+  pickLimitExceeded: "pick_limit_exceeded",
+  /** Picking attempted in a room that isn't in player-picked mode (FR-038). */
+  roomNotPlayerPicked: "room_not_player_picked",
+  /** The caller isn't an active participant of the room (FR-038a). */
+  notAParticipant: "not_a_participant",
 } as const;
 
 // NOTE: `start_game_session`'s RPC result (including `filledInParticipantIds`)

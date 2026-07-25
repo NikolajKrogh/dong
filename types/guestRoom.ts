@@ -1,3 +1,5 @@
+import type { AssignmentMode, AssignmentPlan } from "./room";
+
 export type GuestRoomSessionStatus =
   | "idle"
   | "joining"
@@ -43,14 +45,40 @@ export interface GuestRoomAssignmentSummary {
   matchId: string;
 }
 
+/** One participant's pre-start pick in player-picked mode (FR-038, FR-042). */
+export interface GuestRoomPickSummary {
+  participantId: string;
+  matchId: string;
+}
+
+/**
+ * A guest's view of the room.
+ *
+ * `assignmentMode` and `assignmentPlan` are **not new on the wire** — guests
+ * have received both for some time, because `private.get_guest_room_snapshot`
+ * and `private.get_room_snapshot` delegate to the same
+ * `private.build_guest_room_snapshot` builder, which gained `assignmentPlan` in
+ * migration 036 (#135) and `assignmentMode` in 037 (#184). This type simply
+ * never declared them. Both are declared now because the guest pick UI needs
+ * the mode (to decide whether to render at all) and the plan's
+ * `matchesPerPlayer` (the pick cap) — see
+ * specs/022-player-picked-mode/research.md R11.
+ *
+ * The types are imported from `./room` rather than redeclared: one server
+ * function produces both snapshots, so divergence here would be a bug, not a
+ * variation.
+ */
 export interface GuestRoomSnapshot {
   sessionId: string;
   joinCode: string;
   state: GuestRoomSessionState;
   commonMatchId: string | null;
+  assignmentMode: AssignmentMode;
   participants: GuestRoomParticipantSummary[];
   matches: GuestRoomMatchSummary[];
   assignments: GuestRoomAssignmentSummary[];
+  picks: GuestRoomPickSummary[];
+  assignmentPlan: AssignmentPlan;
 }
 
 export interface GuestRoomJoinRequest {

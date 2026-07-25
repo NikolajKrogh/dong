@@ -56,6 +56,7 @@ const createSnapshot = (
   joinCode: "ROOM42",
   state: "joinable",
   commonMatchId: "match-1",
+  assignmentMode: "automatic",
   participants: [
     {
       id: "owner-1",
@@ -74,6 +75,18 @@ const createSnapshot = (
   ],
   matches: [],
   assignments: [],
+  picks: [],
+  assignmentPlan: {
+    participantCount: 2,
+    poolSize: 1,
+    matchesPerPlayer: 1,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer: 1,
+    requiredPoolSize: 2,
+    relaxedFloor: 2,
+    feasible: false,
+    startable: false,
+  },
   ...overrides,
 });
 

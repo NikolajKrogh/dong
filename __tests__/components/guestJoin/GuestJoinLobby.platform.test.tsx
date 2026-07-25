@@ -25,6 +25,7 @@ describe("GuestJoinLobby", () => {
               joinCode: "ROOM42",
               state: "joinable",
               commonMatchId: "match-1",
+              assignmentMode: "automatic",
               participants: [
                 {
                   id: "owner-1",
@@ -43,6 +44,18 @@ describe("GuestJoinLobby", () => {
               ],
               matches: [],
               assignments: [],
+              picks: [],
+              assignmentPlan: {
+                participantCount: 2,
+                poolSize: 0,
+                matchesPerPlayer: 1,
+                sharedMatchesPerPair: 0,
+                effectivePerPlayer: 1,
+                requiredPoolSize: 2,
+                relaxedFloor: 2,
+                feasible: false,
+                startable: false,
+              },
             },
           },
         }),

@@ -28,6 +28,12 @@ export interface GuestRoomFixtureAssignment {
   matchId: string;
 }
 
+/** A participant's pre-start pick in player-picked mode (#185). */
+export interface GuestRoomFixturePick {
+  participantId: string;
+  matchId: string;
+}
+
 export interface GuestRoomHostFixture {
   sessionId: string;
   joinCode: string;
@@ -37,6 +43,12 @@ export interface GuestRoomHostFixture {
   participants: GuestRoomFixtureParticipant[];
   matches: GuestRoomFixtureMatch[];
   assignments: GuestRoomFixtureAssignment[];
+  /** Room assignment mode (#184/#185). Defaults to `automatic`. */
+  assignmentMode: "automatic" | "host_assigned" | "player_picked";
+  /** Player-picked draft picks (#185). Empty outside player-picked mode. */
+  picks: GuestRoomFixturePick[];
+  /** The per-player pick cap surfaced via `assignmentPlan.matchesPerPlayer`. */
+  matchesPerPlayer: number;
 }
 
 export const createGuestRoomHostFixture = (
@@ -92,5 +104,8 @@ export const createGuestRoomHostFixture = (
     participants: overrides.participants ?? defaultParticipants,
     matches: overrides.matches ?? defaultMatches,
     assignments: overrides.assignments ?? defaultAssignments,
+    assignmentMode: overrides.assignmentMode ?? "automatic",
+    picks: overrides.picks ?? [],
+    matchesPerPlayer: overrides.matchesPerPlayer ?? 1,
   };
 };

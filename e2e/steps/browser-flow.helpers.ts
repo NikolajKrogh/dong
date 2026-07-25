@@ -718,6 +718,31 @@ const buildMockGuestParticipant = ({
   currentDrinkTotal: 0,
 });
 
+/**
+ * Mirrors `private.compute_room_assignment_plan` closely enough for the mocked
+ * guest snapshot. Outside `automatic` mode the server leaves
+ * `effectivePerPlayer` at the stored count (FR-011, migration 037), so the
+ * mock does the same rather than applying the FR-009 minimum.
+ */
+const buildGuestFixtureAssignmentPlan = (fixture: GuestRoomHostFixture) => {
+  const participantCount = fixture.participants.length;
+  const poolSize = fixture.matches.length;
+  const effectivePerPlayer = fixture.matchesPerPlayer;
+  const relaxedFloor = 1 + effectivePerPlayer;
+
+  return {
+    participantCount,
+    poolSize,
+    matchesPerPlayer: fixture.matchesPerPlayer,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer,
+    requiredPoolSize: relaxedFloor,
+    relaxedFloor,
+    feasible: poolSize >= relaxedFloor,
+    startable: poolSize >= relaxedFloor,
+  };
+};
+
 export const buildGuestRoomSnapshotFromFixture = (
   fixture: GuestRoomHostFixture,
   guestParticipant?: GuestRoomParticipantSummary,
@@ -726,6 +751,7 @@ export const buildGuestRoomSnapshotFromFixture = (
   joinCode: fixture.joinCode,
   state: fixture.state,
   commonMatchId: fixture.commonMatchId,
+  assignmentMode: fixture.assignmentMode,
   participants: guestParticipant
     ? [
         ...fixture.participants.map(buildGuestFixtureParticipant),
@@ -746,6 +772,11 @@ export const buildGuestRoomSnapshotFromFixture = (
     participantId: assignment.participantId,
     matchId: assignment.matchId,
   })),
+  picks: fixture.picks.map((pick) => ({
+    participantId: pick.participantId,
+    matchId: pick.matchId,
+  })),
+  assignmentPlan: buildGuestFixtureAssignmentPlan(fixture),
 });
 
 export const buildGuestRoomJoinResponseFromFixture = ({
