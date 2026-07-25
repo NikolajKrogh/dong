@@ -32,6 +32,19 @@ export interface UseRoomConfigureResult {
    * this method performs the mutation unconditionally once invoked. */
   setAssignmentMode: (mode: AssignmentMode) => Promise<void>;
   /**
+   * Replaces the signed-in viewer's **own** player-picked selections (FR-038).
+   * Applies to the host as much as to a member — the host is an ordinary
+   * participant who picks their own matches. Replace-all: pass the complete
+   * next set, so releasing means submitting without that match (FR-040).
+   *
+   * The server derives the acting participant from the caller's JWT, so there
+   * is no participant id to pass and no way to write someone else's picks
+   * (FR-038a, FR-039). Callers must gate on `isBusy` — the refresh completes
+   * before it clears, which is what keeps rapid taps from clobbering each other
+   * under replace-all.
+   */
+  setMyPicks: (matchIds: string[]) => Promise<void>;
+  /**
    * Starts the game. `relaxConstraints` MUST only be passed as `true` after
    * the host has been shown the room's assignment-plan shortfall (from the
    * polled snapshot's `assignmentPlan`) and explicitly chosen to proceed —
@@ -61,6 +74,12 @@ const ROOM_ERROR_MESSAGES: Partial<Record<string, string>> = {
     "That per-player count is too low for the current shared-matches setting and roster size.",
   [ROOM_ERROR.invalidAssignmentMode]:
     "That isn't a valid assignment mode. Refresh and try again.",
+  [ROOM_ERROR.pickLimitExceeded]:
+    "You've already picked all your matches. Release one to pick another.",
+  [ROOM_ERROR.roomNotPlayerPicked]:
+    "This room isn't letting players pick their own matches. Refresh and try again.",
+  [ROOM_ERROR.notAParticipant]:
+    "You're no longer in this room, so your picks couldn't be saved.",
 };
 
 const friendlyMessage = (err: unknown): string => {
@@ -163,6 +182,14 @@ export const useRoomConfigure = (
     [run],
   );
 
+  const setMyPicks = useCallback(
+    (matchIds: string[]) =>
+      run(async (sessionId) => {
+        await getRoomRpcClient().setMyRoomPicks(sessionId, matchIds);
+      }),
+    [run],
+  );
+
   const startGame = useCallback(
     async (relaxConstraints?: boolean): Promise<boolean> => {
       if (!snapshot) {
@@ -210,6 +237,7 @@ export const useRoomConfigure = (
     setAssignments,
     setAssignmentSettings,
     setAssignmentMode,
+    setMyPicks,
     startGame,
   };
 };

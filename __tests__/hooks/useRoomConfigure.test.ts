@@ -291,6 +291,78 @@ describe("useRoomConfigure", () => {
     });
   });
 
+  it("submits the viewer's own picks and refreshes the snapshot (T028)", async () => {
+    const setMyRoomPicks = jest.fn(async () => undefined);
+    mockGetRoomRpcClient.mockReturnValue({ setMyRoomPicks } as never);
+    const onMutated = jest.fn();
+
+    const { result, renderer } = render(baseSnapshot, onMutated);
+    await TestRenderer.act(async () => {
+      await result()?.setMyPicks(["match-2", "match-3"]);
+      await flush();
+    });
+
+    // Replace-all: the full next set goes over the wire, and no participant id
+    // is passed -- the server derives it from the caller's JWT (FR-038a).
+    expect(setMyRoomPicks).toHaveBeenCalledWith("s1", ["match-2", "match-3"]);
+    expect(onMutated).toHaveBeenCalledTimes(1);
+    expect(result()?.error).toBeNull();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("releases every pick by submitting an empty set (T028)", async () => {
+    const setMyRoomPicks = jest.fn(async () => undefined);
+    mockGetRoomRpcClient.mockReturnValue({ setMyRoomPicks } as never);
+
+    const { result, renderer } = render(baseSnapshot);
+    await TestRenderer.act(async () => {
+      await result()?.setMyPicks([]);
+      await flush();
+    });
+
+    expect(setMyRoomPicks).toHaveBeenCalledWith("s1", []);
+    expect(result()?.error).toBeNull();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it.each([
+    [
+      "pick_limit_exceeded",
+      "You've already picked all your matches. Release one to pick another.",
+    ],
+    [
+      "room_not_player_picked",
+      "This room isn't letting players pick their own matches. Refresh and try again.",
+    ],
+    [
+      "not_a_participant",
+      "You're no longer in this room, so your picks couldn't be saved.",
+    ],
+  ])(
+    "maps the %s pick error to a friendly message (T028)",
+    async (code, expected) => {
+      const setMyRoomPicks = jest.fn(async () => {
+        throw new Error(code);
+      });
+      mockGetRoomRpcClient.mockReturnValue({ setMyRoomPicks } as never);
+
+      const { result, renderer } = render(baseSnapshot);
+      await TestRenderer.act(async () => {
+        await result()?.setMyPicks(["match-2"]);
+        await flush();
+      });
+
+      expect(result()?.error).toBe(expected);
+      TestRenderer.act(() => {
+        renderer.unmount();
+      });
+    },
+  );
+
   it("round-trips a host allocation through set_room_assignments when adding then removing a match for the same participant (T030)", async () => {
     const setRoomAssignments = jest.fn(async () => undefined);
     mockGetRoomRpcClient.mockReturnValue({ setRoomAssignments } as never);

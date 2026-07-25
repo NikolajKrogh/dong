@@ -22,6 +22,15 @@ export interface UseGuestRoomSessionResult {
   status: GuestRoomSessionStatus;
   session: GuestRoomSession | null;
   error: string | null;
+  /**
+   * True while a guest-initiated mutation (currently only `setMyPicks`) is in
+   * flight, staying true until the follow-up snapshot refresh completes. Callers
+   * must gate their controls on it: picks are submitted replace-all, so a second
+   * tap that derived its array from the pre-refresh snapshot would clobber the
+   * first. `useRoomConfigure`'s `run()` wrapper provides the same guarantee on
+   * the registered path.
+   */
+  isBusy: boolean;
   joinRoom: (
     joinCode: string,
     guestName: string,
@@ -29,6 +38,14 @@ export interface UseGuestRoomSessionResult {
   refreshRoom: () => Promise<GuestRoomSession | null>;
   leaveRoom: () => Promise<void>;
   replaceSession: (nextSession: GuestRoomSession | null) => Promise<void>;
+  /**
+   * Replaces this guest's **own** player-picked selections (FR-038, FR-038a).
+   * The room-scoped token both authenticates the guest and identifies which
+   * participant and room the picks belong to, so — as on the registered path —
+   * there is no participant id to pass and no way to write anyone else's picks.
+   * Replace-all: pass the complete next set (FR-040).
+   */
+  setMyPicks: (matchIds: string[]) => Promise<void>;
 }
 
 export const GUEST_ROOM_POLL_INTERVAL_MS = 1000;
@@ -48,6 +65,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
   const [status, setStatus] = useState<GuestRoomSessionStatus>("idle");
   const [session, setSession] = useState<GuestRoomSession | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
   const [pendingGuestToken, setPendingGuestToken] = useState<string | null>(
     null,
   );
@@ -279,6 +297,45 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
     [pendingGuestToken, replaceSession, session],
   );
 
+  const setMyPicks = useCallback(
+    async (matchIds: string[]) => {
+      const guestToken = sessionRef.current?.grant.guestToken ?? null;
+      if (!guestToken) {
+        return;
+      }
+
+      setIsBusy(true);
+      setError(null);
+      try {
+        await getGuestRoomRpcClient().setMyRoomPicksAsGuest(
+          guestToken,
+          matchIds,
+        );
+        // Refresh before clearing isBusy: the caller's controls stay disabled
+        // until the snapshot reflects the write, so the next replace-all
+        // submission is built from fresh picks rather than stale ones.
+        await refreshRoom();
+      } catch (pickError) {
+        if (isExpiredGuestRoomError(pickError)) {
+          await clearGuestRoomSessionGrant();
+          setSession(null);
+          setStatus("expired");
+          setError(getGuestRoomErrorMessage(pickError));
+          return;
+        }
+        setError(
+          getGuestRoomErrorMessage(
+            pickError,
+            "Unable to save your picks right now.",
+          ),
+        );
+      } finally {
+        setIsBusy(false);
+      }
+    },
+    [refreshRoom],
+  );
+
   useEffect(() => {
     return () => {
       stopPolling();
@@ -289,9 +346,11 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
     status,
     session,
     error,
+    isBusy,
     joinRoom,
     refreshRoom,
     leaveRoom,
     replaceSession,
+    setMyPicks,
   };
 };

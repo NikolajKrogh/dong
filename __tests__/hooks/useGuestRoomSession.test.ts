@@ -330,4 +330,146 @@ describe("useGuestRoomSession", () => {
       renderer.unmount();
     });
   });
+  it("submits a guest's own picks by room-scoped token and refreshes (T029)", async () => {
+    const persistedGrant = createGrant();
+    const getGuestRoomSnapshot = jest.fn(async () => createSnapshot());
+    const setMyRoomPicksAsGuest = jest.fn(async () => undefined);
+
+    mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
+    mockGetGuestRoomRpcClient.mockReturnValue({
+      joinRoomAsGuest: jest.fn(),
+      getGuestRoomSnapshot,
+      setMyRoomPicksAsGuest,
+    } as never);
+
+    let observedHook: UseGuestRoomSessionResult | null = null;
+    const Probe = () => {
+      observedHook = useGuestRoomSession();
+      return null;
+    };
+    const renderer = TestRenderer.create(React.createElement(Probe));
+
+    await TestRenderer.act(async () => {
+      await flushEffects();
+    });
+
+    const callsBefore = getGuestRoomSnapshot.mock.calls.length;
+
+    await TestRenderer.act(async () => {
+      await observedHook?.setMyPicks(["match-1", "match-2"]);
+      await flushEffects();
+    });
+
+    // Identity is the token alone -- no participant id, no session id (FR-038a).
+    expect(setMyRoomPicksAsGuest).toHaveBeenCalledWith("guest-token-1", [
+      "match-1",
+      "match-2",
+    ]);
+    // The write is followed by a refresh, so the next replace-all submission is
+    // built from fresh picks rather than stale ones.
+    expect(getGuestRoomSnapshot.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(observedHook?.isBusy).toBe(false);
+    expect(observedHook?.error).toBeNull();
+
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("keeps isBusy true until the post-write refresh settles (T029)", async () => {
+    const persistedGrant = createGrant();
+    let releaseRefresh: (() => void) | null = null;
+    let refreshCount = 0;
+    const getGuestRoomSnapshot = jest.fn(async () => {
+      refreshCount += 1;
+      // Block only the refresh that follows the write, so isBusy can be observed
+      // mid-flight. Without this gate the replace-all contract would let a second
+      // tap read pre-refresh picks and clobber the first.
+      if (refreshCount > 1) {
+        await new Promise<void>((resolve) => {
+          releaseRefresh = resolve;
+        });
+      }
+      return createSnapshot();
+    });
+    const setMyRoomPicksAsGuest = jest.fn(async () => undefined);
+
+    mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
+    mockGetGuestRoomRpcClient.mockReturnValue({
+      joinRoomAsGuest: jest.fn(),
+      getGuestRoomSnapshot,
+      setMyRoomPicksAsGuest,
+    } as never);
+
+    let observedHook: UseGuestRoomSessionResult | null = null;
+    const Probe = () => {
+      observedHook = useGuestRoomSession();
+      return null;
+    };
+    const renderer = TestRenderer.create(React.createElement(Probe));
+
+    await TestRenderer.act(async () => {
+      await flushEffects();
+    });
+
+    let pending: Promise<void> | undefined;
+    await TestRenderer.act(async () => {
+      pending = observedHook?.setMyPicks(["match-1"]);
+      await flushEffects();
+    });
+
+    expect(observedHook?.isBusy).toBe(true);
+
+    await TestRenderer.act(async () => {
+      releaseRefresh?.();
+      await pending;
+      await flushEffects();
+    });
+
+    expect(observedHook?.isBusy).toBe(false);
+
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("surfaces a friendly error when a guest's picks are refused (T029)", async () => {
+    const persistedGrant = createGrant();
+    const getGuestRoomSnapshot = jest.fn(async () => createSnapshot());
+    const setMyRoomPicksAsGuest = jest.fn(async () => {
+      throw new Error("pick_limit_exceeded");
+    });
+
+    mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
+    mockGetGuestRoomRpcClient.mockReturnValue({
+      joinRoomAsGuest: jest.fn(),
+      getGuestRoomSnapshot,
+      setMyRoomPicksAsGuest,
+    } as never);
+
+    let observedHook: UseGuestRoomSessionResult | null = null;
+    const Probe = () => {
+      observedHook = useGuestRoomSession();
+      return null;
+    };
+    const renderer = TestRenderer.create(React.createElement(Probe));
+
+    await TestRenderer.act(async () => {
+      await flushEffects();
+    });
+
+    await TestRenderer.act(async () => {
+      await observedHook?.setMyPicks(["a", "b", "c"]);
+      await flushEffects();
+    });
+
+    expect(observedHook?.error).not.toBeNull();
+    expect(observedHook?.isBusy).toBe(false);
+    // A refused pick must not tear down the session -- the guest is still joined.
+    expect(observedHook?.status).toBe("joined");
+
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
 });

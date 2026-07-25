@@ -41,6 +41,13 @@ export interface GuestRoomRpcClient {
   ): Promise<GuestRoomJoinResponse>;
   getGuestRoomSnapshot(guestToken: string): Promise<GuestRoomSnapshot>;
   leaveRoomAsGuest(guestToken: string): Promise<void>;
+  /**
+   * The guest counterpart of `RoomRpcClient.setMyRoomPicks` (FR-038a). A
+   * session-scoped guest has no `auth.uid()`, so the room-scoped token both
+   * authenticates them and identifies which participant — and which room — the
+   * picks belong to. Same replace-all semantics.
+   */
+  setMyRoomPicksAsGuest(guestToken: string, matchIds: string[]): Promise<void>;
 }
 
 export interface RoomRpcClient {
@@ -70,6 +77,14 @@ export interface RoomRpcClient {
     sessionId: string,
     mode: AssignmentMode,
   ): Promise<void>;
+  /**
+   * Replaces the *calling* participant's own player-picked selections (FR-038).
+   * Replace-all: the submitted array becomes the participant's complete set, so
+   * releasing a pick means resubmitting without it. The server derives which
+   * participant this is from the caller's own JWT — there is deliberately no
+   * participant id to pass (FR-038a, FR-039).
+   */
+  setMyRoomPicks(sessionId: string, matchIds: string[]): Promise<void>;
 }
 
 /** Shared poll interval for every lobby view (host, member, guest). */
@@ -225,6 +240,17 @@ export const createGuestRoomRpcClient = (
     async leaveRoomAsGuest(guestToken) {
       const { error } = await client.rpc("leave_room_as_guest", {
         guest_token: guestToken,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async setMyRoomPicksAsGuest(guestToken, matchIds) {
+      const { error } = await client.rpc("set_my_room_picks_as_guest", {
+        guest_token: guestToken,
+        match_ids: matchIds,
       });
 
       if (error) {
@@ -428,6 +454,17 @@ export const createRoomRpcClient = (
       const { error } = await client.rpc("set_room_assignment_mode", {
         session_id: sessionId,
         mode,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async setMyRoomPicks(sessionId, matchIds) {
+      const { error } = await client.rpc("set_my_room_picks", {
+        session_id: sessionId,
+        match_ids: matchIds,
       });
 
       if (error) {
