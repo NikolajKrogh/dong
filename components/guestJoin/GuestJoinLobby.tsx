@@ -60,7 +60,13 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
     return counts;
   }, [snapshot.picks]);
 
-  const showProgress = snapshot.assignmentMode === "player_picked";
+  // Gated on room state as well as mode: picks persist as joinable-era residue
+  // after settlement, so a started room would otherwise keep showing progress
+  // against picks that no longer decide anything. The registered lobby redirects
+  // away at that point; this card stays on screen, so it has to check.
+  const showProgress =
+    snapshot.assignmentMode === "player_picked" &&
+    snapshot.state === "joinable";
   const cap = snapshot.assignmentPlan.matchesPerPlayer;
 
   return (

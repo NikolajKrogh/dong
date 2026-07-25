@@ -121,9 +121,14 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
       >
         <YStack gap="$2">
           <Text color="$colorMuted" fontSize={13}>
-            {atCap
-              ? "That's all your matches. Tap one to release it and pick another."
-              : `Pick ${cap - localPicks.length} more from the host's matches. You'll get the Common Match too.`}
+            {cap === 0
+              ? // A per-player count of zero is valid (specs/020 edge cases):
+                // everyone holds the Common Match alone, so there is nothing to
+                // pick and the release wording would make no sense.
+                "This room gives everyone the Common Match only, so there's nothing to pick."
+              : atCap
+                ? "That's all your matches. Tap one to release it and pick another."
+                : `Pick ${cap - localPicks.length} more from the host's matches. You'll get the Common Match too.`}
           </Text>
 
           <SelectableMatchList

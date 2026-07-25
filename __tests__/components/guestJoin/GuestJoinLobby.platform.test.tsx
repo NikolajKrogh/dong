@@ -210,4 +210,32 @@ describe("GuestJoinLobby", () => {
 
     tree.unmount();
   });
+  it("stops showing pick progress once the room has started", () => {
+    const tree = actCreate(
+      React.createElement(
+        TamaguiTestProvider,
+        null,
+        React.createElement(GuestJoinLobby, {
+          session: buildSession({
+            assignmentMode: "player_picked",
+            state: "in_play",
+            picks: [{ participantId: "guest-1", matchId: "match-2" }],
+          }),
+          onSetPicks: jest.fn(),
+        }),
+      ),
+    );
+
+    const { Text } = require("react-native");
+    const renderedText = tree.root
+      .findAllByType(Text)
+      .flatMap((node: any) => node.props.children)
+      .join("");
+
+    // Picks persist as joinable-era residue after settlement, so progress must
+    // not keep implying they still decide anything.
+    expect(renderedText).not.toContain("picked");
+
+    tree.unmount();
+  });
 });

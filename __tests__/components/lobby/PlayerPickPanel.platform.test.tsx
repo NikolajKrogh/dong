@@ -202,4 +202,21 @@ describe("PlayerPickPanel", () => {
 
     expect(onSetPicks).toHaveBeenCalledWith([]);
   });
+  // A per-player count of zero is valid (specs/020 edge cases): everyone holds
+  // the Common Match alone, so nothing is pickable.
+  it("offers nothing to pick when the per-player count is zero", () => {
+    const onSetPicks = jest.fn();
+    const renderer = render({ myPicks: [], cap: 0, onSetPicks });
+
+    expect(list(renderer).props.disabledMatchIds).toEqual([
+      "m1",
+      "m2",
+      "m3",
+    ]);
+
+    TestRenderer.act(() => {
+      list(renderer).props.onToggleMatch("m1");
+    });
+    expect(onSetPicks).not.toHaveBeenCalled();
+  });
 });
