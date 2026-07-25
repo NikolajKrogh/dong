@@ -588,6 +588,15 @@ export const buildHostRoomSnapshot = (
 };
 
 export const mockHostRoomServices = async (page: Page) => {
+  // Reset the roster injection. `extraSnapshotParticipants` is module-level and
+  // was previously only ever assigned, so a scenario that added members leaked
+  // them into every later scenario in the same worker -- silently changing
+  // participantCount, and with it the assignmentPlan's requiredPoolSize. That
+  // made an unrelated shortfall scenario fail depending on execution order.
+  // Every feature that injects members does so *after* this step, so clearing
+  // here is safe.
+  extraSnapshotParticipants = [];
+
   await page.route("**/auth/v1/user", async (route) => {
     await route.fulfill({
       status: 200,
