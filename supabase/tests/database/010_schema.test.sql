@@ -135,7 +135,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'game_sessions'
         ),
-        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at,last_activity_at,matches_per_player,shared_matches_per_pair',
+        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at,last_activity_at,matches_per_player,shared_matches_per_pair,assignment_mode',
         'game_sessions has expected columns'
     );
 SELECT is(
