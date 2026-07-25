@@ -36,6 +36,17 @@ const rosterWith = (memberIds: string[]): RoomSnapshot => ({
   ],
   matches: [],
   assignments: [],
+  assignmentPlan: {
+    participantCount: memberIds.length + 1,
+    poolSize: 0,
+    matchesPerPlayer: 1,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer: 1,
+    requiredPoolSize: memberIds.length + 2,
+    relaxedFloor: 2,
+    feasible: false,
+    startable: false,
+  },
 });
 
 const render = () => {

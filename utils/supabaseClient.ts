@@ -15,6 +15,7 @@ import type {
   MyActiveRoom,
   RegisteredJoinResponse,
   RoomAssignmentInput,
+  RoomAssignmentSettingsRequest,
   RoomSnapshot,
 } from "../types/room";
 import type {
@@ -59,6 +60,10 @@ export interface RoomRpcClient {
   setRoomAssignments(
     sessionId: string,
     assignments: RoomAssignmentInput[],
+  ): Promise<void>;
+  setRoomAssignmentSettings(
+    sessionId: string,
+    settings: RoomAssignmentSettingsRequest,
   ): Promise<void>;
 }
 
@@ -395,6 +400,18 @@ export const createRoomRpcClient = (
           participantId: assignment.participantId,
           matchId: assignment.matchId,
         })),
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async setRoomAssignmentSettings(sessionId, settings) {
+      const { error } = await client.rpc("set_room_assignment_settings", {
+        session_id: sessionId,
+        matches_per_player: settings.matchesPerPlayer,
+        shared_matches_per_pair: settings.sharedMatchesPerPair,
       });
 
       if (error) {

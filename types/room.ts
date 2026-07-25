@@ -28,6 +28,23 @@ export interface RoomAssignmentSummary {
   matchId: string;
 }
 
+/**
+ * Server-computed feasibility read for the room's current roster, pool, and
+ * assignment settings (FR-012, FR-033). Pure read — recomputed on every
+ * snapshot poll, never mutated directly.
+ */
+export interface AssignmentPlan {
+  participantCount: number;
+  poolSize: number;
+  matchesPerPlayer: number;
+  sharedMatchesPerPair: number;
+  effectivePerPlayer: number;
+  requiredPoolSize: number;
+  relaxedFloor: number;
+  feasible: boolean;
+  startable: boolean;
+}
+
 export interface RoomSnapshot {
   sessionId: string;
   joinCode: string;
@@ -36,6 +53,7 @@ export interface RoomSnapshot {
   participants: RoomParticipantSummary[];
   matches: RoomMatchSummary[];
   assignments: RoomAssignmentSummary[];
+  assignmentPlan: AssignmentPlan;
 }
 
 export interface RegisteredJoinResponse {
@@ -85,6 +103,12 @@ export interface RoomAssignmentInput {
   matchId: string;
 }
 
+/** Request shape for `set_room_assignment_settings` (US4, FR-028 to FR-031). */
+export interface RoomAssignmentSettingsRequest {
+  matchesPerPlayer: number;
+  sharedMatchesPerPair: number;
+}
+
 /** Error codes raised by the room RPCs (PostgrestError.message). */
 export const ROOM_ERROR = {
   notAuthenticated: "not_authenticated",
@@ -97,4 +121,8 @@ export const ROOM_ERROR = {
   successorNotEligible: "successor_not_eligible",
   matchNotFound: "match_not_found",
   invalidAssignment: "invalid_assignment",
+  invalidAssignmentSettings: "invalid_assignment_settings",
+  perPlayerCountBelowMinimum: "per_player_count_below_minimum",
+  insufficientMatchPool: "insufficient_match_pool",
+  assignmentConstraintsUnsatisfiable: "assignment_constraints_unsatisfiable",
 } as const;

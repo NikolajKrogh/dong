@@ -27,7 +27,8 @@ public enum ErrorCode {
     EMPTY_MATCHES(HttpStatus.UNPROCESSABLE_ENTITY, "At least one match must be selected for the room."),
     MISSING_COMMON_MATCH(HttpStatus.UNPROCESSABLE_ENTITY, "No common match is currently designated for the room."),
     INVALID_COMMON_MATCH(HttpStatus.UNPROCESSABLE_ENTITY, "The common match designated is not in the selected matches pool."),
-    UNASSIGNED_PARTICIPANTS(HttpStatus.UNPROCESSABLE_ENTITY, "Every participant must be assigned at least one match (excluding the common match)."),
+    INSUFFICIENT_MATCH_POOL(HttpStatus.UNPROCESSABLE_ENTITY, "The selected matches pool is too small to assign every participant their configured number of matches, even with constraints relaxed."),
+    ASSIGNMENT_CONSTRAINTS_UNSATISFIABLE(HttpStatus.UNPROCESSABLE_ENTITY, "The selected matches pool cannot satisfy the room's configured assignment rules. Add more matches, or retry with constraints relaxed."),
     IDEMPOTENCY_KEY_REUSE(HttpStatus.CONFLICT, "This Idempotency-Key was already used for a different room or command.");
 
     private final HttpStatus httpStatus;

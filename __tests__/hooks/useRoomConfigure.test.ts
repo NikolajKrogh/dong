@@ -71,6 +71,17 @@ const baseSnapshot: RoomSnapshot = {
     },
   ],
   assignments: [],
+  assignmentPlan: {
+    participantCount: 2,
+    poolSize: 2,
+    matchesPerPlayer: 1,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer: 1,
+    requiredPoolSize: 3,
+    relaxedFloor: 2,
+    feasible: false,
+    startable: true,
+  },
 };
 
 const render = (snapshot: RoomSnapshot | null, onMutated?: () => void) => {
@@ -193,46 +204,47 @@ describe("useRoomConfigure", () => {
     });
   });
 
-  it("randomizes assignments across the pool, excluding the Common Match", async () => {
-    const setRoomAssignments = jest.fn(
-      async (_sessionId: string, _assignments: { participantId: string; matchId: string }[]) =>
-        undefined,
-    );
-    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignments } as never);
+  it("sets the assignment settings", async () => {
+    const setRoomAssignmentSettings = jest.fn(async () => undefined);
+    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignmentSettings } as never);
 
     const { result, renderer } = render(baseSnapshot);
     await TestRenderer.act(async () => {
-      await result()?.randomizeAssignments();
+      await result()?.setAssignmentSettings({
+        matchesPerPlayer: 2,
+        sharedMatchesPerPair: 1,
+      });
       await flush();
     });
 
-    expect(setRoomAssignments).toHaveBeenCalledTimes(1);
-    const [, assignments] = setRoomAssignments.mock.calls[0] as [string, { participantId: string; matchId: string }[]];
-    expect(assignments).toHaveLength(2);
-    assignments.forEach((assignment) => {
-      expect(assignment.matchId).toBe("match-2"); // the only non-common match available
+    expect(setRoomAssignmentSettings).toHaveBeenCalledWith("s1", {
+      matchesPerPlayer: 2,
+      sharedMatchesPerPair: 1,
     });
+    expect(result()?.error).toBeNull();
     TestRenderer.act(() => {
       renderer.unmount();
     });
   });
 
-  it("does not call the RPC when there is no assignable match besides the common one", async () => {
-    const setRoomAssignments = jest.fn(async () => undefined);
-    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignments } as never);
-    const singleMatchSnapshot: RoomSnapshot = {
-      ...baseSnapshot,
-      matches: [baseSnapshot.matches[0] as RoomSnapshot["matches"][number]],
-    };
+  it("maps per_player_count_below_minimum to a friendly, actionable message", async () => {
+    const setRoomAssignmentSettings = jest.fn(async () => {
+      throw new Error("per_player_count_below_minimum");
+    });
+    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignmentSettings } as never);
 
-    const { result, renderer } = render(singleMatchSnapshot);
+    const { result, renderer } = render(baseSnapshot);
     await TestRenderer.act(async () => {
-      await result()?.randomizeAssignments();
+      await result()?.setAssignmentSettings({
+        matchesPerPlayer: 0,
+        sharedMatchesPerPair: 1,
+      });
       await flush();
     });
 
-    expect(setRoomAssignments).not.toHaveBeenCalled();
-    expect(result()?.error).toContain("Common Match");
+    expect(result()?.error).toBe(
+      "That per-player count is too low for the current shared-matches setting and roster size.",
+    );
     TestRenderer.act(() => {
       renderer.unmount();
     });
@@ -265,7 +277,39 @@ describe("useRoomConfigure", () => {
 
     expect(success).toBe(true);
     expect(mockGenerateIdempotencyKey).toHaveBeenCalledTimes(1);
-    expect(startGame).toHaveBeenCalledWith("s1", "jwt-123", "fixed-idempotency-key");
+    expect(startGame).toHaveBeenCalledWith("s1", "jwt-123", "fixed-idempotency-key", false);
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("passes relaxConstraints=true through to the command API when the host overrides a shortfall", async () => {
+    mockGetSupabaseClient.mockReturnValue({
+      auth: {
+        getSession: jest.fn(async () => ({
+          data: { session: { access_token: "jwt-123" } },
+          error: null,
+        })),
+      },
+    } as never);
+    const startGame = jest.fn(async () => ({
+      commandType: "start-game",
+      roomId: "s1",
+      idempotencyKey: "fixed-idempotency-key",
+      status: "ACCEPTED",
+      timestamp: "2026-01-01T00:00:00.000Z",
+    }));
+    mockGetStartGameApiClient.mockReturnValue({ startGame } as never);
+
+    const { result, renderer } = render(baseSnapshot);
+    let success: boolean | undefined;
+    await TestRenderer.act(async () => {
+      success = await result()?.startGame(true);
+      await flush();
+    });
+
+    expect(success).toBe(true);
+    expect(startGame).toHaveBeenCalledWith("s1", "jwt-123", "fixed-idempotency-key", true);
     TestRenderer.act(() => {
       renderer.unmount();
     });
@@ -307,8 +351,8 @@ describe("useRoomConfigure", () => {
     });
 
     expect(mockGenerateIdempotencyKey).toHaveBeenCalledTimes(1);
-    expect(startGame).toHaveBeenNthCalledWith(1, "s1", "jwt-123", "fixed-idempotency-key");
-    expect(startGame).toHaveBeenNthCalledWith(2, "s1", "jwt-123", "fixed-idempotency-key");
+    expect(startGame).toHaveBeenNthCalledWith(1, "s1", "jwt-123", "fixed-idempotency-key", false);
+    expect(startGame).toHaveBeenNthCalledWith(2, "s1", "jwt-123", "fixed-idempotency-key", false);
     TestRenderer.act(() => {
       renderer.unmount();
     });

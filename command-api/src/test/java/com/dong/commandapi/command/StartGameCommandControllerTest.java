@@ -30,10 +30,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 /**
- * US3 end-to-end: the {@code start-game} command through the real controller +
+ * End-to-end: the {@code start-game} command through the real controller +
  * dispatcher + {@code PersistentIdempotencyService}, with {@link SupabaseRestClient}
- * mocked to fake the {@code command_idempotency} store and the room RPCs — covers
- * the double-submit replay and cross-room key-reuse conflict (FR-013/SC-005).
+ * mocked to fake the {@code command_idempotency} store and {@code start_game_session}
+ * — covers the double-submit replay and cross-room key-reuse conflict (FR-025/SC-010,
+ * specs/020-canonical-assignment-generation).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "supabase.jwt-secret=" + StartGameCommandControllerTest.SECRET,
@@ -71,15 +72,6 @@ class StartGameCommandControllerTest {
                 String.class);
     }
 
-    private Map<String, Object> validSnapshot() {
-        return Map.of(
-                "state", "joinable",
-                "commonMatchId", "match-1",
-                "participants", java.util.List.of(Map.of("id", "p-1")),
-                "matches", java.util.List.of(Map.of("id", "match-1"), Map.of("id", "match-2")),
-                "assignments", java.util.List.of(Map.of("participantId", "p-1", "matchId", "match-2")));
-    }
-
     /** In-memory fake of the command_idempotency table's reserve/complete semantics. */
     private void stubInMemoryIdempotencyStore() {
         Map<String, Map<String, Object>> store = new HashMap<>();
@@ -111,8 +103,6 @@ class StartGameCommandControllerTest {
                             "responseDetail", existing.get("responseDetail"));
                 });
 
-        when(supabaseRestClient.rpc(eq("get_room_snapshot"), any(), anyString(), any()))
-                .thenReturn(validSnapshot());
         when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenReturn(Map.of("status", "started", "sessionId", "room-1"));
 

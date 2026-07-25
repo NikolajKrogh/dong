@@ -141,7 +141,7 @@ For focused validation of this slice, use:
 npm run db:reset
 npx supabase test db supabase/tests/database/032_host_profile_and_settings.test.sql
 npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/preferences/ProfileSection.platform.test.tsx __tests__/components/preferences/AccountSection.platform.test.tsx __tests__/components/preferences/AppearanceSettings.platform.test.tsx __tests__/components/preferences/SoundNotificationSettings.platform.test.tsx __tests__/components/preferences/LeagueSettings.platform.test.tsx __tests__/app/userPreferences.platform.test.tsx
-npm run bddgen
+npm run bdd:gen
 ```
 
 2. Start the app in development mode:

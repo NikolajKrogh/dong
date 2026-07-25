@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,45 +19,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * The five cross-aggregate validation rules this handler used to run
+ * optimistically (FR-006–FR-009 under the old numbering) moved into
+ * {@code start_game_session} itself (research.md R1,
+ * specs/020-canonical-assignment-generation) — generation needs to see the
+ * same locked roster the RPC locks, so a second, earlier read-then-check would
+ * race a concurrent join/leave. This handler is now dispatch, auth,
+ * idempotency-key + relaxConstraints forwarding, and error mapping only; its
+ * tests reflect that — no more snapshot stubbing, no more validate() coverage.
+ */
 class StartGameCommandHandlerTest {
 
     private final SupabaseRestClient supabaseRestClient = mock(SupabaseRestClient.class);
     private final StartGameCommandHandler handler = new StartGameCommandHandler(supabaseRestClient);
     private final AuthenticatedHost host = new AuthenticatedHost("host-1", "authenticated", "raw-jwt");
 
-    private CommandContext ctx() {
-        return new CommandContext("room-1", StartGameCommandHandler.TYPE, UUID.randomUUID().toString(), host, null);
-    }
-
-    private static Map<String, Object> match(String id) {
-        return Map.of("id", id, "homeTeamName", "A", "awayTeamName", "B");
-    }
-
-    private static Map<String, Object> participant(String id) {
-        return Map.of("id", id, "displayName", "Player");
-    }
-
-    private static Map<String, Object> assignment(String participantId, String matchId) {
-        return Map.of("participantId", participantId, "matchId", matchId);
-    }
-
-    private Map<String, Object> validSnapshot() {
-        return Map.of(
-                "state", "joinable",
-                "commonMatchId", "match-1",
-                "participants", List.of(participant("p-1")),
-                "matches", List.of(match("match-1"), match("match-2")),
-                "assignments", List.of(assignment("p-1", "match-2")));
-    }
-
-    private void stubSnapshot(Map<String, Object> snapshot) {
-        when(supabaseRestClient.rpc(eq("get_room_snapshot"), any(), anyString(), any())).thenReturn(snapshot);
+    private CommandContext ctx(Map<String, Object> payload) {
+        return new CommandContext("room-1", StartGameCommandHandler.TYPE, UUID.randomUUID().toString(), host, payload);
     }
 
     @Test
@@ -67,131 +51,52 @@ class StartGameCommandHandlerTest {
     }
 
     @Test
-    void validConfigurationStartsTheGame() {
-        stubSnapshot(validSnapshot());
+    void validStartCallsStartGameSessionWithoutRelaxByDefault() {
         when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
-                .thenReturn(Map.of("status", "started", "sessionId", "room-1"));
+                .thenReturn(Map.of("status", "started", "sessionId", "room-1", "relaxedConstraints", false));
 
-        CommandResult result = handler.handle(ctx());
+        CommandResult result = handler.handle(ctx(null));
 
         assertThat(result.status()).isEqualTo(CommandResult.Status.ACCEPTED);
-        verify(supabaseRestClient).rpc(eq("start_game_session"), any(), anyString(), any());
+        assertThat(result.detail()).containsEntry("status", "started");
     }
 
     @Test
-    void rejectsWhenRoomIsNotJoinable() {
-        stubSnapshot(Map.of(
-                "state", "in_progress",
-                "participants", List.of(participant("p-1")),
-                "matches", List.of(match("match-1")),
-                "commonMatchId", "match-1",
-                "assignments", List.of(assignment("p-1", "match-1"))));
+    void passesRelaxConstraintsTrueThroughToTheRpcWhenSetInThePayload() {
+        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+                .thenReturn(Map.of("status", "started", "sessionId", "room-1", "relaxedConstraints", true));
 
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.INVALID_ROOM_STATE);
+        handler.handle(ctx(Map.of("relaxConstraints", true)));
+
+        verify(supabaseRestClient).rpc(
+                eq("start_game_session"),
+                argThat(params -> Boolean.TRUE.equals(params.get("relax_constraints"))),
+                anyString(),
+                any());
     }
 
     @Test
-    void rejectsWhenNoParticipants() {
-        stubSnapshot(Map.of(
-                "state", "joinable",
-                "participants", List.of(),
-                "matches", List.of(match("match-1")),
-                "commonMatchId", "match-1",
-                "assignments", List.of()));
+    void absentPayloadDefaultsRelaxConstraintsToFalse() {
+        when(supabaseRestClient.rpc(eq("start_game_session"),
+                argThat(params -> Boolean.FALSE.equals(params.get("relax_constraints"))),
+                anyString(), any()))
+                .thenReturn(Map.of("status", "started"));
 
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.EMPTY_PARTICIPANTS);
+        CommandResult result = handler.handle(ctx(null));
+
+        assertThat(result.status()).isEqualTo(CommandResult.Status.ACCEPTED);
     }
 
     @Test
-    void rejectsWhenNoMatches() {
-        stubSnapshot(Map.of(
-                "state", "joinable",
-                "participants", List.of(participant("p-1")),
-                "matches", List.of(),
-                "assignments", List.of()));
+    void nonBooleanRelaxConstraintsValueDefaultsToFalse() {
+        when(supabaseRestClient.rpc(eq("start_game_session"),
+                argThat(params -> Boolean.FALSE.equals(params.get("relax_constraints"))),
+                anyString(), any()))
+                .thenReturn(Map.of("status", "started"));
 
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.EMPTY_MATCHES);
-    }
+        CommandResult result = handler.handle(ctx(Map.of("relaxConstraints", "yes")));
 
-    @Test
-    void rejectsWhenNoCommonMatchDesignated() {
-        stubSnapshot(Map.of(
-                "state", "joinable",
-                "participants", List.of(participant("p-1")),
-                "matches", List.of(match("match-1")),
-                "assignments", List.of(assignment("p-1", "match-1"))));
-
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.MISSING_COMMON_MATCH);
-    }
-
-    @Test
-    void rejectsWhenCommonMatchNotInPool() {
-        stubSnapshot(Map.of(
-                "state", "joinable",
-                "participants", List.of(participant("p-1")),
-                "matches", List.of(match("match-1")),
-                "commonMatchId", "match-does-not-exist",
-                "assignments", List.of(assignment("p-1", "match-1"))));
-
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.INVALID_COMMON_MATCH);
-    }
-
-    @Test
-    void rejectsWhenAParticipantHasNoAssignment() {
-        stubSnapshot(Map.of(
-                "state", "joinable",
-                "participants", List.of(participant("p-1"), participant("p-2")),
-                "matches", List.of(match("match-1")),
-                "commonMatchId", "match-1",
-                "assignments", List.of(assignment("p-1", "match-1"))));
-
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.UNASSIGNED_PARTICIPANTS);
-    }
-
-    @Test
-    void anAssignmentOfOnlyTheCommonMatchDoesNotCountAsAnAdditionalAssignment() {
-        stubSnapshot(Map.of(
-                "state", "joinable",
-                "participants", List.of(participant("p-1")),
-                "matches", List.of(match("match-1")),
-                "commonMatchId", "match-1",
-                "assignments", List.of(assignment("p-1", "match-1"))));
-
-        assertThatThrownBy(() -> handler.handle(ctx()))
-                .isInstanceOf(ApiException.class)
-                .extracting(e -> ((ApiException) e).errorCode())
-                .isEqualTo(ErrorCode.UNASSIGNED_PARTICIPANTS);
-    }
-
-    @Test
-    void doesNotCallStartGameSessionWhenValidationFails() {
-        stubSnapshot(Map.of(
-                "state", "in_progress",
-                "participants", List.of(),
-                "matches", List.of(),
-                "assignments", List.of()));
-
-        assertThatThrownBy(() -> handler.handle(ctx())).isInstanceOf(ApiException.class);
-
-        verify(supabaseRestClient, never()).rpc(eq("start_game_session"), any(), anyString(), any());
+        assertThat(result.status()).isEqualTo(CommandResult.Status.ACCEPTED);
     }
 
     private static SupabaseRestClient.SupabaseRpcException rpcException(String postgresMessage) {
@@ -203,29 +108,43 @@ class StartGameCommandHandlerTest {
     }
 
     /**
-     * start_game_session re-validates FR-006–FR-009 under its own row lock, as the
-     * authoritative backstop for the optimistic {@link #validate} check above — closing the
-     * race where the room's configuration changes between the get_room_snapshot read and this
-     * call (e.g. a concurrent remove_room_match from a second device). Every backstop failure
-     * string it can raise must map to the same ErrorCode the optimistic check would have used,
-     * not fall through to INTERNAL_ERROR.
+     * Every guard start_game_session can raise -- its own five original checks
+     * plus the two new shortfall/floor guards -- must map to the matching
+     * ErrorCode. unassigned_participants is retired (FR-019): assignments are
+     * now a product of starting, not a precondition, so no RPC raises it and
+     * no ErrorCode maps it.
      */
     @ParameterizedTest
     @CsvSource({
+            "room_not_found,ROOM_NOT_FOUND",
+            "not_host,FORBIDDEN",
+            "forbidden,FORBIDDEN",
+            "invalid_room_state,INVALID_ROOM_STATE",
             "empty_participants,EMPTY_PARTICIPANTS",
             "empty_matches,EMPTY_MATCHES",
             "missing_common_match,MISSING_COMMON_MATCH",
             "invalid_common_match,INVALID_COMMON_MATCH",
-            "unassigned_participants,UNASSIGNED_PARTICIPANTS",
+            "insufficient_match_pool,INSUFFICIENT_MATCH_POOL",
+            "assignment_constraints_unsatisfiable,ASSIGNMENT_CONSTRAINTS_UNSATISFIABLE",
     })
-    void mapsStartGameSessionBackstopFailuresToTheMatchingErrorCode(String postgresMessage, ErrorCode expected) {
-        stubSnapshot(validSnapshot());
+    void mapsStartGameSessionFailuresToTheMatchingErrorCode(String postgresMessage, ErrorCode expected) {
         when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenThrow(rpcException(postgresMessage));
 
-        assertThatThrownBy(() -> handler.handle(ctx()))
+        assertThatThrownBy(() -> handler.handle(ctx(null)))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).errorCode())
                 .isEqualTo(expected);
+    }
+
+    @Test
+    void unrecognizedRpcErrorMapsToInternalError() {
+        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+                .thenThrow(rpcException("some_future_guard"));
+
+        assertThatThrownBy(() -> handler.handle(ctx(null)))
+                .isInstanceOf(ApiException.class)
+                .extracting(e -> ((ApiException) e).errorCode())
+                .isEqualTo(ErrorCode.INTERNAL_ERROR);
     }
 }

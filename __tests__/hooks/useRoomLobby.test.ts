@@ -36,6 +36,17 @@ const snapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
   ],
   matches: [],
   assignments: [],
+  assignmentPlan: {
+    participantCount: 2,
+    poolSize: 0,
+    matchesPerPlayer: 1,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer: 1,
+    requiredPoolSize: 3,
+    relaxedFloor: 2,
+    feasible: false,
+    startable: false,
+  },
   ...overrides,
 });
 

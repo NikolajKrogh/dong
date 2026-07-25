@@ -20,7 +20,7 @@ npm install               # install dependencies
 npm run auth:env          # bootstrap .env.local from linked Supabase project
 npm test                  # Jest unit tests
 npm run lint              # ESLint
-npm run bddgen            # regenerate BDD step scaffolding from .feature files
+npm run bdd:gen           # regenerate BDD step scaffolding from .feature files
 npm run test:e2e          # bddgen + Playwright (requires Expo web running)
 npx expo start --dev-client   # dev server (native)
 npx expo start --web          # dev server (web)
