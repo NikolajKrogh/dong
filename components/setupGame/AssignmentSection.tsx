@@ -1,9 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  FlatList,
-  Image,
   Modal,
   Text,
   TouchableOpacity,
@@ -14,7 +11,11 @@ import { isWideLayout as isWideViewport } from "../../app/style/responsive";
 import createSetupGameStyles from "../../app/style/setupGameStyles";
 import { useColors } from "../../app/style/theme";
 import { Match, Player } from "../../store/store";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { MatchSelectionCard } from "../matchSelection/MatchSelectionCard";
+import {
+  SelectableMatchList,
+  type SelectableMatch,
+} from "../matchSelection/SelectableMatchList";
 
 /**
  * Props for the AssignmentSection component.
@@ -182,193 +183,34 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   );
 
   /**
-   * Renders a compact match item for the grid view.
-   * Used when displaying matches in grid layout mode.
-   *
-   * @function
-   * @param {Match} match - The match object to render.
-   * @param {string} playerId - The ID of the player for whom the match is being rendered.
-   * @param {number} index - The index of the match in the list (used for numbering).
-   * @returns {JSX.Element} A TouchableOpacity component representing the compact match item.
+   * Maps the store's `Match` down to the shared renderer's view-model. The
+   * card/grid markup now lives in `components/matchSelection/` so the lobby and
+   * guest pick surfaces present matches identically (specs/022-player-picked-mode
+   * research.md R15); this flow's behaviour is unchanged.
    */
-  const renderCompactMatchItem = (
-    match: Match,
-    playerId: string,
-    index: number,
-  ) => {
-    const isSelected = playerAssignments[playerId]?.includes(match.id);
-    const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
-    const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
-
-    return (
-      <TouchableOpacity
-        style={[
-          baseStyles.compactMatchItem,
-          isSelected && baseStyles.selectedCompactMatchItem,
-        ]}
-        onPress={() => toggleMatchAssignment(playerId, match.id)}
-      >
-        <View style={baseStyles.compactMatchNumberBadge}>
-          <Text style={baseStyles.compactMatchNumberText}>{index + 1}</Text>
-        </View>
-        <View style={baseStyles.compactTeamsContainer}>
-          {homeTeamLogo ? (
-            <Image
-              source={homeTeamLogo}
-              style={baseStyles.compactTeamLogo}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={baseStyles.compactTeamPlaceholder}>
-              <Text style={baseStyles.compactTeamPlaceholderText}>
-                {match.homeTeam.charAt(0)}
-              </Text>
-            </View>
-          )}
-          <Text style={baseStyles.compactVsText}>vs</Text>
-          {awayTeamLogo ? (
-            <Image
-              source={awayTeamLogo}
-              style={baseStyles.compactTeamLogo}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={baseStyles.compactTeamPlaceholder}>
-              <Text style={baseStyles.compactTeamPlaceholderText}>
-                {match.awayTeam.charAt(0)}
-              </Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const selectableMatches: SelectableMatch[] = nonCommonMatches.map(
+    (match) => ({
+      id: match.id,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      startTime: match.startTime,
+    }),
+  );
 
   /**
-   * Renders the list of matches for a specific player, adapting to grid or list view.
-   * Switches between grid and list layouts based on the useGridLayout state.
-   *
-   * @function
-   * @param {Player} player - The player object.
-   * @param {Match[]} matchList - The list of matches to render for the player.
-   * @returns {JSX.Element} A View containing either a grid or a FlatList of matches.
+   * Renders the shared selectable match list for one player, in grid or list
+   * form. The card/grid markup itself now lives in
+   * `components/matchSelection/SelectableMatchList`.
    */
-  const renderMatches = (player: Player, matchList: Match[]) => {
-    if (useGridLayout) {
-      return (
-        <View style={baseStyles.gridContainer}>
-          {matchList.map((match, index) => (
-            <View key={match.id} style={baseStyles.gridItem}>
-              {renderCompactMatchItem(match, player.id, index)}
-            </View>
-          ))}
-        </View>
-      );
-    } else {
-      return (
-        <FlatList
-          key={`list-${player.id}`}
-          data={matchList}
-          keyExtractor={(item) => item.id}
-          numColumns={1}
-          renderItem={({ item, index }) =>
-            renderMatchItem(item, player.id, index)
-          }
-          scrollEnabled={false}
-        />
-      );
-    }
-  };
-
-  /**
-   * Renders a single match item for the list view.
-   * Displays team logos, names, and selection status with a LinearGradient background.
-   *
-   * @function
-   * @param {Match} match - The match object to render.
-   * @param {string} playerId - The ID of the player for whom the match is being rendered.
-   * @param {number} index - The index of the match in the list (used for numbering).
-   * @returns {JSX.Element} A TouchableOpacity component representing the match item.
-   */
-  const renderMatchItem = (match: Match, playerId: string, index: number) => {
-    const isSelected = playerAssignments[playerId]?.includes(match.id);
-    const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
-    const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
-
-    return (
-      <TouchableOpacity
-        style={[
-          baseStyles.matchCard,
-          isSelected && baseStyles.selectedMatchCard,
-          baseStyles.matchListItem,
-        ]}
-        onPress={() => toggleMatchAssignment(playerId, match.id)}
-      >
-        <View style={baseStyles.matchNumberBadge}>
-          <Text style={baseStyles.matchNumberText}>{index + 1}</Text>
-        </View>
-        <LinearGradient
-          colors={[colors.primaryLighter, colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={baseStyles.matchCardGradient}
-        >
-          <View style={baseStyles.matchTeamsContainer}>
-            <View style={baseStyles.matchTeamColumn}>
-              <View style={baseStyles.logoContainer}>
-                {homeTeamLogo ? (
-                  <Image source={homeTeamLogo} style={baseStyles.teamLogo} />
-                ) : (
-                  <View style={baseStyles.teamLogoPlaceholder}>
-                    <Text style={baseStyles.teamLogoPlaceholderText}>
-                      {match.homeTeam.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={baseStyles.teamName}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {match.homeTeam}
-              </Text>
-            </View>
-            <View style={baseStyles.vsDividerHorizontal}>
-              <Text style={baseStyles.vsText}>VS</Text>
-            </View>
-            <View style={baseStyles.matchTeamColumn}>
-              <View style={baseStyles.logoContainer}>
-                {awayTeamLogo ? (
-                  <Image source={awayTeamLogo} style={baseStyles.teamLogo} />
-                ) : (
-                  <View style={baseStyles.teamLogoPlaceholder}>
-                    <Text style={baseStyles.teamLogoPlaceholderText}>
-                      {match.awayTeam.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={baseStyles.teamName}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {match.awayTeam}
-              </Text>
-            </View>
-          </View>
-          <View style={baseStyles.selectionCheckmark}>
-            <Ionicons
-              name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-              size={24}
-              color={isSelected ? colors.primary : colors.border}
-            />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  };
+  const renderMatches = (player: Player) => (
+    <SelectableMatchList
+      key={`${useGridLayout ? "grid" : "list"}-${player.id}`}
+      matches={selectableMatches}
+      selectedMatchIds={playerAssignments[player.id] ?? []}
+      onToggleMatch={(matchId) => toggleMatchAssignment(player.id, matchId)}
+      useGridLayout={useGridLayout}
+    />
+  );
 
   return (
     <View style={baseStyles.tabContent}>
@@ -509,7 +351,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
             ]}
           >
             {players.map((player) => (
-              <View
+              <MatchSelectionCard
                 key={player.id}
                 testID="AssignmentPlayerCard"
                 style={[
@@ -517,36 +359,16 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                   baseStyles.playerContainer,
                   isWideLayout && baseStyles.assignmentPlayerCardWide,
                 ]}
+                title={player.name}
+                selectedCount={getAssignmentCount(player.id)}
+                // This flow counts progress against the POOL, not a per-player
+                // cap — the pick surfaces pass their cap here instead.
+                totalCount={nonCommonMatches.length}
+                collapsed={Boolean(collapsedPlayers[player.id])}
+                onToggleCollapsed={() => togglePlayerCollapse(player.id)}
               >
-                <TouchableOpacity
-                  style={baseStyles.playerHeader}
-                  onPress={() => togglePlayerCollapse(player.id)}
-                  activeOpacity={0.7}
-                >
-                  <View style={baseStyles.playerHeaderLeft}>
-                    <Ionicons
-                      name={
-                        collapsedPlayers[player.id]
-                          ? "chevron-forward"
-                          : "chevron-down"
-                      }
-                      size={18}
-                      color={colors.primary}
-                      style={baseStyles.chevronIcon}
-                    />
-                    <Text style={baseStyles.playerAssignmentName}>
-                      {player.name}
-                    </Text>
-                  </View>
-                  <View style={baseStyles.playerBadge}>
-                    <Text style={baseStyles.playerBadgeText}>
-                      {getAssignmentCount(player.id)}/{nonCommonMatches.length}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                {!collapsedPlayers[player.id] &&
-                  renderMatches(player, nonCommonMatches)}
-              </View>
+                {renderMatches(player)}
+              </MatchSelectionCard>
             ))}
           </View>
         </View>
