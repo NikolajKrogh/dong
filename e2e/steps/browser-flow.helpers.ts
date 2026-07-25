@@ -476,6 +476,12 @@ export interface ConfigureStartGameAssignment {
   matchId: string;
 }
 
+/** A participant's pre-start pick in player-picked mode (#185). */
+export interface ConfigureStartGamePick {
+  participantId: string;
+  matchId: string;
+}
+
 /**
  * Mutable room-configuration state shared by the `add_room_match` /
  * `set_common_match` / `set_room_assignment_settings` / `start-game` route
@@ -492,6 +498,7 @@ let configureStartGameState: {
   assignmentMode: "automatic" | "host_assigned" | "player_picked";
   matches: ConfigureStartGameMatch[];
   assignments: ConfigureStartGameAssignment[];
+  picks: ConfigureStartGamePick[];
   matchesPerPlayer: number;
   sharedMatchesPerPair: number;
 } = {
@@ -500,6 +507,7 @@ let configureStartGameState: {
   assignmentMode: "automatic",
   matches: [],
   assignments: [],
+  picks: [],
   matchesPerPlayer: 1,
   sharedMatchesPerPair: 0,
 };
@@ -511,6 +519,7 @@ export const resetConfigureStartGameState = () => {
     assignmentMode: "automatic",
     matches: [],
     assignments: [],
+    picks: [],
     matchesPerPlayer: 1,
     sharedMatchesPerPair: 0,
   };
@@ -527,10 +536,15 @@ export const buildHostRoomSnapshot = (
   const participantCount = 1 + extraParticipants.length;
   const matchesPerPlayer = configureStartGameState.matchesPerPlayer;
   const sharedMatchesPerPair = configureStartGameState.sharedMatchesPerPair;
-  const effectivePerPlayer = Math.max(
-    matchesPerPlayer,
-    sharedMatchesPerPair * Math.max(participantCount - 1, 0),
-  );
+  // FR-011: the shared-per-pair minimum only applies to automatic generation,
+  // so outside it the stored count stands unraised — same as the server.
+  const effectivePerPlayer =
+    configureStartGameState.assignmentMode === "automatic"
+      ? Math.max(
+          matchesPerPlayer,
+          sharedMatchesPerPair * Math.max(participantCount - 1, 0),
+        )
+      : matchesPerPlayer;
   const requiredPoolSize =
     1 +
     (sharedMatchesPerPair * (participantCount * (participantCount - 1))) / 2 +
@@ -558,6 +572,7 @@ export const buildHostRoomSnapshot = (
     ],
     matches: configureStartGameState.matches,
     assignments: configureStartGameState.assignments,
+    picks: configureStartGameState.picks,
     assignmentPlan: {
       participantCount,
       poolSize,
@@ -919,12 +934,92 @@ export const mockGuestRoomRpcServices = async (
     });
   });
 
+  await page.route(
+    "**/rest/v1/rpc/set_my_room_picks_as_guest",
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        guest_token?: string;
+        match_ids?: string[] | null;
+      };
+      const activeFixture = activeGuestRoomFixture ?? fixture;
+      const guestParticipantId =
+        activeGuestParticipant?.id ?? `guest-${body.guest_token ?? "unknown"}`;
+
+      // Mirrors private.set_my_room_picks_as_guest: identified by token alone,
+      // Common Match stripped, per-player count enforced as a cap, replace-all
+      // scoped to this guest.
+      const submitted = (body.match_ids ?? []).filter(
+        (matchId) => matchId !== activeFixture.commonMatchId,
+      );
+      const deduped = Array.from(new Set(submitted));
+
+      if (deduped.length > activeFixture.matchesPerPlayer) {
+        await route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "pick_limit_exceeded" }),
+        });
+        return;
+      }
+
+      activeGuestRoomFixture = {
+        ...activeFixture,
+        picks: [
+          ...activeFixture.picks.filter(
+            (pick) => pick.participantId !== guestParticipantId,
+          ),
+          ...deduped.map((matchId) => ({
+            participantId: guestParticipantId,
+            matchId,
+          })),
+        ],
+      };
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(null),
+      });
+    },
+  );
+
   return {
     fixture,
     getLatestJoinResponse: () => latestJoinResponse,
     getLatestJoinRequest: () => guestRoomJoinRpcLastRequest,
   };
 };
+
+/**
+ * Simulates another participant's picks arriving via the room snapshot poll.
+ * This suite runs one page per scenario and represents other actors as mock
+ * state (there are no multi-context helpers), so a second picker is expressed
+ * this way rather than by driving a second browser.
+ */
+export const setMockParticipantPicks = (
+  participantId: string,
+  matchIds: string[],
+) => {
+  configureStartGameState.picks = [
+    ...configureStartGameState.picks.filter(
+      (pick) => pick.participantId !== participantId,
+    ),
+    ...matchIds.map((matchId) => ({ participantId, matchId })),
+  ];
+};
+
+/** The host participant's own picks, as the mocked server currently holds them. */
+export const getMockHostPicks = () =>
+  configureStartGameState.picks
+    .filter((pick) => pick.participantId === HOST_ROOM_PARTICIPANT_ID)
+    .map((pick) => pick.matchId);
+
+/** The room's settled assignments after a mocked start. */
+export const getMockAssignments = () => configureStartGameState.assignments;
+
+/** The mocked guest room's current picks, keyed by participant. */
+export const getMockGuestRoomPicks = () =>
+  (activeGuestRoomFixture?.picks ?? []).map((pick) => ({ ...pick }));
 
 export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
   {
@@ -1037,6 +1132,55 @@ export const mockConfigureStartGameServices = async (page: Page) => {
     });
   });
 
+  await page.route("**/rest/v1/rpc/set_my_room_picks", async (route) => {
+    const body = route.request().postDataJSON() as {
+      session_id: string;
+      match_ids: string[] | null;
+    };
+
+    // Mirrors private.set_my_room_picks: replace-all for the CALLING participant
+    // only (here, the host), the Common Match stripped rather than rejected, and
+    // the per-player count enforced as a cap.
+    if (configureStartGameState.assignmentMode !== "player_picked") {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "room_not_player_picked" }),
+      });
+      return;
+    }
+
+    const submitted = (body.match_ids ?? []).filter(
+      (matchId) => matchId !== configureStartGameState.commonMatchId,
+    );
+    const deduped = Array.from(new Set(submitted));
+
+    if (deduped.length > configureStartGameState.matchesPerPlayer) {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "pick_limit_exceeded" }),
+      });
+      return;
+    }
+
+    configureStartGameState.picks = [
+      ...configureStartGameState.picks.filter(
+        (pick) => pick.participantId !== HOST_ROOM_PARTICIPANT_ID,
+      ),
+      ...deduped.map((matchId) => ({
+        participantId: HOST_ROOM_PARTICIPANT_ID,
+        matchId,
+      })),
+    ];
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(null),
+    });
+  });
+
   await page.route(
     `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/rooms/*/commands/start-game`,
     async (route) => {
@@ -1081,18 +1225,34 @@ export const mockConfigureStartGameServices = async (page: Page) => {
         return;
       }
 
-      // Stand-in for server-side canonical generation: the host gets the
-      // Common Match plus its configured per-player count from the rest of
-      // the selected pool.
+      // Stand-in for server-side canonical generation. In player-picked mode it
+      // mirrors migration 038's settlement: keep every pick, then fill the
+      // remainder from the pool (FR-041). Otherwise the host simply gets the
+      // Common Match plus its configured per-player count.
       const commonMatchId = configureStartGameState.commonMatchId;
-      const additionalMatches = configureStartGameState.matches
-        .filter((match) => match.id !== commonMatchId)
-        .slice(0, configureStartGameState.matchesPerPlayer);
+      const keptPicks =
+        configureStartGameState.assignmentMode === "player_picked"
+          ? configureStartGameState.picks
+              .filter(
+                (pick) =>
+                  pick.participantId === HOST_ROOM_PARTICIPANT_ID &&
+                  pick.matchId !== commonMatchId,
+              )
+              .slice(0, configureStartGameState.matchesPerPlayer)
+              .map((pick) => pick.matchId)
+          : [];
+      const fill = configureStartGameState.matches
+        .filter(
+          (match) =>
+            match.id !== commonMatchId && !keptPicks.includes(match.id),
+        )
+        .slice(0, configureStartGameState.matchesPerPlayer - keptPicks.length)
+        .map((match) => match.id);
       configureStartGameState.assignments = [
         { participantId: HOST_ROOM_PARTICIPANT_ID, matchId: commonMatchId },
-        ...additionalMatches.map((match) => ({
+        ...[...keptPicks, ...fill].map((matchId) => ({
           participantId: HOST_ROOM_PARTICIPANT_ID,
-          matchId: match.id,
+          matchId,
         })),
       ];
       configureStartGameState.roomState = "in_progress";

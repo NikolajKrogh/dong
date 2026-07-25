@@ -4,7 +4,11 @@ import { createBdd } from "playwright-bdd";
 import {
   CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES,
   HOST_ROOM_PARTICIPANT_ID,
+  getMockAssignments,
+  getMockHostPicks,
   mockConfigureStartGameServices,
+  setHostRoomSnapshotParticipants,
+  setMockParticipantPicks,
 } from "./browser-flow.helpers";
 
 const { Given, When, Then } = createBdd();
@@ -137,3 +141,74 @@ Then(
     await expect(page.getByTestId("lobby-start-game")).toBeDisabled();
   },
 );
+
+// ---------------------------------------------------------------------------
+// Player-picked mode (#185). This suite runs one page per scenario and models
+// other participants as mock state, so the "second picker" is injected into the
+// polled snapshot rather than driven from a second browser context.
+// ---------------------------------------------------------------------------
+
+const SECOND_MEMBER_ID = "member-picker-1";
+
+Given("the room has a second registered member", async () => {
+  setHostRoomSnapshotParticipants([
+    {
+      id: SECOND_MEMBER_ID,
+      displayName: "Second Picker",
+      membershipType: "registered",
+      sessionRole: "member",
+    },
+  ]);
+});
+
+Then("the host sees their own pick panel", async ({ page }) => {
+  const panel = page.getByTestId("lobby-player-pick-panel");
+  await panel.scrollIntoViewIfNeeded();
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+});
+
+Then(
+  `the host's pick progress reads {string}`,
+  async ({ page }, expected: string) => {
+    await expect(
+      page.getByTestId("lobby-player-pick-panel-count"),
+    ).toHaveText(expected, { timeout: 10_000 });
+  },
+);
+
+When(
+  "the host picks the second added match for themselves",
+  async ({ page }) => {
+    const option = page.getByTestId(
+      "lobby-player-pick-panel-option-match-2",
+    );
+    await option.scrollIntoViewIfNeeded();
+    await option.click();
+  },
+);
+
+Then(
+  "the second member's pick progress is visible in the roster",
+  async ({ page }) => {
+    // Another participant's progress arrives on the next snapshot poll, which is
+    // exactly what FR-042 promises -- and why the assertion waits rather than
+    // expecting it synchronously.
+    setMockParticipantPicks(SECOND_MEMBER_ID, ["match-2"]);
+
+    const progress = page.getByTestId(
+      `lobby-pick-progress-${SECOND_MEMBER_ID}`,
+    );
+    await progress.scrollIntoViewIfNeeded();
+    await expect(progress).toHaveText("· 1/1 picked", { timeout: 10_000 });
+  },
+);
+
+Then("the settled assignments include the host's own pick", async () => {
+  const picked = getMockHostPicks();
+  const settled = getMockAssignments()
+    .filter((assignment) => assignment.participantId === HOST_ROOM_PARTICIPANT_ID)
+    .map((assignment) => assignment.matchId);
+
+  expect(picked.length).toBeGreaterThan(0);
+  picked.forEach((matchId) => expect(settled).toContain(matchId));
+});
