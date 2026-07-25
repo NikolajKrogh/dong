@@ -243,9 +243,14 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
-[auth.email.template.confirmation]
-subject = "Confirm your DONG account"
-content_path = "./supabase/templates/confirmation.html"
+# Custom confirmation email template. Disabled: Supabase's hosted branching/deploy
+# pipeline rejects auth.email.template changes on the free tier without a custom
+# SMTP provider (400 "Email template modification is not available for free tier
+# projects using the default email provider"), which broke every PR preview branch.
+# Re-enable once custom SMTP is configured (see auth.email.smtp above).
+# [auth.email.template.confirmation]
+# subject = "Confirm your DONG account"
+# content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
