@@ -537,7 +537,7 @@ export const buildHostRoomSnapshot = (
   const matchesPerPlayer = configureStartGameState.matchesPerPlayer;
   const sharedMatchesPerPair = configureStartGameState.sharedMatchesPerPair;
   // FR-011: the shared-per-pair minimum only applies to automatic generation,
-  // so outside it the stored count stands unraised — same as the server.
+  // so outside it the stored count stands unraised -- same as the server.
   const effectivePerPlayer =
     configureStartGameState.assignmentMode === "automatic"
       ? Math.max(

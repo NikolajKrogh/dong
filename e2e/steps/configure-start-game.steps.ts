@@ -199,7 +199,9 @@ Then(
       `lobby-pick-progress-${SECOND_MEMBER_ID}`,
     );
     await progress.scrollIntoViewIfNeeded();
-    await expect(progress).toHaveText("· 1/1 picked", { timeout: 10_000 });
+    // Asserted on the count rather than the full label, so the separator glyph
+    // is not part of the contract.
+    await expect(progress).toContainText("1/1 picked", { timeout: 10_000 });
   },
 );
 

@@ -239,11 +239,22 @@ Then(
   async ({ page }) => {
     // At the cap the unpicked options go inert while the picked ones stay
     // tappable, so a guest can always release one to make room.
+    //
+    // Asserted via aria-disabled rather than toBeDisabled(): these options render
+    // as plain views on web, and Playwright's disabled check only applies to
+    // native form controls and ARIA-roled elements.
     await expect(
       page.getByTestId(
         `guest-player-pick-panel-option-${PICKABLE_MATCH_IDS[2]}`,
       ),
-    ).toBeDisabled();
+    ).toHaveAttribute("aria-disabled", "true");
+
+    // The picked ones must NOT be inert, or a guest at the cap would be stuck.
+    await expect(
+      page.getByTestId(
+        `guest-player-pick-panel-option-${PICKABLE_MATCH_IDS[0]}`,
+      ),
+    ).not.toHaveAttribute("aria-disabled", "true");
   },
 );
 
