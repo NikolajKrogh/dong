@@ -32,6 +32,7 @@ const baseSnapshot: RoomSnapshot = {
   joinCode: "123456",
   state: "joinable",
   commonMatchId: "match-1",
+  assignmentMode: "automatic",
   participants: [
     {
       id: "p-1",
@@ -245,6 +246,71 @@ describe("useRoomConfigure", () => {
     expect(result()?.error).toBe(
       "That per-player count is too low for the current shared-matches setting and roster size.",
     );
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("sets the assignment mode", async () => {
+    const setRoomAssignmentMode = jest.fn(async () => undefined);
+    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignmentMode } as never);
+    const onMutated = jest.fn();
+
+    const { result, renderer } = render(baseSnapshot, onMutated);
+    await TestRenderer.act(async () => {
+      await result()?.setAssignmentMode("host_assigned");
+      await flush();
+    });
+
+    expect(setRoomAssignmentMode).toHaveBeenCalledWith("s1", "host_assigned");
+    expect(onMutated).toHaveBeenCalledTimes(1);
+    expect(result()?.error).toBeNull();
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("maps invalid_assignment_mode to a friendly, actionable message", async () => {
+    const setRoomAssignmentMode = jest.fn(async () => {
+      throw new Error("invalid_assignment_mode");
+    });
+    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignmentMode } as never);
+
+    const { result, renderer } = render(baseSnapshot);
+    await TestRenderer.act(async () => {
+      await result()?.setAssignmentMode("automatic");
+      await flush();
+    });
+
+    expect(result()?.error).toBe(
+      "That isn't a valid assignment mode. Refresh and try again.",
+    );
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("round-trips a host allocation through set_room_assignments when adding then removing a match for the same participant (T030)", async () => {
+    const setRoomAssignments = jest.fn(async () => undefined);
+    mockGetRoomRpcClient.mockReturnValue({ setRoomAssignments } as never);
+
+    const { result, renderer } = render(baseSnapshot);
+    await TestRenderer.act(async () => {
+      await result()?.setAssignments([
+        { participantId: "p-2", matchId: "match-2" },
+      ]);
+      await flush();
+    });
+    await TestRenderer.act(async () => {
+      await result()?.setAssignments([]);
+      await flush();
+    });
+
+    expect(setRoomAssignments).toHaveBeenNthCalledWith(1, "s1", [
+      { participantId: "p-2", matchId: "match-2" },
+    ]);
+    expect(setRoomAssignments).toHaveBeenNthCalledWith(2, "s1", []);
+    expect(result()?.error).toBeNull();
     TestRenderer.act(() => {
       renderer.unmount();
     });

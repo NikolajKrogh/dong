@@ -3,6 +3,7 @@ import { createBdd } from "playwright-bdd";
 
 import {
   CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES,
+  HOST_ROOM_PARTICIPANT_ID,
   mockConfigureStartGameServices,
 } from "./browser-flow.helpers";
 
@@ -65,6 +66,54 @@ When(
     }
   },
 );
+
+When(
+  "the host switches the assignment mode to {word}",
+  async ({ page }, mode: string) => {
+    const button = page.getByTestId(`lobby-assignment-mode-${mode}`);
+    await expect(button).toBeVisible({ timeout: 10_000 });
+    await button.click();
+  },
+);
+
+When(
+  "the host attempts to switch the assignment mode to {word}",
+  async ({ page }, mode: string) => {
+    const button = page.getByTestId(`lobby-assignment-mode-${mode}`);
+    await expect(button).toBeVisible({ timeout: 10_000 });
+    await button.click();
+  },
+);
+
+When("the host allocates the second added match to themselves", async ({ page }) => {
+  const allocateButton = page.getByTestId(
+    `lobby-allocate-${HOST_ROOM_PARTICIPANT_ID}-match-2`,
+  );
+  await expect(allocateButton).toBeVisible({ timeout: 10_000 });
+  await allocateButton.click();
+});
+
+When("the host declines the mode-switch confirmation", async ({ page }) => {
+  await page
+    .getByTestId("lobby-assignment-mode-confirm")
+    .getByText("Cancel")
+    .click();
+});
+
+Then("the host sees a mode-switch confirmation dialog", async ({ page }) => {
+  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toBeVisible(
+    { timeout: 10_000 },
+  );
+});
+
+Then("the assignment mode remains host-assigned", async ({ page }) => {
+  await expect(
+    page.getByTestId("lobby-assignment-mode-confirm"),
+  ).toHaveCount(0);
+  await expect(
+    page.getByTestId("lobby-assignment-mode-host-assigned"),
+  ).toBeVisible({ timeout: 10_000 });
+});
 
 Then("the host is redirected to the active gameplay dashboard", async ({ page }) => {
   await page.waitForURL(/\/gameProgress/, { timeout: 10_000 });

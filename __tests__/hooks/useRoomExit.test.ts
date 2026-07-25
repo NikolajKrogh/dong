@@ -18,6 +18,7 @@ const rosterWith = (memberIds: string[]): RoomSnapshot => ({
   joinCode: "123456",
   state: "joinable",
   commonMatchId: null,
+  assignmentMode: "automatic",
   participants: [
     {
       id: "owner-1",

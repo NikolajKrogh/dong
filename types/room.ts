@@ -1,5 +1,9 @@
 export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
 
+/** How a room's assignments get decided (FR-026). `player_picked` exists as a
+ * value but is not yet actionable — #185 implements it. */
+export type AssignmentMode = "automatic" | "host_assigned" | "player_picked";
+
 export type RoomMembershipType = "registered" | "guest";
 
 export type RoomSessionRole = "owner" | "member";
@@ -50,6 +54,7 @@ export interface RoomSnapshot {
   joinCode: string;
   state: RoomState;
   commonMatchId: string | null;
+  assignmentMode: AssignmentMode;
   participants: RoomParticipantSummary[];
   matches: RoomMatchSummary[];
   assignments: RoomAssignmentSummary[];
@@ -125,4 +130,14 @@ export const ROOM_ERROR = {
   perPlayerCountBelowMinimum: "per_player_count_below_minimum",
   insufficientMatchPool: "insufficient_match_pool",
   assignmentConstraintsUnsatisfiable: "assignment_constraints_unsatisfiable",
+  invalidAssignmentMode: "invalid_assignment_mode",
 } as const;
+
+// NOTE: `start_game_session`'s RPC result (including `filledInParticipantIds`)
+// is NOT modeled here. The Java command-api's `CommandResponse` deliberately
+// does not forward handler/RPC internals to the client ("Handler internals
+// never leak to clients" — command-api/.../CommandResult.java) — the same
+// boundary `relaxedConstraints` already lives behind. The host learns who
+// will be filled in from the pre-start lobby display (derived from
+// `assignmentPlan` + `assignments`, same as the "still short" indicator),
+// not from the start-game response. See research.md R5.
