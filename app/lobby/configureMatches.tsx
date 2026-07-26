@@ -15,7 +15,7 @@
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Text as TamaguiText } from "tamagui";
@@ -102,7 +102,20 @@ const ConfigureRoomMatchesScreen = () => {
             </TamaguiText>
           ) : null}
 
-          <View style={{ flex: 1 }}>
+          {/*
+            MatchList must be given a scrolling parent, and this mirrors
+            SetupWizard's step container (`stepContentScroll: { flex: 1 }`)
+            deliberately. Its results FlatList sets `scrollEnabled={false}` and so
+            relies on an ancestor to scroll, and its own layout style carries no
+            flex while the inner results style is `flex: 1` — put that inside a
+            fixed-height flex box instead of a ScrollView and the list collapses to
+            nothing, rendering every added match invisible.
+          */}
+          <ScrollView
+            style={{ flex: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+          >
             <MatchList
               matches={pool.matches}
               homeTeam={homeTeam}
@@ -113,7 +126,7 @@ const ConfigureRoomMatchesScreen = () => {
               handleRemoveMatch={pool.removeMatch}
               setGlobalMatches={pool.setMatches}
             />
-          </View>
+          </ScrollView>
 
           <ShellActionButton
             variant="primary"
