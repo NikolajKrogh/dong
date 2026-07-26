@@ -16,7 +16,6 @@ import { Modal, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack } from "tamagui";
 
-import { ConfigureMatchesModal } from "../../components/lobby/ConfigureMatchesModal";
 import { ParticipantList } from "../../components/lobby/ParticipantList";
 import { PlayerPickPanel } from "../../components/lobby/PlayerPickPanel";
 import { RoomEndedNotice } from "../../components/lobby/RoomEndedNotice";
@@ -55,7 +54,6 @@ const LobbyScreen = () => {
 
   const lobby = useRoomLobby(sessionId || null, participantId);
   const exit = useRoomExit();
-  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const hasHydratedGameplayRef = useRef(false);
 
   const configure = useRoomConfigure(lobby.snapshot, lobby.refresh);
@@ -419,7 +417,12 @@ const LobbyScreen = () => {
                     label="Configure Matches"
                     testID="lobby-open-configure-matches"
                     disabled={configure.isBusy}
-                    onPress={() => setIsMatchModalOpen(true)}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/lobby/configureMatches",
+                        params: { sessionId, participantId: participantId ?? "" },
+                      })
+                    }
                   />
 
                   <YStack
@@ -777,15 +780,6 @@ const LobbyScreen = () => {
               />
             </>
           )}
-
-          <ConfigureMatchesModal
-            visible={isMatchModalOpen}
-            selectedMatches={lobby.snapshot?.matches ?? []}
-            onAdd={(request) => {
-              void configure.addMatch(request);
-            }}
-            onClose={() => setIsMatchModalOpen(false)}
-          />
 
           <Modal
             visible={pendingModeSwitch !== null}

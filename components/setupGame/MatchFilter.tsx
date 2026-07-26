@@ -300,6 +300,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
             </View>
 
             <TouchableOpacity
+              testID="SetupAddAllFilteredMatchesButton"
               style={[
                 styles.filterActionButton,
                 !isAnyFilterActive && styles.disabledButton,

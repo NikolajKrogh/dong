@@ -17,26 +17,37 @@ Given("the room configuration and start-game services are mocked", async ({ page
   await mockConfigureStartGameServices(page);
 });
 
+// Configure Matches is a route now, not a modal, and it renders the same
+// MatchList the single-player wizard's matches step uses — so the interaction is
+// the wizard's ("filter, then add all filtered") rather than the old modal's
+// per-fixture add buttons.
 When("the host opens the match configuration modal", async ({ page }) => {
   const openButton = page.getByTestId("lobby-open-configure-matches");
   await openButton.scrollIntoViewIfNeeded();
   await openButton.click();
-  await expect(page.getByTestId("configure-matches-modal")).toBeVisible({
+  await expect(page.getByTestId("configure-room-matches-title")).toBeVisible({
     timeout: 10_000,
   });
 });
 
 When("the host adds the first two catalog matches", async ({ page }) => {
+  // The mocked catalogue holds exactly the two fixtures, both kicking off today,
+  // so the wizard's bulk add takes precisely them.
+  const addAll = page.getByTestId("SetupAddAllFilteredMatchesButton");
+  await addAll.scrollIntoViewIfNeeded();
+  await expect(addAll).toBeEnabled({ timeout: 10_000 });
+  await addAll.click();
+
   for (const fixture of CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES) {
-    const addButton = page.getByTestId(`configure-match-add-${fixture.id}`);
-    await expect(addButton).toBeVisible({ timeout: 10_000 });
-    await addButton.click();
+    await expect(
+      page.getByText(fixture.homeTeam, { exact: false }).first(),
+    ).toBeVisible({ timeout: 10_000 });
   }
 });
 
 When("the host closes the match configuration modal", async ({ page }) => {
-  await page.getByTestId("configure-matches-close").click();
-  await expect(page.getByTestId("configure-matches-modal")).toHaveCount(0);
+  await page.getByTestId("configure-room-matches-done").click();
+  await expect(page.getByTestId("configure-room-matches-title")).toHaveCount(0);
 });
 
 When(
