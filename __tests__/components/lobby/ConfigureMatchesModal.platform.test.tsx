@@ -22,6 +22,21 @@ jest.mock("../../../utils/commandApiClient", () => ({
   getMatchDiscoveryApiClient: jest.fn(),
 }));
 
+// PlatformDatePicker wraps react-native-date-picker, whose native module throws
+// `new NativeEventEmitter() requires a non-null argument` under Jest. Stubbed to a
+// host tag (same approach as MatchFilter's suite) while the real date<->ISO helpers
+// pass through, so the date the component sends as `requestedAt` is still the
+// genuinely computed value rather than a mock's.
+jest.mock("../../../platform", () => ({
+  PlatformDatePicker: "PlatformDatePicker",
+  formatDateIsoValue: jest.requireActual(
+    "../../../platform/date-input/normalizeValue",
+  ).formatDateIsoValue,
+  parseDateIsoValue: jest.requireActual(
+    "../../../platform/date-input/normalizeValue",
+  ).parseDateIsoValue,
+}));
+
 const mockGetMatchDiscoveryApiClient = jest.mocked(getMatchDiscoveryApiClient);
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -46,6 +61,55 @@ const render = (props: Partial<React.ComponentProps<typeof ConfigureMatchesModal
 
 describe("ConfigureMatchesModal", () => {
   beforeEach(() => jest.clearAllMocks());
+
+  /**
+   * The request previously omitted `requestedAt` entirely, which pins discovery to
+   * today — so during an off-season gap the modal was empty with no way to reach
+   * another date.
+   */
+  it("asks for a specific date rather than letting the server default to today", async () => {
+    const discoverMatches = jest.fn(async () => []);
+    mockGetMatchDiscoveryApiClient.mockReturnValue({ discoverMatches } as never);
+
+    const { renderer } = render();
+    await TestRenderer.act(async () => {
+      await flush();
+    });
+
+    expect(discoverMatches).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leagueCodes: ["eng.1"],
+        requestedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T00:00:00\.000Z$/),
+      }),
+    );
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
+
+  it("refetches for the newly chosen date when the host changes it", async () => {
+    const discoverMatches = jest.fn(async () => []);
+    mockGetMatchDiscoveryApiClient.mockReturnValue({ discoverMatches } as never);
+
+    const { renderer } = render();
+    await TestRenderer.act(async () => {
+      await flush();
+    });
+    discoverMatches.mockClear();
+
+    const picker = renderer.root.findByType("PlatformDatePicker" as never);
+    await TestRenderer.act(async () => {
+      (picker.props.onConfirm as (d: Date) => void)(new Date("2026-08-22T12:00:00Z"));
+      await flush();
+    });
+
+    expect(discoverMatches).toHaveBeenCalledWith(
+      expect.objectContaining({ requestedAt: "2026-08-22T00:00:00.000Z" }),
+    );
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+  });
 
   it("renders fetched fixtures and adds one on tap", async () => {
     const discoverMatches = jest.fn(async () => [

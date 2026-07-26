@@ -1,7 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Modal, ScrollView, View } from "react-native";
+import { Modal, ScrollView, TouchableOpacity, View } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
 
+import { buildRequestedAt } from "../../hooks/useMatchData";
+import {
+  formatDateIsoValue,
+  parseDateIsoValue,
+  PlatformDatePicker,
+} from "../../platform";
 import { useGameStore } from "../../store/store";
 import type {
   AddRoomMatchRequest,
@@ -49,6 +55,15 @@ export const ConfigureMatchesModal: React.FC<ConfigureMatchesModalProps> = ({
   const [catalog, setCatalog] = useState<NormalizedMatch[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  /**
+   * Which day's fixtures to browse. Without this the request omitted
+   * `requestedAt`, pinning discovery to today — so during an off-season gap the
+   * modal was empty with no way to look at another date.
+   */
+  const [selectedDate, setSelectedDate] = useState(() =>
+    formatDateIsoValue(new Date()),
+  );
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   useEffect(() => {
     if (!visible || configuredLeagues.length === 0) {
@@ -58,7 +73,10 @@ export const ConfigureMatchesModal: React.FC<ConfigureMatchesModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     getMatchDiscoveryApiClient()
-      .discoverMatches({ leagueCodes: configuredLeagues.map((l) => l.code) })
+      .discoverMatches({
+        leagueCodes: configuredLeagues.map((l) => l.code),
+        requestedAt: buildRequestedAt(selectedDate),
+      })
       .then((matches) => {
         if (!cancelled) {
           setCatalog(matches);
@@ -81,7 +99,7 @@ export const ConfigureMatchesModal: React.FC<ConfigureMatchesModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [visible, configuredLeagues]);
+  }, [visible, configuredLeagues, selectedDate]);
 
   const selectedSourceMatchIds = useMemo(
     () => new Set(selectedMatches.map((match) => match.sourceMatchId)),
@@ -127,6 +145,32 @@ export const ConfigureMatchesModal: React.FC<ConfigureMatchesModalProps> = ({
             Select Matches
           </Text>
 
+          <XStack alignItems="center" gap="$2">
+            <Text color="$colorMuted" fontSize={14}>
+              Date
+            </Text>
+            <TouchableOpacity
+              testID="configure-matches-date-button"
+              onPress={() => setIsDatePickerOpen(true)}
+            >
+              <Text color="$color" fontSize={15} fontWeight="600">
+                {parseDateIsoValue(selectedDate, new Date()).toLocaleDateString(
+                  "en-GB",
+                  { weekday: "short", day: "numeric", month: "short", year: "numeric" },
+                )}
+              </Text>
+            </TouchableOpacity>
+          </XStack>
+          <PlatformDatePicker
+            open={isDatePickerOpen}
+            date={parseDateIsoValue(selectedDate, new Date())}
+            onConfirm={(date) => {
+              setIsDatePickerOpen(false);
+              setSelectedDate(formatDateIsoValue(date));
+            }}
+            onCancel={() => setIsDatePickerOpen(false)}
+          />
+
           {isLoading ? (
             <Text color="$colorMuted" fontSize={14}>
               Loading live fixtures…
@@ -140,8 +184,12 @@ export const ConfigureMatchesModal: React.FC<ConfigureMatchesModalProps> = ({
           ) : null}
 
           {!isLoading && !errorMessage && leagueGroups.length === 0 ? (
-            <Text color="$colorMuted" fontSize={14}>
-              No fixtures found for your configured leagues today.
+            <Text
+              color="$colorMuted"
+              fontSize={14}
+              testID="configure-matches-empty"
+            >
+              No fixtures in your configured leagues on this date.
             </Text>
           ) : null}
 
