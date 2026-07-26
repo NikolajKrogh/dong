@@ -22,10 +22,21 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
 }) => {
   const { snapshot, grant } = session;
 
+  // `picks` and `assignmentPlan` are typed as required because that is the
+  // contract once migration 038 is applied -- but a client can meet a server
+  // that predates it, during a deploy or against an un-migrated project, and the
+  // snapshot then simply omits the keys. Reading them defensively here keeps the
+  // guest card rendering instead of throwing; the same reason the registered
+  // lobby keeps a fallback `assignmentPlan` object.
+  const picks = snapshot.picks ?? [];
+  const cap = snapshot.assignmentPlan?.matchesPerPlayer ?? 0;
+
   const canPick =
     Boolean(onSetPicks) &&
     snapshot.assignmentMode === "player_picked" &&
-    snapshot.state === "joinable";
+    snapshot.state === "joinable" &&
+    // Nothing to pick without a plan to cap against.
+    Boolean(snapshot.assignmentPlan);
 
   // GuestRoomMatchSummary → the shared renderer's view-model, minus the Common
   // Match (FR-040a). Mapped here rather than inside the panel because this type
@@ -45,20 +56,20 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
 
   const myPicks = useMemo(
     () =>
-      snapshot.picks
+      picks
         .filter((pick) => pick.participantId === grant.participantId)
         .map((pick) => pick.matchId),
-    [snapshot.picks, grant.participantId],
+    [picks, grant.participantId],
   );
 
   // FR-042: a guest sees everyone's progress, not only their own.
   const pickCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    snapshot.picks.forEach((pick) => {
+    picks.forEach((pick) => {
       counts.set(pick.participantId, (counts.get(pick.participantId) ?? 0) + 1);
     });
     return counts;
-  }, [snapshot.picks]);
+  }, [picks]);
 
   // Gated on room state as well as mode: picks persist as joinable-era residue
   // after settlement, so a started room would otherwise keep showing progress
@@ -66,8 +77,8 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
   // away at that point; this card stays on screen, so it has to check.
   const showProgress =
     snapshot.assignmentMode === "player_picked" &&
-    snapshot.state === "joinable";
-  const cap = snapshot.assignmentPlan.matchesPerPlayer;
+    snapshot.state === "joinable" &&
+    Boolean(snapshot.assignmentPlan);
 
   return (
     <YStack gap="$4">

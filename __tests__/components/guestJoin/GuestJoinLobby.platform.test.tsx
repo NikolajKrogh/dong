@@ -3,6 +3,7 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 import { GuestJoinLobby } from "../../../components/guestJoin/GuestJoinLobby";
+import type { GuestRoomSession } from "../../../types/guestRoom";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
 const GRANT = {
@@ -234,6 +235,52 @@ describe("GuestJoinLobby", () => {
 
     // Picks persist as joinable-era residue after settlement, so progress must
     // not keep implying they still decide anything.
+    expect(renderedText).not.toContain("picked");
+
+    tree.unmount();
+  });
+  // Regression: a client can meet a server that predates migration 038, whose
+  // snapshot simply omits `picks` (and, on an older server still,
+  // `assignmentPlan`). This crashed the guest card with
+  // "can't access property filter, snapshot.picks is undefined" -- caught by
+  // running the app on web against an un-migrated project, not by any test.
+  it("renders against a snapshot from a server without the picks field", () => {
+    const { picks, assignmentPlan, ...legacySnapshot } = buildSession({
+      assignmentMode: "player_picked",
+    }).snapshot;
+    void picks;
+    void assignmentPlan;
+
+    const tree = actCreate(
+      React.createElement(
+        TamaguiTestProvider,
+        null,
+        React.createElement(GuestJoinLobby, {
+          // Cast is the point of the test: this shape does NOT satisfy
+          // GuestRoomSession, because a pre-038 server does not send those keys.
+          // The type describes the post-migration contract; the runtime can be
+          // behind it.
+          session: {
+            grant: GRANT,
+            snapshot: legacySnapshot,
+          } as unknown as GuestRoomSession,
+          onSetPicks: jest.fn(),
+        }),
+      ),
+    );
+
+    const { Text } = require("react-native");
+    const renderedText = tree.root
+      .findAllByType(Text)
+      .flatMap((node: any) => node.props.children)
+      .join("");
+
+    // The card still renders; the pick affordances simply stay hidden until the
+    // server can actually accept picks.
+    expect(renderedText).toContain("Guest Room");
+    expect(
+      tree.root.findAllByProps({ testID: "guest-player-pick-panel" }),
+    ).toHaveLength(0);
     expect(renderedText).not.toContain("picked");
 
     tree.unmount();
