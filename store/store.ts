@@ -176,7 +176,21 @@ export interface Match {
   awayGoals: number;
   /** Optional total number of goals in the match (legacy / derived). */
   goals?: number;
+  /**
+   * Display-oriented kickoff. Deliberately loose: the discovery flow puts a local
+   * `HH:MM` here while other paths put a full ISO string, and `MatchItem` renders
+   * either. Do not treat it as a timestamp — use {@link Match.kickoffAt}.
+   */
   startTime?: string;
+  /**
+   * The provider's kickoff instant, ISO-8601, when the match came from match
+   * discovery. Absent for a fixture entered by hand.
+   *
+   * Separate from `startTime` because that one is a display string and cannot be
+   * parsed reliably; persisting a fixture to a multiplayer room needs a genuine
+   * `timestamptz`, and passing `"15:00"` to one fails the insert outright.
+   */
+  kickoffAt?: string;
 }
 
 /**

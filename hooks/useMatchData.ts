@@ -66,6 +66,10 @@ const mapNormalizedMatchesToApiData = (
         team2: match.awayTeam,
         date: match.startDateTime.split("T")[0] || "",
         time: new Date(match.startDateTime).toTimeString().substring(0, 5),
+        // Kept alongside the lossy display pair above so downstream consumers that
+        // need a real instant are not forced to reassemble a UTC date with a local
+        // time (see MatchData.startDateTime).
+        startDateTime: match.startDateTime,
         venue: match.venue ?? "",
       })),
   }));

@@ -41,34 +41,32 @@ const toDisplayMatch = (match: RoomMatchSummary): Match => ({
   homeGoals: match.homeScore,
   awayGoals: match.awayScore,
   startTime: match.kickoffAt ?? undefined,
+  kickoffAt: match.kickoffAt ?? undefined,
 });
 
 /**
- * Recovers a fixture's provenance, which the store's `Match` shape cannot carry.
+ * Recovers a fixture's provenance, which the store's `Match` shape does not state
+ * outright.
  *
- * The room pool needs to know whether a row came from the discovery catalogue —
- * that linkage is what lets scores be synced back later — but `Match` has no
- * provider field, so it has to be inferred from how the two code paths build it:
+ * The room needs to know whether a row came from the discovery catalogue, because
+ * that linkage is what lets scores be synced back later. `kickoffAt` is the
+ * discriminator: match discovery populates it with the provider's ISO instant
+ * (`useMatchProcessing`), while a fixture typed by hand has no kickoff at all.
  *
- *  * discovered: `useMatchProcessing.ts:88` copies the catalogue's own id into
- *    `id` and always sets `startTime` from the fixture's kickoff.
- *  * typed by hand: `MatchList.tsx:216` uses `String(Date.now())` for `id` and
- *    sets no `startTime` at all.
- *
- * So the presence of `startTime` is the discriminator. A catalogue fixture with an
- * unknown kickoff would be filed as manual, losing its provider linkage but still
- * landing in the pool — the degradation is a missing score sync, not a lost match.
- * Passing provenance through explicitly needs `Match` to gain a source field,
- * which is the follow-up that removes this inference entirely.
+ * Deliberately NOT keyed on `startTime`, which looks like the obvious choice and is
+ * wrong twice over: discovery puts a *local* `"HH:MM"` display string there, so it
+ * is neither a valid `timestamptz` — passing it to `add_room_match` fails the
+ * insert, which is exactly the bug this replaced — nor safely reassembled from the
+ * accompanying UTC `date`.
  */
 const toAddRequest = (match: Match): AddRoomMatchRequest =>
-  match.startTime
+  match.kickoffAt
     ? {
         sourceProvider: CATALOGUE_SOURCE_PROVIDER,
         sourceMatchId: match.id,
         homeTeamName: match.homeTeam,
         awayTeamName: match.awayTeam,
-        kickoffAt: match.startTime,
+        kickoffAt: match.kickoffAt,
       }
     : {
         // `source_match_id` is nullable and the pool's dedupe index is partial

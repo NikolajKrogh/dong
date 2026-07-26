@@ -73,8 +73,41 @@ describe("useRoomMatchPool", () => {
         homeGoals: 2,
         awayGoals: 1,
         startTime: "2026-08-22T11:30:00.000Z",
+        kickoffAt: "2026-08-22T11:30:00.000Z",
       },
     ]);
+  });
+
+  /**
+   * Regression: match discovery puts a *local* `"HH:MM"` display string in
+   * `startTime`. Sending that as `kickoffAt` made `add_room_match` fail its insert
+   * against a `timestamptz` column, so every add from the catalogue errored and the
+   * room stayed empty. Provenance and the kickoff must both come from `kickoffAt`.
+   */
+  it("never sends a display-only startTime as the kickoff timestamp", async () => {
+    const addMatch = jest.fn(async () => {});
+    const pool = mount([], addMatch, jest.fn(async () => {}));
+
+    await TestRenderer.act(async () => {
+      pool.setMatches([
+        {
+          id: "401879322",
+          homeTeam: "Hull City",
+          awayTeam: "Manchester United",
+          homeGoals: 0,
+          awayGoals: 0,
+          startTime: "13:30",
+        },
+      ]);
+      await flush();
+    });
+
+    expect(addMatch).toHaveBeenCalledWith(
+      expect.objectContaining({ kickoffAt: null }),
+    );
+    expect(addMatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ kickoffAt: "13:30" }),
+    );
   });
 
   it("maps a kickoff-less room match to an undefined startTime", () => {
@@ -103,7 +136,10 @@ describe("useRoomMatchPool", () => {
           awayTeam: "Manchester United",
           homeGoals: 0,
           awayGoals: 0,
-          startTime: "2026-08-22T11:30:00.000Z",
+          // What discovery really produces: a local display time, plus the
+          // provider's ISO instant alongside it.
+          startTime: "13:30",
+          kickoffAt: "2026-08-22T11:30:00.000Z",
         },
       ]);
       await flush();
@@ -168,7 +204,8 @@ describe("useRoomMatchPool", () => {
           awayTeam: "Fixture",
           homeGoals: 0,
           awayGoals: 0,
-          startTime: "2026-08-22T14:00:00.000Z",
+          startTime: "16:00",
+          kickoffAt: "2026-08-22T14:00:00.000Z",
         },
       ]);
       await flush();
@@ -186,9 +223,9 @@ describe("useRoomMatchPool", () => {
 
     await TestRenderer.act(async () => {
       pool.setMatches([
-        { id: "a", homeTeam: "A", awayTeam: "B", homeGoals: 0, awayGoals: 0, startTime: "t1" },
-        { id: "b", homeTeam: "C", awayTeam: "D", homeGoals: 0, awayGoals: 0, startTime: "t2" },
-        { id: "c", homeTeam: "E", awayTeam: "F", homeGoals: 0, awayGoals: 0, startTime: "t3" },
+        { id: "a", homeTeam: "A", awayTeam: "B", homeGoals: 0, awayGoals: 0, kickoffAt: "2026-08-22T12:00:00.000Z" },
+        { id: "b", homeTeam: "C", awayTeam: "D", homeGoals: 0, awayGoals: 0, kickoffAt: "2026-08-22T13:00:00.000Z" },
+        { id: "c", homeTeam: "E", awayTeam: "F", homeGoals: 0, awayGoals: 0, kickoffAt: "2026-08-22T14:00:00.000Z" },
       ]);
       await flush();
     });

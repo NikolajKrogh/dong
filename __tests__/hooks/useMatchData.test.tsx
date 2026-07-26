@@ -111,6 +111,9 @@ describe("useMatchData", () => {
             team2: "Chelsea",
             date: "2026-05-24",
             time: expect.any(String),
+            // The provider's instant, kept verbatim alongside the lossy
+            // date/time display pair.
+            startDateTime: expect.any(String),
             venue: "Emirates Stadium",
           },
         ],
@@ -124,6 +127,7 @@ describe("useMatchData", () => {
             team2: "Inter Miami CF",
             date: "2026-05-24",
             time: expect.any(String),
+            startDateTime: expect.any(String),
             venue: "",
           },
         ],

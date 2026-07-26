@@ -90,6 +90,10 @@ export function useMatchProcessing(
           homeGoals: 0,
           awayGoals: 0,
           startTime: match.time,
+          // Carried alongside the display time so a consumer that needs a real
+          // timestamp (persisting to a multiplayer room) has one. `match.time` is
+          // a local "HH:MM" and is not a valid timestamptz.
+          kickoffAt: match.startDateTime,
         };
       });
 
