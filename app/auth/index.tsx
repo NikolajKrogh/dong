@@ -7,7 +7,7 @@ import AuthForm from "../../components/auth/AuthForm";
 import AuthHeader from "../../components/auth/AuthHeader";
 import { ShellScreen } from "../../components/ui";
 import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
-import { useColors } from "../style/theme";
+import { useColors } from "../../styles/theme";
 
 const AuthScreen = () => {
   const colors = useColors();

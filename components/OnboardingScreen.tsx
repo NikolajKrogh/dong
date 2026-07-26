@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useColors } from "../app/style/theme";
+import { useColors } from "../styles/theme";
 import { PlatformGestureView } from "../platform";
 
 const onboardingSteps = [

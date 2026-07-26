@@ -32,9 +32,9 @@ import SortHistoryModal, {
 } from "../components/history/SortHistoryModal";
 import { ShellScreen } from "../components/ui";
 import { useGameStore } from "../store/store";
-import { createHistoryStyles } from "./style/historyStyles";
-import { isWideLayout } from "./style/responsive";
-import { useColors } from "./style/theme";
+import { createHistoryStyles } from "../styles/historyStyles";
+import { isWideLayout } from "../styles/responsive";
+import { useColors } from "../styles/theme";
 
 // Define tab names and order
 const TABS = ["Games", "Players", "Stats"];

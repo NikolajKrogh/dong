@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getCurrentColors } from "../../app/style/theme";
+import { getCurrentColors } from "../../styles/theme";
 
 export const RandomMatchesToast = {
   themedSuccess: (props: { text1?: string; text2?: string }) => {

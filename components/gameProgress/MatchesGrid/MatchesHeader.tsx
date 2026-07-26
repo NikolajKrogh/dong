@@ -8,8 +8,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MatchesHeaderProps } from "./types";
-import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
-import { useColors } from "../../../app/style/theme";
+import { createGameProgressStyles } from "../../../styles/gameProgressStyles";
+import { useColors } from "../../../styles/theme";
 
 /**
  * Header for the matches grid/list.

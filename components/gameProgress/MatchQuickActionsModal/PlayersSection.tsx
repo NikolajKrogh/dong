@@ -1,7 +1,7 @@
 import React from "react";
 import { Animated, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 import { Player } from "../../../store/store";
 import { createStyles } from "./styles";
 

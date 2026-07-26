@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
-import { useColors } from "../../../app/style/theme";
+import { createGameProgressStyles } from "../../../styles/gameProgressStyles";
+import { useColors } from "../../../styles/theme";
 import { useTeamLogo } from "../../../hooks/useTeamLogo";
 import AppIcon from "../../AppIcon";
 import { MatchItemProps } from "./types";

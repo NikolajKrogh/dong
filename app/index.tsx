@@ -24,9 +24,9 @@ import { ShellActionButton, ShellScreen } from "../components/ui";
 import { useHomeRoomActions } from "../hooks/useHomeRoomActions";
 import { useGameStore } from "../store/store";
 import { getTopDrinker, getTotalDrinks } from "../utils/homeStats";
-import createStyles from "./style/indexStyles";
-import { isWideLayout } from "./style/responsive";
-import { useColors } from "./style/theme";
+import createStyles from "../styles/indexStyles";
+import { isWideLayout } from "../styles/responsive";
+import { useColors } from "../styles/theme";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened

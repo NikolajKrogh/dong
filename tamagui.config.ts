@@ -1,6 +1,6 @@
 import { createTamagui } from "tamagui";
-import { darkTheme, lightTheme } from "./app/style/tamaguiThemes";
-import { tokens } from "./app/style/tamaguiTokens";
+import { darkTheme, lightTheme } from "./styles/tamaguiThemes";
+import { tokens } from "./styles/tamaguiTokens";
 
 const config = createTamagui({
   tokens,

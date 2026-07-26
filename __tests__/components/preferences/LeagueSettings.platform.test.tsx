@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#007AFF",
     secondary: "#6C757D",
@@ -16,7 +16,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/userPreferencesStyles", () => ({
+jest.mock("../../../styles/userPreferencesStyles", () => ({
   createUserPreferencesStyles: () => ({
     commonStyles: {
       section: {},

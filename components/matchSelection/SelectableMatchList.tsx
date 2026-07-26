@@ -3,8 +3,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
 
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
 /**

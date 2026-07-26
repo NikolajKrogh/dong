@@ -2,8 +2,8 @@ import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import AppIcon from "../AppIcon";
 import { GameSession } from "./historyTypes";
-import { createHistoryStyles } from "../../app/style/historyStyles";
-import { useColors } from "../../app/style/theme";
+import { createHistoryStyles } from "../../styles/historyStyles";
+import { useColors } from "../../styles/theme";
 import {
   calculateTotalGoals,
   calculateTotalDrinks,

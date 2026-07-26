@@ -7,9 +7,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { isWideLayout } from "../../app/style/responsive";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import { isWideLayout } from "../../styles/responsive";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 import AppIcon, { AppIconName } from "../AppIcon";
 
 const STEP_DEFINITIONS: { name: string; icon: AppIconName }[] = [

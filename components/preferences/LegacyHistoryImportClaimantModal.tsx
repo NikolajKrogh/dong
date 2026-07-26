@@ -3,14 +3,14 @@ import React from "react";
 import {
   FlatList,
   Modal,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useColors } from "../../app/style/theme";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../styles/theme";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
 import type { LegacyHistoryDerivedClaimantOption } from "../../utils/legacyHistoryImport";
 
 interface LegacyHistoryImportClaimantModalProps {

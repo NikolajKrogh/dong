@@ -7,7 +7,7 @@ import AuthHeader from "../../components/auth/AuthHeader";
 import UsernameOnboardingForm from "../../components/auth/UsernameOnboardingForm";
 import { ShellScreen } from "../../components/ui";
 import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
-import { useColors } from "../style/theme";
+import { useColors } from "../../styles/theme";
 
 const AccountOnboardingScreen = () => {
   const colors = useColors();

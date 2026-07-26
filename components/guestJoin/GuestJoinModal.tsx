@@ -2,11 +2,11 @@ import React, { useMemo } from "react";
 import {
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack, useTheme } from "tamagui";
 
 import type { GuestRoomSession } from "../../types/guestRoom";

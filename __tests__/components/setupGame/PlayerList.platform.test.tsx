@@ -101,7 +101,7 @@ jest.mock("../../../components/setupGame/PlayerSuggestionDropdown", () => {
     });
 });
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     textSecondary: "#333333",
     textPlaceholder: "#999999",
@@ -111,7 +111,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => mockStyles,
 }));

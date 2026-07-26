@@ -3,14 +3,14 @@ import React, { useEffect, useState } from "react";
 import {
   FlatList,
   Modal,
-  SafeAreaView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 
 /**
  * Represents a selectable team option including optional league metadata.

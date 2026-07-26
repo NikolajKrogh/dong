@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     textMuted: "#888",
     switchTrackOff: "#ccc",
@@ -12,7 +12,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/userPreferencesStyles", () => ({
+jest.mock("../../../styles/userPreferencesStyles", () => ({
   createUserPreferencesStyles: () => ({
     settingsStyles: {
       preferenceRow: {},

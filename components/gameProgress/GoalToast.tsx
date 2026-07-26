@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { getCurrentColors } from "../../app/style/theme";
+import { getCurrentColors } from "../../styles/theme";
 
 /**
  * Goal toast configuration for react-native-toast-message.

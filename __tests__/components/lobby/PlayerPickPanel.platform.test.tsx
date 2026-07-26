@@ -2,11 +2,22 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
-jest.mock("tamagui", () => ({
-  Text: "Text",
-  XStack: "XStack",
-  YStack: "YStack",
-}));
+// Partial mock: Text/XStack/YStack are swapped for plain host tags so this
+// suite can assert on PlainPickPanel's own structure without rendering real
+// Tamagui primitives, but everything else (createTamagui, createTokens,
+// TamaguiProvider, ...) stays real -- TamaguiTestProvider below needs those to
+// build an actual theme/config context, which the babel-plugin-generated style
+// code in PlayerPickPanel.tsx requires even though its Text/XStack/YStack are
+// mocked (see the comment on `render` below).
+jest.mock("tamagui", () => {
+  const actual = jest.requireActual("tamagui");
+  return {
+    ...actual,
+    Text: "Text",
+    XStack: "XStack",
+    YStack: "YStack",
+  };
+});
 
 jest.mock("../../../components/ui", () => ({
   ShellActionButton: "ShellActionButton",
@@ -52,19 +63,34 @@ const MATCHES = [
   { id: "m3", homeTeam: "Leeds", awayTeam: "Villa" },
 ];
 
+// PlayerPickPanel's own JSX uses tamagui style shorthand props (gap="$2",
+// color="$colorMuted", ...), so the babel plugin statically wraps those
+// elements in Tamagui's internal _withStableStyle at compile time -- this
+// happens regardless of the "tamagui" module mock above, which only affects
+// what YStack/Text/XStack resolve to at runtime, not the generated style
+// code. Without a real TamaguiProvider ancestor supplying a theme, that
+// generated code crashes reading .get off an empty fallback theme object, so
+// a real (unmocked-tamagui-module-notwithstanding) provider is still required.
 const render = (props: Record<string, unknown> = {}) => {
   const {
     PlayerPickPanel,
   } = require("../../../components/lobby/PlayerPickPanel");
+  const {
+    TamaguiTestProvider,
+  } = require("../../../test-utils/tamagui");
 
   return actCreate(
-    React.createElement(PlayerPickPanel, {
-      matches: MATCHES,
-      myPicks: [],
-      cap: 2,
-      onSetPicks: jest.fn(),
-      ...props,
-    }),
+    React.createElement(
+      TamaguiTestProvider,
+      null,
+      React.createElement(PlayerPickPanel, {
+        matches: MATCHES,
+        myPicks: [],
+        cap: 2,
+        onSetPicks: jest.fn(),
+        ...props,
+      }),
+    ),
   );
 };
 
@@ -133,13 +159,17 @@ describe("PlayerPickPanel", () => {
     TestRenderer.act(() => {
       renderer.update(
         React.createElement(
-          require("../../../components/lobby/PlayerPickPanel").PlayerPickPanel,
-          {
-            matches: MATCHES,
-            myPicks: ["m3"],
-            cap: 2,
-            onSetPicks: jest.fn(),
-          },
+          require("../../../test-utils/tamagui").TamaguiTestProvider,
+          null,
+          React.createElement(
+            require("../../../components/lobby/PlayerPickPanel").PlayerPickPanel,
+            {
+              matches: MATCHES,
+              myPicks: ["m3"],
+              cap: 2,
+              onSetPicks: jest.fn(),
+            },
+          ),
         ),
       );
     });

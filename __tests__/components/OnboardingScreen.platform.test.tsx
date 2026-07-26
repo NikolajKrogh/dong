@@ -14,7 +14,7 @@ jest.mock("../../platform", () => ({
   PlatformGestureView: mockPlatformGestureView,
 }));
 
-jest.mock("../../app/style/theme", () => ({
+jest.mock("../../styles/theme", () => ({
   useColors: () => ({
     surface: "#ffffff",
     primary: "#123456",

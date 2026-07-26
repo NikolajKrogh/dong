@@ -13,9 +13,9 @@ import {
 import { ShellScreen } from "../components/ui";
 import { Match, Player, useGameStore } from "../store/store";
 import { createRandomAssignments } from "../utils/setupGameAssignments";
-import { isWideLayout } from "./style/responsive";
-import createSetupGameStyles from "./style/setupGameStyles";
-import { useColors } from "./style/theme";
+import { isWideLayout } from "../styles/responsive";
+import createSetupGameStyles from "../styles/setupGameStyles";
+import { useColors } from "../styles/theme";
 
 /**
  * Game setup wizard: players, matches, common match selection, and assignments.

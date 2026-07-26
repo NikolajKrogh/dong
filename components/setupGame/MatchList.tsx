@@ -8,8 +8,8 @@ import {
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 import { useMatchData } from "../../hooks/useMatchData";
 import {
   normalizeMatchTeamName,

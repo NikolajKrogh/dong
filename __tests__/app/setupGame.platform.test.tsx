@@ -55,11 +55,11 @@ jest.mock("../../store/store", () => ({
   useGameStore: () => mockStoreState,
 }));
 
-jest.mock("../../app/style/theme", () => ({
+jest.mock("../../styles/theme", () => ({
   useColors: () => ({ background: "#fff" }),
 }));
 
-jest.mock("../../app/style/setupGameStyles", () => ({
+jest.mock("../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => ({
     safeArea: {},

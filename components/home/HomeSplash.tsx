@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { PlatformAnimation } from "../../platform";
-import createStyles from "../../app/style/indexStyles";
+import createStyles from "../../styles/indexStyles";
 
 interface HomeSplashProps {
   styles: ReturnType<typeof createStyles>;

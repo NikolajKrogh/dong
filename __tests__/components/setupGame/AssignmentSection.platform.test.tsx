@@ -81,7 +81,7 @@ jest.mock("../../../utils/teamLogos", () => ({
   getTeamLogoWithFallback: jest.fn(() => null),
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     primaryLight: "#345678",
@@ -91,7 +91,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => mockStyles,
 }));

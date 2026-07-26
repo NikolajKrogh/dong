@@ -5,8 +5,8 @@
 import React, { useMemo } from "react";
 import { View, Text, Image } from "react-native";
 import { Match } from "../../store/store";
-import { useColors } from "../../app/style/theme";
-import { createHistoryStyles } from "../../app/style/historyStyles";
+import { useColors } from "../../styles/theme";
+import { createHistoryStyles } from "../../styles/historyStyles";
 import { useTeamLogo } from "../../hooks/useTeamLogo";
 
 /**

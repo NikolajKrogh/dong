@@ -8,8 +8,8 @@ import Animated, {
 
 import AppIcon from "../AppIcon";
 import { MatchData } from "../../utils/matchUtils";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 import {
   formatDateIsoValue,
   parseDateIsoValue,

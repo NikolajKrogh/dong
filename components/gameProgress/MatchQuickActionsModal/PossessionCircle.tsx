@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 import { describeArc } from "../../../utils/svgArc";
 import { createStyles } from "./styles";
 

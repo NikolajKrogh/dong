@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
 
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 
 interface MatchSelectionCardProps {
   /** Heading — a player's name in the solo flow, "Your picks" on a pick surface. */

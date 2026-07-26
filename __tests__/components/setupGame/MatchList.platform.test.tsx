@@ -93,7 +93,7 @@ jest.mock("../../../store/store", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     textLight: "#ffffff",
@@ -101,7 +101,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => mockStyles,
 }));

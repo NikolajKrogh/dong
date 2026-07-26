@@ -6,7 +6,7 @@ import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SortModalProps } from "./types";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 
 /**
  * SortModal component

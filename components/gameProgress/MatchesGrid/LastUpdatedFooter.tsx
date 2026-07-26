@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LastUpdatedFooterProps } from "./types";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 
 /**
  * Footer showing last update time with manual refresh and live polling indicators.

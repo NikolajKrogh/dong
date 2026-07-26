@@ -54,7 +54,7 @@ jest.mock("expo-router", () => ({
 
 jest.mock("../../../components/AppIcon", () => () => null);
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     secondary: "#234567",
@@ -64,7 +64,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => mockStyles,
 }));

@@ -9,15 +9,15 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  SafeAreaView,
   Image,
   Animated,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 
 /** Props for `ManageLeaguesModal`. */
 interface ManageLeaguesModalProps {

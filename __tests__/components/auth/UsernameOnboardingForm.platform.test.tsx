@@ -3,11 +3,21 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 import UsernameOnboardingForm from "../../../components/auth/UsernameOnboardingForm";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+
+const TestSubject: typeof UsernameOnboardingForm = (props) =>
+  React.createElement(TamaguiTestProvider, null, React.createElement(UsernameOnboardingForm, props));
 
 jest.mock("tamagui", () => {
   const RN = require("react-native");
   const ReactLocal = require("react");
+  // Partial mock: real createTamagui/createTokens/TamaguiProvider are kept so
+  // TamaguiTestProvider (used below) can build an actual theme/config context --
+  // the babel-plugin-generated style code in the component under test needs
+  // that context even for the props this mock swaps out for plain RN elements.
+  const actual = jest.requireActual("tamagui");
   return {
+    ...actual,
     Text: ({ children, ...props }: any) =>
       ReactLocal.createElement(RN.Text, props, children),
     YStack: ({ children, ...props }: any) =>
@@ -15,7 +25,11 @@ jest.mock("tamagui", () => {
   };
 });
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
+  // Real darkColors/lightColors are still needed: styles/tamaguiThemes.ts
+  // (pulled in transitively via TamaguiTestProvider below) imports darkColors
+  // from this module, so a mock providing only useColors leaves it undefined.
+  ...jest.requireActual("../../../styles/theme"),
   useColors: () => ({
     textPrimary: "#111111",
     textSecondary: "#666666",
@@ -80,7 +94,7 @@ jest.mock("../../../components/ui", () => ({
 describe("UsernameOnboardingForm", () => {
   it("renders the required display-name onboarding form", () => {
     const tree = actCreate(
-      React.createElement(UsernameOnboardingForm),
+      React.createElement(TestSubject),
     );
 
     const { Text } = require("react-native");

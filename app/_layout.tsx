@@ -18,8 +18,7 @@ const toastConfig = {
  * @component
  * @description Wraps the app in TamaguiAppProvider (themed from persisted store),
  * a gesture handler root, sets initial stack routes, hides headers (handled by
- * custom screens), and registers themed toast types. Also mounts a hidden `_style`
- * route group to prevent style utility folders from becoming user-visible screens.
+ * custom screens), and registers themed toast types.
  */
 export default function Layout() {
   return (
@@ -35,8 +34,6 @@ export default function Layout() {
               options={{ title: "Preferences" }}
             />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
-            {/* Group to prevent style files from being treated as routes */}
-            <Stack.Screen name="_style" options={{ headerShown: false }} />
           </Stack>
           <Toast config={toastConfig as any} />
         </PlatformGestureRoot>

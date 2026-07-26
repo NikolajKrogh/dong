@@ -5,10 +5,10 @@ import {
   TouchableOpacity,
   Modal,
   StyleSheet,
-  SafeAreaView,
   useWindowDimensions,
 } from "react-native";
-import { useColors } from "../../app/style/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useColors } from "../../styles/theme";
 
 /**
  * Props for the EndGameModal component.

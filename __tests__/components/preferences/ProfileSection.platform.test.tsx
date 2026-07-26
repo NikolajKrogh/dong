@@ -3,6 +3,10 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 import ProfileSection from "../../../components/preferences/ProfileSection";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+
+const TestSubject = (props: Record<string, unknown> = {}) =>
+  React.createElement(TamaguiTestProvider, null, React.createElement(ProfileSection, props));
 import { useAccountAuth } from "../../../hooks/useAccountAuth";
 
 jest.mock("../../../hooks/useAccountAuth", () => {
@@ -16,7 +20,11 @@ jest.mock("../../../hooks/useAccountAuth", () => {
 
 const mockUseAccountAuth = jest.mocked(useAccountAuth);
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
+  // Real darkColors/lightColors are still needed: styles/tamaguiThemes.ts
+  // (pulled in transitively via TamaguiTestProvider below) imports darkColors
+  // from this module, so a mock providing only useColors leaves it undefined.
+  ...jest.requireActual("../../../styles/theme"),
   useColors: () => ({
     border: "#cccccc",
     surface: "#ffffff",
@@ -29,7 +37,13 @@ jest.mock("../../../app/style/theme", () => ({
 jest.mock("tamagui", () => {
   const RN = require("react-native");
   const ReactLocal = require("react");
+  // Partial mock: real createTamagui/createTokens/TamaguiProvider are kept so
+  // TamaguiTestProvider (used below) can build an actual theme/config context --
+  // the babel-plugin-generated style code in the component under test needs
+  // that context even for the props this mock swaps out for plain RN elements.
+  const actual = jest.requireActual("tamagui");
   return {
+    ...actual,
     Text: ({ children, ...props }: any) =>
       ReactLocal.createElement(RN.Text, props, children),
     YStack: ({ children, ...props }: any) =>
@@ -82,7 +96,7 @@ describe("ProfileSection", () => {
       status: "ready",
     });
 
-    const renderer = actCreate(React.createElement(ProfileSection));
+    const renderer = actCreate(React.createElement(TestSubject));
 
     const { Text, TextInput } = require("react-native");
     const texts = renderer.root.findAllByType(Text);
@@ -112,7 +126,7 @@ describe("ProfileSection", () => {
       status: "ready",
     });
 
-    const renderer = actCreate(React.createElement(ProfileSection));
+    const renderer = actCreate(React.createElement(TestSubject));
 
     const { TextInput } = require("react-native");
 
@@ -158,7 +172,7 @@ describe("ProfileSection", () => {
       status: "ready",
     });
 
-    const renderer = actCreate(React.createElement(ProfileSection));
+    const renderer = actCreate(React.createElement(TestSubject));
     const saveButton = renderer.root.findByProps({
       label: "Save display name",
     });

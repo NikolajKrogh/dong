@@ -3,8 +3,8 @@ import { Text, View } from "react-native";
 
 import AppIcon from "../AppIcon";
 import { ShellCard } from "../ui";
-import createStyles from "../../app/style/indexStyles";
-import { useColors } from "../../app/style/theme";
+import createStyles from "../../styles/indexStyles";
+import { useColors } from "../../styles/theme";
 import type { TopDrinkerInfo } from "../../utils/homeStats";
 
 interface HistoryStatsCardProps {

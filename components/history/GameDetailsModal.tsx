@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { GameSession } from "./historyTypes";
-import { createHistoryStyles } from "../../app/style/historyStyles";
-import { useColors } from "../../app/style/theme";
+import { createHistoryStyles } from "../../styles/historyStyles";
+import { useColors } from "../../styles/theme";
 import { useTeamLogo } from "../../hooks/useTeamLogo";
 import {
   formatModalDate,

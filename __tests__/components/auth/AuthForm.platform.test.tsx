@@ -21,7 +21,11 @@ jest.mock("@expo/vector-icons", () => {
   };
 });
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
+  // Real darkColors/lightColors are still needed: styles/tamaguiThemes.ts
+  // (pulled in transitively via TamaguiTestProvider below) imports darkColors
+  // from this module, so a mock providing only useColors leaves it undefined.
+  ...(jest.requireActual("../../../styles/theme") as object),
   useColors: () => ({
     backgroundSubtle: "#f0f0f0",
     textPrimary: "#111111",
@@ -75,7 +79,13 @@ jest.mock("../../../components/ui", () => ({
 jest.mock("tamagui", () => {
   const RN = require("react-native");
   const ReactLocal = require("react");
+  // Partial mock: real createTamagui/createTokens/TamaguiProvider are kept so
+  // TamaguiTestProvider (used below) can build an actual theme/config context --
+  // the babel-plugin-generated style code in the component under test needs
+  // that context even for the props this mock swaps out for plain RN elements.
+  const actual = jest.requireActual("tamagui") as object;
   return {
+    ...actual,
     Text: ({ children, onPress, testID }: any) =>
       ReactLocal.createElement(RN.Text, { onPress, testID }, children),
     XStack: ({ children, onPress, testID }: any) =>
@@ -115,6 +125,9 @@ jest.mock("../../../hooks/useAccountAuth", () => {
 });
 
 const AuthForm = require("../../../components/auth/AuthForm").default;
+const { TamaguiTestProvider } = require("../../../test-utils/tamagui");
+const TestSubject = (props: any) =>
+  React.createElement(TamaguiTestProvider, null, React.createElement(AuthForm, props));
 
 describe("AuthForm", () => {
   beforeEach(() => {
@@ -122,7 +135,7 @@ describe("AuthForm", () => {
   });
 
   it("renders the sign-in form by default", () => {
-    const tree = actCreate(React.createElement(AuthForm));
+    const tree = actCreate(React.createElement(TestSubject));
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);
     const textContents = textNodes.flatMap((node: any) => node.props.children);
@@ -140,7 +153,7 @@ describe("AuthForm", () => {
     });
 
     const tree = actCreate(
-      React.createElement(AuthForm, {
+      React.createElement(TestSubject, {
         confirmationCode: "confirmation-code-123",
       }),
     );

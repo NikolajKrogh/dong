@@ -14,7 +14,7 @@ import PlayersList from "../components/gameProgress/PlayersList";
 import TabNavigation from "../components/gameProgress/TabNavigation";
 import { ShellScreen } from "../components/ui";
 import useGameProgressController from "../hooks/useGameProgressController";
-import { isWideLayout } from "./style/responsive";
+import { isWideLayout } from "../styles/responsive";
 
 const GameProgressScreen = () => {
   const { width } = useWindowDimensions();

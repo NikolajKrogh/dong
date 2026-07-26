@@ -21,7 +21,7 @@ jest.mock("react-native", () => ({
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     backgroundModalOverlay: "rgba(0,0,0,0.4)",
     surface: "#ffffff",

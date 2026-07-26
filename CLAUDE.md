@@ -112,7 +112,7 @@ Restart Expo after changing `.env.local`.
 - **State**: Zustand + AsyncStorage is canonical on-device. Supabase Postgres backs multiplayer/synced state. No other persistence layer.
 - **Auth**: Supabase Auth. Signed-in = host. Guests join via room code and are session-scoped identities.
 - **Match discovery**: client calls `GET /v1/matches` on the Java proxy (not ESPN directly). The proxy applies a configurable in-memory TTL cache (default `PT5M`).
-- **Tamagui**: design system foundation. New UI work should use Tamagui components and move toward the palette defined in `app/style/`.
+- **Tamagui**: design system foundation. New UI work should use Tamagui components and move toward the palette defined in `styles/`.
 - **Supabase project ref**: `qccvlhblytuedgmlqfef` (MCP config in `.mcp.json`).
 
 <!-- SPECKIT START -->

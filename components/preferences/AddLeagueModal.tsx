@@ -8,11 +8,11 @@ import {
   TextInput,
   FlatList,
   Image,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
-import { useColors } from "../../app/style/theme";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
+import { useColors } from "../../styles/theme";
 import {
   AVAILABLE_LEAGUES,
   LEAGUE_CATEGORIES,

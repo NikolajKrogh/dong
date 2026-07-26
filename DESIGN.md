@@ -8,13 +8,13 @@ The app presents itself as a clean, game-day utility: bright action blue, white 
 
 Primary audit sources:
 
-- `app/style/palette.ts`
-- `app/style/theme.ts`
-- `app/style/indexStyles.ts`
-- `app/style/setupGameStyles.ts`
-- `app/style/gameProgressStyles.ts`
-- `app/style/historyStyles.ts`
-- `app/style/userPreferencesStyles.ts`
+- `styles/palette.ts`
+- `styles/theme.ts`
+- `styles/indexStyles.ts`
+- `styles/setupGameStyles.ts`
+- `styles/gameProgressStyles.ts`
+- `styles/historyStyles.ts`
+- `styles/userPreferencesStyles.ts`
 
 ## Color Palette & Roles
 
@@ -345,8 +345,8 @@ The application shell is built on Tamagui-backed primitives exported from `compo
 
 ### Token bridge
 
-- `app/style/tamaguiTokens.ts` maps the DONG palette into `createTokens` format (color, space, size, radius, zIndex).
-- `app/style/tamaguiThemes.ts` defines `lightTheme` and `darkTheme` objects with ~30 semantic keys consumed by Tamagui components.
+- `styles/tamaguiTokens.ts` maps the DONG palette into `createTokens` format (color, space, size, radius, zIndex).
+- `styles/tamaguiThemes.ts` defines `lightTheme` and `darkTheme` objects with ~30 semantic keys consumed by Tamagui components.
 - `tamagui.config.ts` assembles the final Tamagui config from tokens and themes.
 
 ### Provider

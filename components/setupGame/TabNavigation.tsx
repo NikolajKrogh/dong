@@ -5,9 +5,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { isWideLayout as isWideViewport } from "../../app/style/responsive";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import { isWideLayout as isWideViewport } from "../../styles/responsive";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 
 interface TabNavigationProps {
   activeTab: string;

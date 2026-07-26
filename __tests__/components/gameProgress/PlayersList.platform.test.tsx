@@ -61,13 +61,13 @@ jest.mock("react-native-reanimated", () => ({
   withTiming: (value: number) => value,
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     textLight: "#ffffff",
   }),
 }));
 
-jest.mock("../../../app/style/gameProgressStyles", () => ({
+jest.mock("../../../styles/gameProgressStyles", () => ({
   createGameProgressStyles: () => mockStyles,
 }));
 

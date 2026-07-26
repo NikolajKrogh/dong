@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 
 /** Style creator for the MatchQuickActionsModal and its sub-components. */
 export const createStyles = (

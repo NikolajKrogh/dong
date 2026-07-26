@@ -18,8 +18,8 @@ import ProfileSection from "../components/preferences/ProfileSection";
 import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
 import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
 import { ShellScreen } from "../components/ui";
-import { isWideLayout } from "./style/responsive";
-import { useColors } from "./style/theme";
+import { isWideLayout } from "../styles/responsive";
+import { useColors } from "../styles/theme";
 
 /**
  * User preferences screen for configuring notifications, leagues, appearance, and onboarding.

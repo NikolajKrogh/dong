@@ -10,14 +10,14 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  SafeAreaView,
   Animated,
   useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Player } from "../../../store/store";
 import { useTeamLogo } from "../../../hooks/useTeamLogo";
 import { useMatchQuickActionsAnimations } from "../../../hooks/useMatchQuickActionsAnimations";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 import { MatchHeader } from "./MatchHeader";
 import { ModalTabBar } from "./ModalTabBar";
 import { ScoreControls } from "./ScoreControls";

@@ -1,8 +1,8 @@
 import React from "react";
 import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
-import createStyles from "../../app/style/indexStyles";
-import { useColors } from "../../app/style/theme";
+import createStyles from "../../styles/indexStyles";
+import { useColors } from "../../styles/theme";
 import type { UseRoomExitResult } from "../../hooks/useRoomExit";
 import type { MyActiveRoom } from "../../types/room";
 

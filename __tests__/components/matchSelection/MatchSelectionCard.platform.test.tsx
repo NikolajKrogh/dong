@@ -22,11 +22,11 @@ jest.mock("react-native", () => ({
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: "Ionicons" }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({ primary: "#p" }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => mockStyles,
 }));
