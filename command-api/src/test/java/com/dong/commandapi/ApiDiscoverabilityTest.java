@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "supabase.jwt-secret=test-secret-which-is-at-least-thirty-two-bytes-long",
+                "supabase.jwks-url=https://example.invalid/.well-known/jwks.json",
                 "supabase.url=http://localhost:9"
         }
 )

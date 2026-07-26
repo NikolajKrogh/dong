@@ -1,6 +1,23 @@
 spring:
   application:
     name: command-api
+  config:
+    # Load command-api/.env for local development so the service can be started
+    # without exporting anything into the shell. `.env` has no extension Spring
+    # recognises, so [.properties] names the loader; `optional:` keeps startup
+    # working where the file does not exist (CI, containers, prod).
+    #
+    # Both paths are listed because the working directory differs between
+    # `mvnw spring-boot:run` / `java -jar` (run from command-api/) and tooling
+    # launched from the repo root.
+    #
+    # Precedence is deliberate: real OS environment variables outrank imported
+    # config data, so a value exported in the shell — or injected by a container
+    # orchestrator — still wins over anything in .env. The file is a local
+    # default, never an override.
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:./command-api/.env[.properties]
 
 server:
   port: 8080
@@ -135,7 +152,7 @@ command-api:
       - caf.nations
 
 supabase:
-  jwt-secret: ${SUPABASE_JWT_SECRET}
+  jwks-url: ${SUPABASE_JWKS_URL}
   url: ${SUPABASE_URL}
   anon-key: ${SUPABASE_ANON_KEY:}
 

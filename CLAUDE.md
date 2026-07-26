@@ -36,12 +36,18 @@ cd command-api
 .\mvnw.cmd spring-boot:run        # run service on :8080 (set env vars first)
 ```
 
-Required env vars for running/testing the Java service:
+Config for the Java service lives in `command-api/.env`, which Spring Boot loads
+automatically (`spring.config.import` in `application.yml`) — no shell exports needed.
+Start from `cp command-api/.env.example command-api/.env`. It is parsed as a Java
+properties file, so leave values unquoted; real environment variables override it.
 
-```powershell
-$env:SUPABASE_JWT_SECRET = "test-secret-which-is-at-least-thirty-two-bytes-long"
-$env:SUPABASE_URL        = "http://localhost:9"
-```
+Required keys: `SUPABASE_JWKS_URL`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` (the last
+is required against a hosted project — without it Supabase's gateway returns 401 and
+the `supabase` health component stays DOWN).
+
+JWTs are verified against Supabase's published JWT Signing Keys (ES256/RS256) — there
+is no shared secret. Mint a test token with
+`npx supabase gen bearer-jwt --role authenticated --sub <uuid>`.
 
 ### Supabase / database
 

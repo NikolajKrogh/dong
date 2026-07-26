@@ -30,7 +30,7 @@ jobs:
 
       - name: OWASP dependency-check
         env:
-          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          SUPABASE_JWKS_URL: ${{ secrets.SUPABASE_JWKS_URL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: ./mvnw --batch-mode --no-transfer-progress -Psecurity verify

@@ -68,12 +68,22 @@ public class SecurityConfig {
                 return http.build();
         }
 
-        /** Dev-only CORS, active only when {@code command-api.cors.enabled=true}. */
+        /**
+         * Dev-only CORS, active only when {@code command-api.cors.enabled=true}.
+         *
+         * <p>Configured via {@code setAllowedOriginPatterns} rather than
+         * {@code setAllowedOrigins}: the Expo web dev server picks the first free
+         * port (8081, then 8082, 8083, …), so an exact-match origin list silently
+         * breaks CORS the moment something else already holds 8081 — the browser
+         * reports only a generic "NetworkError", which is a miserable thing to
+         * debug. Patterns are a superset of exact origins, so plain literals in
+         * {@code allowed-origins} keep working unchanged.
+         */
         @Bean
         @ConditionalOnProperty(prefix = "command-api.cors", name = "enabled", havingValue = "true")
         public CorsConfigurationSource corsConfigurationSource(CorsProperties props) {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(props.allowedOrigins());
+                config.setAllowedOriginPatterns(props.allowedOrigins());
                 config.setAllowedMethods(props.allowedMethods());
                 config.setAllowedHeaders(props.allowedHeaders());
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

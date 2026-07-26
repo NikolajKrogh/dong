@@ -19,7 +19,7 @@
     <properties>
         <java.version>17</java.version>
         <springdoc.version>2.8.6</springdoc.version>
-        <jjwt.version>0.12.6</jjwt.version>
+        <nimbus-jose-jwt.version>10.9.1</nimbus-jose-jwt.version>
         <logstash.version>8.1</logstash.version>
         <caffeine.version>3.1.8</caffeine.version>
         <jacoco.version>0.8.12</jacoco.version>
@@ -52,22 +52,14 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- JWKS-based verification of Supabase's asymmetric JWT Signing Keys
+             (research.md JWT Signing Algorithm ADR, superseded — HS256/shared
+             secret retired in favor of ES256/RS256 verified via
+             supabase.jwks-url). -->
         <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
         </dependency>
 
         <dependency>
