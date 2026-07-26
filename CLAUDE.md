@@ -109,7 +109,20 @@ Copy env values with `npm run auth:env`. To wire the client to the local Java se
 EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
 ```
 
-Restart Expo after changing `.env.local`.
+Restart Expo with `-c` after changing `.env.local` — `EXPO_PUBLIC_*` values are
+inlined at bundle time, so a plain restart keeps serving the old value.
+
+`localhost` works for the web build directly. For a physical Android device it needs
+a reverse tunnel, the same mechanism Metro uses for its own port:
+
+```bash
+npm run android:tunnel   # adb reverse tcp:8080 tcp:8080
+```
+
+Prefer this over the machine's LAN IP: no inbound firewall rule is involved (a
+blocked one manifests as a *timeout*, not a refusal, which is easy to misread), and
+it survives the host's DHCP address changing. Re-run it whenever the device
+reconnects — reverse tunnels do not persist across USB re-attach.
 
 ---
 
