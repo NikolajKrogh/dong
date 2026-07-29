@@ -27,20 +27,8 @@ const mockMatchDataState = {
 const mockStyles = {
   tabContent: { testStyle: "tabContent" },
   matchListLayout: { testStyle: "matchListLayout" },
-  matchListWideLayout: {
-    testStyle: "matchListWideLayout",
-    flexDirection: "row",
-  },
   matchListControls: { testStyle: "matchListControls" },
-  matchListControlsWide: {
-    testStyle: "matchListControlsWide",
-    width: 360,
-  },
   matchListResults: { testStyle: "matchListResults" },
-  matchListResultsWide: {
-    testStyle: "matchListResultsWide",
-    flex: 1,
-  },
   loadingContainer: { testStyle: "loadingContainer" },
   lottieAnimation: { testStyle: "lottieAnimation" },
   loadingText: { testStyle: "loadingText" },
@@ -164,14 +152,15 @@ jest.mock("../../../components/setupGame/TeamSelectionRow", () => ({
   },
 }));
 
-jest.mock("../../../components/setupGame/MatchItem", () => ({
-  __esModule: true,
-  default: (props: any) => {
+// Named export, not default -- the pool now renders through the app's shared
+// match-card component rather than the wizard's own retired MatchItem.
+jest.mock("../../../components/matchSelection/SelectableMatchList", () => ({
+  SelectableMatchList: (props: any) => {
     const ReactLocal = require("react");
     const ReactNativeLocal = require("react-native");
 
     return ReactLocal.createElement(ReactNativeLocal.View, {
-      testID: "MatchItem",
+      testID: "SelectableMatchList",
       ...props,
     });
   },
@@ -212,7 +201,6 @@ const renderMatchList = (overrides: Record<string, unknown> = {}) => {
       awayTeam: "Chelsea",
       setHomeTeam: jest.fn(),
       setAwayTeam: jest.fn(),
-      handleAddMatch: jest.fn(),
       handleRemoveMatch: jest.fn(),
       setGlobalMatches: jest.fn(),
       ...overrides,
@@ -353,5 +341,78 @@ describe("MatchList platform adoption", () => {
         venue: "Emirates Stadium",
       },
     ]);
+  });
+  /**
+   * The pool renders through the app's shared match-card component, so a match
+   * looks the same in the wizard, the room, and the lobby's pick panel. Selection
+   * here means "in the pool", which is what makes a tap the release gesture.
+   */
+  describe("pool rendering", () => {
+    it("marks every pooled match as selected", () => {
+      const renderer = renderMatchList({
+        matches: [
+          { id: "m1", homeTeam: "Arsenal", awayTeam: "Chelsea", homeGoals: 0, awayGoals: 0 },
+          { id: "m2", homeTeam: "Leeds", awayTeam: "Villa", homeGoals: 0, awayGoals: 0 },
+        ],
+      });
+
+      const list = renderer.root.findByProps({ testID: "SelectableMatchList" });
+      expect(list.props.selectedMatchIds).toEqual(["m1", "m2"]);
+    });
+
+    it("routes a tap to handleRemoveMatch", () => {
+      const handleRemoveMatch = jest.fn();
+      const renderer = renderMatchList({ handleRemoveMatch });
+
+      renderer.root
+        .findByProps({ testID: "SelectableMatchList" })
+        .props.onToggleMatch("m1");
+
+      expect(handleRemoveMatch).toHaveBeenCalledWith("m1");
+    });
+
+    // Removal is a server round-trip on the room surface; a second tap must not
+    // race the first.
+    it("makes the pool inert while a write is in flight", () => {
+      const renderer = renderMatchList({ disableSelection: true });
+
+      expect(
+        renderer.root.findByProps({ testID: "SelectableMatchList" }).props
+          .disabledMatchIds,
+      ).toEqual(["m1"]);
+    });
+
+    it("leaves the pool tappable by default", () => {
+      expect(
+        renderMatchList().root.findByProps({ testID: "SelectableMatchList" })
+          .props.disabledMatchIds,
+      ).toBeUndefined();
+    });
+
+    // The shared component has no empty-state slot, so the branch is ours.
+    it("shows the empty state instead of the list when the pool is empty", () => {
+      const renderer = renderMatchList({ matches: [] });
+
+      expect(
+        renderer.root.findAllByProps({ testID: "MatchListEmptyState" }).length,
+      ).toBeGreaterThan(0);
+      expect(
+        renderer.root.findAllByProps({ testID: "SelectableMatchList" }),
+      ).toHaveLength(0);
+    });
+  });
+
+  // Callers with their own screen title suppress this one so the two don't stack.
+  describe("section title", () => {
+    const titles = (renderer: ReturnType<typeof renderMatchList>) =>
+      renderer.root.findAllByProps({ children: "Matches" });
+
+    it("renders by default", () => {
+      expect(titles(renderMatchList()).length).toBeGreaterThan(0);
+    });
+
+    it("is suppressed by showSectionTitle={false}", () => {
+      expect(titles(renderMatchList({ showSectionTitle: false }))).toHaveLength(0);
+    });
   });
 });

@@ -233,11 +233,6 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       // Used for layout, no specific visual style from palette
       marginBottom: 8,
     },
-    matchItemWrapperWide: {
-      width: "100%",
-      maxWidth: 560,
-      alignSelf: "center",
-    },
     commonMatchList: {
       gap: 8,
     },
@@ -404,24 +399,12 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     matchListLayout: {
       gap: 16,
     },
-    matchListWideLayout: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 24,
-    },
     matchListControls: {
       width: "100%",
-    },
-    matchListControlsWide: {
-      width: 360,
-      flexShrink: 0,
     },
     matchListResults: {
       flex: 1,
       minWidth: 0,
-    },
-    matchListResultsWide: {
-      alignSelf: "stretch",
     },
     playersListContent: {
       // Used by FlatList
@@ -1423,11 +1406,6 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       ...makeBaseButtonText(colors),
       fontSize: 13,
       marginLeft: 4,
-    },
-    disabledButton: {
-      // Generic disabled button state
-      backgroundColor: colors.textDisabled, // Or c5c5c5
-      opacity: 0.7,
     },
     leagueGrid: {
       // For displaying leagues in a grid

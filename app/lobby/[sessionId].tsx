@@ -12,7 +12,7 @@
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Modal, View } from "react-native";
+import { Modal, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack } from "tamagui";
 
@@ -330,6 +330,20 @@ const LobbyScreen = () => {
   return (
     <ShellScreen>
       <SafeAreaView style={{ flex: 1 }}>
+        {/*
+          The lobby's body scrolls. Without this the content below the fold —
+          assignment settings, the shortfall warning, Start Game, Leave Room — was
+          simply unreachable on a phone: the tree was a flex:1 YStack in a flex:1
+          SafeAreaView with nothing scrollable anywhere in it.
+
+          `flexGrow: 1` on the content container keeps the short-content case
+          (a room that has ended, which renders only RoomEndedNotice) filling the
+          screen rather than hugging the top.
+        */}
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
         <YStack flex={1} gap="$5" paddingVertical="$4">
           {lobby.roomEnded ? (
             <RoomEndedNotice onReturnHome={goHome} />
@@ -780,21 +794,26 @@ const LobbyScreen = () => {
               />
             </>
           )}
+        </YStack>
+        </ScrollView>
 
+        {/*
+          Modals stay OUTSIDE the ScrollView. These are portal-less react-native
+          Modals; nesting one inside a scroll container makes its own scrolling and
+          gesture handling unreliable.
+        */}
           <Modal
             visible={pendingModeSwitch !== null}
             transparent
             animationType="fade"
             onRequestClose={handleCancelModeSwitch}
           >
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "rgba(0,0,0,0.5)",
-                padding: 24,
-              }}
+            <YStack
+              flex={1}
+              justifyContent="center"
+              alignItems="center"
+              backgroundColor="$backgroundModalOverlay"
+              padding="$5"
             >
               <YStack
                 testID="lobby-assignment-mode-confirm"
@@ -837,7 +856,7 @@ const LobbyScreen = () => {
                   onPress={handleCancelModeSwitch}
                 />
               </YStack>
-            </View>
+            </YStack>
           </Modal>
 
           <SuccessorChooserModal
@@ -855,14 +874,12 @@ const LobbyScreen = () => {
             animationType="fade"
             onRequestClose={exit.cancel}
           >
-            <View
-              style={{
-                flex: 1,
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: "rgba(0,0,0,0.5)",
-                padding: 24,
-              }}
+            <YStack
+              flex={1}
+              justifyContent="center"
+              alignItems="center"
+              backgroundColor="$backgroundModalOverlay"
+              padding="$5"
             >
               <YStack
                 testID="lobby-close-confirm"
@@ -893,9 +910,8 @@ const LobbyScreen = () => {
                   onPress={exit.cancel}
                 />
               </YStack>
-            </View>
+            </YStack>
           </Modal>
-        </YStack>
       </SafeAreaView>
     </ShellScreen>
   );

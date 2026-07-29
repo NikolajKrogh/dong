@@ -1,12 +1,10 @@
-import React, { FC, useCallback, useEffect, useMemo } from "react";
+import React, { FC, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -21,23 +19,29 @@ import { filterMatchesByDateAndTime } from "../../hooks/useTeamFiltering";
 import { PlatformAnimation } from "../../platform";
 import { Match, useGameStore } from "../../store/store";
 import AppIcon from "../AppIcon";
+import { SelectableMatchList } from "../matchSelection/SelectableMatchList";
 import LeagueFilter from "./LeagueFilter";
 import MatchFilter from "./MatchFilter";
-import MatchItem from "./MatchItem";
 import TeamSelectionRow from "./TeamSelectionRow";
 
 /**
  * @interface MatchListProps
  * Props for the MatchList component.
  *
- * @property {Match[]} matches - List of current match objects.
+ * @property {Match[]} matches - The current pool of selected matches.
  * @property {string} homeTeam - Currently selected home team name.
  * @property {string} awayTeam - Currently selected away team name.
  * @property {(team: string) => void} setHomeTeam - Function to update the home team selection.
  * @property {(team: string) => void} setAwayTeam - Function to update the away team selection.
- * @property {() => void} handleAddMatch - Function to add a new match.
- * @property {(matchId: string) => void} handleRemoveMatch - Function to remove a match by ID.
- * @property {(matches: Match[]) => void} [setGlobalMatches] - Optional function to update global matches state.
+ * @property {(matchId: string) => void} handleRemoveMatch - Removes a match from the pool.
+ * @property {(matches: Match[]) => void} setGlobalMatches - Commits a new pool. Called
+ *   three ways: with the pool plus one appended match (manual entry), with the pool plus a
+ *   batch (bulk add), and with `[]` to clear. Required, because every write this component
+ *   makes goes through it.
+ * @property {boolean} [showSectionTitle] - Renders the "Matches" heading. Off for callers
+ *   that supply their own screen title, so the two do not stack.
+ * @property {boolean} [disableSelection] - Makes the pool inert while a write is in flight.
+ *   Matters where removal is a server round-trip: a second tap must not race the first.
  */
 interface MatchListProps {
   matches: Match[];
@@ -45,9 +49,10 @@ interface MatchListProps {
   awayTeam: string;
   setHomeTeam: (team: string) => void;
   setAwayTeam: (team: string) => void;
-  handleAddMatch: () => void;
   handleRemoveMatch: (matchId: string) => void;
-  setGlobalMatches?: (matches: Match[]) => void;
+  setGlobalMatches: (matches: Match[]) => void;
+  showSectionTitle?: boolean;
+  disableSelection?: boolean;
 }
 
 /**
@@ -75,9 +80,10 @@ const MatchList: FC<MatchListProps> = ({
   awayTeam,
   setHomeTeam,
   setAwayTeam,
-  handleAddMatch,
   handleRemoveMatch,
   setGlobalMatches,
+  showSectionTitle = true,
+  disableSelection = false,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -118,11 +124,37 @@ const MatchList: FC<MatchListProps> = ({
     availableLeagues,
   } = useMatchData(selectedDate);
 
+  /**
+   * Appends a hand-typed fixture to the pool and clears the two fields.
+   *
+   * Declared here, above `useMatchProcessing`, because that hook takes it as its
+   * sequential-fallback handler — a `const` referenced before its initialiser
+   * would be a TDZ error. It replaces what used to be a `handleAddMatch` prop,
+   * which every caller had to supply and none of them ever saw invoked: both pass
+   * `setGlobalMatches`, so the hook always took its batch path.
+   */
+  const handleAddMatchLocally = () => {
+    if (homeTeam.trim() && awayTeam.trim()) {
+      const newMatch: Match = {
+        id: String(Date.now()),
+        homeTeam: homeTeam.trim(),
+        awayTeam: awayTeam.trim(),
+        homeGoals: 0,
+        awayGoals: 0,
+      };
+
+      setGlobalMatches([...matches, newMatch]);
+
+      setHomeTeam("");
+      setAwayTeam("");
+    }
+  };
+
   const { startProcessing, processingState } = useMatchProcessing(
     matches,
     setHomeTeam,
     setAwayTeam,
-    handleAddMatch, // This is the original handleAddMatch from props
+    handleAddMatchLocally,
     setGlobalMatches,
   );
 
@@ -211,23 +243,6 @@ const MatchList: FC<MatchListProps> = ({
     startProcessing(filteredMatches);
   };
 
-  const handleAddMatchLocally = () => {
-    if (homeTeam.trim() && awayTeam.trim()) {
-      const newMatch: Match = {
-        id: String(Date.now()),
-        homeTeam: homeTeam.trim(),
-        awayTeam: awayTeam.trim(),
-        homeGoals: 0,
-        awayGoals: 0,
-      };
-
-      setGlobalMatches?.([...matches, newMatch]);
-
-      setHomeTeam("");
-      setAwayTeam("");
-    }
-  };
-
   const handleAddMatchAndClear = () => {
     handleAddMatchLocally();
   };
@@ -238,24 +253,18 @@ const MatchList: FC<MatchListProps> = ({
       return;
     }
 
-    setGlobalMatches?.([]);
+    setGlobalMatches([]);
   };
 
-  const renderMatchItem = useCallback(
-    (listItem: { item: Match }) => {
-      return (
-        <Animated.View
-          entering={FadeIn.duration(180)}
-          exiting={FadeOut.duration(220)}
-        >
-          <MatchItem
-            match={listItem.item}
-            handleRemoveMatch={() => handleRemoveMatch(listItem.item.id)}
-          />
-        </Animated.View>
-      );
-    },
-    [handleRemoveMatch],
+  /**
+   * Every match in the pool reads as selected, which is what makes tapping one
+   * the release gesture. `SelectableMatchList` owns no selection state, so what
+   * "selected" means is entirely this caller's choice — here it is "in the pool",
+   * where on the lobby's pick panel the same component means "one of my picks".
+   */
+  const poolMatchIds = useMemo(
+    () => matches.map((match) => match.id),
+    [matches],
   );
 
   const isLoading = isMatchLoading || isTeamLoading;
@@ -303,7 +312,9 @@ const MatchList: FC<MatchListProps> = ({
 
   return (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Matches</Text>
+      {showSectionTitle ? (
+        <Text style={styles.sectionTitle}>Matches</Text>
+      ) : null}
 
       <View testID="MatchListLayout" style={styles.matchListLayout}>
         <View testID="MatchListControls" style={styles.matchListControls}>
@@ -341,32 +352,39 @@ const MatchList: FC<MatchListProps> = ({
         </View>
 
         <View testID="MatchListResults" style={styles.matchListResults}>
-          <FlatList
-            data={matches}
-            keyExtractor={(item) => item.id}
-            renderItem={renderMatchItem}
-            ListEmptyComponent={
-              <View
-                testID="MatchListEmptyState"
-                style={styles.matchEmptyListContainer}
-              >
-                <AppIcon
-                  name="football-outline"
-                  size={48}
-                  color={colors.textMuted}
-                />
-                <Text style={styles.emptyListTitleText}>
-                  No matches added yet!
-                </Text>
-                <Text style={styles.emptyListSubtitleText}>
-                  Use the filters above to find matches, or the team selectors
-                  to add your first match.
-                </Text>
-              </View>
-            }
-            scrollEnabled={false}
-            contentContainerStyle={styles.matchesGridContainer}
-          />
+          {/*
+            The pool renders through the app's shared match-card component, the
+            same one the lobby's pick panel and the wizard's assign step use, so a
+            match looks identical everywhere it appears. Its own list has no
+            empty-state slot, hence the branch rather than a `ListEmptyComponent`.
+          */}
+          {matches.length === 0 ? (
+            <View
+              testID="MatchListEmptyState"
+              style={styles.matchEmptyListContainer}
+            >
+              <AppIcon
+                name="football-outline"
+                size={48}
+                color={colors.textMuted}
+              />
+              <Text style={styles.emptyListTitleText}>
+                No matches added yet!
+              </Text>
+              <Text style={styles.emptyListSubtitleText}>
+                Use the filters above to find matches, or the team selectors to
+                add your first match.
+              </Text>
+            </View>
+          ) : (
+            <SelectableMatchList
+              matches={matches}
+              selectedMatchIds={poolMatchIds}
+              onToggleMatch={handleRemoveMatch}
+              disabledMatchIds={disableSelection ? poolMatchIds : undefined}
+              testIDPrefix="SetupPoolMatch"
+            />
+          )}
 
           {matches.length > 0 && (
             <TouchableOpacity

@@ -358,8 +358,8 @@ The application shell is built on Tamagui-backed primitives exported from `compo
 
 | Primitive           | Base             | Purpose                                                                                                                                                |
 | ------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ShellScreen`       | `styled(YStack)` | Full-screen wrapper with `flex: 1` and theme background. `padded` variant adds horizontal padding.                                                     |
-| `ShellSection`      | `styled(YStack)` | Vertical group with optional title (uppercase, muted). Used for settings sections and content groups.                                                  |
+| `ShellScreen`       | `styled(YStack)` | Full-screen wrapper with `flex: 1` and theme background. Applies `$4` padding on **all** sides by default; `padded={false}` removes it. `centerContent` centres the viewport and `contentMaxWidth` caps content width — use both for wide layouts. |
+| `ShellSection`      | `styled(YStack)` | Vertical group with an optional title (16px semibold, `$colorSecondary` — not uppercase). Used for settings sections and content groups.               |
 | `ShellCard`         | `styled(YStack)` | Surface card with border, shadow, and radius. `elevated` variant adds stronger shadow. `compact` variant reduces padding. Supports `onPress` natively. |
 | `ShellActionButton` | `styled(XStack)` | Action button with `variant` (primary/success/danger/secondary/surface), `size` (small/large), and `disabled`. Label is optional for icon-only usage.  |
 
@@ -382,6 +382,24 @@ When migrating a screen to the shell:
 - `components/preferences/SoundNotificationSettings.tsx` — `ShellSection` + `ShellCard`
 - `components/preferences/OnboardingButton.tsx` — `ShellSection`
 - `components/preferences/LeagueSettings.tsx` — `ShellSection` + `ShellCard`
+- `app/setupGame.tsx` — `ShellScreen` wrapping the setup wizard
+- `app/lobby/[sessionId].tsx` — fully migrated: `ShellScreen`, `ShellActionButton`, Tamagui cards throughout
+- `app/lobby/configureMatches.tsx` — `ShellScreen` + the wizard's panel/nav chrome
+- `components/lobby/*` — `ParticipantList`, `PlayerPickPanel`, `RoomEndedNotice`, `SuccessorChooserModal`
+- `components/guestJoin/*` — `GuestJoinLobby`, `GuestJoinForm`, `GuestJoinModal`
+- `components/auth/*` — all four forms, on `ShellCard elevated`
+- `components/home/CurrentGameCard.tsx`, `components/home/HistoryStatsCard.tsx`
+- `components/preferences/AccountSection.tsx`, `ProfileSection.tsx`, `LegacyHistoryImportSection.tsx`
+
+### Shared match rendering
+
+`components/matchSelection/SelectableMatchList` is the one renderer for a match
+card, used by the single-player wizard's matches step, the room's Configure Matches
+screen, the lobby's player-pick panel, and the wizard's assign step. It owns no
+selection state — what "selected" means is the caller's decision ("in the pool" on
+the two match-selection surfaces, "one of my picks" on the pick panel). It is still
+react-native + `createSetupGameStyles` rather than Tamagui; migrating it would
+change all four surfaces at once and has not been attempted.
 
 ## Account Auth & Redirects
 

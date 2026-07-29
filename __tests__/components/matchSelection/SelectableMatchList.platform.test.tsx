@@ -29,6 +29,9 @@ const mockStyles = {
   vsDividerHorizontal: { testStyle: "vsDividerHorizontal" },
   vsText: { testStyle: "vsText" },
   selectionCheckmark: { testStyle: "selectionCheckmark" },
+  // Added when the kickoff footer moved in from the wizard's old match card.
+  matchTimeHeader: { testStyle: "matchTimeHeader" },
+  matchTimeText: { testStyle: "matchTimeText" },
 };
 
 jest.mock("react-native", () => ({
@@ -44,6 +47,7 @@ jest.mock("react-native", () => ({
 }));
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: "Ionicons" }));
+jest.mock("../../../components/AppIcon", () => "AppIcon");
 jest.mock("expo-linear-gradient", () => ({ LinearGradient: "LinearGradient" }));
 
 jest.mock("../../../styles/theme", () => ({
@@ -153,5 +157,73 @@ describe("SelectableMatchList", () => {
     const renderer = render({ testIDPrefix: undefined, useGridLayout: true });
 
     expect(renderer.root.findAllByProps({ testID: "pick-m1" })).toHaveLength(0);
+  });
+  /**
+   * The kickoff footer arrived here when the wizard and the multiplayer room
+   * converged on this renderer. Both `startTime` shapes must work: a local
+   * "HH:MM" from match discovery and a full ISO instant from a room's pool.
+   *
+   * Driven through the FlatList's `renderItem` rather than the rendered tree:
+   * `react-native` is string-mocked in this suite, so the fake `FlatList` never
+   * calls `renderItem` and list rows are otherwise unreachable.
+   */
+  describe("kickoff footer", () => {
+    const renderRow = (match: Record<string, unknown>) => {
+      const list = render({ matches: [match], useGridLayout: false });
+      const { renderItem } = list.root.findByType("FlatList" as never).props;
+      return actCreate(renderItem({ item: match, index: 0 }));
+    };
+
+    const footers = (row: ReturnType<typeof actCreate>) =>
+      row.root.findAllByProps({ style: mockStyles.matchTimeHeader });
+
+    it("renders for a match with a bare clock time", () => {
+      const row = renderRow({
+        id: "m1",
+        homeTeam: "Arsenal",
+        awayTeam: "Chelsea",
+        startTime: "15:00",
+      });
+
+      expect(footers(row)).toHaveLength(1);
+      expect(
+        row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
+      ).toBe("15:00");
+    });
+
+    it("renders for a match with a full ISO instant", () => {
+      const row = renderRow({
+        id: "m1",
+        homeTeam: "Arsenal",
+        awayTeam: "Chelsea",
+        startTime: "2026-08-22T11:30:00.000Z",
+      });
+
+      expect(footers(row)).toHaveLength(1);
+      expect(
+        row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
+      ).toMatch(/^\d{2}:\d{2} (AM|PM)$/);
+    });
+
+    // A hand-typed fixture has no kickoff; it must not leave an empty row.
+    it("is omitted entirely when the match has no startTime", () => {
+      const row = renderRow({ id: "m1", homeTeam: "Arsenal", awayTeam: "Chelsea" });
+
+      expect(footers(row)).toHaveLength(0);
+    });
+
+    // The 3-up grid has no room for it, and AssignmentSection relies on that density.
+    it("never renders in grid mode", () => {
+      const grid = render({
+        useGridLayout: true,
+        matches: [
+          { id: "m1", homeTeam: "Arsenal", awayTeam: "Chelsea", startTime: "15:00" },
+        ],
+      });
+
+      expect(
+        grid.root.findAllByProps({ style: mockStyles.matchTimeHeader }),
+      ).toHaveLength(0);
+    });
   });
 });

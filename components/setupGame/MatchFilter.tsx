@@ -91,7 +91,6 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   const localDateFilterActive = isDateFilterActive || selectedDate.length > 0;
   const localTimeFilterActive =
     isTimeFilterActive || (startTime.length > 0 && endTime.length > 0);
-  const isAnyFilterActive = localDateFilterActive || localTimeFilterActive;
   const selectedDateValue = parseDateIsoValue(selectedDate, new Date());
   const formattedDate = selectedDate
     ? selectedDateValue.toLocaleDateString("en-US", {
@@ -121,8 +120,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
           </View>
 
           <View style={styles.filterBadgesSection}>
-            {localDateFilterActive || localTimeFilterActive ? (
-              <View style={styles.filterBadgesContainer}>
+            <View style={styles.filterBadgesContainer}>
                 {localDateFilterActive && (
                   <View style={styles.filterBadge}>
                     <AppIcon
@@ -147,10 +145,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                     </Text>
                   </View>
                 )}
-              </View>
-            ) : (
-              <Text style={styles.noFiltersText}>No active filters</Text>
-            )}
+            </View>
 
             <Animated.View style={[styles.indicatorContainer, indicatorStyle]}>
               <AppIcon
@@ -299,14 +294,17 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
               </Text>
             </View>
 
+            {/*
+              Deliberately always enabled. The guard that matters lives in
+              MatchList.handleAddAllFilteredMatches, which reports when the current
+              filters match no fixtures — this button used to carry a
+              `disabled={!isAnyFilterActive}` that could never fire, because the
+              date seeds to today and the picker cannot write an empty value.
+            */}
             <TouchableOpacity
               testID="SetupAddAllFilteredMatchesButton"
-              style={[
-                styles.filterActionButton,
-                !isAnyFilterActive && styles.disabledButton,
-              ]}
+              style={styles.filterActionButton}
               onPress={handleAddAllFilteredMatches}
-              disabled={!isAnyFilterActive}
               activeOpacity={0.7}
             >
               <AppIcon name="add-circle" size={16} color={colors.white} />

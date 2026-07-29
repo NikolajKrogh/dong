@@ -96,21 +96,6 @@ const SetupGameScreen = () => {
     });
   };
 
-  const handleAddMatch = () => {
-    if (homeTeam.trim() && awayTeam.trim()) {
-      const newMatch: Match = {
-        id: String(Date.now()),
-        homeTeam: homeTeam.trim(),
-        awayTeam: awayTeam.trim(),
-        homeGoals: 0,
-        awayGoals: 0,
-      };
-      setGlobalMatches([...matches, newMatch]);
-      setHomeTeam("");
-      setAwayTeam("");
-    }
-  };
-
   const handleRemoveMatch = (matchId: string) => {
     setGlobalMatches((prevMatches) =>
       prevMatches.filter((match) => match.id !== matchId),
@@ -256,7 +241,6 @@ const SetupGameScreen = () => {
               awayTeam={awayTeam}
               setHomeTeam={setHomeTeam}
               setAwayTeam={setAwayTeam}
-              handleAddMatch={handleAddMatch}
               handleRemoveMatch={handleRemoveMatch}
               setGlobalMatches={setGlobalMatches}
             />

@@ -10,21 +10,37 @@
  * that had drifted — most visibly it never sent `requestedAt`, so it could only
  * ever show today.
  *
+ * The chrome deliberately borrows `SetupWizard`'s style keys rather than being
+ * invented here: the same bordered `surface` panel, the same scroll region, and
+ * the same bottom navigation bar. `SetupWizard` itself is not reused because it
+ * hard-codes the solo flow's four steps. Mounting a wizard step's content in a
+ * screen that looked nothing like the wizard was the substance of the "doesn't
+ * match the feel of the app" feedback.
+ *
  * `MatchList` is untouched by this: it already takes its writes as props, and
  * {@link useRoomMatchPool} supplies room-backed implementations.
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { Text as TamaguiText } from "tamagui";
 
 import MatchList from "../../components/setupGame/MatchList";
-import { ShellActionButton, ShellScreen } from "../../components/ui";
+import AppIcon from "../../components/AppIcon";
+import { ShellScreen } from "../../components/ui";
 import { useRoomConfigure } from "../../hooks/useRoomConfigure";
 import { useRoomLobby } from "../../hooks/useRoomLobby";
 import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
+import { isWideLayout as isWideViewport } from "../../styles/responsive";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 
 const normalizeParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -37,6 +53,11 @@ const ConfigureRoomMatchesScreen = () => {
   }>();
   const sessionId = normalizeParam(params.sessionId);
   const participantId = normalizeParam(params.participantId) || null;
+
+  const { width } = useWindowDimensions();
+  const wideLayout = isWideViewport(width);
+  const colors = useColors();
+  const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
 
   const lobby = useRoomLobby(sessionId || null, participantId);
   const configure = useRoomConfigure(lobby.snapshot, lobby.refresh);
@@ -52,88 +73,124 @@ const ConfigureRoomMatchesScreen = () => {
     removeMatch: configure.removeMatch,
   });
 
-  /**
-   * Mirrors the wizard's manual add: build the fixture from the two fields, hand it
-   * to the pool as an append, then clear them. Routed through `setMatches` rather
-   * than calling `addMatch` directly so both add paths converge on one place that
-   * decides provenance.
-   */
-  const handleAddMatch = () => {
-    if (!homeTeam.trim() || !awayTeam.trim()) {
-      return;
-    }
-    pool.setMatches([
-      ...pool.matches,
-      {
-        id: String(Date.now()),
-        homeTeam: homeTeam.trim(),
-        awayTeam: awayTeam.trim(),
-        homeGoals: 0,
-        awayGoals: 0,
-      },
-    ]);
-    setHomeTeam("");
-    setAwayTeam("");
-  };
-
   return (
-    <ShellScreen padded={false}>
+    <ShellScreen
+      padded={false}
+      centerContent={wideLayout}
+      contentMaxWidth={wideLayout ? 1120 : undefined}
+    >
       <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ padding: 16, gap: 12, flex: 1 }}>
-          <TamaguiText
-            color="$color"
-            fontSize={22}
-            fontWeight="700"
-            testID="configure-room-matches-title"
-          >
-            Select Matches
-          </TamaguiText>
-          <TamaguiText color="$colorMuted" fontSize={14}>
-            {pool.matches.length} in this room
-          </TamaguiText>
-
-          {configure.error ? (
-            <TamaguiText
-              testID="configure-room-matches-error"
-              color="$danger"
-              fontSize={14}
+        <View
+          style={[
+            styles.wizardContainer,
+            wideLayout && styles.wizardWideLayout,
+          ]}
+        >
+          <View style={styles.wizardMainPanel}>
+            {/*
+              MatchList needs a scrolling ancestor: the shared match-card list it
+              renders the pool through sets `scrollEnabled={false}`, and
+              MatchList's own layout style carries no flex while its inner results
+              style is `flex: 1`. Put that in a fixed-height flex box rather than a
+              ScrollView and the list collapses to nothing, silently hiding every
+              added match. `stepContentScroll` is the wizard's own key for exactly
+              this job.
+            */}
+            <ScrollView
+              style={styles.stepContentScroll}
+              showsVerticalScrollIndicator
+              keyboardShouldPersistTaps="handled"
             >
-              {configure.error}
-            </TamaguiText>
-          ) : null}
+              {/*
+                Padded to line up with MatchList's own `tabContent` inset below,
+                which is the only padding inside the panel — the screen used to add
+                a second 16 on top of it, double-insetting the filter cards.
+              */}
+              <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 4 }}>
+                <TamaguiText
+                  color="$color"
+                  fontSize={22}
+                  fontWeight="700"
+                  testID="configure-room-matches-title"
+                >
+                  Select Matches
+                </TamaguiText>
+                <TamaguiText color="$colorMuted" fontSize={14}>
+                  {pool.matches.length} in this room
+                </TamaguiText>
 
-          {/*
-            MatchList must be given a scrolling parent, and this mirrors
-            SetupWizard's step container (`stepContentScroll: { flex: 1 }`)
-            deliberately. Its results FlatList sets `scrollEnabled={false}` and so
-            relies on an ancestor to scroll, and its own layout style carries no
-            flex while the inner results style is `flex: 1` — put that inside a
-            fixed-height flex box instead of a ScrollView and the list collapses to
-            nothing, rendering every added match invisible.
-          */}
-          <ScrollView
-            style={{ flex: 1 }}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-          >
-            <MatchList
-              matches={pool.matches}
-              homeTeam={homeTeam}
-              awayTeam={awayTeam}
-              setHomeTeam={setHomeTeam}
-              setAwayTeam={setAwayTeam}
-              handleAddMatch={handleAddMatch}
-              handleRemoveMatch={pool.removeMatch}
-              setGlobalMatches={pool.setMatches}
-            />
-          </ScrollView>
+                {configure.error ? (
+                  <TamaguiText
+                    testID="configure-room-matches-error"
+                    color="$danger"
+                    fontSize={14}
+                  >
+                    {configure.error}
+                  </TamaguiText>
+                ) : null}
+              </View>
 
-          <ShellActionButton
-            variant="primary"
-            label="Done"
-            testID="configure-room-matches-done"
-            onPress={() => router.back()}
-          />
+              {/*
+                `showSectionTitle={false}` because this screen supplies its own
+                heading; leaving both on stacked two titles from two different type
+                systems. `disableSelection` while a write is in flight: unlike the
+                solo flow, releasing a match here is a server round-trip.
+              */}
+              <MatchList
+                matches={pool.matches}
+                homeTeam={homeTeam}
+                awayTeam={awayTeam}
+                setHomeTeam={setHomeTeam}
+                setAwayTeam={setAwayTeam}
+                handleRemoveMatch={pool.removeMatch}
+                setGlobalMatches={pool.setMatches}
+                showSectionTitle={false}
+                disableSelection={configure.isBusy}
+              />
+            </ScrollView>
+
+            <View
+              testID="configure-room-matches-navigation"
+              style={[
+                styles.wizardNavigation,
+                wideLayout && styles.wizardNavigationWide,
+              ]}
+            >
+              <TouchableOpacity
+                testID="configure-room-matches-back"
+                style={[styles.navButton, wideLayout && styles.navButtonWide]}
+                onPress={() => router.back()}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <AppIcon
+                    name="arrow-back"
+                    size={20}
+                    color={colors.textLight}
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.navButtonText}>Back</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                testID="configure-room-matches-done"
+                style={[styles.navButton, wideLayout && styles.navButtonWide]}
+                onPress={() => router.back()}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={styles.navButtonText}>Done</Text>
+                  {/* arrow-forward, matching the wizard's Next: the icon set has
+                      no checkmark and this stays inside the app's vocabulary. */}
+                  <AppIcon
+                    name="arrow-forward"
+                    size={20}
+                    color={colors.textLight}
+                    style={{ marginLeft: 8 }}
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </SafeAreaView>
     </ShellScreen>

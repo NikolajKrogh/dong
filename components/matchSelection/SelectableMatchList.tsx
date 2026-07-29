@@ -5,7 +5,9 @@ import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
 
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
+import { formatMatchTime } from "../../utils/matchTime";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import AppIcon from "../AppIcon";
 
 /**
  * The minimum a match needs to be rendered as selectable.
@@ -123,6 +125,7 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
     const disabled = isDisabled(match.id);
     const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
     const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
+    const kickoff = formatMatchTime(match.startTime);
 
     return (
       <TouchableOpacity
@@ -191,6 +194,20 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
               </Text>
             </View>
           </View>
+          {/*
+            Kickoff footer, matching what the wizard's own match card showed
+            before both surfaces converged on this renderer. Formatted through the
+            shared helper rather than inline, because `startTime` is a local
+            "HH:MM" on the single-player path and a full ISO instant on a room's —
+            see utils/matchTime.ts. Rendered only when the helper yields
+            something, so a hand-typed fixture shows no empty row.
+          */}
+          {kickoff ? (
+            <View style={styles.matchTimeHeader}>
+              <AppIcon name="time-outline" size={16} color={colors.primary} />
+              <Text style={styles.matchTimeText}>{kickoff}</Text>
+            </View>
+          ) : null}
           <View style={styles.selectionCheckmark}>
             <Ionicons
               name={selected ? "checkmark-circle" : "ellipse-outline"}

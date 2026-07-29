@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, View } from "react-native";
+import { Modal } from "react-native";
 import { Text, YStack } from "tamagui";
 
 import type { RoomParticipantSummary } from "../../types/room";
@@ -25,14 +25,12 @@ export const SuccessorChooserModal: React.FC<SuccessorChooserModalProps> = ({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "rgba(0,0,0,0.5)",
-          padding: 24,
-        }}
+      <YStack
+        flex={1}
+        justifyContent="center"
+        alignItems="center"
+        backgroundColor="$backgroundModalOverlay"
+        padding="$5"
       >
         <YStack
           testID="lobby-successor-chooser"
@@ -65,7 +63,7 @@ export const SuccessorChooserModal: React.FC<SuccessorChooserModalProps> = ({
             onPress={onCancel}
           />
         </YStack>
-      </View>
+      </YStack>
     </Modal>
   );
 };

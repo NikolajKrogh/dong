@@ -429,7 +429,12 @@ Then(
   "the setup matches list should stay below the desktop controls",
   async ({ page }) => {
     const controls = page.getByTestId("MatchListControls");
-    const firstMatchCard = page.getByTestId("SetupMatchItemWrapper").first();
+    // The pool renders through the shared match-card component now, which emits
+    // `SetupPoolMatch-<id>` per card rather than the retired MatchItem's single
+    // static testID — hence the prefix match.
+    const firstMatchCard = page
+      .locator('[data-testid^="SetupPoolMatch-"]')
+      .first();
     const controlsBox = await getRequiredBox(controls);
     const firstMatchCardBox = await getRequiredBox(firstMatchCard);
 

@@ -17,7 +17,7 @@ export function useMatchProcessing(
   matches: Match[],
   setHomeTeam: (team: string) => void,
   setAwayTeam: (team: string) => void,
-  handleAddMatch: () => void,
+  handleAddMatch: (() => void) | undefined,
   setGlobalMatches?: (matches: Match[]) => void,
 ) {
   const [matchesToProcess, setMatchesToProcess] = useState<MatchData[]>([]);
@@ -189,7 +189,7 @@ export function useMatchProcessing(
       );
 
       // Add the match
-      handleAddMatch();
+      handleAddMatch?.();
 
       // Wait for match to be added by observing the matches array length
       const success = await waitForStateUpdate(
