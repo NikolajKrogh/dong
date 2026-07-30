@@ -57,6 +57,63 @@ EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
 Restart Expo after adding or changing `EXPO_PUBLIC_COMMAND_API_URL` so the match discovery client uses the updated backend URL.
 The setup-game flow now calls the public Java `GET /v1/matches` endpoint instead of ESPN directly for match discovery, and repeated identical backend lookups are reused inside the configured default `PT5M` cache window.
 
+### Running the app locally
+
+Three processes make up a working dev environment. **Start them in this order** —
+each step depends on the one before it being up, and starting them out of order
+produces failures that look like something else entirely.
+
+| # | What | Command (run from the repo root unless noted) | Needed for |
+| - | ---- | --------------------------------------------- | ---------- |
+| 1 | Java `command-api` | `cd command-api` then `./mvnw.cmd spring-boot:run` (`./mvnw` on macOS/Linux) | Match discovery and Start Game. Without it the setup flow cannot list fixtures. |
+| 2 | adb reverse tunnel | `npm run android:tunnel` | **Physical Android device only.** Not needed for web or an emulator you reach over localhost. |
+| 3 | Expo dev server | `npx expo start` | The app itself. |
+
+Wait for step 1 to report healthy before starting step 3, otherwise the first
+match-discovery request fails and the screen shows an error until you retry:
+
+```bash
+curl http://localhost:8080/actuator/health
+```
+
+Expect `{"status":"UP"}`. If it is `DOWN`, see the troubleshooting table below.
+
+**Local Supabase is not part of this list.** `.env.local` points the client at the
+hosted project, so the local stack is only needed for database work — see
+[Local Supabase](#local-supabase-optional).
+
+#### Prerequisites for step 1
+
+`command-api` reads `command-api/.env` automatically (via `spring.config.import`
+in `application.yml`), so nothing needs exporting into your shell:
+
+```bash
+cp command-api/.env.example command-api/.env
+```
+
+Then fill in `SUPABASE_JWKS_URL`, `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The file
+is parsed as a Java properties file, so **do not quote the values**. Real
+environment variables take precedence over it, so CI and container injection are
+unaffected.
+
+#### Troubleshooting
+
+| Symptom | Cause |
+| ------- | ----- |
+| App: `Missing command API configuration` | `EXPO_PUBLIC_COMMAND_API_URL` is unset in `.env.local`, or Expo was not restarted with `-c` after adding it. `EXPO_PUBLIC_*` values are inlined at bundle time, so a plain restart keeps serving the old value. |
+| App on device: `Match discovery request timed out` | The reverse tunnel is missing (step 2). Re-run `npm run android:tunnel` — tunnels do not survive a USB re-attach. If you point at a LAN IP instead, a blocked inbound firewall rule presents as a *timeout*, not a refusal. |
+| Web: `NetworkError when attempting to fetch resource` | CORS. `command-api/.env` must contain `spring.profiles.active=dev`; CORS lives in `application-dev.yml` and is off in every other profile. |
+| Health `DOWN`, component `supabase` | `SUPABASE_ANON_KEY` is missing. Supabase's hosted gateway answers `401 No API key found in request` without it. |
+| Health `DOWN`, component `supabaseJwks` | `SUPABASE_JWKS_URL` is wrong or unreachable. It must include the full path, e.g. `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`. |
+| Match list is empty | Not necessarily a bug — the date picker defaults to today, and there are no fixtures out of season. Pick an in-season date before concluding something is broken. |
+| `401` on Start Game | The Supabase project has not finished the JWT signing-key rotation. Tokens must be ES256/RS256; the legacy shared HS256 secret is no longer accepted. |
+
+To see which health component is failing, start the API with details exposed:
+
+```bash
+./mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--management.endpoint.health.show-details=always"
+```
+
 ## Local Supabase (optional)
 
 This project supports a local Supabase development workspace for schema iteration and pgTAP tests. See `specs/007-core-supabase-schema/quickstart.md` for the authoritative quickstart.
