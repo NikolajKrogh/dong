@@ -27,7 +27,9 @@ const mockConfigure = {
   isBusy: false,
   error: null as string | null,
   addMatch: jest.fn(async () => {}),
+  addMatches: jest.fn(async () => ({ added: 0, skipped: 0 })),
   removeMatch: jest.fn(async () => {}),
+  removeMatches: jest.fn(async () => {}),
 };
 
 jest.mock("react-native", () => ({
@@ -40,6 +42,11 @@ jest.mock("react-native", () => ({
   ScrollView: "ScrollView",
   TouchableOpacity: "TouchableOpacity",
   useWindowDimensions: () => mockUseWindowDimensions(),
+}));
+
+jest.mock("react-native-toast-message", () => ({
+  __esModule: true,
+  default: { show: jest.fn() },
 }));
 
 jest.mock("react-native-safe-area-context", () => ({

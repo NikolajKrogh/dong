@@ -1,6 +1,10 @@
 import { useCallback, useMemo } from "react";
 
-import type { AddRoomMatchRequest, RoomMatchSummary } from "../types/room";
+import type {
+  AddRoomMatchRequest,
+  BatchRoomMatchResult,
+  RoomMatchSummary,
+} from "../types/room";
 import type { Match } from "../store/store";
 
 /** Provider recorded for a fixture a host typed in by hand rather than picked from the catalogue. */
@@ -9,8 +13,16 @@ export const MANUAL_SOURCE_PROVIDER = "manual";
 interface RoomMatchPoolOptions {
   /** The room's current pool, straight from the snapshot. */
   roomMatches: RoomMatchSummary[];
-  addMatch: (request: AddRoomMatchRequest) => Promise<void>;
+  /** Batched add. Resolves to null when the batch failed; the caller holds the reason. */
+  addMatches: (
+    requests: AddRoomMatchRequest[],
+  ) => Promise<BatchRoomMatchResult | null>;
+  /** Single removal, for a per-match Remove control. */
   removeMatch: (matchId: string) => Promise<void>;
+  /** Batched removal, used by clear-all. */
+  removeMatches: (matchIds: string[]) => Promise<void>;
+  /** Notified after a successful batch so the caller can report added/skipped counts. */
+  onBatchAdded?: (result: BatchRoomMatchResult) => void;
 }
 
 export interface RoomMatchPool {
@@ -83,19 +95,20 @@ const toAddRequest = (match: Match): AddRoomMatchRequest =>
  * Backs the shared match-selection UI with a room's server-owned pool.
  *
  * Lets the lobby render the same `MatchList` the single-player wizard uses, where
- * the wizard's writes land in the Zustand store and these land on
- * `add_room_match` / `remove_room_match`. Nothing about `MatchList` changes.
+ * the wizard's writes land in the Zustand store and these land on the room's
+ * match RPCs. Nothing about `MatchList` changes.
  *
- * Writes are issued sequentially, not with `Promise.all`: `add_room_match` takes
- * the room row per call, and a burst of parallel writes would contend on that lock
- * for no gain. Sequential also means a mid-batch failure leaves the successful
- * adds committed, which matches how the host experiences it — the fixtures that
- * did land are really in the pool.
+ * Both bulk gestures issue exactly one call. They used to loop the singular RPCs,
+ * which cost a room-row lock and a full snapshot refresh per fixture, and — because
+ * the caller resets its error slot on every call — silently swallowed any failure
+ * that was not the last one. Batching removes both problems at once.
  */
 export const useRoomMatchPool = ({
   roomMatches,
-  addMatch,
+  addMatches,
   removeMatch,
+  removeMatches,
+  onBatchAdded,
 }: RoomMatchPoolOptions): RoomMatchPool => {
   const matches = useMemo(
     () => roomMatches.map(toDisplayMatch),
@@ -105,14 +118,9 @@ export const useRoomMatchPool = ({
   const setMatches = useCallback(
     (next: Match[]) => {
       if (next.length === 0) {
-        // Clear-all. Snapshot the ids first: `roomMatches` is refreshed as the
-        // removals land, so iterating it directly would skip entries.
-        const ids = roomMatches.map((match) => match.id);
-        void (async () => {
-          for (const id of ids) {
-            await removeMatch(id);
-          }
-        })();
+        // Clear-all. Ids are snapshotted before the call because `roomMatches` is
+        // replaced by the refresh that follows it.
+        void removeMatches(roomMatches.map((match) => match.id));
         return;
       }
 
@@ -121,14 +129,21 @@ export const useRoomMatchPool = ({
       // room pool has never seen (the catalogue's or a local timestamp).
       const known = new Set(roomMatches.map((match) => match.id));
       const added = next.filter((match) => !known.has(match.id));
+      if (added.length === 0) {
+        return;
+      }
 
+      // One call, not one per fixture. Beyond the round trips saved, this is what
+      // makes a partial failure visible: the caller's error slot is reset per
+      // call, so in a loop the failures were overwritten by whatever came after.
       void (async () => {
-        for (const match of added) {
-          await addMatch(toAddRequest(match));
+        const result = await addMatches(added.map(toAddRequest));
+        if (result) {
+          onBatchAdded?.(result);
         }
       })();
     },
-    [addMatch, removeMatch, roomMatches],
+    [addMatches, removeMatches, roomMatches, onBatchAdded],
   );
 
   const handleRemove = useCallback(

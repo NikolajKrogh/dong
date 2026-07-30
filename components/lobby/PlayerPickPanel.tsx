@@ -144,7 +144,7 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
               <ShellActionButton
                 variant="surface"
                 size="small"
-                widthMode="content"
+                widthMode="fit"
                 label="Release all"
                 testID={`${testID}-release-all`}
                 disabled={isBusy}

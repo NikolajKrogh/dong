@@ -30,6 +30,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import { Text as TamaguiText } from "tamagui";
 
 import MatchList from "../../components/setupGame/MatchList";
@@ -69,8 +70,21 @@ const ConfigureRoomMatchesScreen = () => {
 
   const pool = useRoomMatchPool({
     roomMatches: lobby.snapshot?.matches ?? [],
-    addMatch: configure.addMatch,
+    addMatches: configure.addMatches,
     removeMatch: configure.removeMatch,
+    removeMatches: configure.removeMatches,
+    // A repeat fixture is skipped rather than failed, so without this the host
+    // would select ten, see eight land, and have no idea why.
+    onBatchAdded: ({ added, skipped }) => {
+      if (skipped > 0) {
+        Toast.show({
+          type: "themedWarning",
+          text1: `Added ${added}`,
+          text2: `${skipped} already in this room.`,
+          position: "bottom",
+        });
+      }
+    },
   });
 
   return (

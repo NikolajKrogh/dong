@@ -11,6 +11,7 @@ import type { HostRoomCreateResponse } from "../types/hostRoom";
 import type {
   AddRoomMatchRequest,
   AssignmentMode,
+  BatchRoomMatchResult,
   HostLeaveResponse,
   MemberLeaveResponse,
   MyActiveRoom,
@@ -63,7 +64,19 @@ export interface RoomRpcClient {
     sessionId: string,
     request: AddRoomMatchRequest,
   ): Promise<string>;
+  /**
+   * Adds many fixtures in one round trip. Returns how many landed and how many
+   * were already in the pool — a repeat is a skip, not a failure, matching
+   * {@link addRoomMatch}. Prefer this over looping `addRoomMatch`: each single
+   * add takes the room row's lock and triggers its own snapshot refresh.
+   */
+  addRoomMatches(
+    sessionId: string,
+    requests: AddRoomMatchRequest[],
+  ): Promise<BatchRoomMatchResult>;
   removeRoomMatch(sessionId: string, matchId: string): Promise<void>;
+  /** Removes many fixtures in one round trip, cascading exactly as the singular form does. */
+  removeRoomMatches(sessionId: string, matchIds: string[]): Promise<void>;
   setCommonMatch(sessionId: string, matchId: string): Promise<void>;
   setRoomAssignments(
     sessionId: string,
@@ -402,10 +415,37 @@ export const createRoomRpcClient = (
       return data as string;
     },
 
+    async addRoomMatches(sessionId, requests) {
+      // camelCase keys: the RPC reads the payload with ->> using these exact
+      // names, so the request objects travel verbatim.
+      const { data, error } = await client.rpc("add_room_matches", {
+        session_id: sessionId,
+        matches: requests,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const result = (data ?? {}) as Partial<BatchRoomMatchResult>;
+      return { added: result.added ?? 0, skipped: result.skipped ?? 0 };
+    },
+
     async removeRoomMatch(sessionId, matchId) {
       const { error } = await client.rpc("remove_room_match", {
         session_id: sessionId,
         match_id: matchId,
+      });
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async removeRoomMatches(sessionId, matchIds) {
+      const { error } = await client.rpc("remove_room_matches", {
+        session_id: sessionId,
+        match_ids: matchIds,
       });
 
       if (error) {

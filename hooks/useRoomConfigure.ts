@@ -4,6 +4,7 @@ import {
   ROOM_ERROR,
   type AddRoomMatchRequest,
   type AssignmentMode,
+  type BatchRoomMatchResult,
   type RoomAssignmentInput,
   type RoomAssignmentSettingsRequest,
   type RoomSnapshot,
@@ -18,7 +19,22 @@ export interface UseRoomConfigureResult {
   isBusy: boolean;
   error: string | null;
   addMatch: (request: AddRoomMatchRequest) => Promise<void>;
+  /**
+   * Adds many fixtures in a single call.
+   *
+   * Not a convenience wrapper over `addMatch`: looping the singular form meant one
+   * RPC *and one snapshot refresh* per fixture, and — because `run` resets `error`
+   * at the start of every call — a failure partway through was overwritten by the
+   * calls after it, so the host saw nothing. One call, one error slot, one refresh.
+   *
+   * Resolves to null if the batch failed; `error` carries the reason.
+   */
+  addMatches: (
+    requests: AddRoomMatchRequest[],
+  ) => Promise<BatchRoomMatchResult | null>;
   removeMatch: (matchId: string) => Promise<void>;
+  /** Removes many fixtures in a single call, cascading exactly as `removeMatch` does. */
+  removeMatches: (matchIds: string[]) => Promise<void>;
   setCommonMatch: (matchId: string) => Promise<void>;
   setAssignments: (assignments: RoomAssignmentInput[]) => Promise<void>;
   /** Sets the room's per-player match count and shared-per-pair count (FR-028 to FR-031).
@@ -139,6 +155,25 @@ export const useRoomConfigure = (
     [run],
   );
 
+  const addMatches = useCallback(
+    async (requests: AddRoomMatchRequest[]) => {
+      let result: BatchRoomMatchResult | null = null;
+      await run(async (sessionId) => {
+        result = await getRoomRpcClient().addRoomMatches(sessionId, requests);
+      });
+      return result;
+    },
+    [run],
+  );
+
+  const removeMatches = useCallback(
+    (matchIds: string[]) =>
+      run(async (sessionId) => {
+        await getRoomRpcClient().removeRoomMatches(sessionId, matchIds);
+      }),
+    [run],
+  );
+
   const removeMatch = useCallback(
     (matchId: string) =>
       run(async (sessionId) => {
@@ -232,7 +267,9 @@ export const useRoomConfigure = (
     isBusy,
     error,
     addMatch,
+    addMatches,
     removeMatch,
+    removeMatches,
     setCommonMatch,
     setAssignments,
     setAssignmentSettings,

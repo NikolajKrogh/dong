@@ -402,7 +402,7 @@ const LobbyScreen = () => {
                           <ShellActionButton
                             variant="surface"
                             size="small"
-                            widthMode="content"
+                            widthMode="fit"
                             label="Make Common Match"
                             testID={`lobby-set-common-${match.id}`}
                             disabled={configure.isBusy}
@@ -414,7 +414,7 @@ const LobbyScreen = () => {
                         <ShellActionButton
                           variant="surface"
                           size="small"
-                          widthMode="content"
+                          widthMode="fit"
                           label="Remove"
                           testID={`lobby-remove-match-${match.id}`}
                           disabled={configure.isBusy}
@@ -426,8 +426,17 @@ const LobbyScreen = () => {
                     </YStack>
                   ))}
 
+                  {/*
+                    Promoted to the primary style while the pool is too small to
+                    start, because that is exactly when adding matches is the one
+                    thing standing between the host and Start Game. Once the room
+                    has enough it steps back to secondary so it stops competing
+                    with Start Game for attention.
+                  */}
                   <ShellActionButton
-                    variant="secondary"
+                    variant={
+                      plan.poolSize < plan.relaxedFloor ? "primary" : "secondary"
+                    }
                     label="Configure Matches"
                     testID="lobby-open-configure-matches"
                     disabled={configure.isBusy}
@@ -451,7 +460,8 @@ const LobbyScreen = () => {
                     <Text color="$color" fontSize={14} fontWeight="700">
                       Assignment mode
                     </Text>
-                    <XStack gap="$2">
+                    {/* Wraps because three labels do not fit one phone row. */}
+                    <XStack gap="$2" flexWrap="wrap">
                       {(
                         [
                           "automatic",
@@ -465,7 +475,7 @@ const LobbyScreen = () => {
                             assignmentMode === mode ? "primary" : "surface"
                           }
                           size="small"
-                          widthMode="content"
+                          widthMode="fit"
                           label={ASSIGNMENT_MODE_LABELS[mode]}
                           testID={`lobby-assignment-mode-${MODE_TEST_IDS[mode]}`}
                           disabled={configure.isBusy}
@@ -517,7 +527,7 @@ const LobbyScreen = () => {
                                       key={match.id}
                                       variant={isHeld ? "primary" : "surface"}
                                       size="small"
-                                      widthMode="content"
+                                      widthMode="fit"
                                       label={`${match.homeTeamName} v ${match.awayTeamName}`}
                                       testID={`lobby-allocate-${participant.id}-${match.id}`}
                                       disabled={configure.isBusy}
@@ -550,15 +560,21 @@ const LobbyScreen = () => {
                       Assignment settings
                     </Text>
 
-                    <XStack alignItems="center" justifyContent="space-between">
-                      <Text color="$colorMuted" fontSize={13}>
+                    <XStack
+                      alignItems="center"
+                      justifyContent="space-between"
+                      gap="$3"
+                    >
+                      {/* flexShrink so a long label wraps instead of shoving the
+                          stepper out of the row and off-screen. */}
+                      <Text color="$colorMuted" fontSize={13} flexShrink={1}>
                         Matches per player (beyond the Common Match)
                       </Text>
-                      <XStack alignItems="center" gap="$2">
+                      <XStack alignItems="center" gap="$2" flexShrink={0}>
                         <ShellActionButton
                           variant="surface"
                           size="small"
-                          widthMode="content"
+                          widthMode="fit"
                           label="-"
                           testID="lobby-matches-per-player-decrement"
                           disabled={
@@ -588,7 +604,7 @@ const LobbyScreen = () => {
                         <ShellActionButton
                           variant="surface"
                           size="small"
-                          widthMode="content"
+                          widthMode="fit"
                           label="+"
                           testID="lobby-matches-per-player-increment"
                           disabled={configure.isBusy}
@@ -602,15 +618,21 @@ const LobbyScreen = () => {
                       </XStack>
                     </XStack>
 
-                    <XStack alignItems="center" justifyContent="space-between">
-                      <Text color="$colorMuted" fontSize={13}>
+                    <XStack
+                      alignItems="center"
+                      justifyContent="space-between"
+                      gap="$3"
+                    >
+                      {/* flexShrink so a long label wraps instead of shoving the
+                          stepper out of the row and off-screen. */}
+                      <Text color="$colorMuted" fontSize={13} flexShrink={1}>
                         Matches shared by every pair of players
                       </Text>
-                      <XStack alignItems="center" gap="$2">
+                      <XStack alignItems="center" gap="$2" flexShrink={0}>
                         <ShellActionButton
                           variant="surface"
                           size="small"
-                          widthMode="content"
+                          widthMode="fit"
                           label="-"
                           testID="lobby-shared-matches-per-pair-decrement"
                           disabled={
@@ -640,7 +662,7 @@ const LobbyScreen = () => {
                         <ShellActionButton
                           variant="surface"
                           size="small"
-                          widthMode="content"
+                          widthMode="fit"
                           label="+"
                           testID="lobby-shared-matches-per-pair-increment"
                           disabled={configure.isBusy}

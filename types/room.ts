@@ -112,6 +112,19 @@ export interface MyActiveRoom {
 }
 
 /** Request shape for `add_room_match` (US1). */
+/**
+ * Outcome of a batched fixture add.
+ *
+ * `skipped` counts fixtures already present in the room's pool. A repeat is a
+ * deliberate no-op rather than an error — the same contract the single-fixture
+ * RPC has always had — so a caller that selected ten and sees `added: 8,
+ * skipped: 2` has lost nothing.
+ */
+export interface BatchRoomMatchResult {
+  added: number;
+  skipped: number;
+}
+
 export interface AddRoomMatchRequest {
   sourceProvider: string;
   sourceMatchId: string | null;

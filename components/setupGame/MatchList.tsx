@@ -6,6 +6,8 @@ import {
   View,
 } from "react-native";
 
+import Toast from "react-native-toast-message";
+
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { useMatchData } from "../../hooks/useMatchData";
@@ -230,13 +232,16 @@ const MatchList: FC<MatchListProps> = ({
   ]);
 
   const handleAddAllFilteredMatches = () => {
+    // The date/time guard that used to sit here was unreachable: the filter hook
+    // seeds selectedDate to today and both times to a default range, so
+    // isDateFilterActive was never false. An empty result is the only real case.
     if (filteredMatches.length === 0) {
-      alert("No matches found with current filters to add.");
-      return;
-    }
-
-    if (!isDateFilterActive && !isTimeFilterActive) {
-      alert("Please apply date or time filters before adding all.");
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Matches Found",
+        text2: "No matches match the current filters. Try another date or league.",
+        position: "bottom",
+      });
       return;
     }
 
@@ -249,7 +254,12 @@ const MatchList: FC<MatchListProps> = ({
 
   const handleClearAllMatches = () => {
     if (matches.length === 0) {
-      alert("No matches to clear.");
+      Toast.show({
+        type: "themedWarning",
+        text1: "Nothing to Clear",
+        text2: "There are no matches selected yet.",
+        position: "bottom",
+      });
       return;
     }
 

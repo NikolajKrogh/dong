@@ -154,6 +154,13 @@ jest.mock("../../../components/setupGame/TeamSelectionRow", () => ({
 
 // Named export, not default -- the pool now renders through the app's shared
 // match-card component rather than the wizard's own retired MatchItem.
+// MatchList now reports empty-filter and nothing-to-clear through the app's toast
+// rather than a system alert().
+jest.mock("react-native-toast-message", () => ({
+  __esModule: true,
+  default: { show: jest.fn() },
+}));
+
 jest.mock("../../../components/matchSelection/SelectableMatchList", () => ({
   SelectableMatchList: (props: any) => {
     const ReactLocal = require("react");

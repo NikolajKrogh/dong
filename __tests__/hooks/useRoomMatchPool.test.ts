@@ -8,7 +8,11 @@ import {
   useRoomMatchPool,
   type RoomMatchPool,
 } from "../../hooks/useRoomMatchPool";
-import type { AddRoomMatchRequest, RoomMatchSummary } from "../../types/room";
+import type {
+  AddRoomMatchRequest,
+  BatchRoomMatchResult,
+  RoomMatchSummary,
+} from "../../types/room";
 
 const roomMatch = (
   overrides: Partial<RoomMatchSummary> & { id: string },
@@ -29,12 +33,20 @@ const roomMatch = (
  */
 const mount = (
   roomMatches: RoomMatchSummary[],
-  addMatch: (r: AddRoomMatchRequest) => Promise<void>,
+  addMatches: (r: AddRoomMatchRequest[]) => Promise<BatchRoomMatchResult | null>,
   removeMatch: (id: string) => Promise<void>,
+  removeMatches: (ids: string[]) => Promise<void> = jest.fn(async () => {}),
+  onBatchAdded?: (result: BatchRoomMatchResult) => void,
 ) => {
   let latest: RoomMatchPool | undefined;
   const Probe = () => {
-    latest = useRoomMatchPool({ roomMatches, addMatch, removeMatch });
+    latest = useRoomMatchPool({
+      roomMatches,
+      addMatches,
+      removeMatch,
+      removeMatches,
+      onBatchAdded,
+    });
     return null;
   };
   TestRenderer.act(() => {
@@ -61,7 +73,7 @@ describe("useRoomMatchPool", () => {
           kickoffAt: "2026-08-22T11:30:00.000Z",
         }),
       ],
-      jest.fn(async () => {}),
+      jest.fn(async () => ({ added: 0, skipped: 0 })),
       jest.fn(async () => {}),
     );
 
@@ -85,8 +97,8 @@ describe("useRoomMatchPool", () => {
    * room stayed empty. Provenance and the kickoff must both come from `kickoffAt`.
    */
   it("never sends a display-only startTime as the kickoff timestamp", async () => {
-    const addMatch = jest.fn(async () => {});
-    const pool = mount([], addMatch, jest.fn(async () => {}));
+    const addMatches = jest.fn(async () => ({ added: 1, skipped: 0 }));
+    const pool = mount([], addMatches, jest.fn(async () => {}));
 
     await TestRenderer.act(async () => {
       pool.setMatches([
@@ -102,18 +114,18 @@ describe("useRoomMatchPool", () => {
       await flush();
     });
 
-    expect(addMatch).toHaveBeenCalledWith(
+    expect(addMatches).toHaveBeenCalledWith([
       expect.objectContaining({ kickoffAt: null }),
-    );
-    expect(addMatch).not.toHaveBeenCalledWith(
+    ]);
+    expect(addMatches).not.toHaveBeenCalledWith([
       expect.objectContaining({ kickoffAt: "13:30" }),
-    );
+    ]);
   });
 
   it("maps a kickoff-less room match to an undefined startTime", () => {
     const pool = mount(
       [roomMatch({ id: "room-1", kickoffAt: null })],
-      jest.fn(async () => {}),
+      jest.fn(async () => ({ added: 0, skipped: 0 })),
       jest.fn(async () => {}),
     );
 
@@ -125,8 +137,8 @@ describe("useRoomMatchPool", () => {
    * allows scores to be synced back to the room later.
    */
   it("adds a discovered fixture with its catalogue source id", async () => {
-    const addMatch = jest.fn(async () => {});
-    const pool = mount([], addMatch, jest.fn(async () => {}));
+    const addMatches = jest.fn(async () => ({ added: 1, skipped: 0 }));
+    const pool = mount([], addMatches, jest.fn(async () => {}));
 
     await TestRenderer.act(async () => {
       pool.setMatches([
@@ -145,13 +157,15 @@ describe("useRoomMatchPool", () => {
       await flush();
     });
 
-    expect(addMatch).toHaveBeenCalledWith({
-      sourceProvider: CATALOGUE_SOURCE_PROVIDER,
-      sourceMatchId: "401879322",
-      homeTeamName: "Hull City",
-      awayTeamName: "Manchester United",
-      kickoffAt: "2026-08-22T11:30:00.000Z",
-    });
+    expect(addMatches).toHaveBeenCalledWith([
+      {
+        sourceProvider: CATALOGUE_SOURCE_PROVIDER,
+        sourceMatchId: "401879322",
+        homeTeamName: "Hull City",
+        awayTeamName: "Manchester United",
+        kickoffAt: "2026-08-22T11:30:00.000Z",
+      },
+    ]);
   });
 
   /**
@@ -160,8 +174,8 @@ describe("useRoomMatchPool", () => {
    * fabricated one.
    */
   it("adds a hand-typed fixture as manual with no source id", async () => {
-    const addMatch = jest.fn(async () => {});
-    const pool = mount([], addMatch, jest.fn(async () => {}));
+    const addMatches = jest.fn(async () => ({ added: 1, skipped: 0 }));
+    const pool = mount([], addMatches, jest.fn(async () => {}));
 
     await TestRenderer.act(async () => {
       pool.setMatches([
@@ -176,13 +190,15 @@ describe("useRoomMatchPool", () => {
       await flush();
     });
 
-    expect(addMatch).toHaveBeenCalledWith({
-      sourceProvider: MANUAL_SOURCE_PROVIDER,
-      sourceMatchId: null,
-      homeTeamName: "Local Rovers",
-      awayTeamName: "Village FC",
-      kickoffAt: null,
-    });
+    expect(addMatches).toHaveBeenCalledWith([
+      {
+        sourceProvider: MANUAL_SOURCE_PROVIDER,
+        sourceMatchId: null,
+        homeTeamName: "Local Rovers",
+        awayTeamName: "Village FC",
+        kickoffAt: null,
+      },
+    ]);
   });
 
   /**
@@ -191,9 +207,9 @@ describe("useRoomMatchPool", () => {
    * everything already in the room.
    */
   it("writes only the entries the room does not already hold", async () => {
-    const addMatch = jest.fn(async () => {});
+    const addMatches = jest.fn(async () => ({ added: 1, skipped: 0 }));
     const existing = roomMatch({ id: "room-1" });
-    const pool = mount([existing], addMatch, jest.fn(async () => {}));
+    const pool = mount([existing], addMatches, jest.fn(async () => {}));
 
     await TestRenderer.act(async () => {
       pool.setMatches([
@@ -211,15 +227,21 @@ describe("useRoomMatchPool", () => {
       await flush();
     });
 
-    expect(addMatch).toHaveBeenCalledTimes(1);
-    expect(addMatch).toHaveBeenCalledWith(
+    expect(addMatches).toHaveBeenCalledTimes(1);
+    expect(addMatches).toHaveBeenCalledWith([
       expect.objectContaining({ sourceMatchId: "espn-new" }),
-    );
+    ]);
   });
 
-  it("adds every entry of a batch, one call each", async () => {
-    const addMatch = jest.fn(async () => {});
-    const pool = mount([], addMatch, jest.fn(async () => {}));
+  /**
+   * The whole point of batching: eleven fixtures used to mean eleven RPCs, eleven
+   * room-row locks and eleven snapshot refreshes.
+   */
+  it("sends a whole batch in a single call", async () => {
+    const addMatches = jest.fn(
+      async (_requests: AddRoomMatchRequest[]) => ({ added: 3, skipped: 0 }),
+    );
+    const pool = mount([], addMatches, jest.fn(async () => {}));
 
     await TestRenderer.act(async () => {
       pool.setMatches([
@@ -230,19 +252,18 @@ describe("useRoomMatchPool", () => {
       await flush();
     });
 
-    expect(addMatch).toHaveBeenCalledTimes(3);
+    expect(addMatches).toHaveBeenCalledTimes(1);
+    expect(addMatches.mock.calls[0][0]).toHaveLength(3);
   });
 
   /** MatchList's "clear all" passes an empty array — that must remove the pool. */
-  it("removes every room match when handed an empty list", async () => {
-    const removed: string[] = [];
-    const removeMatch = jest.fn(async (id: string) => {
-      removed.push(id);
-    });
+  it("removes every room match in one call when handed an empty list", async () => {
+    const removeMatches = jest.fn(async () => {});
     const pool = mount(
       [roomMatch({ id: "room-1" }), roomMatch({ id: "room-2" })],
+      jest.fn(async () => ({ added: 0, skipped: 0 })),
       jest.fn(async () => {}),
-      removeMatch,
+      removeMatches,
     );
 
     await TestRenderer.act(async () => {
@@ -250,26 +271,27 @@ describe("useRoomMatchPool", () => {
       await flush();
     });
 
-    expect(removed).toEqual(["room-1", "room-2"]);
+    expect(removeMatches).toHaveBeenCalledTimes(1);
+    expect(removeMatches).toHaveBeenCalledWith(["room-1", "room-2"]);
   });
 
   it("never adds while clearing", async () => {
-    const addMatch = jest.fn(async () => {});
-    const pool = mount([roomMatch({ id: "room-1" })], addMatch, jest.fn(async () => {}));
+    const addMatches = jest.fn(async () => ({ added: 0, skipped: 0 }));
+    const pool = mount([roomMatch({ id: "room-1" })], addMatches, jest.fn(async () => {}));
 
     await TestRenderer.act(async () => {
       pool.setMatches([]);
       await flush();
     });
 
-    expect(addMatch).not.toHaveBeenCalled();
+    expect(addMatches).not.toHaveBeenCalled();
   });
 
   it("removes a single match by id", () => {
     const removeMatch = jest.fn(async () => {});
     const pool = mount(
       [roomMatch({ id: "room-1" })],
-      jest.fn(async () => {}),
+      jest.fn(async () => ({ added: 0, skipped: 0 })),
       removeMatch,
     );
 
@@ -278,5 +300,67 @@ describe("useRoomMatchPool", () => {
     });
 
     expect(removeMatch).toHaveBeenCalledWith("room-1");
+  });
+  /**
+   * The reason batching matters beyond round trips. The caller resets its error
+   * slot at the start of every call, so when this looped the singular RPC a
+   * failure on fixture 3 was wiped by fixtures 4..n and the host saw nothing —
+   * just a pool quietly short of what they selected. One call has nothing to
+   * overwrite it.
+   */
+  describe("batch outcome reporting", () => {
+    it("reports how many landed and how many were already there", async () => {
+      const onBatchAdded = jest.fn();
+      const pool = mount(
+        [],
+        jest.fn(async () => ({ added: 8, skipped: 3 })),
+        jest.fn(async () => {}),
+        jest.fn(async () => {}),
+        onBatchAdded,
+      );
+
+      await TestRenderer.act(async () => {
+        pool.setMatches([
+          { id: "a", homeTeam: "A", awayTeam: "B", homeGoals: 0, awayGoals: 0 },
+        ]);
+        await flush();
+      });
+
+      expect(onBatchAdded).toHaveBeenCalledWith({ added: 8, skipped: 3 });
+    });
+
+    // A rejected batch resolves null; there is nothing to report and the caller's
+    // error surface carries the reason instead.
+    it("reports nothing when the batch failed", async () => {
+      const onBatchAdded = jest.fn();
+      const pool = mount(
+        [],
+        jest.fn(async () => null),
+        jest.fn(async () => {}),
+        jest.fn(async () => {}),
+        onBatchAdded,
+      );
+
+      await TestRenderer.act(async () => {
+        pool.setMatches([
+          { id: "a", homeTeam: "A", awayTeam: "B", homeGoals: 0, awayGoals: 0 },
+        ]);
+        await flush();
+      });
+
+      expect(onBatchAdded).not.toHaveBeenCalled();
+    });
+
+    it("does not call the server when every fixture is already in the pool", async () => {
+      const addMatches = jest.fn(async () => ({ added: 0, skipped: 0 }));
+      const pool = mount([roomMatch({ id: "room-1" })], addMatches, jest.fn(async () => {}));
+
+      await TestRenderer.act(async () => {
+        pool.setMatches(pool.matches);
+        await flush();
+      });
+
+      expect(addMatches).not.toHaveBeenCalled();
+    });
   });
 });
