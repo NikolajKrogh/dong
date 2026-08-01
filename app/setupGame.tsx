@@ -224,53 +224,95 @@ const SetupGameScreen = () => {
         contentMaxWidth={wideLayout ? 1120 : undefined}
       >
         <SetupWizard
-          playersStep={
-            <SetupGamePlayerList
-              players={players}
-              newPlayerName={newPlayerName}
-              setNewPlayerName={setNewPlayerName}
-              handleAddPlayer={handleAddPlayer}
-              handleAddPlayerByName={handleAddPlayerByName}
-              handleRemovePlayer={handleRemovePlayer}
-            />
-          }
-          matchesStep={
-            <MatchList
-              matches={matches}
-              homeTeam={homeTeam}
-              awayTeam={awayTeam}
-              setHomeTeam={setHomeTeam}
-              setAwayTeam={setAwayTeam}
-              handleRemoveMatch={handleRemoveMatch}
-              setGlobalMatches={setGlobalMatches}
-            />
-          }
-          commonMatchStep={
-            <CommonMatchSelector
-              matches={matches}
-              selectedCommonMatch={commonMatchId}
-              handleSelectCommonMatch={handleSelectCommonMatch}
-            />
-          }
-          assignStep={
-            <AssignmentSection
-              players={players}
-              matches={matches}
-              commonMatchId={commonMatchId}
-              playerAssignments={playerAssignments}
-              toggleMatchAssignment={toggleMatchAssignment}
-              matchesPerPlayer={matchesPerPlayer}
-              setMatchesPerPlayer={setMatchesPerPlayer}
-              handleRandomAssignment={handleRandomAssignment}
-            />
-          }
-          handleStartGame={handleStartGame}
-          canAdvanceToMatches={canAdvanceToMatches}
-          canAdvanceToCommonMatch={canAdvanceToCommonMatch}
-          canAdvanceToAssign={canAdvanceToAssign}
-          canStartGame={canStartGame}
-          newPlayerName={newPlayerName}
-          handleAddPlayer={handleAddPlayer}
+          steps={[
+            {
+              key: "players",
+              name: "Players",
+              icon: "add-circle",
+              canEnter: true,
+              content: (
+                <SetupGamePlayerList
+                  players={players}
+                  newPlayerName={newPlayerName}
+                  setNewPlayerName={setNewPlayerName}
+                  handleAddPlayer={handleAddPlayer}
+                  handleAddPlayerByName={handleAddPlayerByName}
+                  handleRemovePlayer={handleRemovePlayer}
+                />
+              ),
+            },
+            {
+              key: "matches",
+              name: "Matches",
+              icon: "game-controller-outline",
+              canEnter: canAdvanceToMatches,
+              content: (
+                <MatchList
+                  matches={matches}
+                  homeTeam={homeTeam}
+                  awayTeam={awayTeam}
+                  setHomeTeam={setHomeTeam}
+                  setAwayTeam={setAwayTeam}
+                  handleRemoveMatch={handleRemoveMatch}
+                  setGlobalMatches={setGlobalMatches}
+                />
+              ),
+            },
+            {
+              key: "common",
+              name: "Common",
+              icon: "tv-outline",
+              canEnter: canAdvanceToCommonMatch,
+              content: (
+                <CommonMatchSelector
+                  matches={matches}
+                  selectedCommonMatch={commonMatchId}
+                  handleSelectCommonMatch={handleSelectCommonMatch}
+                />
+              ),
+            },
+            {
+              key: "assign",
+              name: "Assign",
+              icon: "git-network",
+              canEnter: canAdvanceToAssign,
+              content: (
+                <AssignmentSection
+                  players={players}
+                  matches={matches}
+                  commonMatchId={commonMatchId}
+                  playerAssignments={playerAssignments}
+                  toggleMatchAssignment={toggleMatchAssignment}
+                  matchesPerPlayer={matchesPerPlayer}
+                  setMatchesPerPlayer={setMatchesPerPlayer}
+                  handleRandomAssignment={handleRandomAssignment}
+                />
+              ),
+            },
+          ]}
+          firstSlotAction={{
+            label: "Home",
+            icon: "home",
+            iconPosition: "leading",
+            onPress: () => router.push("./"),
+            backgroundColor: colors.secondary,
+          }}
+          finalAction={{
+            label: "Start Game",
+            icon: "play",
+            onPress: handleStartGame,
+            disabled: !canStartGame,
+            backgroundColor: colors.success,
+          }}
+          // The players step lets you type a name and hit Next without pressing
+          // Add; commit it rather than silently dropping it.
+          onBeforeNext={(index) => {
+            if (index === 0 && newPlayerName.trim()) {
+              handleAddPlayer();
+              return true;
+            }
+            return false;
+          }}
         />
       </ShellScreen>
     </SafeAreaView>
