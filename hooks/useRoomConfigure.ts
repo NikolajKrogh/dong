@@ -69,6 +69,13 @@ export interface UseRoomConfigureResult {
    * `in_progress` transition via the regular lobby snapshot poll, per FR-024).
    */
   startGame: (relaxConstraints?: boolean) => Promise<boolean>;
+  /**
+   * Ends a running game for everyone (migration 040). The room reaches
+   * `completed`, which frees it from `get_my_active_room` so Home stops offering
+   * to return to it. Returns true once the server accepts; the lobby's own poll
+   * then renders the ended state.
+   */
+  endGame: () => Promise<boolean>;
 }
 
 const CLIENT_SAFE_ERROR_MESSAGE_REGEX = /fetch failed|network request failed|load failed/i;
@@ -263,6 +270,18 @@ export const useRoomConfigure = (
     [snapshot],
   );
 
+  const endGame = useCallback(async (): Promise<boolean> => {
+    if (!snapshot) {
+      return false;
+    }
+    let ended = false;
+    await run(async (sessionId) => {
+      await getRoomRpcClient().endGameSession(sessionId);
+      ended = true;
+    });
+    return ended;
+  }, [run, snapshot]);
+
   return {
     isBusy,
     error,
@@ -276,5 +295,6 @@ export const useRoomConfigure = (
     setAssignmentMode,
     setMyPicks,
     startGame,
+    endGame,
   };
 };

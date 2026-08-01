@@ -99,6 +99,16 @@ export type HostLeaveResponse =
     }
   | { status: "closed"; sessionId: string };
 
+/**
+ * `end_game_session` (migration 040). `closed` only comes back when the room was
+ * already closed by a host leaving with no successor — ending a running game
+ * always produces `completed`, the state a played game belongs in.
+ */
+export interface EndGameSessionResponse {
+  status: "completed" | "closed";
+  sessionId: string;
+}
+
 export interface MemberLeaveResponse {
   sessionId: string;
   status: "left";

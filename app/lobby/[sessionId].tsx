@@ -11,7 +11,13 @@
  * `in_progress`. Closed/expired rooms return the viewer home.
  */
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Modal, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack } from "tamagui";
@@ -55,6 +61,13 @@ const LobbyScreen = () => {
   const lobby = useRoomLobby(sessionId || null, participantId);
   const exit = useRoomExit();
   const hasHydratedGameplayRef = useRef(false);
+  // Whether this mount ever saw the room *before* it started. It is the only
+  // thing that separates "the game just started while I was watching the lobby"
+  // (redirect, FR-012) from "I opened the lobby of a game already running"
+  // (stay). Both look identical on the first snapshot after mount, which is why
+  // returning to a running room used to bounce straight back into the game and
+  // made the lobby unreachable.
+  const seenPreStartRef = useRef(false);
 
   const configure = useRoomConfigure(lobby.snapshot, lobby.refresh);
   const [pendingModeSwitch, setPendingModeSwitch] =
@@ -71,6 +84,14 @@ const LobbyScreen = () => {
     router.replace("/");
   }, [router]);
 
+  const [isEndGameConfirmVisible, setIsEndGameConfirmVisible] = useState(false);
+
+  // push, not replace: the lobby stays on the stack so the game screen's back
+  // gesture returns here rather than dropping the room entirely.
+  const handleReturnToGame = useCallback(() => {
+    router.push("/gameProgress");
+  }, [router]);
+
   const handleLeave = useCallback(async () => {
     if (!sessionId || !lobby.myRole) {
       return;
@@ -82,6 +103,17 @@ const LobbyScreen = () => {
       goHome();
     }
   }, [exit, goHome, lobby.myRole, sessionId]);
+
+  const handleEndGame = useCallback(async () => {
+    const ended = await configure.endGame();
+    setIsEndGameConfirmVisible(false);
+    if (ended) {
+      // The room is `completed` now, so the next poll flips roomEnded and this
+      // screen becomes the ended notice; going home also drops the stale
+      // "Return to room" affordance on Home, which reads the active room.
+      goHome();
+    }
+  }, [configure, goHome]);
 
   const handleChooseSuccessor = useCallback(
     async (id: string) => {
@@ -102,6 +134,12 @@ const LobbyScreen = () => {
 
   // US4 (FR-012): once the snapshot flips to in_progress, hydrate the gameplay
   // store from the room's final configuration and redirect every connected device.
+  useEffect(() => {
+    if (lobby.snapshot && !lobby.gameStarted) {
+      seenPreStartRef.current = true;
+    }
+  }, [lobby.gameStarted, lobby.snapshot]);
+
   useEffect(() => {
     const snapshot = lobby.snapshot;
     if (!lobby.gameStarted || !snapshot || hasHydratedGameplayRef.current) {
@@ -143,7 +181,11 @@ const LobbyScreen = () => {
       ),
     );
 
-    router.replace("/gameProgress");
+    // Hydration always runs -- "Return to game" below needs a populated store --
+    // but only a start observed from this lobby redirects.
+    if (seenPreStartRef.current) {
+      router.replace("/gameProgress");
+    }
   }, [
     lobby.gameStarted,
     lobby.snapshot,
@@ -214,7 +256,8 @@ const LobbyScreen = () => {
   const automaticMinimum =
     plan.sharedMatchesPerPair * Math.max(participants.length - 1, 0);
   const modeSwitchRaisesMinimum =
-    pendingModeSwitch === "automatic" && automaticMinimum > plan.matchesPerPlayer;
+    pendingModeSwitch === "automatic" &&
+    automaticMinimum > plan.matchesPerPlayer;
 
   // research.md R9: per-participant "still short" is derived client-side from
   // the snapshot's own assignments array — no server field needed.
@@ -344,154 +387,182 @@ const LobbyScreen = () => {
           contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
         >
-        <YStack flex={1} gap="$5" paddingVertical="$4">
-          {lobby.roomEnded ? (
-            <RoomEndedNotice onReturnHome={goHome} />
-          ) : (
-            <>
-              <Text color="$color" fontSize={28} fontWeight="700">
-                Room Lobby
-              </Text>
+          <YStack flex={1} gap="$5" paddingVertical="$4">
+            {lobby.roomEnded ? (
+              <RoomEndedNotice onReturnHome={goHome} />
+            ) : lobby.gameStarted ? (
+              /*
+              A game that is already under way. None of the configure controls
+              below apply once the server has generated the assignments, so this
+              is deliberately just the roster and the three ways out.
+            */
+              <YStack gap="$4" testID="lobby-in-progress">
+                <Text color="$color" fontSize={28} fontWeight="700">
+                  Game in progress
+                </Text>
+                <Text color="$colorMuted" fontSize={14}>
+                  {isHost
+                    ? "Ending the game finishes it for everyone and saves it to the room's history."
+                    : "Leaving takes you out of the room; the game carries on for everyone else."}
+                </Text>
 
-              {lobby.joinCode ? (
-                <YStack gap="$2">
-                  <Text color="$colorMuted" fontSize={14} fontWeight="600">
-                    Join code
-                  </Text>
+                <ParticipantList
+                  participants={lobby.participants}
+                  pickProgress={pickProgress}
+                />
+
+                <ShellActionButton
+                  variant="primary"
+                  label="Return to game"
+                  testID="lobby-return-to-game"
+                  onPress={handleReturnToGame}
+                />
+
+                {isHost ? (
+                  <ShellActionButton
+                    variant="danger"
+                    label="End game for everyone"
+                    testID="lobby-end-game"
+                    disabled={configure.isBusy}
+                    onPress={() => {
+                      setIsEndGameConfirmVisible(true);
+                    }}
+                  />
+                ) : null}
+
+                <ShellActionButton
+                  variant="surface"
+                  label={isHost ? "Leave Room" : "Leave"}
+                  testID="lobby-in-progress-leave"
+                  disabled={exit.isExiting}
+                  onPress={() => {
+                    void handleLeave();
+                  }}
+                />
+
+                {configure.error ? (
                   <Text
-                    testID="lobby-join-code"
-                    color="$primary"
-                    fontSize={48}
-                    fontWeight="800"
-                    letterSpacing={6}
+                    color="$danger"
+                    fontSize={13}
+                    testID="lobby-in-progress-error"
                   >
-                    {lobby.joinCode}
+                    {configure.error}
                   </Text>
-                </YStack>
-              ) : null}
-
-              <ParticipantList
-                participants={lobby.participants}
-                pickProgress={pickProgress}
-              />
-
-              {isHost && lobby.snapshot ? (
-                <YStack gap="$3">
-                  <Text color="$color" fontSize={16} fontWeight="700">
-                    Matches ({lobby.snapshot.matches.length})
+                ) : null}
+                {exit.error ? (
+                  <Text color="$danger" fontSize={13}>
+                    {exit.error}
                   </Text>
-                  {lobby.snapshot.matches.map((match) => (
-                    <YStack
-                      key={match.id}
-                      testID={`lobby-match-${match.id}`}
-                      gap="$1"
-                      backgroundColor="$backgroundLight"
-                      borderColor="$borderColorLight"
-                      borderRadius="$5"
-                      borderWidth={1}
-                      padding="$3"
+                ) : null}
+              </YStack>
+            ) : (
+              <>
+                <Text color="$color" fontSize={28} fontWeight="700">
+                  Room Lobby
+                </Text>
+
+                {lobby.joinCode ? (
+                  <YStack gap="$2">
+                    <Text color="$colorMuted" fontSize={14} fontWeight="600">
+                      Join code
+                    </Text>
+                    <Text
+                      testID="lobby-join-code"
+                      color="$primary"
+                      fontSize={48}
+                      fontWeight="800"
+                      letterSpacing={6}
                     >
-                      <Text color="$color" fontSize={14} fontWeight="600">
-                        {match.homeTeamName} vs {match.awayTeamName}
-                        {match.id === lobby.snapshot?.commonMatchId
-                          ? "  ⭐ Common Match"
-                          : ""}
-                      </Text>
-                      <XStack gap="$2">
-                        {match.id !== lobby.snapshot?.commonMatchId ? (
+                      {lobby.joinCode}
+                    </Text>
+                  </YStack>
+                ) : null}
+
+                <ParticipantList
+                  participants={lobby.participants}
+                  pickProgress={pickProgress}
+                />
+
+                {isHost && lobby.snapshot ? (
+                  <YStack gap="$3">
+                    <Text color="$color" fontSize={16} fontWeight="700">
+                      Matches ({lobby.snapshot.matches.length})
+                    </Text>
+                    {lobby.snapshot.matches.map((match) => (
+                      <YStack
+                        key={match.id}
+                        testID={`lobby-match-${match.id}`}
+                        gap="$1"
+                        backgroundColor="$backgroundLight"
+                        borderColor="$borderColorLight"
+                        borderRadius="$5"
+                        borderWidth={1}
+                        padding="$3"
+                      >
+                        <Text color="$color" fontSize={14} fontWeight="600">
+                          {match.homeTeamName} vs {match.awayTeamName}
+                          {match.id === lobby.snapshot?.commonMatchId
+                            ? "  ⭐ Common Match"
+                            : ""}
+                        </Text>
+                        <XStack gap="$2">
+                          {match.id !== lobby.snapshot?.commonMatchId ? (
+                            <ShellActionButton
+                              variant="surface"
+                              size="small"
+                              widthMode="fit"
+                              label="Make Common Match"
+                              testID={`lobby-set-common-${match.id}`}
+                              disabled={configure.isBusy}
+                              onPress={() => {
+                                void configure.setCommonMatch(match.id);
+                              }}
+                            />
+                          ) : null}
                           <ShellActionButton
                             variant="surface"
                             size="small"
                             widthMode="fit"
-                            label="Make Common Match"
-                            testID={`lobby-set-common-${match.id}`}
+                            label="Remove"
+                            testID={`lobby-remove-match-${match.id}`}
                             disabled={configure.isBusy}
                             onPress={() => {
-                              void configure.setCommonMatch(match.id);
+                              void configure.removeMatch(match.id);
                             }}
                           />
-                        ) : null}
-                        <ShellActionButton
-                          variant="surface"
-                          size="small"
-                          widthMode="fit"
-                          label="Remove"
-                          testID={`lobby-remove-match-${match.id}`}
-                          disabled={configure.isBusy}
-                          onPress={() => {
-                            void configure.removeMatch(match.id);
-                          }}
-                        />
-                      </XStack>
-                    </YStack>
-                  ))}
+                        </XStack>
+                      </YStack>
+                    ))}
 
-                  {/*
+                    {/*
                     Promoted to the primary style while the pool is too small to
                     start, because that is exactly when adding matches is the one
                     thing standing between the host and Start Game. Once the room
                     has enough it steps back to secondary so it stops competing
                     with Start Game for attention.
                   */}
-                  <ShellActionButton
-                    variant={
-                      plan.poolSize < plan.relaxedFloor ? "primary" : "secondary"
-                    }
-                    label="Configure Matches"
-                    testID="lobby-open-configure-matches"
-                    disabled={configure.isBusy}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/lobby/configureMatches",
-                        params: { sessionId, participantId: participantId ?? "" },
-                      })
-                    }
-                  />
+                    <ShellActionButton
+                      variant={
+                        plan.poolSize < plan.relaxedFloor
+                          ? "primary"
+                          : "secondary"
+                      }
+                      label="Configure Matches"
+                      testID="lobby-open-configure-matches"
+                      disabled={configure.isBusy}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/lobby/configureMatches",
+                          params: {
+                            sessionId,
+                            participantId: participantId ?? "",
+                          },
+                        })
+                      }
+                    />
 
-                  <YStack
-                    testID="lobby-assignment-mode"
-                    gap="$2"
-                    backgroundColor="$backgroundLight"
-                    borderColor="$borderColorLight"
-                    borderRadius="$5"
-                    borderWidth={1}
-                    padding="$3"
-                  >
-                    <Text color="$color" fontSize={14} fontWeight="700">
-                      Assignment mode
-                    </Text>
-                    {/* Wraps because three labels do not fit one phone row. */}
-                    <XStack gap="$2" flexWrap="wrap">
-                      {(
-                        [
-                          "automatic",
-                          "host_assigned",
-                          "player_picked",
-                        ] as const
-                      ).map((mode) => (
-                        <ShellActionButton
-                          key={mode}
-                          variant={
-                            assignmentMode === mode ? "primary" : "surface"
-                          }
-                          size="small"
-                          widthMode="fit"
-                          label={ASSIGNMENT_MODE_LABELS[mode]}
-                          testID={`lobby-assignment-mode-${MODE_TEST_IDS[mode]}`}
-                          disabled={configure.isBusy}
-                          onPress={() => handleSelectMode(mode)}
-                        />
-                      ))}
-                    </XStack>
-                  </YStack>
-
-                  {/* The host picks their own matches like any other
-                      participant (FR-038). */}
-                  {pickPanel}
-
-                  {assignmentMode === "host_assigned" ? (
                     <YStack
-                      testID="lobby-host-allocation"
+                      testID="lobby-assignment-mode"
                       gap="$2"
                       backgroundColor="$backgroundLight"
                       borderColor="$borderColorLight"
@@ -500,323 +571,363 @@ const LobbyScreen = () => {
                       padding="$3"
                     >
                       <Text color="$color" fontSize={14} fontWeight="700">
-                        Allocate matches
+                        Assignment mode
                       </Text>
-                      {participants.map((participant) => {
-                        const held = additionalMatchIdsFor(participant.id);
-                        const short = isParticipantShort(participant.id);
-                        return (
-                          <YStack key={participant.id} gap="$1">
-                            <Text
-                              testID={`lobby-allocation-status-${participant.id}`}
-                              color={short ? "$danger" : "$colorMuted"}
-                              fontSize={13}
-                              fontWeight="600"
-                            >
-                              {participant.displayName} — {held.length}/
-                              {plan.matchesPerPlayer}
-                              {short ? " (short)" : ""}
-                            </Text>
-                            <XStack gap="$2" flexWrap="wrap">
-                              {(lobby.snapshot?.matches ?? [])
-                                .filter((match) => match.id !== commonMatchId)
-                                .map((match) => {
-                                  const isHeld = held.includes(match.id);
-                                  return (
-                                    <ShellActionButton
-                                      key={match.id}
-                                      variant={isHeld ? "primary" : "surface"}
-                                      size="small"
-                                      widthMode="fit"
-                                      label={`${match.homeTeamName} v ${match.awayTeamName}`}
-                                      testID={`lobby-allocate-${participant.id}-${match.id}`}
-                                      disabled={configure.isBusy}
-                                      onPress={() =>
-                                        toggleAllocation(
-                                          participant.id,
-                                          match.id,
-                                        )
-                                      }
-                                    />
-                                  );
-                                })}
-                            </XStack>
-                          </YStack>
-                        );
-                      })}
+                      {/* Wraps because three labels do not fit one phone row. */}
+                      <XStack gap="$2" flexWrap="wrap">
+                        {(
+                          [
+                            "automatic",
+                            "host_assigned",
+                            "player_picked",
+                          ] as const
+                        ).map((mode) => (
+                          <ShellActionButton
+                            key={mode}
+                            variant={
+                              assignmentMode === mode ? "primary" : "surface"
+                            }
+                            size="small"
+                            widthMode="fit"
+                            label={ASSIGNMENT_MODE_LABELS[mode]}
+                            testID={`lobby-assignment-mode-${MODE_TEST_IDS[mode]}`}
+                            disabled={configure.isBusy}
+                            onPress={() => handleSelectMode(mode)}
+                          />
+                        ))}
+                      </XStack>
                     </YStack>
-                  ) : null}
 
-                  <YStack
-                    testID="lobby-assignment-settings"
-                    gap="$2"
-                    backgroundColor="$backgroundLight"
-                    borderColor="$borderColorLight"
-                    borderRadius="$5"
-                    borderWidth={1}
-                    padding="$3"
-                  >
-                    <Text color="$color" fontSize={14} fontWeight="700">
-                      Assignment settings
+                    {/* The host picks their own matches like any other
+                      participant (FR-038). */}
+                    {pickPanel}
+
+                    {assignmentMode === "host_assigned" ? (
+                      <YStack
+                        testID="lobby-host-allocation"
+                        gap="$2"
+                        backgroundColor="$backgroundLight"
+                        borderColor="$borderColorLight"
+                        borderRadius="$5"
+                        borderWidth={1}
+                        padding="$3"
+                      >
+                        <Text color="$color" fontSize={14} fontWeight="700">
+                          Allocate matches
+                        </Text>
+                        {participants.map((participant) => {
+                          const held = additionalMatchIdsFor(participant.id);
+                          const short = isParticipantShort(participant.id);
+                          return (
+                            <YStack key={participant.id} gap="$1">
+                              <Text
+                                testID={`lobby-allocation-status-${participant.id}`}
+                                color={short ? "$danger" : "$colorMuted"}
+                                fontSize={13}
+                                fontWeight="600"
+                              >
+                                {participant.displayName} — {held.length}/
+                                {plan.matchesPerPlayer}
+                                {short ? " (short)" : ""}
+                              </Text>
+                              <XStack gap="$2" flexWrap="wrap">
+                                {(lobby.snapshot?.matches ?? [])
+                                  .filter((match) => match.id !== commonMatchId)
+                                  .map((match) => {
+                                    const isHeld = held.includes(match.id);
+                                    return (
+                                      <ShellActionButton
+                                        key={match.id}
+                                        variant={isHeld ? "primary" : "surface"}
+                                        size="small"
+                                        widthMode="fit"
+                                        label={`${match.homeTeamName} v ${match.awayTeamName}`}
+                                        testID={`lobby-allocate-${participant.id}-${match.id}`}
+                                        disabled={configure.isBusy}
+                                        onPress={() =>
+                                          toggleAllocation(
+                                            participant.id,
+                                            match.id,
+                                          )
+                                        }
+                                      />
+                                    );
+                                  })}
+                              </XStack>
+                            </YStack>
+                          );
+                        })}
+                      </YStack>
+                    ) : null}
+
+                    <YStack
+                      testID="lobby-assignment-settings"
+                      gap="$2"
+                      backgroundColor="$backgroundLight"
+                      borderColor="$borderColorLight"
+                      borderRadius="$5"
+                      borderWidth={1}
+                      padding="$3"
+                    >
+                      <Text color="$color" fontSize={14} fontWeight="700">
+                        Assignment settings
+                      </Text>
+
+                      <XStack
+                        alignItems="center"
+                        justifyContent="space-between"
+                        gap="$3"
+                      >
+                        {/* flexShrink so a long label wraps instead of shoving the
+                          stepper out of the row and off-screen. */}
+                        <Text color="$colorMuted" fontSize={13} flexShrink={1}>
+                          Matches per player (beyond the Common Match)
+                        </Text>
+                        <XStack alignItems="center" gap="$2" flexShrink={0}>
+                          <ShellActionButton
+                            variant="surface"
+                            size="small"
+                            widthMode="fit"
+                            label="-"
+                            testID="lobby-matches-per-player-decrement"
+                            disabled={
+                              configure.isBusy || plan.matchesPerPlayer <= 0
+                            }
+                            onPress={() => {
+                              void configure.setAssignmentSettings({
+                                matchesPerPlayer: Math.max(
+                                  0,
+                                  plan.matchesPerPlayer - 1,
+                                ),
+                                sharedMatchesPerPair: plan.sharedMatchesPerPair,
+                              });
+                            }}
+                          />
+                          <Text
+                            testID="lobby-matches-per-player-value"
+                            color="$color"
+                            fontSize={14}
+                            fontWeight="700"
+                            minWidth={20}
+                            textAlign="center"
+                          >
+                            {plan.matchesPerPlayer}
+                          </Text>
+                          <ShellActionButton
+                            variant="surface"
+                            size="small"
+                            widthMode="fit"
+                            label="+"
+                            testID="lobby-matches-per-player-increment"
+                            disabled={configure.isBusy}
+                            onPress={() => {
+                              void configure.setAssignmentSettings({
+                                matchesPerPlayer: plan.matchesPerPlayer + 1,
+                                sharedMatchesPerPair: plan.sharedMatchesPerPair,
+                              });
+                            }}
+                          />
+                        </XStack>
+                      </XStack>
+
+                      <XStack
+                        alignItems="center"
+                        justifyContent="space-between"
+                        gap="$3"
+                      >
+                        {/* flexShrink so a long label wraps instead of shoving the
+                          stepper out of the row and off-screen. */}
+                        <Text color="$colorMuted" fontSize={13} flexShrink={1}>
+                          Matches shared by every pair of players
+                        </Text>
+                        <XStack alignItems="center" gap="$2" flexShrink={0}>
+                          <ShellActionButton
+                            variant="surface"
+                            size="small"
+                            widthMode="fit"
+                            label="-"
+                            testID="lobby-shared-matches-per-pair-decrement"
+                            disabled={
+                              configure.isBusy || plan.sharedMatchesPerPair <= 0
+                            }
+                            onPress={() => {
+                              void configure.setAssignmentSettings({
+                                matchesPerPlayer: plan.matchesPerPlayer,
+                                sharedMatchesPerPair: Math.max(
+                                  0,
+                                  plan.sharedMatchesPerPair - 1,
+                                ),
+                              });
+                            }}
+                          />
+                          <Text
+                            testID="lobby-shared-matches-per-pair-value"
+                            color="$color"
+                            fontSize={14}
+                            fontWeight="700"
+                            minWidth={20}
+                            textAlign="center"
+                          >
+                            {plan.sharedMatchesPerPair}
+                          </Text>
+                          <ShellActionButton
+                            variant="surface"
+                            size="small"
+                            widthMode="fit"
+                            label="+"
+                            testID="lobby-shared-matches-per-pair-increment"
+                            disabled={configure.isBusy}
+                            onPress={() => {
+                              void configure.setAssignmentSettings({
+                                matchesPerPlayer: plan.matchesPerPlayer,
+                                sharedMatchesPerPair:
+                                  plan.sharedMatchesPerPair + 1,
+                              });
+                            }}
+                          />
+                        </XStack>
+                      </XStack>
+
+                      <Text
+                        testID="lobby-assignment-requirement"
+                        color="$colorMuted"
+                        fontSize={13}
+                      >
+                        Each player gets {plan.effectivePerPlayer} match
+                        {plan.effectivePerPlayer === 1 ? "" : "es"} plus the
+                        Common Match. This room needs {plan.requiredPoolSize}{" "}
+                        selected matches; it currently has {plan.poolSize}.
+                      </Text>
+                    </YStack>
+
+                    {configure.error ? (
+                      <Text
+                        color="$danger"
+                        fontSize={14}
+                        testID="lobby-configure-error"
+                      >
+                        {configure.error}
+                      </Text>
+                    ) : null}
+
+                    {!plan.startable ? (
+                      <Text
+                        testID="lobby-start-game-hard-floor-warning"
+                        color="$danger"
+                        fontSize={14}
+                      >
+                        This room needs at least {plan.relaxedFloor} selected
+                        matches to start at all (the Common Match plus{" "}
+                        {plan.effectivePerPlayer} per player) — add more matches
+                        before starting.
+                      </Text>
+                    ) : null}
+
+                    {!plan.feasible && plan.startable ? (
+                      <YStack
+                        testID="lobby-start-game-shortfall-warning"
+                        gap="$2"
+                        backgroundColor="$backgroundLight"
+                        borderColor="$danger"
+                        borderRadius="$5"
+                        borderWidth={1}
+                        padding="$3"
+                      >
+                        <Text color="$danger" fontSize={14} fontWeight="600">
+                          This room needs {plan.requiredPoolSize} selected
+                          matches to honor the assignment settings above, but
+                          only has {plan.poolSize}.
+                        </Text>
+                        <Text color="$colorMuted" fontSize={13}>
+                          Add more matches, or start anyway with matches
+                          assigned at random (players may end up sharing
+                          different matches than configured).
+                        </Text>
+                        <ShellActionButton
+                          variant="danger"
+                          label="Start Anyway (Random Assignments)"
+                          testID="lobby-start-game-override"
+                          disabled={configure.isBusy}
+                          onPress={() => {
+                            void configure.startGame(true);
+                          }}
+                        />
+                      </YStack>
+                    ) : null}
+
+                    {assignmentMode === "host_assigned" &&
+                    shortParticipants.length > 0 ? (
+                      <Text
+                        testID="lobby-start-game-will-fill-in"
+                        color="$colorMuted"
+                        fontSize={13}
+                      >
+                        The server will fill in the rest for{" "}
+                        {shortParticipants
+                          .map((participant) => participant.displayName)
+                          .join(", ")}{" "}
+                        if you start now.
+                      </Text>
+                    ) : null}
+
+                    <ShellActionButton
+                      variant="success"
+                      label="Start Game"
+                      testID="lobby-start-game"
+                      disabled={configure.isBusy || !plan.startable}
+                      onPress={() => {
+                        void configure.startGame();
+                      }}
+                    />
+                  </YStack>
+                ) : (
+                  <YStack gap="$2">
+                    <Text color="$colorMuted" fontSize={14} lineHeight={20}>
+                      {canPick
+                        ? "Pick your matches while you wait for the host to start."
+                        : "Waiting for the host to start the game…"}
+                    </Text>
+                    <Text
+                      testID="lobby-assignment-mode-readonly"
+                      color="$colorMuted"
+                      fontSize={13}
+                    >
+                      Assignment mode: {ASSIGNMENT_MODE_LABELS[assignmentMode]}
                     </Text>
 
-                    <XStack
-                      alignItems="center"
-                      justifyContent="space-between"
-                      gap="$3"
-                    >
-                      {/* flexShrink so a long label wraps instead of shoving the
-                          stepper out of the row and off-screen. */}
-                      <Text color="$colorMuted" fontSize={13} flexShrink={1}>
-                        Matches per player (beyond the Common Match)
-                      </Text>
-                      <XStack alignItems="center" gap="$2" flexShrink={0}>
-                        <ShellActionButton
-                          variant="surface"
-                          size="small"
-                          widthMode="fit"
-                          label="-"
-                          testID="lobby-matches-per-player-decrement"
-                          disabled={
-                            configure.isBusy ||
-                            plan.matchesPerPlayer <= 0
-                          }
-                          onPress={() => {
-                            void configure.setAssignmentSettings({
-                              matchesPerPlayer: Math.max(
-                                0,
-                                plan.matchesPerPlayer - 1,
-                              ),
-                              sharedMatchesPerPair: plan.sharedMatchesPerPair,
-                            });
-                          }}
-                        />
-                        <Text
-                          testID="lobby-matches-per-player-value"
-                          color="$color"
-                          fontSize={14}
-                          fontWeight="700"
-                          minWidth={20}
-                          textAlign="center"
-                        >
-                          {plan.matchesPerPlayer}
-                        </Text>
-                        <ShellActionButton
-                          variant="surface"
-                          size="small"
-                          widthMode="fit"
-                          label="+"
-                          testID="lobby-matches-per-player-increment"
-                          disabled={configure.isBusy}
-                          onPress={() => {
-                            void configure.setAssignmentSettings({
-                              matchesPerPlayer: plan.matchesPerPlayer + 1,
-                              sharedMatchesPerPair: plan.sharedMatchesPerPair,
-                            });
-                          }}
-                        />
-                      </XStack>
-                    </XStack>
-
-                    <XStack
-                      alignItems="center"
-                      justifyContent="space-between"
-                      gap="$3"
-                    >
-                      {/* flexShrink so a long label wraps instead of shoving the
-                          stepper out of the row and off-screen. */}
-                      <Text color="$colorMuted" fontSize={13} flexShrink={1}>
-                        Matches shared by every pair of players
-                      </Text>
-                      <XStack alignItems="center" gap="$2" flexShrink={0}>
-                        <ShellActionButton
-                          variant="surface"
-                          size="small"
-                          widthMode="fit"
-                          label="-"
-                          testID="lobby-shared-matches-per-pair-decrement"
-                          disabled={
-                            configure.isBusy ||
-                            plan.sharedMatchesPerPair <= 0
-                          }
-                          onPress={() => {
-                            void configure.setAssignmentSettings({
-                              matchesPerPlayer: plan.matchesPerPlayer,
-                              sharedMatchesPerPair: Math.max(
-                                0,
-                                plan.sharedMatchesPerPair - 1,
-                              ),
-                            });
-                          }}
-                        />
-                        <Text
-                          testID="lobby-shared-matches-per-pair-value"
-                          color="$color"
-                          fontSize={14}
-                          fontWeight="700"
-                          minWidth={20}
-                          textAlign="center"
-                        >
-                          {plan.sharedMatchesPerPair}
-                        </Text>
-                        <ShellActionButton
-                          variant="surface"
-                          size="small"
-                          widthMode="fit"
-                          label="+"
-                          testID="lobby-shared-matches-per-pair-increment"
-                          disabled={configure.isBusy}
-                          onPress={() => {
-                            void configure.setAssignmentSettings({
-                              matchesPerPlayer: plan.matchesPerPlayer,
-                              sharedMatchesPerPair:
-                                plan.sharedMatchesPerPair + 1,
-                            });
-                          }}
-                        />
-                      </XStack>
-                    </XStack>
-
+                    {/* A member's own pick control — the same panel the host uses. */}
+                    {pickPanel}
                     <Text
                       testID="lobby-assignment-requirement"
                       color="$colorMuted"
                       fontSize={13}
                     >
-                      Each player gets {plan.effectivePerPlayer} match
+                      Each player will get {plan.effectivePerPlayer} match
                       {plan.effectivePerPlayer === 1 ? "" : "es"} plus the
                       Common Match. This room needs {plan.requiredPoolSize}{" "}
                       selected matches; it currently has {plan.poolSize}.
                     </Text>
                   </YStack>
+                )}
 
-                  {configure.error ? (
-                    <Text
-                      color="$danger"
-                      fontSize={14}
-                      testID="lobby-configure-error"
-                    >
-                      {configure.error}
-                    </Text>
-                  ) : null}
-
-                  {!plan.startable ? (
-                    <Text
-                      testID="lobby-start-game-hard-floor-warning"
-                      color="$danger"
-                      fontSize={14}
-                    >
-                      This room needs at least {plan.relaxedFloor} selected
-                      matches to start at all (the Common Match plus{" "}
-                      {plan.effectivePerPlayer} per player) — add more matches
-                      before starting.
-                    </Text>
-                  ) : null}
-
-                  {!plan.feasible && plan.startable ? (
-                    <YStack
-                      testID="lobby-start-game-shortfall-warning"
-                      gap="$2"
-                      backgroundColor="$backgroundLight"
-                      borderColor="$danger"
-                      borderRadius="$5"
-                      borderWidth={1}
-                      padding="$3"
-                    >
-                      <Text color="$danger" fontSize={14} fontWeight="600">
-                        This room needs {plan.requiredPoolSize} selected
-                        matches to honor the assignment settings above, but
-                        only has {plan.poolSize}.
-                      </Text>
-                      <Text color="$colorMuted" fontSize={13}>
-                        Add more matches, or start anyway with matches
-                        assigned at random (players may end up sharing
-                        different matches than configured).
-                      </Text>
-                      <ShellActionButton
-                        variant="danger"
-                        label="Start Anyway (Random Assignments)"
-                        testID="lobby-start-game-override"
-                        disabled={configure.isBusy}
-                        onPress={() => {
-                          void configure.startGame(true);
-                        }}
-                      />
-                    </YStack>
-                  ) : null}
-
-                  {assignmentMode === "host_assigned" &&
-                  shortParticipants.length > 0 ? (
-                    <Text
-                      testID="lobby-start-game-will-fill-in"
-                      color="$colorMuted"
-                      fontSize={13}
-                    >
-                      The server will fill in the rest for{" "}
-                      {shortParticipants
-                        .map((participant) => participant.displayName)
-                        .join(", ")}{" "}
-                      if you start now.
-                    </Text>
-                  ) : null}
-
-                  <ShellActionButton
-                    variant="success"
-                    label="Start Game"
-                    testID="lobby-start-game"
-                    disabled={configure.isBusy || !plan.startable}
-                    onPress={() => {
-                      void configure.startGame();
-                    }}
-                  />
-                </YStack>
-              ) : (
-                <YStack gap="$2">
-                  <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-                    {canPick
-                      ? "Pick your matches while you wait for the host to start."
-                      : "Waiting for the host to start the game…"}
+                {exit.error ? (
+                  <Text color="$danger" fontSize={14} testID="lobby-exit-error">
+                    {exit.error}
                   </Text>
-                  <Text
-                    testID="lobby-assignment-mode-readonly"
-                    color="$colorMuted"
-                    fontSize={13}
-                  >
-                    Assignment mode: {ASSIGNMENT_MODE_LABELS[assignmentMode]}
-                  </Text>
+                ) : null}
 
-                  {/* A member's own pick control — the same panel the host uses. */}
-                  {pickPanel}
-                  <Text
-                    testID="lobby-assignment-requirement"
-                    color="$colorMuted"
-                    fontSize={13}
-                  >
-                    Each player will get {plan.effectivePerPlayer} match
-                    {plan.effectivePerPlayer === 1 ? "" : "es"} plus the
-                    Common Match. This room needs {plan.requiredPoolSize}{" "}
-                    selected matches; it currently has {plan.poolSize}.
-                  </Text>
-                </YStack>
-              )}
-
-              {exit.error ? (
-                <Text color="$danger" fontSize={14} testID="lobby-exit-error">
-                  {exit.error}
-                </Text>
-              ) : null}
-
-              <ShellActionButton
-                variant="danger"
-                label={isHost ? "Leave Room" : "Leave"}
-                testID="lobby-leave-button"
-                disabled={exit.isExiting}
-                onPress={() => {
-                  void handleLeave();
-                }}
-              />
-            </>
-          )}
-        </YStack>
+                <ShellActionButton
+                  variant="danger"
+                  label={isHost ? "Leave Room" : "Leave"}
+                  testID="lobby-leave-button"
+                  disabled={exit.isExiting}
+                  onPress={() => {
+                    void handleLeave();
+                  }}
+                />
+              </>
+            )}
+          </YStack>
         </ScrollView>
 
         {/*
@@ -824,116 +935,167 @@ const LobbyScreen = () => {
           Modals; nesting one inside a scroll container makes its own scrolling and
           gesture handling unreliable.
         */}
-          <Modal
-            visible={pendingModeSwitch !== null}
-            transparent
-            animationType="fade"
-            onRequestClose={handleCancelModeSwitch}
+        <Modal
+          visible={pendingModeSwitch !== null}
+          transparent
+          animationType="fade"
+          onRequestClose={handleCancelModeSwitch}
+        >
+          <YStack
+            flex={1}
+            justifyContent="center"
+            alignItems="center"
+            backgroundColor="$backgroundModalOverlay"
+            padding="$5"
           >
             <YStack
-              flex={1}
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor="$backgroundModalOverlay"
+              testID="lobby-assignment-mode-confirm"
+              backgroundColor="$background"
+              borderRadius="$6"
+              gap="$3"
               padding="$5"
+              width="100%"
+              maxWidth={420}
             >
-              <YStack
-                testID="lobby-assignment-mode-confirm"
-                backgroundColor="$background"
-                borderRadius="$6"
-                gap="$3"
-                padding="$5"
-                width="100%"
-                maxWidth={420}
-              >
-                <Text color="$color" fontSize={20} fontWeight="700">
-                  Switch assignment mode?
+              <Text color="$color" fontSize={20} fontWeight="700">
+                Switch assignment mode?
+              </Text>
+              <Text color="$colorMuted" fontSize={14}>
+                The current draft arrangement will not carry over to{" "}
+                {pendingModeSwitch
+                  ? ASSIGNMENT_MODE_LABELS[pendingModeSwitch]
+                  : ""}{" "}
+                mode.
+              </Text>
+              {modeSwitchRaisesMinimum ? (
+                <Text
+                  testID="lobby-assignment-mode-confirm-minimum-notice"
+                  color="$danger"
+                  fontSize={13}
+                >
+                  Switching to automatic raises the per-player count to{" "}
+                  {automaticMinimum} to satisfy the shared-matches setting.
                 </Text>
-                <Text color="$colorMuted" fontSize={14}>
-                  The current draft arrangement will not carry over to{" "}
-                  {pendingModeSwitch
-                    ? ASSIGNMENT_MODE_LABELS[pendingModeSwitch]
-                    : ""}{" "}
-                  mode.
-                </Text>
-                {modeSwitchRaisesMinimum ? (
-                  <Text
-                    testID="lobby-assignment-mode-confirm-minimum-notice"
-                    color="$danger"
-                    fontSize={13}
-                  >
-                    Switching to automatic raises the per-player count to{" "}
-                    {automaticMinimum} to satisfy the shared-matches setting.
-                  </Text>
-                ) : null}
-                <ShellActionButton
-                  variant="danger"
-                  label="Switch mode"
-                  testID="lobby-assignment-mode-confirm-button"
-                  onPress={handleConfirmModeSwitch}
-                />
-                <ShellActionButton
-                  variant="surface"
-                  label="Cancel"
-                  onPress={handleCancelModeSwitch}
-                />
-              </YStack>
+              ) : null}
+              <ShellActionButton
+                variant="danger"
+                label="Switch mode"
+                testID="lobby-assignment-mode-confirm-button"
+                onPress={handleConfirmModeSwitch}
+              />
+              <ShellActionButton
+                variant="surface"
+                label="Cancel"
+                onPress={handleCancelModeSwitch}
+              />
             </YStack>
-          </Modal>
+          </YStack>
+        </Modal>
 
-          <SuccessorChooserModal
-            visible={exit.pendingSuccessorChoice}
-            candidates={exit.eligibleSuccessors}
-            onChoose={(id) => {
-              void handleChooseSuccessor(id);
-            }}
-            onCancel={exit.cancel}
-          />
-
-          <Modal
-            visible={exit.needsCloseConfirm}
-            transparent
-            animationType="fade"
-            onRequestClose={exit.cancel}
+        <Modal
+          visible={isEndGameConfirmVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setIsEndGameConfirmVisible(false);
+          }}
+        >
+          <YStack
+            flex={1}
+            justifyContent="center"
+            alignItems="center"
+            backgroundColor="$backgroundModalOverlay"
+            padding="$5"
           >
             <YStack
-              flex={1}
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor="$backgroundModalOverlay"
+              testID="lobby-end-game-confirm"
+              backgroundColor="$background"
+              borderRadius="$6"
+              gap="$3"
               padding="$5"
+              width="100%"
+              maxWidth={420}
             >
-              <YStack
-                testID="lobby-close-confirm"
-                backgroundColor="$background"
-                borderRadius="$6"
-                gap="$3"
-                padding="$5"
-                width="100%"
-                maxWidth={420}
-              >
-                <Text color="$color" fontSize={20} fontWeight="700">
-                  Everyone left
-                </Text>
-                <Text color="$colorMuted" fontSize={14}>
-                  There's no one left to take over. Close the room?
-                </Text>
-                <ShellActionButton
-                  variant="danger"
-                  label="Close room"
-                  testID="lobby-close-confirm-button"
-                  onPress={() => {
-                    void handleConfirmClose();
-                  }}
-                />
-                <ShellActionButton
-                  variant="surface"
-                  label="Cancel"
-                  onPress={exit.cancel}
-                />
-              </YStack>
+              <Text color="$color" fontSize={20} fontWeight="700">
+                End the game?
+              </Text>
+              <Text color="$colorMuted" fontSize={14}>
+                This finishes the game for everyone in the room. It cannot be
+                resumed.
+              </Text>
+              <ShellActionButton
+                variant="danger"
+                label="End game"
+                testID="lobby-end-game-confirm-button"
+                disabled={configure.isBusy}
+                onPress={() => {
+                  void handleEndGame();
+                }}
+              />
+              <ShellActionButton
+                variant="surface"
+                label="Cancel"
+                onPress={() => {
+                  setIsEndGameConfirmVisible(false);
+                }}
+              />
             </YStack>
-          </Modal>
+          </YStack>
+        </Modal>
+
+        <SuccessorChooserModal
+          visible={exit.pendingSuccessorChoice}
+          candidates={exit.eligibleSuccessors}
+          onChoose={(id) => {
+            void handleChooseSuccessor(id);
+          }}
+          onCancel={exit.cancel}
+        />
+
+        <Modal
+          visible={exit.needsCloseConfirm}
+          transparent
+          animationType="fade"
+          onRequestClose={exit.cancel}
+        >
+          <YStack
+            flex={1}
+            justifyContent="center"
+            alignItems="center"
+            backgroundColor="$backgroundModalOverlay"
+            padding="$5"
+          >
+            <YStack
+              testID="lobby-close-confirm"
+              backgroundColor="$background"
+              borderRadius="$6"
+              gap="$3"
+              padding="$5"
+              width="100%"
+              maxWidth={420}
+            >
+              <Text color="$color" fontSize={20} fontWeight="700">
+                Everyone left
+              </Text>
+              <Text color="$colorMuted" fontSize={14}>
+                There's no one left to take over. Close the room?
+              </Text>
+              <ShellActionButton
+                variant="danger"
+                label="Close room"
+                testID="lobby-close-confirm-button"
+                onPress={() => {
+                  void handleConfirmClose();
+                }}
+              />
+              <ShellActionButton
+                variant="surface"
+                label="Cancel"
+                onPress={exit.cancel}
+              />
+            </YStack>
+          </YStack>
+        </Modal>
       </SafeAreaView>
     </ShellScreen>
   );

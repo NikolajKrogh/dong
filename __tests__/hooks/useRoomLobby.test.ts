@@ -106,6 +106,29 @@ describe("useRoomLobby", () => {
     unmount();
   });
 
+  // `completed` is what end_game_session (040) produces. Without it an ended
+  // game fell through to the normal lobby render instead of the ended notice.
+  it("flags the room as ended when the game has been completed", async () => {
+    mockGetRoomRpcClient.mockReturnValue({
+      getRoomSnapshot: jest.fn(async () => snapshot({ state: "completed" })),
+    } as never);
+
+    const { result, unmount } = await renderLobby("session-1", "owner-1");
+    expect(result()?.roomEnded).toBe(true);
+    unmount();
+  });
+
+  it("does not flag a running game as ended", async () => {
+    mockGetRoomRpcClient.mockReturnValue({
+      getRoomSnapshot: jest.fn(async () => snapshot({ state: "in_progress" })),
+    } as never);
+
+    const { result, unmount } = await renderLobby("session-1", "owner-1");
+    expect(result()?.roomEnded).toBe(false);
+    expect(result()?.gameStarted).toBe(true);
+    unmount();
+  });
+
   it("flags the room as ended when the viewer is no longer present", async () => {
     mockGetRoomRpcClient.mockReturnValue({
       getRoomSnapshot: jest.fn(async () => snapshot()),

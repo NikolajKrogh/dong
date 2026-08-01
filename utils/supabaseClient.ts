@@ -12,6 +12,7 @@ import type {
   AddRoomMatchRequest,
   AssignmentMode,
   BatchRoomMatchResult,
+  EndGameSessionResponse,
   HostLeaveResponse,
   MemberLeaveResponse,
   MyActiveRoom,
@@ -60,6 +61,15 @@ export interface RoomRpcClient {
     sessionId: string,
     successorParticipantId?: string,
   ): Promise<HostLeaveResponse>;
+  /**
+   * Ends a running game for everyone, moving the room to `completed`.
+   *
+   * Distinct from {@link leaveRoomAsHost}: that hands a still-running game to a
+   * successor (or closes it if there is nobody), while this finishes the game
+   * itself. Host-only, `in_progress`-only, and idempotent once the room is
+   * already terminal, so a double tap or two racing devices are both safe.
+   */
+  endGameSession(sessionId: string): Promise<EndGameSessionResponse>;
   addRoomMatch(
     sessionId: string,
     request: AddRoomMatchRequest,
@@ -388,6 +398,24 @@ export const createRoomRpcClient = (
       if (!data) {
         throw new Error(
           "Supabase leave_room_as_host returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+
+    async endGameSession(sessionId) {
+      const { data, error } = await client
+        .rpc("end_game_session", { session_id: sessionId })
+        .overrideTypes<EndGameSessionResponse, { merge: false }>();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase end_game_session returned no response payload.",
         );
       }
 
