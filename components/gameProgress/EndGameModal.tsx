@@ -7,7 +7,6 @@ import {
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useColors } from "../../styles/theme";
 
 /**
@@ -44,51 +43,55 @@ const EndGameModal: React.FC<EndGameModalProps> = ({
   );
 
   return (
-    <SafeAreaView style={{ flex: 0 }}>
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isVisible}
-        onRequestClose={onCancel}
-        statusBarTranslucent={true}
+    // No SafeAreaView wrapper here. A Modal renders into its own root view, so an
+    // outer wrapper contributes nothing to it -- but it is still a laid-out sibling
+    // of the screen's content, and react-native-safe-area-context's SafeAreaView
+    // applies real inset padding on Android (unlike react-native's, which is a bare
+    // View there). That empty box was eating top+bottom insets of vertical space
+    // from the game screen, clipping the match list and hiding the footer.
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onCancel}
+      statusBarTranslucent={true}
+    >
+      <TouchableOpacity
+        style={modalStyles.overlayTouchable}
+        activeOpacity={1}
+        onPress={onCancel}
       >
-        <TouchableOpacity
-          style={modalStyles.overlayTouchable}
-          activeOpacity={1}
-          onPress={onCancel}
-        >
-          <View style={modalStyles.centeredView}>
-            <View style={modalStyles.modalContainer}>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={(e) => e.stopPropagation()}
-                style={{ width: "100%" }}
-              >
-                <Text style={modalStyles.modalTitle}>End Game</Text>
-                <Text style={modalStyles.modalText}>
-                  Are you sure you want to end the current game? This will save
-                  the results to history.
-                </Text>
-                <View style={modalStyles.modalButtons}>
-                  <TouchableOpacity
-                    style={[modalStyles.button, modalStyles.buttonCancel]}
-                    onPress={onCancel}
-                  >
-                    <Text style={modalStyles.textStyle}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[modalStyles.button, modalStyles.buttonConfirm]}
-                    onPress={onConfirm}
-                  >
-                    <Text style={modalStyles.textStyle}>End Game</Text>
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            </View>
+        <View style={modalStyles.centeredView}>
+          <View style={modalStyles.modalContainer}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={{ width: "100%" }}
+            >
+              <Text style={modalStyles.modalTitle}>End Game</Text>
+              <Text style={modalStyles.modalText}>
+                Are you sure you want to end the current game? This will save
+                the results to history.
+              </Text>
+              <View style={modalStyles.modalButtons}>
+                <TouchableOpacity
+                  style={[modalStyles.button, modalStyles.buttonCancel]}
+                  onPress={onCancel}
+                >
+                  <Text style={modalStyles.textStyle}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[modalStyles.button, modalStyles.buttonConfirm]}
+                  onPress={onConfirm}
+                >
+                  <Text style={modalStyles.textStyle}>End Game</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-      </Modal>
-    </SafeAreaView>
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 };
 
@@ -114,7 +117,10 @@ const createStyles = (
       padding: 16,
     },
     modalContainer: {
-      width: Math.min(screenWidth - 32, isWideLayout ? 520 : screenWidth * 0.85),
+      width: Math.min(
+        screenWidth - 32,
+        isWideLayout ? 520 : screenWidth * 0.85,
+      ),
       backgroundColor: colors.surface,
       borderRadius: 20,
       padding: 20,
