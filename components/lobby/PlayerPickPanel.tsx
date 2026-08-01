@@ -136,7 +136,9 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
             selectedMatchIds={localPicks}
             onToggleMatch={handleToggle}
             testIDPrefix={`${testID}-option`}
-            disabledMatchIds={isBusy ? matches.map((m) => m.id) : disabledMatchIds}
+            disabledMatchIds={
+              isBusy ? matches.map((m) => m.id) : disabledMatchIds
+            }
           />
 
           {localPicks.length > 0 ? (
