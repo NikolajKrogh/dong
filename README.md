@@ -67,12 +67,16 @@ produces failures that look like something else entirely.
 | - | ---- | --------------------------------------------- | ---------- |
 | 1 | Java `command-api` | `cd command-api` then `./mvnw.cmd spring-boot:run` (`./mvnw` on macOS/Linux) | Match discovery and Start Game. Without it the setup flow cannot list fixtures. |
 | 2 | adb reverse tunnel | `npm run android:tunnel` | **Physical Android device only.** Not needed for web or an emulator you reach over localhost. |
-| 3 | Expo dev server | `npx expo start --dev-client` (native) or `npx expo start --web` | The app itself. |
+| 3 | Expo dev server | `npx expo start --dev-client --android` (native) or `npx expo start --web` | The app itself. |
 
 **`--dev-client` is not optional for native.** This project depends on
 `expo-dev-client`, so what runs on the device is a *development build*, not Expo
 Go — and a bare `npx expo start` serves Expo Go mode, which that build cannot
 attach to. The symptom is a dev server that appears to do nothing.
+
+**`--android` is what actually opens the app.** Without it the server starts and
+then waits for you to launch the dev build yourself (or press `a` in the CLI),
+which reads as the same "nothing happened" symptom.
 
 The first time on a machine, and after any change to native dependencies or app
 config, build and install the dev client instead — this also starts the dev server,
@@ -114,6 +118,7 @@ unaffected.
 | Symptom | Cause |
 | ------- | ----- |
 | Device shows Expo Go, or the dev build will not connect | `npx expo start` was used instead of `npx expo start --dev-client`. See above. |
+| Dev server starts but nothing happens on the device | `--android` was omitted, so nothing launched the app. Add it, press `a` in the CLI, or open the dev build by hand. |
 | App: `Missing command API configuration` | `EXPO_PUBLIC_COMMAND_API_URL` is unset in `.env.local`, or Expo was not restarted with `-c` after adding it. `EXPO_PUBLIC_*` values are inlined at bundle time, so a plain restart keeps serving the old value. |
 | App on device: `Match discovery request timed out` | The reverse tunnel is missing (step 2). Re-run `npm run android:tunnel` — tunnels do not survive a USB re-attach. If you point at a LAN IP instead, a blocked inbound firewall rule presents as a *timeout*, not a refusal. |
 | Web: `NetworkError when attempting to fetch resource` | CORS. `command-api/.env` must contain `spring.profiles.active=dev`; CORS lives in `application-dev.yml` and is off in every other profile. |
