@@ -104,8 +104,6 @@ Then("the guest lobby summary should be visible", async ({ page }) => {
   await expect(page.getByText(/Room ROOM\d/)).toHaveCount(0);
 });
 
-
-
 Then(
   "the guest room join request should include the room code {string}",
   async ({ page: _page }, joinCode: string) => {
@@ -213,9 +211,7 @@ const tapGuestPick = async (
   page: import("@playwright/test").Page,
   matchId: string,
 ) => {
-  const option = page.getByTestId(
-    `guest-player-pick-panel-option-${matchId}`,
-  );
+  const option = page.getByTestId(`guest-player-pick-panel-option-${matchId}`);
   await option.scrollIntoViewIfNeeded();
   await option.click();
 };

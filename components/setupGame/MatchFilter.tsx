@@ -105,6 +105,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   return (
     <View style={styles.filterCard}>
       <TouchableOpacity
+        testID="SetupMatchScheduleToggle"
         style={styles.filterCardHeader}
         onPress={toggleExpand}
         activeOpacity={0.7}

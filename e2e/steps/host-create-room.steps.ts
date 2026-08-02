@@ -52,7 +52,9 @@ Then("a 6-digit numeric join code is displayed", async ({ page }) => {
 Then(
   "the host display name appears in the participant list",
   async ({ page }) => {
-    const participant = page.getByText(HOST_ROOM_DISPLAY_NAME, { exact: false });
+    const participant = page.getByText(HOST_ROOM_DISPLAY_NAME, {
+      exact: false,
+    });
 
     await expect(participant.first()).toBeVisible({ timeout: 10_000 });
   },

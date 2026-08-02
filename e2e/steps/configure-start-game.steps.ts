@@ -1,9 +1,10 @@
-import { expect } from "@playwright/test";
+import { expect, type Locator } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
 import {
   CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES,
   HOST_ROOM_PARTICIPANT_ID,
+  SECOND_MEMBER_ID,
   getMockAssignments,
   getMockHostPicks,
   mockConfigureStartGameServices,
@@ -40,16 +41,34 @@ When("the host opens the {word} step", async ({ page }, stepName: string) => {
   await stepButton.click();
 });
 
+/**
+ * React Native Web renders a disabled Pressable as a `div` carrying
+ * `aria-disabled="true"` — not a form control with the `disabled` attribute —
+ * so Playwright's `toBeDisabled()` reports it as enabled. Assert the attribute
+ * the app actually emits.
+ */
+const expectAriaDisabled = async (locator: Locator) => {
+  await expect(locator).toHaveAttribute("aria-disabled", "true", {
+    timeout: 10_000,
+  });
+};
+
 Then("the host cannot advance past the Matches step", async ({ page }) => {
   // With an empty pool the Common step is unreachable, and with it every
   // control that could start the game.
-  await expect(page.getByTestId("SetupWizardNext")).toBeDisabled({
-    timeout: 10_000,
-  });
+  await expectAriaDisabled(page.getByTestId("SetupWizardNext"));
   await expect(page.getByTestId("lobby-start-game")).toHaveCount(0);
 });
 
 When("the host adds the first two catalog matches", async ({ page }) => {
+  // Add Matches lives inside the Match Schedule card's expanded content, which
+  // starts collapsed — so it has to be opened first. Without this the step
+  // waited out its timeout on a control that was never in the tree, which is
+  // what had every scenario in this feature failing.
+  const scheduleToggle = page.getByTestId("SetupMatchScheduleToggle");
+  await scheduleToggle.scrollIntoViewIfNeeded();
+  await scheduleToggle.click();
+
   // The mocked catalogue holds exactly the two fixtures, both kicking off today,
   // so the wizard's bulk add takes precisely them.
   const addAll = page.getByTestId("SetupAddAllFilteredMatchesButton");
@@ -162,7 +181,7 @@ Then(
   async ({ page }) => {
     const warning = page.getByTestId("lobby-start-game-hard-floor-warning");
     await expect(warning).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId("lobby-start-game")).toBeDisabled();
+    await expectAriaDisabled(page.getByTestId("lobby-start-game"));
   },
 );
 
@@ -171,8 +190,6 @@ Then(
 // other participants as mock state, so the "second picker" is injected into the
 // polled snapshot rather than driven from a second browser context.
 // ---------------------------------------------------------------------------
-
-const SECOND_MEMBER_ID = "member-picker-1";
 
 Given("the room has a second registered member", async () => {
   setHostRoomSnapshotParticipants([
