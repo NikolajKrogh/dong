@@ -37,7 +37,7 @@ export interface GuestRoomFixturePick {
 export interface GuestRoomHostFixture {
   sessionId: string;
   joinCode: string;
-  state: "joinable" | "in_play" | "completed";
+  state: "joinable" | "in_progress" | "completed";
   commonMatchId: string | null;
   defaultGuestName: string;
   participants: GuestRoomFixtureParticipant[];

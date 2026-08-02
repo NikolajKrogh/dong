@@ -152,7 +152,7 @@ describe("GuestJoinLobby", () => {
         React.createElement(GuestJoinLobby, {
           session: buildSession({
             assignmentMode: "player_picked",
-            state: "in_play",
+            state: "in_progress",
           }),
           onSetPicks: jest.fn(),
         }),
@@ -219,7 +219,7 @@ describe("GuestJoinLobby", () => {
         React.createElement(GuestJoinLobby, {
           session: buildSession({
             assignmentMode: "player_picked",
-            state: "in_play",
+            state: "in_progress",
             picks: [{ participantId: "guest-1", matchId: "match-2" }],
           }),
           onSetPicks: jest.fn(),

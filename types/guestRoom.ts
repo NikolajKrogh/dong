@@ -1,14 +1,20 @@
 import type { AssignmentMode, AssignmentPlan } from "./room";
 
 export type GuestRoomSessionStatus =
-  | "idle"
-  | "joining"
-  | "joined"
-  | "refreshing"
-  | "failed"
-  | "expired";
+  "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired";
 
-export type GuestRoomSessionState = "joinable" | "in_play" | "completed";
+/**
+ * The room states a guest can observe.
+ *
+ * These are `public.session_state` verbatim. The union previously read
+ * `"joinable" | "in_play" | "completed"`, and `"in_play"` is not a value the
+ * enum has ever contained — the server sends `in_progress`. Nothing caught it
+ * because every mock and fixture agreed with the type rather than the database,
+ * so a started room read as "some other state" everywhere it mattered. `closed`
+ * was missing outright.
+ */
+export type GuestRoomSessionState =
+  "joinable" | "in_progress" | "completed" | "closed";
 
 export type GuestRoomMembershipType = "registered" | "guest";
 

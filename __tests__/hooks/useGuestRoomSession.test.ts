@@ -140,7 +140,7 @@ describe("useGuestRoomSession", () => {
     const getGuestRoomSnapshot = jest
       .fn()
       .mockResolvedValueOnce(createSnapshot())
-      .mockResolvedValueOnce(createSnapshot({ state: "in_play" }));
+      .mockResolvedValueOnce(createSnapshot({ state: "in_progress" }));
 
     mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
     mockGetGuestRoomRpcClient.mockReturnValue({
@@ -167,7 +167,7 @@ describe("useGuestRoomSession", () => {
 
     expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
     expect(mockSaveGuestRoomSessionGrant).toHaveBeenCalledWith(persistedGrant);
-    expect(observedHook?.session?.snapshot.state).toBe("in_play");
+    expect(observedHook?.session?.snapshot.state).toBe("in_progress");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -181,7 +181,7 @@ describe("useGuestRoomSession", () => {
     const getGuestRoomSnapshot = jest
       .fn()
       .mockResolvedValueOnce(createSnapshot())
-      .mockResolvedValueOnce(createSnapshot({ state: "in_play" }));
+      .mockResolvedValueOnce(createSnapshot({ state: "in_progress" }));
 
     mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
     mockGetGuestRoomRpcClient.mockReturnValue({
@@ -210,7 +210,7 @@ describe("useGuestRoomSession", () => {
     });
 
     expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
-    expect(observedHook?.session?.snapshot.state).toBe("in_play");
+    expect(observedHook?.session?.snapshot.state).toBe("in_progress");
 
     TestRenderer.act(() => {
       renderer.unmount();

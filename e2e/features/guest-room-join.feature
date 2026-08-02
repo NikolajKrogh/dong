@@ -12,7 +12,7 @@ Feature: Guest Room Join
         And the guest room join request should include the room code "ROOM42"
         And the guest room join request should include the guest token
         When the mocked host starts gameplay
-        Then the guest lobby should show the room state "in_play"
+        Then the guest is taken into the active game
 
     Scenario: Restore a stored guest room session
         Given the guest room service is mocked

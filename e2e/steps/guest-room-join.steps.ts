@@ -91,7 +91,7 @@ When(
 );
 
 When("the mocked host starts gameplay", async ({ page: _page }) => {
-  transitionMockGuestRoomToState("in_play");
+  transitionMockGuestRoomToState("in_progress");
 });
 
 Then("the guest lobby summary should be visible", async ({ page }) => {
@@ -150,6 +150,14 @@ Then(
     ).toBeVisible({ timeout: 10_000 });
   },
 );
+
+Then("the guest is taken into the active game", async ({ page }) => {
+  // FR-012 applies to guests too. This used to assert the guest simply *saw*
+  // the started state and stayed put — which was the bug, not the contract.
+  await page.waitForURL(/\/gameProgress/, { timeout: 15_000 });
+  // The guest card must not be left painted over the game behind it.
+  await expect(page.getByText("Guest Room", { exact: true })).toHaveCount(0);
+});
 
 // ---------------------------------------------------------------------------
 // Player-picked mode on the guest surface (#185). Before this feature a guest's

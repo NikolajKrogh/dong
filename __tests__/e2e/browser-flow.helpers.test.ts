@@ -102,7 +102,7 @@ describe("browser-flow.helpers", () => {
   });
 
   it("builds updated guest snapshots when the mocked room state changes", () => {
-    const fixture = createGuestRoomHostFixture({ state: "in_play" });
+    const fixture = createGuestRoomHostFixture({ state: "in_progress" });
 
     const snapshot = buildGuestRoomSnapshotFromFixture(fixture, {
       id: "guest-guest-token-1",
@@ -112,7 +112,7 @@ describe("browser-flow.helpers", () => {
       currentDrinkTotal: 0,
     });
 
-    expect(snapshot.state).toBe("in_play");
+    expect(snapshot.state).toBe("in_progress");
     expect(snapshot.participants).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ displayName: "Host Owner" }),
