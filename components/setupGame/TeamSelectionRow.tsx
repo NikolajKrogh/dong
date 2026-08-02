@@ -306,7 +306,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         animationType="fade"
         onRequestClose={() => setShowHomeDropdown(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView testID="SetupHomeTeamModal" style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TextInput
@@ -376,7 +376,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         animationType="fade"
         onRequestClose={() => setShowAwayDropdown(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView testID="SetupAwayTeamModal" style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TextInput

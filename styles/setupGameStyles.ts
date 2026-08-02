@@ -1429,7 +1429,12 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
 
     // Player List specific styles (already well-defined, applying palette)
     playerInputContainer: {
-      flex: 1,
+      // No `flex: 1` here. Its parent (playerInputStack) sits in a row that
+      // aligns to flex-start, so the stack's height comes from its content —
+      // and `flex: 1` on the content sets flexBasis 0 along that same axis,
+      // making the two resolve each other to nothing. The field collapsed to
+      // its text line box (~29px) and quietly discarded the height below.
+      // Width is already filled by the stack.
       flexDirection: "row",
       alignItems: "center",
       height: 50,

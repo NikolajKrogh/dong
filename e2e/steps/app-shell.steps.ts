@@ -3,6 +3,7 @@ import { createBdd } from "playwright-bdd";
 import {
   PERSISTED_STORE_KEY,
   createSetupJourneyDatasets,
+  mockTeamDataCatalogue,
   waitForBrowserFlowReady,
   type SetupJourneyDataset,
   type SetupJourneyMatchInput,
@@ -148,23 +149,31 @@ const getSetupJourneyDataset = (datasetName: string) => {
   return dataset;
 };
 
+/**
+ * Scoped to the modal, deliberately. A page-wide `getByText` also matches the
+ * team names already showing in the selection fields behind the modal, and a
+ * previously chosen team could sit over the option being clicked — which
+ * surfaced as "PSG ... intercepts pointer events" while clicking Marseille.
+ */
 const selectTeamFromModal = async (
   page: Page,
+  modalTestId: string,
   searchPlaceholder: string,
   teamName: string,
 ) => {
-  const searchInput = page.getByPlaceholder(searchPlaceholder);
+  const modal = page.getByTestId(modalTestId);
+  const searchInput = modal.getByPlaceholder(searchPlaceholder);
   await expect(searchInput).toBeVisible();
   await searchInput.fill(teamName);
 
-  const exactTeamOption = page.getByText(teamName, { exact: true }).first();
+  const exactTeamOption = modal.getByText(teamName, { exact: true }).first();
 
   if ((await exactTeamOption.count()) > 0) {
     await exactTeamOption.click();
     return;
   }
 
-  const addTeamButton = page
+  const addTeamButton = modal
     .getByText(new RegExp(`^Add "${escapeRegExp(teamName)}"( as new team)?$`))
     .first();
 
@@ -182,10 +191,20 @@ const addSetupPlayer = async (page: Page, playerName: string) => {
 
 const addSetupMatch = async (page: Page, match: SetupJourneyMatchInput) => {
   await page.getByText("Home Team", { exact: true }).click();
-  await selectTeamFromModal(page, "Search home", match.homeTeam);
+  await selectTeamFromModal(
+    page,
+    "SetupHomeTeamModal",
+    "Search home",
+    match.homeTeam,
+  );
 
   await page.getByText("Away Team", { exact: true }).click();
-  await selectTeamFromModal(page, "Search away", match.awayTeam);
+  await selectTeamFromModal(
+    page,
+    "SetupAwayTeamModal",
+    "Search away",
+    match.awayTeam,
+  );
 
   await page.getByTestId("SetupAddMatchButton").click();
 };
@@ -247,6 +266,11 @@ const completeSetupJourney = async (
 
 Given("the app is running on web", async ({ page, baseURL }) => {
   const resolvedBaseURL = baseURL ?? DEFAULT_BASE_URL;
+
+  // Before the first navigation: the team catalogue is fetched on mount, and
+  // an unmocked (slow, rate-limited, offline) fetch swaps the team-selection
+  // row for an error banner.
+  await mockTeamDataCatalogue(page);
 
   await page.addInitScript(() => {
     globalThis.localStorage.setItem("hasLaunched", "true");

@@ -1362,7 +1362,12 @@ export function createGameProgressStyles(colors: Colors) {
       elevation: 2,
     },
     tabBarWide: {
-      alignSelf: "center",
+      // `stretch`, not `center`. Centering here sets the cross-axis size to the
+      // bar's own content, so the row stopped filling its container and the
+      // flex:1 buttons halved to ~167px on a wide viewport. The bar is already
+      // centered by tabBarContainerWide's alignSelf + maxWidth; this one only
+      // ever needed to fill what that container gives it.
+      alignSelf: "stretch",
     },
     tabButton: {
       flex: 1,

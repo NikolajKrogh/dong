@@ -716,6 +716,85 @@ export const setHostRoomSnapshotParticipants = (
   extraSnapshotParticipants = participants;
 };
 
+/**
+ * Teams per league, in the openfootball shape `useTeamData` parses (it reads
+ * `matches[].team1` / `matches[].team2` and dedupes).
+ *
+ * Covers every team the setup journeys and match-entry scenarios name, plus a
+ * couple of neighbours so the search modal has something to filter.
+ */
+const OPENFOOTBALL_TEAM_FIXTURES: Record<string, [string, string][]> = {
+  "en.1": [
+    ["Arsenal", "Chelsea"],
+    ["Liverpool", "Everton"],
+    ["Brighton & Hove Albion", "Wolverhampton Wanderers"],
+    ["Manchester City", "Tottenham Hotspur"],
+  ],
+  "en.2": [["Leeds United", "Burnley"]],
+  "en.3": [["Barnsley", "Bolton Wanderers"]],
+  "de.1": [["Bayern Munich", "Borussia Dortmund"]],
+  "es.1": [
+    ["Barcelona", "Real Madrid"],
+    ["Atletico Madrid", "Sevilla"],
+  ],
+  "it.1": [["Juventus", "Inter Milan"]],
+  "fr.1": [
+    ["PSG", "Marseille"],
+    ["Lyon", "Monaco"],
+  ],
+};
+
+/**
+ * Serves the team catalogue locally.
+ *
+ * `useTeamData` fetches seven league files straight from
+ * raw.githubusercontent.com on mount. Unmocked, the team-selection row is
+ * replaced by an "Error fetching teams" banner whenever that call is slow,
+ * rate-limited or offline — which took out every scenario that adds a match by
+ * hand, for reasons that had nothing to do with the app.
+ */
+export const mockTeamDataCatalogue = async (page: Page) => {
+  // `useMatchData` calls the command-api's discovery endpoint on mount, and its
+  // failure is what renders the "Error fetching teams" banner *in place of* the
+  // team-selection row. The command-api origin is a fake one that is never
+  // started, so unmocked this always fails.
+  await page.route(
+    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
+      });
+    },
+  );
+
+  await page.route(
+    "https://raw.githubusercontent.com/openfootball/**",
+    async (route) => {
+      const url = route.request().url();
+      const league = Object.keys(OPENFOOTBALL_TEAM_FIXTURES).find((key) =>
+        url.includes(`/${key}.json`),
+      );
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        // The fetch is cross-origin, so a fulfilled response without this is
+        // blocked by CORS and reaches the app as a bare "Failed to fetch" —
+        // indistinguishable from the unmocked network error being replaced.
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({
+          matches: (league ? OPENFOOTBALL_TEAM_FIXTURES[league] : []).map(
+            ([team1, team2]) => ({ team1, team2 }),
+          ),
+        }),
+      });
+    },
+  );
+};
+
 export const seedHostRoomAuthSession = async (page: Page) => {
   const authSession = buildHostRoomAuthSession();
 
