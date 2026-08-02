@@ -142,7 +142,52 @@ describe("useHostRoomCreate", () => {
       renderer.unmount();
     });
 
-    expect(observedHook?.error).toBe("not_authenticated");
+    expect(observedHook?.error).toBe("Sign in to create a room.");
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it("explains the one-active-room rule when the RPC refuses on it", async () => {
+    // The shape that matters: Supabase rejects with a PostgrestError, a plain
+    // object rather than an Error. The old `err instanceof Error` test never
+    // matched it, so every real failure read "Failed to create room." and the
+    // reason lived only in the Postgres log.
+    const createRoomAsHost = jest.fn(async () => {
+      throw {
+        message: "already_in_active_room",
+        code: "P0001",
+        details: null,
+        hint: null,
+      };
+    });
+
+    mockGetHostRoomRpcClient.mockReturnValue({ createRoomAsHost });
+
+    let observedHook: UseHostRoomCreateResult | null = null;
+
+    const Probe = () => {
+      observedHook = useHostRoomCreate();
+      return null;
+    };
+
+    let renderer!: TestRenderer.ReactTestRenderer;
+    TestRenderer.act(() => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+    });
+
+    await TestRenderer.act(async () => {
+      await observedHook?.createRoom();
+    });
+
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+
+    // Cast because the assign-in-closure pattern this file uses narrows
+    // `observedHook` to `never` after the render callbacks.
+    const observed = observedHook as UseHostRoomCreateResult | null;
+    expect(observed?.error).toBe(
+      "You're already in a room. Leave or end it before creating another.",
+    );
     expect(mockPush).not.toHaveBeenCalled();
   });
 
