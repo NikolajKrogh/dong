@@ -18,10 +18,14 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Modal, ScrollView } from "react-native";
+import { Modal, ScrollView, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, XStack, YStack } from "tamagui";
+import Toast from "react-native-toast-message";
+import { Text, YStack } from "tamagui";
 
+import { CommonMatchSelector, MatchList, SetupWizard } from "../../components";
+import type { WizardStep } from "../../components/setupGame/SetupWizard";
+import { SelectableMatchList } from "../../components/matchSelection/SelectableMatchList";
 import {
   ASSIGNMENT_MODE_LABELS,
   AssignmentModeSelector,
@@ -41,8 +45,11 @@ import { ShellActionButton, ShellScreen } from "../../components/ui";
 import { useRoomConfigure } from "../../hooks/useRoomConfigure";
 import { useRoomExit } from "../../hooks/useRoomExit";
 import { useRoomLobby } from "../../hooks/useRoomLobby";
+import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
 import { useGameStore } from "../../store/store";
-import type { AssignmentMode } from "../../types/room";
+import { isWideLayout } from "../../styles/responsive";
+import { useColors } from "../../styles/theme";
+import type { AssignmentMode, BatchRoomMatchResult } from "../../types/room";
 
 const normalizeParam = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
@@ -70,6 +77,40 @@ const LobbyScreen = () => {
   const configure = useRoomConfigure(lobby.snapshot, lobby.refresh);
   const [pendingModeSwitch, setPendingModeSwitch] =
     useState<AssignmentMode | null>(null);
+
+  const { width } = useWindowDimensions();
+  const wideLayout = isWideLayout(width);
+  const colors = useColors();
+
+  // Manual-entry fields belong to MatchList's caller in the solo wizard too.
+  const [homeTeam, setHomeTeam] = useState("");
+  const [awayTeam, setAwayTeam] = useState("");
+
+  // useCallback because it feeds useRoomMatchPool's `setMatches` dependency
+  // array and this screen re-renders on every ~4s poll.
+  const handleBatchAdded = useCallback(
+    ({ added, skipped }: BatchRoomMatchResult) => {
+      // A repeat fixture is skipped rather than failed, so without this the host
+      // would select ten, see eight land, and have no idea why.
+      if (skipped > 0) {
+        Toast.show({
+          type: "themedWarning",
+          text1: `Added ${added}`,
+          text2: `${skipped} already in this room.`,
+          position: "bottom",
+        });
+      }
+    },
+    [],
+  );
+
+  const pool = useRoomMatchPool({
+    roomMatches: lobby.snapshot?.matches ?? [],
+    addMatches: configure.addMatches,
+    removeMatch: configure.removeMatch,
+    removeMatches: configure.removeMatches,
+    onBatchAdded: handleBatchAdded,
+  });
 
   const setPlayers = useGameStore((state) => state.setPlayers);
   const setMatches = useGameStore((state) => state.setMatches);
@@ -306,6 +347,20 @@ const LobbyScreen = () => {
     [lobby.snapshot?.matches, commonMatchId],
   );
 
+  // The whole pool, for the member's read-only Matches step. Deliberately not
+  // `pickableMatches` below — that one drops the Common Match, which belongs in
+  // a list of "the matches this room has".
+  const poolAsSelectable = useMemo(
+    () =>
+      (lobby.snapshot?.matches ?? []).map((match) => ({
+        id: match.id,
+        homeTeam: match.homeTeamName,
+        awayTeam: match.awayTeamName,
+        startTime: match.kickoffAt ?? undefined,
+      })),
+    [lobby.snapshot?.matches],
+  );
+
   const myPicks = useMemo(
     () =>
       participantId
@@ -368,277 +423,351 @@ const LobbyScreen = () => {
     [assignments, configure],
   );
 
-  return (
-    <ShellScreen>
-      <SafeAreaView style={{ flex: 1 }}>
-        {/*
-          The lobby's body scrolls. Without this the content below the fold —
-          assignment settings, the shortfall warning, Start Game, Leave Room — was
-          simply unreachable on a phone: the tree was a flex:1 YStack in a flex:1
-          SafeAreaView with nothing scrollable anywhere in it.
+  // ---------------------------------------------------------------------------
+  // The pre-start room, as the single-player setup wizard.
+  //
+  // Every viewer gets the same four steps in the same order — a member's steps
+  // are the host's, read-only, plus their own pick panel. Same length and same
+  // order matters mechanically, not just visually: SetupWizard's current step is
+  // uncontrolled, so a steps array that changed shape between polls would
+  // remount the wizard and drop the viewer back to step one every ~4 seconds.
+  //
+  // For the same reason these are JSX values, never components declared here.
+  // ---------------------------------------------------------------------------
+  const isPreStart = !lobby.roomEnded && !lobby.gameStarted;
 
-          `flexGrow: 1` on the content container keeps the short-content case
-          (a room that has ended, which renders only RoomEndedNotice) filling the
-          screen rather than hugging the top.
+  const roomStepContent = (
+    <YStack gap="$4" padding="$4">
+      <Text color="$color" fontSize={22} fontWeight="700">
+        Room Lobby
+      </Text>
+      <RoomIdentityPanel
+        joinCode={lobby.joinCode}
+        participants={lobby.participants}
+        pickProgress={pickProgress}
+      />
+      {exit.error ? (
+        <Text color="$danger" fontSize={14} testID="lobby-exit-error">
+          {exit.error}
+        </Text>
+      ) : null}
+    </YStack>
+  );
+
+  const matchesStepContent = (
+    <YStack gap="$2">
+      <YStack paddingHorizontal={16} paddingTop={16} gap="$1">
+        <Text color="$color" fontSize={22} fontWeight="700">
+          Select Matches
+        </Text>
+        <Text color="$colorMuted" fontSize={14}>
+          {isHost
+            ? pool.matches.length === 0
+              ? "This room has no matches yet. Add some below to continue."
+              : `${pool.matches.length} in this room`
+            : `${pool.matches.length} in this room — the host picks these.`}
+        </Text>
+        {/*
+          Adds and removals are server round-trips that can fail on this step,
+          and the Assign step's own error line is nowhere in sight from here.
+          Its own testID, deliberately: one testID per surface.
         */}
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <YStack flex={1} gap="$5" paddingVertical="$4">
-            {lobby.roomEnded ? (
-              <RoomEndedNotice onReturnHome={goHome} />
-            ) : lobby.gameStarted ? (
-              /*
+        {configure.error ? (
+          <Text testID="lobby-matches-error" color="$danger" fontSize={14}>
+            {configure.error}
+          </Text>
+        ) : null}
+      </YStack>
+
+      {isHost ? (
+        /*
+          `showSectionTitle={false}` because the heading above is this step's;
+          leaving both on stacked two titles from two type systems.
+          `disableSelection` while a write is in flight — unlike the solo flow,
+          releasing a match here is a server round-trip.
+        */
+        <MatchList
+          matches={pool.matches}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          setHomeTeam={setHomeTeam}
+          setAwayTeam={setAwayTeam}
+          handleRemoveMatch={pool.removeMatch}
+          setGlobalMatches={pool.setMatches}
+          showSectionTitle={false}
+          disableSelection={configure.isBusy}
+        />
+      ) : (
+        /*
+          Not a defanged MatchList: that is an acquisition UI (league filter,
+          catalogue, manual entry) a member has no permission to use. This is
+          the pool, shown inert.
+        */
+        <YStack paddingHorizontal={16} paddingBottom={16}>
+          <SelectableMatchList
+            matches={poolAsSelectable}
+            selectedMatchIds={[]}
+            disabledMatchIds={poolAsSelectable.map((match) => match.id)}
+            onToggleMatch={() => {}}
+          />
+        </YStack>
+      )}
+    </YStack>
+  );
+
+  const commonStepContent = (
+    <CommonMatchSelector
+      matches={pool.matches}
+      selectedCommonMatch={commonMatchId}
+      // Read-only for a member: the cards stay, the write does not.
+      handleSelectCommonMatch={
+        isHost
+          ? (matchId: string) => {
+              void configure.setCommonMatch(matchId);
+            }
+          : () => {}
+      }
+    />
+  );
+
+  const assignStepContent = (
+    <YStack gap="$4" padding="$4">
+      {isHost ? (
+        <>
+          <AssignmentModeSelector
+            assignmentMode={assignmentMode}
+            isBusy={configure.isBusy}
+            onSelectMode={handleSelectMode}
+          />
+
+          {/* The host picks their own matches like any other participant
+              (FR-038). */}
+          {pickPanel}
+
+          {assignmentMode === "host_assigned" ? (
+            <HostAllocationGrid
+              participants={participants}
+              matches={lobby.snapshot?.matches ?? []}
+              commonMatchId={commonMatchId}
+              matchesPerPlayer={plan.matchesPerPlayer}
+              additionalMatchIdsFor={additionalMatchIdsFor}
+              isBusy={configure.isBusy}
+              onToggleAllocation={toggleAllocation}
+            />
+          ) : null}
+
+          <AssignmentSettingsPanel
+            plan={plan}
+            isBusy={configure.isBusy}
+            onChange={(settings) => {
+              void configure.setAssignmentSettings(settings);
+            }}
+          />
+
+          <StartGameWarnings
+            plan={plan}
+            shortParticipants={shortParticipants}
+            isHostAssigned={assignmentMode === "host_assigned"}
+            error={configure.error}
+            isBusy={configure.isBusy}
+            onStartAnyway={() => {
+              void configure.startGame(true);
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <Text color="$colorMuted" fontSize={14} lineHeight={20}>
+            {canPick
+              ? "Pick your matches while you wait for the host to start."
+              : "Waiting for the host to start the game…"}
+          </Text>
+          <Text
+            testID="lobby-assignment-mode-readonly"
+            color="$colorMuted"
+            fontSize={13}
+          >
+            Assignment mode: {ASSIGNMENT_MODE_LABELS[assignmentMode]}
+          </Text>
+
+          {/* A member's own pick control — the same panel the host uses. */}
+          {pickPanel}
+          <AssignmentRequirementLine plan={plan} />
+        </>
+      )}
+    </YStack>
+  );
+
+  const roomSteps: WizardStep[] = [
+    {
+      key: "room",
+      name: "Room",
+      icon: "people",
+      canEnter: true,
+      content: roomStepContent,
+    },
+    {
+      key: "matches",
+      name: "Matches",
+      icon: "game-controller-outline",
+      canEnter: Boolean(lobby.snapshot),
+      content: matchesStepContent,
+    },
+    {
+      key: "common",
+      name: "Common",
+      icon: "tv-outline",
+      canEnter: Boolean(lobby.snapshot) && plan.poolSize > 0,
+      content: commonStepContent,
+    },
+    {
+      key: "assign",
+      name: "Assign",
+      icon: "git-network",
+      // `canPick` is an alternative to the Common Match being set, not an
+      // addition to it: a member with picks to make must be able to reach the
+      // pick panel even before the host has designated a Common Match.
+      canEnter: Boolean(lobby.snapshot) && (commonMatchId !== null || canPick),
+      content: assignStepContent,
+    },
+  ];
+
+  return (
+    <ShellScreen
+      padded={!isPreStart}
+      centerContent={isPreStart && wideLayout}
+      contentMaxWidth={isPreStart && wideLayout ? 1120 : undefined}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        {isPreStart ? (
+          /*
+            No ScrollView around the wizard, and this is load-bearing rather
+            than tidiness: the wizard's own `stepContentScroll` needs a bounded
+            parent. Give it an unbounded one and `wizardMainPanel` collapses,
+            which shows up as an empty step body rather than as an error.
+          */
+          <SetupWizard
+            steps={roomSteps}
+            firstSlotAction={{
+              label: isHost ? "Leave Room" : "Leave",
+              icon: "exit-outline",
+              iconPosition: "leading",
+              testID: "lobby-leave-button",
+              disabled: exit.isExiting,
+              onPress: () => {
+                void handleLeave();
+              },
+              backgroundColor: colors.secondary,
+            }}
+            // A member gets no final action — SetupWizard renders its "Waiting
+            // for host" placeholder so the nav bar keeps both slots.
+            finalAction={
+              isHost
+                ? {
+                    label: "Start Game",
+                    icon: "play",
+                    testID: "lobby-start-game",
+                    disabled: configure.isBusy || !plan.startable,
+                    onPress: () => {
+                      void configure.startGame();
+                    },
+                    backgroundColor: colors.success,
+                  }
+                : null
+            }
+          />
+        ) : (
+          /*
+            The ended and in-progress bodies still scroll: they are plain
+            stacked content, and without this the material below the fold was
+            unreachable on a phone.
+
+            `flexGrow: 1` keeps the short-content case (a room that has ended,
+            which renders only RoomEndedNotice) filling the screen rather than
+            hugging the top.
+          */
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <YStack flex={1} gap="$5" paddingVertical="$4">
+              {lobby.roomEnded ? (
+                <RoomEndedNotice onReturnHome={goHome} />
+              ) : lobby.gameStarted ? (
+                /*
               A game that is already under way. None of the configure controls
               below apply once the server has generated the assignments, so this
               is deliberately just the roster and the three ways out.
             */
-              <YStack gap="$4" testID="lobby-in-progress">
-                <Text color="$color" fontSize={28} fontWeight="700">
-                  Game in progress
-                </Text>
-                <Text color="$colorMuted" fontSize={14}>
-                  {isHost
-                    ? "Ending the game finishes it for everyone and saves it to the room's history."
-                    : "Leaving takes you out of the room; the game carries on for everyone else."}
-                </Text>
+                <YStack gap="$4" testID="lobby-in-progress">
+                  <Text color="$color" fontSize={28} fontWeight="700">
+                    Game in progress
+                  </Text>
+                  <Text color="$colorMuted" fontSize={14}>
+                    {isHost
+                      ? "Ending the game finishes it for everyone and saves it to the room's history."
+                      : "Leaving takes you out of the room; the game carries on for everyone else."}
+                  </Text>
 
-                <ParticipantList
-                  participants={lobby.participants}
-                  pickProgress={pickProgress}
-                />
+                  <ParticipantList
+                    participants={lobby.participants}
+                    pickProgress={pickProgress}
+                  />
 
-                <ShellActionButton
-                  variant="primary"
-                  label="Return to game"
-                  testID="lobby-return-to-game"
-                  onPress={handleReturnToGame}
-                />
-
-                {isHost ? (
                   <ShellActionButton
-                    variant="danger"
-                    label="End game for everyone"
-                    testID="lobby-end-game"
-                    disabled={configure.isBusy}
+                    variant="primary"
+                    label="Return to game"
+                    testID="lobby-return-to-game"
+                    onPress={handleReturnToGame}
+                  />
+
+                  {isHost ? (
+                    <ShellActionButton
+                      variant="danger"
+                      label="End game for everyone"
+                      testID="lobby-end-game"
+                      disabled={configure.isBusy}
+                      onPress={() => {
+                        setIsEndGameConfirmVisible(true);
+                      }}
+                    />
+                  ) : null}
+
+                  <ShellActionButton
+                    variant="surface"
+                    label={isHost ? "Leave Room" : "Leave"}
+                    testID="lobby-in-progress-leave"
+                    disabled={exit.isExiting}
                     onPress={() => {
-                      setIsEndGameConfirmVisible(true);
+                      void handleLeave();
                     }}
                   />
-                ) : null}
 
-                <ShellActionButton
-                  variant="surface"
-                  label={isHost ? "Leave Room" : "Leave"}
-                  testID="lobby-in-progress-leave"
-                  disabled={exit.isExiting}
-                  onPress={() => {
-                    void handleLeave();
-                  }}
-                />
-
-                {configure.error ? (
-                  <Text
-                    color="$danger"
-                    fontSize={13}
-                    testID="lobby-in-progress-error"
-                  >
-                    {configure.error}
-                  </Text>
-                ) : null}
-                {exit.error ? (
-                  <Text color="$danger" fontSize={13}>
-                    {exit.error}
-                  </Text>
-                ) : null}
-              </YStack>
-            ) : (
-              <>
-                <Text color="$color" fontSize={28} fontWeight="700">
-                  Room Lobby
-                </Text>
-
-                <RoomIdentityPanel
-                  joinCode={lobby.joinCode}
-                  participants={lobby.participants}
-                  pickProgress={pickProgress}
-                />
-
-                {isHost && lobby.snapshot ? (
-                  <YStack gap="$3">
-                    <Text color="$color" fontSize={16} fontWeight="700">
-                      Matches ({lobby.snapshot.matches.length})
-                    </Text>
-                    {lobby.snapshot.matches.map((match) => (
-                      <YStack
-                        key={match.id}
-                        testID={`lobby-match-${match.id}`}
-                        gap="$1"
-                        backgroundColor="$backgroundLight"
-                        borderColor="$borderColorLight"
-                        borderRadius="$5"
-                        borderWidth={1}
-                        padding="$3"
-                      >
-                        <Text color="$color" fontSize={14} fontWeight="600">
-                          {match.homeTeamName} vs {match.awayTeamName}
-                          {match.id === lobby.snapshot?.commonMatchId
-                            ? "  ⭐ Common Match"
-                            : ""}
-                        </Text>
-                        <XStack gap="$2">
-                          {match.id !== lobby.snapshot?.commonMatchId ? (
-                            <ShellActionButton
-                              variant="surface"
-                              size="small"
-                              widthMode="fit"
-                              label="Make Common Match"
-                              testID={`lobby-set-common-${match.id}`}
-                              disabled={configure.isBusy}
-                              onPress={() => {
-                                void configure.setCommonMatch(match.id);
-                              }}
-                            />
-                          ) : null}
-                          <ShellActionButton
-                            variant="surface"
-                            size="small"
-                            widthMode="fit"
-                            label="Remove"
-                            testID={`lobby-remove-match-${match.id}`}
-                            disabled={configure.isBusy}
-                            onPress={() => {
-                              void configure.removeMatch(match.id);
-                            }}
-                          />
-                        </XStack>
-                      </YStack>
-                    ))}
-
-                    {/*
-                    Promoted to the primary style while the pool is too small to
-                    start, because that is exactly when adding matches is the one
-                    thing standing between the host and Start Game. Once the room
-                    has enough it steps back to secondary so it stops competing
-                    with Start Game for attention.
-                  */}
-                    <ShellActionButton
-                      variant={
-                        plan.poolSize < plan.relaxedFloor
-                          ? "primary"
-                          : "secondary"
-                      }
-                      label="Configure Matches"
-                      testID="lobby-open-configure-matches"
-                      disabled={configure.isBusy}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/lobby/configureMatches",
-                          params: {
-                            sessionId,
-                            participantId: participantId ?? "",
-                          },
-                        })
-                      }
-                    />
-
-                    <AssignmentModeSelector
-                      assignmentMode={assignmentMode}
-                      isBusy={configure.isBusy}
-                      onSelectMode={handleSelectMode}
-                    />
-
-                    {/* The host picks their own matches like any other
-                      participant (FR-038). */}
-                    {pickPanel}
-
-                    {assignmentMode === "host_assigned" ? (
-                      <HostAllocationGrid
-                        participants={participants}
-                        matches={lobby.snapshot.matches}
-                        commonMatchId={commonMatchId}
-                        matchesPerPlayer={plan.matchesPerPlayer}
-                        additionalMatchIdsFor={additionalMatchIdsFor}
-                        isBusy={configure.isBusy}
-                        onToggleAllocation={toggleAllocation}
-                      />
-                    ) : null}
-
-                    <AssignmentSettingsPanel
-                      plan={plan}
-                      isBusy={configure.isBusy}
-                      onChange={(settings) => {
-                        void configure.setAssignmentSettings(settings);
-                      }}
-                    />
-
-                    <StartGameWarnings
-                      plan={plan}
-                      shortParticipants={shortParticipants}
-                      isHostAssigned={assignmentMode === "host_assigned"}
-                      error={configure.error}
-                      isBusy={configure.isBusy}
-                      onStartAnyway={() => {
-                        void configure.startGame(true);
-                      }}
-                    />
-
-                    <ShellActionButton
-                      variant="success"
-                      label="Start Game"
-                      testID="lobby-start-game"
-                      disabled={configure.isBusy || !plan.startable}
-                      onPress={() => {
-                        void configure.startGame();
-                      }}
-                    />
-                  </YStack>
-                ) : (
-                  <YStack gap="$2">
-                    <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-                      {canPick
-                        ? "Pick your matches while you wait for the host to start."
-                        : "Waiting for the host to start the game…"}
-                    </Text>
+                  {configure.error ? (
                     <Text
-                      testID="lobby-assignment-mode-readonly"
-                      color="$colorMuted"
+                      color="$danger"
                       fontSize={13}
+                      testID="lobby-in-progress-error"
                     >
-                      Assignment mode: {ASSIGNMENT_MODE_LABELS[assignmentMode]}
+                      {configure.error}
                     </Text>
-
-                    {/* A member's own pick control — the same panel the host uses. */}
-                    {pickPanel}
-                    <AssignmentRequirementLine plan={plan} />
-                  </YStack>
-                )}
-
-                {exit.error ? (
-                  <Text color="$danger" fontSize={14} testID="lobby-exit-error">
-                    {exit.error}
-                  </Text>
-                ) : null}
-
-                <ShellActionButton
-                  variant="danger"
-                  label={isHost ? "Leave Room" : "Leave"}
-                  testID="lobby-leave-button"
-                  disabled={exit.isExiting}
-                  onPress={() => {
-                    void handleLeave();
-                  }}
-                />
-              </>
-            )}
-          </YStack>
-        </ScrollView>
+                  ) : null}
+                  {exit.error ? (
+                    <Text color="$danger" fontSize={13}>
+                      {exit.error}
+                    </Text>
+                  ) : null}
+                </YStack>
+              ) : null}
+            </YStack>
+          </ScrollView>
+        )}
 
         {/*
-          Modals stay OUTSIDE the ScrollView. These are portal-less react-native
-          Modals; nesting one inside a scroll container makes its own scrolling and
-          gesture handling unreliable.
+          Modals stay OUTSIDE the ScrollView — and outside the wizard, never in
+          a step's `content`, which renders inside the wizard's own ScrollView.
+          These are portal-less react-native Modals; nesting one inside a scroll
+          container makes its own scrolling and gesture handling unreliable.
         */}
         <Modal
           visible={pendingModeSwitch !== null}

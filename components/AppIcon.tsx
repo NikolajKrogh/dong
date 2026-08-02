@@ -17,6 +17,7 @@ type AppIconName =
   | "close"
   | "close-circle"
   | "close-circle-outline"
+  | "exit-outline"
   | "flame"
   | "flash-outline"
   | "football"
@@ -65,6 +66,7 @@ const ICON_MAP: Record<AppIconName, IoniconName> = {
   close: "close",
   "close-circle": "close-circle",
   "close-circle-outline": "close-circle-outline",
+  "exit-outline": "exit-outline",
   flame: "flame",
   "flash-outline": "flash-outline",
   football: "football",

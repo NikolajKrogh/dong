@@ -13,21 +13,40 @@ import {
 
 const { Given, When, Then } = createBdd();
 
-Given("the room configuration and start-game services are mocked", async ({ page }) => {
-  await mockConfigureStartGameServices(page);
+Given(
+  "the room configuration and start-game services are mocked",
+  async ({ page }) => {
+    await mockConfigureStartGameServices(page);
+  },
+);
+
+// The room's pre-start setup is the single-player wizard, so every step here
+// navigates by tapping a step in its indicator. There is no separate
+// match-configuration route any more.
+const STEP_KEYS: Record<string, string> = {
+  Room: "room",
+  Matches: "matches",
+  Common: "common",
+  Assign: "assign",
+};
+
+When("the host opens the {word} step", async ({ page }, stepName: string) => {
+  const key = STEP_KEYS[stepName];
+  if (!key) {
+    throw new Error(`Unknown wizard step "${stepName}"`);
+  }
+  const stepButton = page.getByTestId(`SetupWizardStep-${key}`);
+  await expect(stepButton).toBeVisible({ timeout: 10_000 });
+  await stepButton.click();
 });
 
-// Configure Matches is a route now, not a modal, and it renders the same
-// MatchList the single-player wizard's matches step uses — so the interaction is
-// the wizard's ("filter, then add all filtered") rather than the old modal's
-// per-fixture add buttons.
-When("the host opens the match configuration modal", async ({ page }) => {
-  const openButton = page.getByTestId("lobby-open-configure-matches");
-  await openButton.scrollIntoViewIfNeeded();
-  await openButton.click();
-  await expect(page.getByTestId("configure-room-matches-title")).toBeVisible({
+Then("the host cannot advance past the Matches step", async ({ page }) => {
+  // With an empty pool the Common step is unreachable, and with it every
+  // control that could start the game.
+  await expect(page.getByTestId("SetupWizardNext")).toBeDisabled({
     timeout: 10_000,
   });
+  await expect(page.getByTestId("lobby-start-game")).toHaveCount(0);
 });
 
 When("the host adds the first two catalog matches", async ({ page }) => {
@@ -45,17 +64,15 @@ When("the host adds the first two catalog matches", async ({ page }) => {
   }
 });
 
-When("the host closes the match configuration modal", async ({ page }) => {
-  await page.getByTestId("configure-room-matches-done").click();
-  await expect(page.getByTestId("configure-room-matches-title")).toHaveCount(0);
-});
-
 When(
   "the host designates the first added match as the Common Match",
   async ({ page }) => {
-    const commonButton = page.getByTestId("lobby-set-common-match-1");
-    await expect(commonButton).toBeVisible({ timeout: 10_000 });
-    await commonButton.click();
+    // The Common step is the wizard's own card grid, the same one single player
+    // uses, rather than a per-row "Make Common Match" button in a pool list.
+    await page.getByTestId("SetupWizardStep-common").click();
+    const commonCard = page.getByTestId("common-match-option-match-1");
+    await expect(commonCard).toBeVisible({ timeout: 10_000 });
+    await commonCard.click();
   },
 );
 
@@ -100,13 +117,16 @@ When(
   },
 );
 
-When("the host allocates the second added match to themselves", async ({ page }) => {
-  const allocateButton = page.getByTestId(
-    `lobby-allocate-${HOST_ROOM_PARTICIPANT_ID}-match-2`,
-  );
-  await expect(allocateButton).toBeVisible({ timeout: 10_000 });
-  await allocateButton.click();
-});
+When(
+  "the host allocates the second added match to themselves",
+  async ({ page }) => {
+    const allocateButton = page.getByTestId(
+      `lobby-allocate-${HOST_ROOM_PARTICIPANT_ID}-match-2`,
+    );
+    await expect(allocateButton).toBeVisible({ timeout: 10_000 });
+    await allocateButton.click();
+  },
+);
 
 When("the host declines the mode-switch confirmation", async ({ page }) => {
   await page
@@ -116,31 +136,24 @@ When("the host declines the mode-switch confirmation", async ({ page }) => {
 });
 
 Then("the host sees a mode-switch confirmation dialog", async ({ page }) => {
-  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toBeVisible(
-    { timeout: 10_000 },
-  );
+  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 Then("the assignment mode remains host-assigned", async ({ page }) => {
-  await expect(
-    page.getByTestId("lobby-assignment-mode-confirm"),
-  ).toHaveCount(0);
+  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toHaveCount(
+    0,
+  );
   await expect(
     page.getByTestId("lobby-assignment-mode-host-assigned"),
   ).toBeVisible({ timeout: 10_000 });
 });
 
-Then("the host is redirected to the active gameplay dashboard", async ({ page }) => {
-  await page.waitForURL(/\/gameProgress/, { timeout: 10_000 });
-});
-
 Then(
-  "the host sees a configuration error and remains in the lobby",
+  "the host is redirected to the active gameplay dashboard",
   async ({ page }) => {
-    const error = page.getByTestId("lobby-configure-error");
-    await expect(error).toBeVisible({ timeout: 10_000 });
-    await expect(error).toContainText(/match/i);
-    await expect(page).toHaveURL(/\/lobby\//);
+    await page.waitForURL(/\/gameProgress/, { timeout: 10_000 });
   },
 );
 
@@ -181,18 +194,17 @@ Then("the host sees their own pick panel", async ({ page }) => {
 Then(
   `the host's pick progress reads {string}`,
   async ({ page }, expected: string) => {
-    await expect(
-      page.getByTestId("lobby-player-pick-panel-count"),
-    ).toHaveText(expected, { timeout: 10_000 });
+    await expect(page.getByTestId("lobby-player-pick-panel-count")).toHaveText(
+      expected,
+      { timeout: 10_000 },
+    );
   },
 );
 
 When(
   "the host picks the second added match for themselves",
   async ({ page }) => {
-    const option = page.getByTestId(
-      "lobby-player-pick-panel-option-match-2",
-    );
+    const option = page.getByTestId("lobby-player-pick-panel-option-match-2");
     await option.scrollIntoViewIfNeeded();
     await option.click();
   },
@@ -219,7 +231,9 @@ Then(
 Then("the settled assignments include the host's own pick", async () => {
   const picked = getMockHostPicks();
   const settled = getMockAssignments()
-    .filter((assignment) => assignment.participantId === HOST_ROOM_PARTICIPANT_ID)
+    .filter(
+      (assignment) => assignment.participantId === HOST_ROOM_PARTICIPANT_ID,
+    )
     .map((assignment) => assignment.matchId);
 
   expect(picked.length).toBeGreaterThan(0);

@@ -122,6 +122,7 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
                 ]}
               >
                 <TouchableOpacity
+                  testID={`common-match-option-${item.id}`}
                   onPress={() => handleSelectCommonMatch(item.id)}
                   activeOpacity={0.6}
                   style={[
