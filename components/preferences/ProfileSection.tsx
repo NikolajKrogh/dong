@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
 import { Text, YStack } from "tamagui";
 
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 import { useAccountAuth } from "../../hooks/useAccountAuth";
 import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 

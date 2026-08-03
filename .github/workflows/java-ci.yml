@@ -33,6 +33,6 @@ jobs:
 
       - name: Build and test
         env:
-          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          SUPABASE_JWKS_URL: ${{ secrets.SUPABASE_JWKS_URL }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: ./mvnw --batch-mode --no-transfer-progress verify

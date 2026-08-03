@@ -233,11 +233,6 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       // Used for layout, no specific visual style from palette
       marginBottom: 8,
     },
-    matchItemWrapperWide: {
-      width: "100%",
-      maxWidth: 560,
-      alignSelf: "center",
-    },
     commonMatchList: {
       gap: 8,
     },
@@ -404,24 +399,12 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     matchListLayout: {
       gap: 16,
     },
-    matchListWideLayout: {
-      flexDirection: "row",
-      alignItems: "flex-start",
-      gap: 24,
-    },
     matchListControls: {
       width: "100%",
-    },
-    matchListControlsWide: {
-      width: 360,
-      flexShrink: 0,
     },
     matchListResults: {
       flex: 1,
       minWidth: 0,
-    },
-    matchListResultsWide: {
-      alignSelf: "stretch",
     },
     playersListContent: {
       // Used by FlatList
@@ -1424,11 +1407,6 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       fontSize: 13,
       marginLeft: 4,
     },
-    disabledButton: {
-      // Generic disabled button state
-      backgroundColor: colors.textDisabled, // Or c5c5c5
-      opacity: 0.7,
-    },
     leagueGrid: {
       // For displaying leagues in a grid
       flexDirection: "row",
@@ -1451,7 +1429,12 @@ export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
 
     // Player List specific styles (already well-defined, applying palette)
     playerInputContainer: {
-      flex: 1,
+      // No `flex: 1` here. Its parent (playerInputStack) sits in a row that
+      // aligns to flex-start, so the stack's height comes from its content —
+      // and `flex: 1` on the content sets flexBasis 0 along that same axis,
+      // making the two resolve each other to nothing. The field collapsed to
+      // its text line box (~29px) and quietly discarded the height below.
+      // Width is already filled by the stack.
       flexDirection: "row",
       alignItems: "center",
       height: 50,

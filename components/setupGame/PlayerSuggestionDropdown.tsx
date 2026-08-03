@@ -6,8 +6,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 import { PlayerSuggestion } from "../../hooks/usePlayerSuggestions";
 import AppIcon from "../AppIcon";
 
@@ -249,8 +249,11 @@ const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
         styles.playerSuggestionsDropdown,
         Platform.OS === "android" && styles.playerSuggestionsDropdownAndroid,
         dropdownAnimatedStyle,
+        {
+          pointerEvents:
+            visible && sortedSuggestions.length > 0 ? "auto" : "none",
+        },
       ]}
-      pointerEvents={visible && sortedSuggestions.length > 0 ? "auto" : "none"}
     >
       <View style={styles.playerSuggestionsHeader}>
         <AppIcon name="time-outline" size={14} color={colors.primary} />

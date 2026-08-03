@@ -29,7 +29,7 @@ describe("platform date input adapters", () => {
     const webPicker = jest.fn(() => null);
 
     jest.doMock("react-native", () => createReactNativePlatformMock("web"));
-    jest.doMock("../../app/style/theme", () => ({
+    jest.doMock("../../styles/theme", () => ({
       useColors: () => ({
         surface: "#ffffff",
         textPrimary: "#111111",
@@ -68,7 +68,7 @@ describe("platform date input adapters", () => {
     const nativePicker = jest.fn(() => null);
 
     jest.doMock("react-native", () => createReactNativePlatformMock("ios"));
-    jest.doMock("../../app/style/theme", () => ({
+    jest.doMock("../../styles/theme", () => ({
       useColors: () => ({
         surface: "#ffffff",
         textPrimary: "#111111",

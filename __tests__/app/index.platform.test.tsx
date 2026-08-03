@@ -116,7 +116,7 @@ jest.mock("../../store/store", () => ({
   useGameStore: () => mockStoreState,
 }));
 
-jest.mock("../../app/style/theme", () => ({
+jest.mock("../../styles/theme", () => ({
   useColors: () => ({
     background: "#f5f5f5",
     white: "#ffffff",
@@ -124,7 +124,7 @@ jest.mock("../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../app/style/indexStyles", () => ({
+jest.mock("../../styles/indexStyles", () => ({
   __esModule: true,
   default: () => ({
     splashContainer: {},

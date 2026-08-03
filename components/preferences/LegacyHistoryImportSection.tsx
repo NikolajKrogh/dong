@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Text, View } from "react-native";
 
-import { useColors } from "../../app/style/theme";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../styles/theme";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
 import { useLegacyHistoryImport } from "../../hooks/useLegacyHistoryImport";
 import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 import LegacyHistoryImportClaimantModal from "./LegacyHistoryImportClaimantModal";

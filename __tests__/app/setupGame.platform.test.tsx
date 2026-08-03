@@ -33,7 +33,10 @@ const mockStoreState = {
 };
 
 jest.mock("react-native", () => ({
-  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
+  Platform: {
+    OS: "web",
+    select: (o: Record<string, unknown>) => o.web ?? o.default,
+  },
   View: "View",
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
@@ -55,11 +58,11 @@ jest.mock("../../store/store", () => ({
   useGameStore: () => mockStoreState,
 }));
 
-jest.mock("../../app/style/theme", () => ({
+jest.mock("../../styles/theme", () => ({
   useColors: () => ({ background: "#fff" }),
 }));
 
-jest.mock("../../app/style/setupGameStyles", () => ({
+jest.mock("../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => ({
     safeArea: {},
@@ -117,20 +120,28 @@ describe("SetupGameScreen responsive layout", () => {
     const renderer = renderSetupGameScreen();
     const wizard = renderer.root.findByProps({ testID: "SetupWizard" });
 
-    expect(wizard.props.canAdvanceToMatches).toBe(true);
-    expect(wizard.props.canAdvanceToCommonMatch).toBe(true);
-    expect(wizard.props.canAdvanceToAssign).toBe(true);
-    expect(wizard.props.canStartGame).toBe(true);
-    expect(wizard.props.playersStep.props.players).toEqual(
-      mockStoreState.players,
+    const byKey = Object.fromEntries(
+      wizard.props.steps.map((s: { key: string }) => [s.key, s]),
     );
-    expect(wizard.props.matchesStep.props.matches).toEqual(
-      mockStoreState.matches,
-    );
-    expect(wizard.props.commonMatchStep.props.selectedCommonMatch).toBe(
+
+    // The solo flow's four steps, in order, all reachable with this state.
+    expect(wizard.props.steps.map((s: { key: string }) => s.key)).toEqual([
+      "players",
+      "matches",
+      "common",
+      "assign",
+    ]);
+    expect(byKey.matches.canEnter).toBe(true);
+    expect(byKey.common.canEnter).toBe(true);
+    expect(byKey.assign.canEnter).toBe(true);
+    expect(wizard.props.finalAction.disabled).toBe(false);
+
+    expect(byKey.players.content.props.players).toEqual(mockStoreState.players);
+    expect(byKey.matches.content.props.matches).toEqual(mockStoreState.matches);
+    expect(byKey.common.content.props.selectedCommonMatch).toBe(
       mockStoreState.commonMatchId,
     );
-    expect(wizard.props.assignStep.props.playerAssignments).toEqual(
+    expect(byKey.assign.content.props.playerAssignments).toEqual(
       mockStoreState.playerAssignments,
     );
   });

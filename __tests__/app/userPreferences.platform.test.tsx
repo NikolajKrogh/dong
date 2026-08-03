@@ -44,7 +44,7 @@ jest.mock("../../store/store", () => ({
   }),
 }));
 
-jest.mock("../../app/style/theme", () => ({
+jest.mock("../../styles/theme", () => ({
   useColors: () => ({
     primary: "#007AFF",
     secondary: "#6C757D",
@@ -60,7 +60,7 @@ jest.mock("../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../app/style/userPreferencesStyles", () => ({
+jest.mock("../../styles/userPreferencesStyles", () => ({
   createUserPreferencesStyles: () => ({
     commonStyles: {
       safeArea: {},

@@ -3,8 +3,8 @@ import { Text, View } from "react-native";
 
 import AppIcon from "../AppIcon";
 import { ShellActionButton, ShellCard } from "../ui";
-import createStyles from "../../app/style/indexStyles";
-import { useColors } from "../../app/style/theme";
+import createStyles from "../../styles/indexStyles";
+import { useColors } from "../../styles/theme";
 
 interface CurrentGameCardProps {
   colors: ReturnType<typeof useColors>;

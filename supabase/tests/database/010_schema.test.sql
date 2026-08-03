@@ -2,7 +2,7 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(35);
+SELECT plan(37);
 SELECT ok(
         to_regclass('public.accounts') IS NOT NULL,
         'accounts table exists'
@@ -338,6 +338,29 @@ SELECT is(
         ),
         'session_id:uuid:NO,participant_id:uuid:NO,match_id:uuid:NO,created_at:timestamp with time zone:YES',
         'assignments columns, types, and nullability match expectations'
+    );
+SELECT ok(
+        to_regclass('public.assignment_picks') IS NOT NULL,
+        'assignment_picks table exists'
+    );
+SELECT is(
+        (
+            SELECT string_agg(
+                    column_name || ':' || (
+                        CASE
+                            WHEN data_type = 'USER-DEFINED' THEN udt_name
+                            ELSE data_type
+                        END
+                    ) || ':' || is_nullable,
+                    ','
+                    ORDER BY ordinal_position
+                )
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+                AND table_name = 'assignment_picks'
+        ),
+        'session_id:uuid:NO,participant_id:uuid:NO,match_id:uuid:NO,created_at:timestamp with time zone:YES',
+        'assignment_picks columns, types, and nullability match expectations'
     );
 SELECT ok(
         to_regclass('public.gameplay_events') IS NOT NULL,

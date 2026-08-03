@@ -3,6 +3,10 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 import AccountSection from "../../../components/preferences/AccountSection";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+
+const TestSubject = (props: Record<string, unknown> = {}) =>
+  React.createElement(TamaguiTestProvider, null, React.createElement(AccountSection, props));
 import { useAccountAuth } from "../../../hooks/useAccountAuth";
 
 const mockPush = jest.fn();
@@ -28,7 +32,13 @@ const mockUseAccountAuth = jest.mocked(useAccountAuth);
 jest.mock("tamagui", () => {
   const RN = require("react-native");
   const ReactLocal = require("react");
+  // Partial mock: real createTamagui/createTokens/TamaguiProvider are kept so
+  // TamaguiTestProvider (used below) can build an actual theme/config context --
+  // the babel-plugin-generated style code in the component under test needs
+  // that context even for the props this mock swaps out for plain RN elements.
+  const actual = jest.requireActual("tamagui");
   return {
+    ...actual,
     Text: ({ children, onPress, testID }: any) =>
       ReactLocal.createElement(RN.Text, { onPress, testID }, children),
     XStack: ({ children, onPress, testID }: any) =>
@@ -115,7 +125,7 @@ describe("AccountSection", () => {
       user: null,
     } as never);
 
-    const tree = actCreate(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(TestSubject));
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);
@@ -153,7 +163,7 @@ describe("AccountSection", () => {
       user: { id: "host-1" },
     } as never);
 
-    const tree = actCreate(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(TestSubject));
 
     const finishButton = findButtonByLabel(tree, "Finish account setup");
 
@@ -188,7 +198,7 @@ describe("AccountSection", () => {
       user: { id: "host-1" },
     } as never);
 
-    const tree = actCreate(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(TestSubject));
 
     const signOutButton = findButtonByLabel(tree, "Sign out");
 
@@ -220,7 +230,7 @@ describe("AccountSection", () => {
       user: null,
     } as never);
 
-    const tree = actCreate(React.createElement(AccountSection));
+    const tree = actCreate(React.createElement(TestSubject));
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);

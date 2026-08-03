@@ -5,7 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AuthHeader from "../../components/auth/AuthHeader";
 import ChangePasswordForm from "../../components/auth/ChangePasswordForm";
 import { ShellScreen } from "../../components/ui";
-import { useColors } from "../style/theme";
+import { useColors } from "../../styles/theme";
 
 const ChangePasswordScreen = () => {
   const colors = useColors();

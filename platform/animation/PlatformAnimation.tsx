@@ -1,7 +1,7 @@
 import React from "react";
 import { Text, View } from "react-native";
 
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 import type { AnimationKind } from "../types";
 import { getAnimationFallback } from "./fallbacks";
 

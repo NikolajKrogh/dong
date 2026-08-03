@@ -1,28 +1,24 @@
 package com.dong.commandapi.security;
 
-import static io.jsonwebtoken.security.Keys.hmacShaKeyFor;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Date;
-
-import javax.crypto.SecretKey;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import io.jsonwebtoken.Jwts;
+import com.dong.commandapi.testsupport.JwksTestSupport;
 
 /**
  * US2 — authenticated access enforcement. Drives the wired filter chain
@@ -30,14 +26,13 @@ import io.jsonwebtoken.Jwts;
  * streaming-mode limitation on 401 responses.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, properties = {
-        "supabase.jwt-secret=" + SupabaseJwtFilterTest.SECRET,
+        "supabase.jwks-url=https://example.invalid/.well-known/jwks.json",
         "supabase.url=http://localhost:9"
 })
 @AutoConfigureMockMvc
+@Import(JwksTestSupport.TestJwksConfig.class)
 class SupabaseJwtFilterTest {
 
-    static final String SECRET = "test-secret-which-is-at-least-thirty-two-bytes-long";
-    private static final SecretKey KEY = hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     private static final String PROTECTED = "/v1/rooms/test/commands/noop";
 
     @Autowired
@@ -53,12 +48,7 @@ class SupabaseJwtFilterTest {
     }
 
     private String signed(String role, Instant expiry) {
-        return Jwts.builder()
-                .subject("user-123")
-                .claim("role", role)
-                .expiration(Date.from(expiry))
-                .signWith(KEY)
-                .compact();
+        return JwksTestSupport.signedJwt("user-123", role, expiry);
     }
 
     @Test
@@ -81,11 +71,65 @@ class SupabaseJwtFilterTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    /**
+     * Guards the clock-skew setting. Nimbus's default 60s tolerance would accept
+     * this token; {@code expiredTokenIsRejected} above sits exactly on that
+     * boundary and so cannot tell the two configurations apart.
+     */
+    @Test
+    void tokenExpiredWellWithinNimbusDefaultSkewIsStillRejected() throws Exception {
+        String token = signed("authenticated", Instant.now().minusSeconds(30));
+        call("Bearer " + token)
+                .andExpect(status().isUnauthorized());
+    }
+
     @Test
     void tamperedSignatureIsRejected() throws Exception {
         String token = signed("authenticated", Instant.now().plusSeconds(300));
-        String tampered = token.substring(0, token.length() - 2) + (token.endsWith("A") ? "B" : "A");
-        call("Bearer " + tampered)
+        call("Bearer " + JwksTestSupport.withCorruptedSignature(token))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void truncatedSignatureIsRejected() throws Exception {
+        String token = signed("authenticated", Instant.now().plusSeconds(300));
+        call("Bearer " + token.substring(0, token.length() - 4))
+                .andExpect(status().isUnauthorized());
+    }
+
+    /** A structurally valid token signed by a key the JWK set does not publish. */
+    @Test
+    void tokenSignedByAnUnpublishedKeyIsRejected() throws Exception {
+        String forged = JwksTestSupport.forgedJwt(
+                "user-123", "authenticated", Instant.now().plusSeconds(300));
+        call("Bearer " + forged)
+                .andExpect(status().isUnauthorized());
+    }
+
+    /**
+     * The reason this service moved off the shared secret at all: with asymmetric
+     * signing the verification key is public, so accepting HS256 would let anyone
+     * forge tokens using that public key as the HMAC secret.
+     */
+    @Test
+    void hs256AlgorithmConfusionForgeryIsRejected() throws Exception {
+        String forged = JwksTestSupport.hs256ConfusionJwt(
+                "attacker", "authenticated", Instant.now().plusSeconds(300));
+        call("Bearer " + forged)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void unsecuredAlgNoneTokenIsRejected() throws Exception {
+        String unsecured = JwksTestSupport.unsecuredJwt(
+                "attacker", "authenticated", Instant.now().plusSeconds(300));
+        call("Bearer " + unsecured)
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void tokenWithoutExpiryIsRejected() throws Exception {
+        call("Bearer " + JwksTestSupport.signedJwtWithoutExpiry("user-123", "authenticated"))
                 .andExpect(status().isUnauthorized());
     }
 

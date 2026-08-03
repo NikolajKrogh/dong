@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
 
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,

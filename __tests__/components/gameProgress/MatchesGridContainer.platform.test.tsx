@@ -22,14 +22,14 @@ jest.mock("react-native", () => ({
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     textMuted: "#666666",
   }),
 }));
 
-jest.mock("../../../app/style/gameProgressStyles", () => ({
+jest.mock("../../../styles/gameProgressStyles", () => ({
   createGameProgressStyles: () => mockStyles,
 }));
 

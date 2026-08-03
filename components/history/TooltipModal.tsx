@@ -8,8 +8,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createHistoryStyles } from "../../app/style/historyStyles";
-import { useColors } from "../../app/style/theme";
+import { createHistoryStyles } from "../../styles/historyStyles";
+import { useColors } from "../../styles/theme";
 /**
  * Tooltip / detail modal for comparison stat.
  * @description Displays title + description for a stat; hidden when not visible.
@@ -49,7 +49,7 @@ const TooltipModal: React.FC<TooltipModalProps> = ({
           accessibilityRole="button"
           accessibilityLabel="Dismiss tooltip"
         />
-        <View style={styles.tooltipContainer} pointerEvents="box-none">
+        <View style={[styles.tooltipContainer, { pointerEvents: "box-none" }]}>
           <View style={styles.tooltipContent}>
             <View style={styles.tooltipHeader}>
               <Text style={styles.tooltipTitle}>{title}</Text>

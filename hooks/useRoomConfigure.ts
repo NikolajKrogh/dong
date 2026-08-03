@@ -4,6 +4,7 @@ import {
   ROOM_ERROR,
   type AddRoomMatchRequest,
   type AssignmentMode,
+  type BatchRoomMatchResult,
   type RoomAssignmentInput,
   type RoomAssignmentSettingsRequest,
   type RoomSnapshot,
@@ -18,7 +19,22 @@ export interface UseRoomConfigureResult {
   isBusy: boolean;
   error: string | null;
   addMatch: (request: AddRoomMatchRequest) => Promise<void>;
+  /**
+   * Adds many fixtures in a single call.
+   *
+   * Not a convenience wrapper over `addMatch`: looping the singular form meant one
+   * RPC *and one snapshot refresh* per fixture, and — because `run` resets `error`
+   * at the start of every call — a failure partway through was overwritten by the
+   * calls after it, so the host saw nothing. One call, one error slot, one refresh.
+   *
+   * Resolves to null if the batch failed; `error` carries the reason.
+   */
+  addMatches: (
+    requests: AddRoomMatchRequest[],
+  ) => Promise<BatchRoomMatchResult | null>;
   removeMatch: (matchId: string) => Promise<void>;
+  /** Removes many fixtures in a single call, cascading exactly as `removeMatch` does. */
+  removeMatches: (matchIds: string[]) => Promise<void>;
   setCommonMatch: (matchId: string) => Promise<void>;
   setAssignments: (assignments: RoomAssignmentInput[]) => Promise<void>;
   /** Sets the room's per-player match count and shared-per-pair count (FR-028 to FR-031).
@@ -32,6 +48,19 @@ export interface UseRoomConfigureResult {
    * this method performs the mutation unconditionally once invoked. */
   setAssignmentMode: (mode: AssignmentMode) => Promise<void>;
   /**
+   * Replaces the signed-in viewer's **own** player-picked selections (FR-038).
+   * Applies to the host as much as to a member — the host is an ordinary
+   * participant who picks their own matches. Replace-all: pass the complete
+   * next set, so releasing means submitting without that match (FR-040).
+   *
+   * The server derives the acting participant from the caller's JWT, so there
+   * is no participant id to pass and no way to write someone else's picks
+   * (FR-038a, FR-039). Callers must gate on `isBusy` — the refresh completes
+   * before it clears, which is what keeps rapid taps from clobbering each other
+   * under replace-all.
+   */
+  setMyPicks: (matchIds: string[]) => Promise<void>;
+  /**
    * Starts the game. `relaxConstraints` MUST only be passed as `true` after
    * the host has been shown the room's assignment-plan shortfall (from the
    * polled snapshot's `assignmentPlan`) and explicitly chosen to proceed —
@@ -40,6 +69,13 @@ export interface UseRoomConfigureResult {
    * `in_progress` transition via the regular lobby snapshot poll, per FR-024).
    */
   startGame: (relaxConstraints?: boolean) => Promise<boolean>;
+  /**
+   * Ends a running game for everyone (migration 040). The room reaches
+   * `completed`, which frees it from `get_my_active_room` so Home stops offering
+   * to return to it. Returns true once the server accepts; the lobby's own poll
+   * then renders the ended state.
+   */
+  endGame: () => Promise<boolean>;
 }
 
 const CLIENT_SAFE_ERROR_MESSAGE_REGEX = /fetch failed|network request failed|load failed/i;
@@ -61,6 +97,12 @@ const ROOM_ERROR_MESSAGES: Partial<Record<string, string>> = {
     "That per-player count is too low for the current shared-matches setting and roster size.",
   [ROOM_ERROR.invalidAssignmentMode]:
     "That isn't a valid assignment mode. Refresh and try again.",
+  [ROOM_ERROR.pickLimitExceeded]:
+    "You've already picked all your matches. Release one to pick another.",
+  [ROOM_ERROR.roomNotPlayerPicked]:
+    "This room isn't letting players pick their own matches. Refresh and try again.",
+  [ROOM_ERROR.notAParticipant]:
+    "You're no longer in this room, so your picks couldn't be saved.",
 };
 
 const friendlyMessage = (err: unknown): string => {
@@ -120,6 +162,25 @@ export const useRoomConfigure = (
     [run],
   );
 
+  const addMatches = useCallback(
+    async (requests: AddRoomMatchRequest[]) => {
+      let result: BatchRoomMatchResult | null = null;
+      await run(async (sessionId) => {
+        result = await getRoomRpcClient().addRoomMatches(sessionId, requests);
+      });
+      return result;
+    },
+    [run],
+  );
+
+  const removeMatches = useCallback(
+    (matchIds: string[]) =>
+      run(async (sessionId) => {
+        await getRoomRpcClient().removeRoomMatches(sessionId, matchIds);
+      }),
+    [run],
+  );
+
   const removeMatch = useCallback(
     (matchId: string) =>
       run(async (sessionId) => {
@@ -163,6 +224,14 @@ export const useRoomConfigure = (
     [run],
   );
 
+  const setMyPicks = useCallback(
+    (matchIds: string[]) =>
+      run(async (sessionId) => {
+        await getRoomRpcClient().setMyRoomPicks(sessionId, matchIds);
+      }),
+    [run],
+  );
+
   const startGame = useCallback(
     async (relaxConstraints?: boolean): Promise<boolean> => {
       if (!snapshot) {
@@ -201,15 +270,31 @@ export const useRoomConfigure = (
     [snapshot],
   );
 
+  const endGame = useCallback(async (): Promise<boolean> => {
+    if (!snapshot) {
+      return false;
+    }
+    let ended = false;
+    await run(async (sessionId) => {
+      await getRoomRpcClient().endGameSession(sessionId);
+      ended = true;
+    });
+    return ended;
+  }, [run, snapshot]);
+
   return {
     isBusy,
     error,
     addMatch,
+    addMatches,
     removeMatch,
+    removeMatches,
     setCommonMatch,
     setAssignments,
     setAssignmentSettings,
     setAssignmentMode,
+    setMyPicks,
     startGame,
+    endGame,
   };
 };

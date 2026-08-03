@@ -17,7 +17,18 @@ const RAW_NETWORK_ERROR_MESSAGE_REGEX =
 const GENERIC_MATCH_DISCOVERY_ERROR_MESSAGE =
   "Match discovery is temporarily unavailable.";
 
-const buildRequestedAt = (selectedDate?: string): string | undefined => {
+/**
+ * Maps a `YYYY-MM-DD` selection onto the `requestedAt` the discovery API expects,
+ * returning undefined for an absent or malformed date so the caller falls back to
+ * the server's default (today).
+ *
+ * Exported because the lobby's match picker needs the identical mapping: omitting
+ * `requestedAt` pins discovery to today, which silently returns nothing at all
+ * during an off-season gap.
+ */
+export const buildRequestedAt = (
+  selectedDate?: string,
+): string | undefined => {
   if (!selectedDate || !DATE_ONLY_REGEX.test(selectedDate)) {
     return undefined;
   }
@@ -55,6 +66,10 @@ const mapNormalizedMatchesToApiData = (
         team2: match.awayTeam,
         date: match.startDateTime.split("T")[0] || "",
         time: new Date(match.startDateTime).toTimeString().substring(0, 5),
+        // Kept alongside the lossy display pair above so downstream consumers that
+        // need a real instant are not forced to reassemble a UTC date with a local
+        // time (see MatchData.startDateTime).
+        startDateTime: match.startDateTime,
         venue: match.venue ?? "",
       })),
   }));

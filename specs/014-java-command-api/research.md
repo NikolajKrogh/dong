@@ -14,29 +14,61 @@
 
 ## Decision Log
 
-### 1. JWT Signing Algorithm
+### 1. JWT Signing Algorithm — SUPERSEDED 2026-07-26
 
-**Decision**: HS256 with shared JWT secret (`SUPABASE_JWT_SECRET`)
+**Original decision (2026-05-16)**: HS256 with shared JWT secret (`SUPABASE_JWT_SECRET`).
 
-**Rationale**: `supabase/config.toml` has `signing_keys_path` commented out, confirming no RS256 key file is configured. Local Supabase uses HS256 by default with the JWT secret from `config.toml` (or env override). The JWKS endpoint at `/auth/v1/.well-known/jwks.json` will return 404 for this project.
+**Original rationale**: `supabase/config.toml` had `signing_keys_path` commented out, confirming no RS256 key file was configured. Local Supabase used HS256 by default with the JWT secret from `config.toml` (or env override). The JWKS endpoint at `/auth/v1/.well-known/jwks.json` returned 404 for this project at the time.
+
+**Superseding decision**: ES256/RS256 verified via Supabase's published JWKS endpoint (`SUPABASE_JWKS_URL`, e.g. `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`). No shared secret is held by this service.
+
+**Rationale**: Supabase has since introduced [JWT Signing Keys](https://supabase.com/docs/guides/auth/signing-keys) — a dashboard-driven, zero-downtime migration off the legacy shared secret, which Supabase now explicitly documents as "no longer recommended." The premise of the original decision (no JWKS endpoint available) no longer holds. This service now verifies signatures by resolving the token's `kid` header against the JWKS endpoint rather than trusting a secret both parties hold — asymmetric keys can't be extracted from Supabase, and rotation/revocation is instantaneous and reversible without redeploying this service.
+
+**Operational note**: Verifying via JWKS only works for tokens signed with an active/previously-used *asymmetric* signing key — the JWKS endpoint never exposes the legacy shared secret, even during the dashboard's transition window. The Supabase project (cloud and any local Supabase CLI instance this service points at) must have completed "Migrate JWT secret" + "Rotate keys" before this service can authenticate real users; deploying this change first is what the migration guide's "update your backend verifier first" step means for this repo.
 
 **Alternatives considered**:
-- RS256 via `spring-security-oauth2-resource-server`: Would require the Supabase project to have a JWKS endpoint with RSA keys. Not applicable here.
-- Asymmetric key from file: Would require `signing_keys_path` to be configured. Not configured.
+- Keep HS256, deprioritize migration: Rejected — leaves the service on an algorithm Supabase itself flags as a security-compliance liability (SOC2/PCI-DSS/HIPAA), with no path to zero-downtime key rotation.
+- Support both HS256 and JWKS/ES256 simultaneously during a transition window: Considered, but the user opted for a single JWKS-only verification path to avoid carrying two auth code paths; the dashboard migration is completed independently, before this service is deployed.
 
-**Implementation note**: The filter reads `Authorization: Bearer <token>`, verifies the HS256 signature using `SUPABASE_JWT_SECRET`, and checks `exp`, `sub` (non-empty), and `role=authenticated` claims. Tokens with `role=anon` are rejected with 401.
+**Implementation note**: The filter reads `Authorization: Bearer <token>`, verifies the ES256/RS256 signature against the JWKS endpoint (key resolved by `kid`), and checks `exp`, `sub` (non-empty), and `role=authenticated` claims. Tokens with `role=anon` are rejected with 401.
 
 ---
 
-### 2. JWT Validation Library
+### 2. JWT Validation Library — SUPERSEDED 2026-07-26
 
-**Decision**: JJWT 0.12.x (`io.jsonwebtoken:jjwt-api`, `jjwt-impl`, `jjwt-jackson`)
+**Original decision (2026-05-16)**: JJWT 0.12.x (`io.jsonwebtoken:jjwt-api`, `jjwt-impl`, `jjwt-jackson`).
 
-**Rationale**: JJWT is the standard Java JWT library for HS256 validation. Supports `Jwts.parser().verifyWith(secretKey)` API introduced in 0.12.x. Lightweight, no Spring Security dependency required for the validation itself.
+**Original rationale**: JJWT is the standard Java JWT library for HS256 validation. Supports `Jwts.parser().verifyWith(secretKey)` API introduced in 0.12.x. Lightweight, no Spring Security dependency required for the validation itself.
+
+**Superseding decision**: Nimbus JOSE + JWT (`com.nimbusds:nimbus-jose-jwt`), version managed by `spring-boot-dependencies` (already a transitive need of `spring-security-oauth2-resource-server`, so no new version to track).
+
+**Rationale**: JJWT has no first-class JWKS/`kid`-based key resolution or remote-key caching. Nimbus's `RemoteJWKSet` (a `JWKSource`) handles fetching, caching, and re-fetching on an unrecognized `kid` (covers key rotation without a restart), and `JWSVerificationKeySelector` + `DefaultJWTProcessor` compose cleanly for the exp/sub/role claim checks the filter already made. This is the same building block Spring's own `NimbusJwtDecoder` uses internally.
 
 **Alternatives considered**:
-- `spring-security-oauth2-resource-server`: Designed for RS256/JWKS. Adds unnecessary complexity for HS256; requires configuring a JwkSetUri or JWT decoder bean that doesn't fit HS256 naturally.
-- `com.auth0:java-jwt`: Valid alternative, but JJWT is more commonly paired with Spring Boot projects and has better Maven adoption.
+- `spring-security-oauth2-resource-server`'s `NimbusJwtDecoder`: A heavier fit — it's built around the `Jwt`/`AbstractOAuth2TokenAuthenticationToken` model and Spring Security's resource-server auto-configuration, whereas this filter already owns its own `AuthenticatedHost` principal and 401 egress (ADR-2 in the security research below); using Nimbus directly keeps that shape unchanged.
+- `com.auth0:java-jwt`: No built-in JWKS/remote-key-set support; would need a hand-rolled JWKS client.
+
+**Version note**: pinned to `10.9.1`. `spring-boot-dependencies` does **not** manage `nimbus-jose-jwt` (only the OAuth2 resource-server starter pulls it in transitively), so this is a manual pin that dependency updates must track deliberately. The `security` Maven profile (`mvnw -Psecurity verify`, OWASP dependency-check, `failBuildOnCVSS=8`) is the gate; it runs in CI where `NVD_API_KEY` is available rather than locally, since it downloads the NVD database.
+
+**Key-source resilience** (`JwksSourceConfig`): built with `JWKSourceBuilder`, not the deprecated `RemoteJWKSet`. Verification now depends on an external endpoint on the hot path of every authenticated request, which the shared-secret scheme did not, so the source is cached (5 min TTL — an unrecognised `kid` forces the refresh that makes dashboard rotation work without a redeploy), rate-limited (an unknown-`kid` token burst cannot become a request flood), retrying, and outage-tolerant for 1 hour (a JWKS blip after a successful fetch keeps serving the last known keys instead of rejecting every token in flight).
+
+---
+
+### 2a. Clock skew on `exp`
+
+**Decision**: zero, set explicitly (`SupabaseJwtFilter.MAX_CLOCK_SKEW_SECONDS`).
+
+**Rationale**: Nimbus's `DefaultJWTClaimsVerifier` defaults to `DEFAULT_MAX_CLOCK_SKEW_SECONDS = 60`, so adopting it unchanged would have silently started honouring access tokens for a minute past the `exp` Supabase issued — the retired JJWT parser had `allowedClockSkewMillis = 0`. Clients refresh well before expiry, so a grace window buys nothing and only widens the window a leaked token stays usable. Set explicitly so the value is a decision rather than a library default, and pinned by a test using a token expired 30s ago (a test at exactly 60s cannot distinguish the two configurations).
+
+---
+
+### 2b. Distinguishing "token is bad" from "cannot check the token"
+
+**Decision**: JWKS-retrieval failure returns `503 SERVICE_UNAVAILABLE` via a dedicated `KeySourceUnavailableException`, not `401`.
+
+**Rationale**: Nimbus surfaces an unreachable key set as `RemoteKeySourceException`, which extends `JOSEException` — the same supertype as a forged signature. Catching both together would answer 401 during a transient upstream outage, and clients conventionally treat 401 as "session invalid" and force a re-login, so a brief Supabase blip would sign out every user. The exception stays an `AuthenticationException` so ADR-2 holds: the filter still never writes the response, and `ApiAuthenticationEntryPoint` remains the single egress, now choosing the status from the exception type.
+
+**Readiness**: `SupabaseJwksHealthIndicator` contributes a `supabaseJwks` health component. `supabase.jwks-url` is independent of `supabase.url`, and only the former governs whether authentication works — without it a project-ref typo or an omitted `/auth/v1/.well-known/jwks.json` path passes `@NotBlank`, parses as a URL, reports UP on the strength of the unrelated base URL, clears the readiness gate, and then fails 100% of authenticated requests.
 
 ---
 

@@ -36,6 +36,11 @@ export const lightTheme = {
   primaryFocus: base.primaryFocus,
   primaryTransparentLight: base.primaryTransparentLight,
 
+  // Theme-aware because `$secondary` otherwise resolves to the *static* token of
+  // the same name, which is identical in both themes — a filled secondary button
+  // stayed mid-grey on a near-black surface.
+  secondary: base.secondary,
+
   success: base.success,
   successLight: base.successLight,
   danger: base.danger,
@@ -74,6 +79,11 @@ export const darkTheme = {
   primaryDark: darkColors.primaryDark,
   primaryFocus: base.primaryFocus,
   primaryTransparentLight: darkColors.primaryTransparentLight,
+
+  // Lifted above the dark surface (#1b222c) and border (#2d333b) so a filled
+  // secondary control still reads as raised, where the light theme's value sits
+  // below its white surface.
+  secondary: "#3d4650",
 
   success: base.success,
   successLight: darkColors.successLight,

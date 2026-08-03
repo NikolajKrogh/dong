@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 
 /**
  * Props for FooterButtons.

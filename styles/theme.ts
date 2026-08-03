@@ -1,5 +1,5 @@
 import { colors as base } from "./palette";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../store/store";
 
 export type ThemeName = "light" | "dark";
 

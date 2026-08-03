@@ -81,7 +81,7 @@ jest.mock("../../../utils/teamLogos", () => ({
   getTeamLogoWithFallback: jest.fn(() => null),
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     primaryLight: "#345678",
@@ -91,12 +91,14 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => mockStyles,
 }));
 
-const renderAssignmentSection = () => {
+const renderAssignmentSection = (
+  overrides: Record<string, unknown> = {},
+) => {
   const AssignmentSection =
     require("../../../components/setupGame/AssignmentSection").default;
 
@@ -128,6 +130,7 @@ const renderAssignmentSection = () => {
       matchesPerPlayer: 1,
       setMatchesPerPlayer: jest.fn(),
       handleRandomAssignment: jest.fn(),
+      ...overrides,
     }),
   );
 };
@@ -192,5 +195,43 @@ describe("AssignmentSection responsive layout", () => {
         ]),
       );
     });
+  });
+});
+
+describe("AssignmentSection progress badge", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseWindowDimensions.mockReturnValue({
+      width: 390,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    });
+  });
+
+  // The badge shell moved into components/matchSelection/MatchSelectionCard,
+  // which is shared with the player-picked surfaces. Those count against the
+  // per-player CAP while this flow counts against the POOL, so the denominator
+  // is a prop -- and nothing else in this suite pins it. The fixture below
+  // deliberately makes pool size (3) differ from matchesPerPlayer (1) so a
+  // swapped denominator cannot pass (specs/022-player-picked-mode research.md R15).
+  it("counts each player's assignments against the non-common pool size, not matchesPerPlayer", () => {
+    const renderer = renderAssignmentSection({
+      matches: [
+        { id: "m1", homeTeam: "Arsenal", awayTeam: "Chelsea", homeGoals: 0, awayGoals: 0 },
+        { id: "m2", homeTeam: "Liverpool", awayTeam: "Spurs", homeGoals: 0, awayGoals: 0 },
+        { id: "m3", homeTeam: "Leeds", awayTeam: "Villa", homeGoals: 0, awayGoals: 0 },
+        { id: "m4", homeTeam: "Brighton", awayTeam: "Wolves", homeGoals: 0, awayGoals: 0 },
+      ],
+      commonMatchId: "m1",
+      playerAssignments: { p1: ["m2", "m3"], p2: [] },
+      matchesPerPlayer: 1,
+    });
+
+    const badges = renderer.root
+      .findAllByProps({ style: mockStyles.playerBadgeText })
+      .map((node) => node.props.children.join(""));
+
+    expect(badges).toEqual(expect.arrayContaining(["2/3", "0/3"]));
   });
 });

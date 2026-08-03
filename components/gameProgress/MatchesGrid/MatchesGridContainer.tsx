@@ -3,8 +3,8 @@ import { View, FlatList, useWindowDimensions } from "react-native";
 import { MatchesGridProps, SortField, SortDirection } from "./types";
 import { Match, Player } from "../../../store/store";
 import { MatchWithScore } from "../../../types/matchScores";
-import { createGameProgressStyles } from "../../../app/style/gameProgressStyles";
-import { useColors } from "../../../app/style/theme";
+import { createGameProgressStyles } from "../../../styles/gameProgressStyles";
+import { useColors } from "../../../styles/theme";
 
 import MatchesHeader from "./MatchesHeader";
 import SortModal from "./SortModal";

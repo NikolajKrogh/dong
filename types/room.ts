@@ -33,6 +33,20 @@ export interface RoomAssignmentSummary {
 }
 
 /**
+ * One participant's pre-start pick in player-picked mode (FR-038, FR-042).
+ *
+ * Distinct from `RoomAssignmentSummary` even though the shape matches: picks are
+ * drafts held in `public.assignment_picks` and written by the participant
+ * themselves, while assignments are the settled set the server authors at start.
+ * The lobby derives every participant's progress from this array rather than
+ * from a server-computed field (specs/022-player-picked-mode research.md R7).
+ */
+export interface RoomPickSummary {
+  participantId: string;
+  matchId: string;
+}
+
+/**
  * Server-computed feasibility read for the room's current roster, pool, and
  * assignment settings (FR-012, FR-033). Pure read — recomputed on every
  * snapshot poll, never mutated directly.
@@ -58,6 +72,10 @@ export interface RoomSnapshot {
   participants: RoomParticipantSummary[];
   matches: RoomMatchSummary[];
   assignments: RoomAssignmentSummary[];
+  /** Pre-start player-picked draft picks for every participant (FR-042). Empty
+   * outside player-picked mode, and never the source of a started game's
+   * assignments — see `assignments` for that. */
+  picks: RoomPickSummary[];
   assignmentPlan: AssignmentPlan;
 }
 
@@ -81,6 +99,16 @@ export type HostLeaveResponse =
     }
   | { status: "closed"; sessionId: string };
 
+/**
+ * `end_game_session` (migration 040). `closed` only comes back when the room was
+ * already closed by a host leaving with no successor — ending a running game
+ * always produces `completed`, the state a played game belongs in.
+ */
+export interface EndGameSessionResponse {
+  status: "completed" | "closed";
+  sessionId: string;
+}
+
 export interface MemberLeaveResponse {
   sessionId: string;
   status: "left";
@@ -94,6 +122,19 @@ export interface MyActiveRoom {
 }
 
 /** Request shape for `add_room_match` (US1). */
+/**
+ * Outcome of a batched fixture add.
+ *
+ * `skipped` counts fixtures already present in the room's pool. A repeat is a
+ * deliberate no-op rather than an error — the same contract the single-fixture
+ * RPC has always had — so a caller that selected ten and sees `added: 8,
+ * skipped: 2` has lost nothing.
+ */
+export interface BatchRoomMatchResult {
+  added: number;
+  skipped: number;
+}
+
 export interface AddRoomMatchRequest {
   sourceProvider: string;
   sourceMatchId: string | null;
@@ -131,6 +172,12 @@ export const ROOM_ERROR = {
   insufficientMatchPool: "insufficient_match_pool",
   assignmentConstraintsUnsatisfiable: "assignment_constraints_unsatisfiable",
   invalidAssignmentMode: "invalid_assignment_mode",
+  /** A pick submission exceeded the room's per-player count (FR-040). */
+  pickLimitExceeded: "pick_limit_exceeded",
+  /** Picking attempted in a room that isn't in player-picked mode (FR-038). */
+  roomNotPlayerPicked: "room_not_player_picked",
+  /** The caller isn't an active participant of the room (FR-038a). */
+  notAParticipant: "not_a_participant",
 } as const;
 
 // NOTE: `start_game_session`'s RPC result (including `filledInParticipantIds`)

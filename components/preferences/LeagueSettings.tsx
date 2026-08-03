@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { useColors } from "../../app/style/theme";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
+import { useColors } from "../../styles/theme";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { ShellCard, ShellSection } from "../ui";
 

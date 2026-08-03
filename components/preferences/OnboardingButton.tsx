@@ -1,8 +1,8 @@
 import React from "react";
 import { Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
-import { useColors } from "../../app/style/theme";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
+import { useColors } from "../../styles/theme";
 import { ShellSection } from "../ui";
 
 /**

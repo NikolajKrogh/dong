@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
 
-import createStyles from "../../app/style/indexStyles";
+import createStyles from "../../styles/indexStyles";
 
 interface CancelGameModalProps {
   visible: boolean;

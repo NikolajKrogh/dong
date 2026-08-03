@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 import { isWebPlatform } from "../environment";
 import { coerceDateInputDate } from "./normalizeValue";
 

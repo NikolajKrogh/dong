@@ -150,6 +150,16 @@ export interface MatchData {
   };
   date?: string;
   time?: string;
+  /**
+   * The provider's kickoff instant, verbatim ISO-8601.
+   *
+   * `date` and `time` above are for display and filtering, and are lossy: `date` is
+   * the UTC calendar day while `time` is the *local* clock time, so recombining them
+   * is wrong for any fixture near a day boundary. Anything that needs a real
+   * timestamp — persisting a fixture to a multiplayer room, for instance — must use
+   * this field rather than reassembling the two.
+   */
+  startDateTime?: string;
 }
 
 /** API response subset. */

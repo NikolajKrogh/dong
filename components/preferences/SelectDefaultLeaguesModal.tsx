@@ -5,12 +5,12 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  SafeAreaView,
   Image,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { createUserPreferencesStyles } from "../../app/style/userPreferencesStyles";
-import { useColors } from "../../app/style/theme";
+import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles";
+import { useColors } from "../../styles/theme";
 import { LeagueEndpoint } from "../../constants/leagues";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 

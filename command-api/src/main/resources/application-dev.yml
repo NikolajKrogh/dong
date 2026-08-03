@@ -4,9 +4,15 @@
 command-api:
   cors:
     enabled: true
+    # Origin *patterns* (see SecurityConfig#corsConfigurationSource). `[*]` matches
+    # any port, because the Expo web dev server falls through to 8082/8083/... when
+    # 8081 is taken and an exact list breaks with only an opaque browser
+    # "NetworkError". Still dev-profile-only and still host-restricted to loopback —
+    # this is not a blanket wildcard. If you browse the web build over the LAN
+    # instead of loopback, add that origin here (e.g. http://10.0.0.3:[*]).
     allowed-origins:
-      - http://localhost:8081   # Expo web dev server
-      - http://localhost:19006  # Expo web (legacy port)
+      - http://localhost:[*]    # Expo web dev server, any port
+      - http://127.0.0.1:[*]
     allowed-methods:
       - GET
       - POST

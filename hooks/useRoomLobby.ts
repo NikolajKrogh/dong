@@ -53,7 +53,14 @@ export const useRoomLobby = (
       const stillPresent =
         myParticipantId === null ||
         next.participants.some((p) => p.id === myParticipantId);
-      setRoomEnded(next.state === "closed" || !stillPresent);
+      // `completed` counts as ended too: it is the state end_game_session (040)
+      // produces, and without it an ended game falls through to the normal lobby
+      // render instead of the ended notice.
+      setRoomEnded(
+        next.state === "closed" ||
+          next.state === "completed" ||
+          !stillPresent,
+      );
     } catch (refreshError) {
       setError(
         refreshError instanceof Error

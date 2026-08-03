@@ -13,10 +13,16 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * 401 egress for filter-stage authentication failures (ADR-2). The JWT filter
+ * Single egress for filter-stage authentication failures (ADR-2). The JWT filter
  * throws {@link AuthenticationException}; Spring Security's
  * {@code ExceptionTranslationFilter} routes here. Emits the same
  * {@link ApiError} shape as {@code GlobalExceptionHandler}.
+ *
+ * <p>Normally that means 401. The one exception is
+ * {@link KeySourceUnavailableException}: the token could not be evaluated at all
+ * because Supabase's JWKS endpoint was unreachable, which is an upstream outage
+ * (503) rather than a verdict on the caller's credentials. Answering 401 there
+ * would push clients into discarding a perfectly good session.
  */
 @Component
 public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
@@ -31,7 +37,9 @@ public class ApiAuthenticationEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
-        ErrorCode code = ErrorCode.UNAUTHORIZED;
+        ErrorCode code = authException instanceof KeySourceUnavailableException
+                ? ErrorCode.SERVICE_UNAVAILABLE
+                : ErrorCode.UNAUTHORIZED;
         response.setStatus(code.httpStatus().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(),

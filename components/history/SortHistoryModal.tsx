@@ -12,7 +12,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 
 /** Valid fields that can be used for sorting history items */
 export type HistorySortField =

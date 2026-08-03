@@ -46,6 +46,9 @@ Then("the user should return to the sign in flow", async () => {
   void 0;
 });
 
-Then("the app should route them through auth and back to settings", async () => {
-  void 0;
-});
+Then(
+  "the app should route them through auth and back to settings",
+  async () => {
+    void 0;
+  },
+);

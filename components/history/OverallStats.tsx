@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { View, Text } from "react-native";
 import { GameSession } from "./historyTypes";
-import { createHistoryStyles } from "../../app/style/historyStyles";
-import { useColors } from "../../app/style/theme";
+import { createHistoryStyles } from "../../styles/historyStyles";
+import { useColors } from "../../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
 import { calculateTotalGoals, calculateTotalDrinks } from "./historyUtils";
 

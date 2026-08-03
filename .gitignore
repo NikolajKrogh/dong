@@ -25,8 +25,14 @@ yarn-debug.*
 *.log
 yarn-error.*
 
-# macOS
+# Local environment files. `.env*` also matches `.env.example`, which is meant to
+# be committed as the documented template — negate it explicitly, or the setup
+# instructions it carries can never reach anyone else.
 .env*
+!.env.example
+!**/.env.example
+
+# macOS
 .DS_Store
 *.pem
 

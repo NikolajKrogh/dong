@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput } from "react-native";
 import { Text, XStack, YStack, styled } from "tamagui";
 
-import { useColors } from "../../app/style/theme";
+import { useColors } from "../../styles/theme";
 import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,

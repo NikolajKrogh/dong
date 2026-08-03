@@ -3,14 +3,14 @@ import React, { useEffect, useState } from "react";
 import {
   FlatList,
   Modal,
-  SafeAreaView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 
 /**
  * Represents a selectable team option including optional league metadata.
@@ -306,7 +306,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         animationType="fade"
         onRequestClose={() => setShowHomeDropdown(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView testID="SetupHomeTeamModal" style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TextInput
@@ -376,7 +376,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         animationType="fade"
         onRequestClose={() => setShowAwayDropdown(false)}
       >
-        <SafeAreaView style={styles.modalContainer}>
+        <SafeAreaView testID="SetupAwayTeamModal" style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <TextInput

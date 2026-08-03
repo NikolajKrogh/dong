@@ -1,46 +1,97 @@
-import { expect } from "@playwright/test";
+import { expect, type Locator } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
 import {
   CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES,
   HOST_ROOM_PARTICIPANT_ID,
+  SECOND_MEMBER_ID,
+  getMockAssignments,
+  getMockHostPicks,
   mockConfigureStartGameServices,
+  setHostRoomSnapshotParticipants,
+  setMockParticipantPicks,
 } from "./browser-flow.helpers";
 
 const { Given, When, Then } = createBdd();
 
-Given("the room configuration and start-game services are mocked", async ({ page }) => {
-  await mockConfigureStartGameServices(page);
+Given(
+  "the room configuration and start-game services are mocked",
+  async ({ page }) => {
+    await mockConfigureStartGameServices(page);
+  },
+);
+
+// The room's pre-start setup is the single-player wizard, so every step here
+// navigates by tapping a step in its indicator. There is no separate
+// match-configuration route any more.
+const STEP_KEYS: Record<string, string> = {
+  Room: "room",
+  Matches: "matches",
+  Common: "common",
+  Assign: "assign",
+};
+
+When("the host opens the {word} step", async ({ page }, stepName: string) => {
+  const key = STEP_KEYS[stepName];
+  if (!key) {
+    throw new Error(`Unknown wizard step "${stepName}"`);
+  }
+  const stepButton = page.getByTestId(`SetupWizardStep-${key}`);
+  await expect(stepButton).toBeVisible({ timeout: 10_000 });
+  await stepButton.click();
 });
 
-When("the host opens the match configuration modal", async ({ page }) => {
-  const openButton = page.getByTestId("lobby-open-configure-matches");
-  await openButton.scrollIntoViewIfNeeded();
-  await openButton.click();
-  await expect(page.getByTestId("configure-matches-modal")).toBeVisible({
+/**
+ * React Native Web renders a disabled Pressable as a `div` carrying
+ * `aria-disabled="true"` — not a form control with the `disabled` attribute —
+ * so Playwright's `toBeDisabled()` reports it as enabled. Assert the attribute
+ * the app actually emits.
+ */
+const expectAriaDisabled = async (locator: Locator) => {
+  await expect(locator).toHaveAttribute("aria-disabled", "true", {
     timeout: 10_000,
   });
+};
+
+Then("the host cannot advance past the Matches step", async ({ page }) => {
+  // With an empty pool the Common step is unreachable, and with it every
+  // control that could start the game.
+  await expectAriaDisabled(page.getByTestId("SetupWizardNext"));
+  await expect(page.getByTestId("lobby-start-game")).toHaveCount(0);
 });
 
 When("the host adds the first two catalog matches", async ({ page }) => {
-  for (const fixture of CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES) {
-    const addButton = page.getByTestId(`configure-match-add-${fixture.id}`);
-    await expect(addButton).toBeVisible({ timeout: 10_000 });
-    await addButton.click();
-  }
-});
+  // Add Matches lives inside the Match Schedule card's expanded content, which
+  // starts collapsed — so it has to be opened first. Without this the step
+  // waited out its timeout on a control that was never in the tree, which is
+  // what had every scenario in this feature failing.
+  const scheduleToggle = page.getByTestId("SetupMatchScheduleToggle");
+  await scheduleToggle.scrollIntoViewIfNeeded();
+  await scheduleToggle.click();
 
-When("the host closes the match configuration modal", async ({ page }) => {
-  await page.getByTestId("configure-matches-close").click();
-  await expect(page.getByTestId("configure-matches-modal")).toHaveCount(0);
+  // The mocked catalogue holds exactly the two fixtures, both kicking off today,
+  // so the wizard's bulk add takes precisely them.
+  const addAll = page.getByTestId("SetupAddAllFilteredMatchesButton");
+  await addAll.scrollIntoViewIfNeeded();
+  await expect(addAll).toBeEnabled({ timeout: 10_000 });
+  await addAll.click();
+
+  for (const fixture of CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES) {
+    await expect(
+      page.getByText(fixture.homeTeam, { exact: false }).first(),
+    ).toBeVisible({ timeout: 10_000 });
+  }
 });
 
 When(
   "the host designates the first added match as the Common Match",
   async ({ page }) => {
-    const commonButton = page.getByTestId("lobby-set-common-match-1");
-    await expect(commonButton).toBeVisible({ timeout: 10_000 });
-    await commonButton.click();
+    // The Common step is the wizard's own card grid, the same one single player
+    // uses, rather than a per-row "Make Common Match" button in a pool list.
+    await page.getByTestId("SetupWizardStep-common").click();
+    const commonCard = page.getByTestId("common-match-option-match-1");
+    await expect(commonCard).toBeVisible({ timeout: 10_000 });
+    await commonCard.click();
   },
 );
 
@@ -85,13 +136,16 @@ When(
   },
 );
 
-When("the host allocates the second added match to themselves", async ({ page }) => {
-  const allocateButton = page.getByTestId(
-    `lobby-allocate-${HOST_ROOM_PARTICIPANT_ID}-match-2`,
-  );
-  await expect(allocateButton).toBeVisible({ timeout: 10_000 });
-  await allocateButton.click();
-});
+When(
+  "the host allocates the second added match to themselves",
+  async ({ page }) => {
+    const allocateButton = page.getByTestId(
+      `lobby-allocate-${HOST_ROOM_PARTICIPANT_ID}-match-2`,
+    );
+    await expect(allocateButton).toBeVisible({ timeout: 10_000 });
+    await allocateButton.click();
+  },
+);
 
 When("the host declines the mode-switch confirmation", async ({ page }) => {
   await page
@@ -101,31 +155,24 @@ When("the host declines the mode-switch confirmation", async ({ page }) => {
 });
 
 Then("the host sees a mode-switch confirmation dialog", async ({ page }) => {
-  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toBeVisible(
-    { timeout: 10_000 },
-  );
+  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 Then("the assignment mode remains host-assigned", async ({ page }) => {
-  await expect(
-    page.getByTestId("lobby-assignment-mode-confirm"),
-  ).toHaveCount(0);
+  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toHaveCount(
+    0,
+  );
   await expect(
     page.getByTestId("lobby-assignment-mode-host-assigned"),
   ).toBeVisible({ timeout: 10_000 });
 });
 
-Then("the host is redirected to the active gameplay dashboard", async ({ page }) => {
-  await page.waitForURL(/\/gameProgress/, { timeout: 10_000 });
-});
-
 Then(
-  "the host sees a configuration error and remains in the lobby",
+  "the host is redirected to the active gameplay dashboard",
   async ({ page }) => {
-    const error = page.getByTestId("lobby-configure-error");
-    await expect(error).toBeVisible({ timeout: 10_000 });
-    await expect(error).toContainText(/match/i);
-    await expect(page).toHaveURL(/\/lobby\//);
+    await page.waitForURL(/\/gameProgress/, { timeout: 10_000 });
   },
 );
 
@@ -134,6 +181,78 @@ Then(
   async ({ page }) => {
     const warning = page.getByTestId("lobby-start-game-hard-floor-warning");
     await expect(warning).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId("lobby-start-game")).toBeDisabled();
+    await expectAriaDisabled(page.getByTestId("lobby-start-game"));
   },
 );
+
+// ---------------------------------------------------------------------------
+// Player-picked mode (#185). This suite runs one page per scenario and models
+// other participants as mock state, so the "second picker" is injected into the
+// polled snapshot rather than driven from a second browser context.
+// ---------------------------------------------------------------------------
+
+Given("the room has a second registered member", async () => {
+  setHostRoomSnapshotParticipants([
+    {
+      id: SECOND_MEMBER_ID,
+      displayName: "Second Picker",
+      membershipType: "registered",
+      sessionRole: "member",
+    },
+  ]);
+});
+
+Then("the host sees their own pick panel", async ({ page }) => {
+  const panel = page.getByTestId("lobby-player-pick-panel");
+  await panel.scrollIntoViewIfNeeded();
+  await expect(panel).toBeVisible({ timeout: 10_000 });
+});
+
+Then(
+  `the host's pick progress reads {string}`,
+  async ({ page }, expected: string) => {
+    await expect(page.getByTestId("lobby-player-pick-panel-count")).toHaveText(
+      expected,
+      { timeout: 10_000 },
+    );
+  },
+);
+
+When(
+  "the host picks the second added match for themselves",
+  async ({ page }) => {
+    const option = page.getByTestId("lobby-player-pick-panel-option-match-2");
+    await option.scrollIntoViewIfNeeded();
+    await option.click();
+  },
+);
+
+Then(
+  "the second member's pick progress is visible in the roster",
+  async ({ page }) => {
+    // Another participant's progress arrives on the next snapshot poll, which is
+    // exactly what FR-042 promises -- and why the assertion waits rather than
+    // expecting it synchronously.
+    setMockParticipantPicks(SECOND_MEMBER_ID, ["match-2"]);
+
+    const progress = page.getByTestId(
+      `lobby-pick-progress-${SECOND_MEMBER_ID}`,
+    );
+    await progress.scrollIntoViewIfNeeded();
+    // Asserted on the count rather than the full label, so the separator glyph
+    // is not part of the contract.
+    await expect(progress).toContainText("1/1 picked", { timeout: 10_000 });
+  },
+);
+
+Then("the settled assignments include the host's own pick", async () => {
+  const picked = getMockHostPicks();
+  const settled = getMockAssignments()
+    .filter(
+      (assignment) => assignment.participantId === HOST_ROOM_PARTICIPANT_ID,
+    )
+    .map((assignment) => assignment.matchId);
+
+  expect(picked.length).toBeGreaterThan(0);
+  picked.forEach((matchId) => expect(settled).toContain(matchId));
+});

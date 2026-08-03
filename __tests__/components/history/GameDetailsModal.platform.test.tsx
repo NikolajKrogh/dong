@@ -20,7 +20,7 @@ jest.mock("react-native", () => ({
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     textMuted: "#777777",
@@ -28,7 +28,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/historyStyles", () => ({
+jest.mock("../../../styles/historyStyles", () => ({
   createHistoryStyles: () =>
     new Proxy(
       {

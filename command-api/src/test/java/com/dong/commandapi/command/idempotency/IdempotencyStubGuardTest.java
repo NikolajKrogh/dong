@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * check: the wired {@link IdempotencyService} must never silently become a no-op again.
  */
 @SpringBootTest(properties = {
-        "supabase.jwt-secret=test-secret-which-is-at-least-thirty-two-bytes-long",
+        "supabase.jwks-url=https://example.invalid/.well-known/jwks.json",
         "supabase.url=http://localhost:9"
 })
 class IdempotencyStubGuardTest {

@@ -4,7 +4,6 @@ export { default as MatchList } from "./setupGame/MatchList";
 export { default as AssignmentSection } from "./setupGame/AssignmentSection";
 export { default as TabNavigation } from "./setupGame/TabNavigation";
 export { default as SetupWizard } from "./setupGame/SetupWizard";
-export { default as MatchItem } from "./setupGame/MatchItem";
 export { default as TeamSelectionRow } from "./setupGame/TeamSelectionRow";
 export { default as MatchFilter } from "./setupGame/MatchFilter";
 export { default as LeagueFilter } from "./setupGame/LeagueFilter";

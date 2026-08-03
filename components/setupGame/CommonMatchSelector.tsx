@@ -9,9 +9,9 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import { isWideLayout as isWideViewport } from "../../app/style/responsive";
-import createSetupGameStyles from "../../app/style/setupGameStyles";
-import { useColors } from "../../app/style/theme";
+import { isWideLayout as isWideViewport } from "../../styles/responsive";
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 import { Match } from "../../store/store";
 import { getTeamLogoWithFallback } from "../../utils/teamLogos";
 
@@ -122,6 +122,7 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
                 ]}
               >
                 <TouchableOpacity
+                  testID={`common-match-option-${item.id}`}
                   onPress={() => handleSelectCommonMatch(item.id)}
                   activeOpacity={0.6}
                   style={[

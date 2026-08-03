@@ -19,7 +19,7 @@ jest.mock("../../../platform", () => ({
   ).parseTimeIsoValue,
 }));
 
-jest.mock("../../../app/style/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primaryFocus: "#123456",
     textSecondary: "#333333",
@@ -34,7 +34,7 @@ jest.mock("../../../app/style/theme", () => ({
   }),
 }));
 
-jest.mock("../../../app/style/setupGameStyles", () => ({
+jest.mock("../../../styles/setupGameStyles", () => ({
   __esModule: true,
   default: () => ({
     filterCard: {},

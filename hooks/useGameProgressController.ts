@@ -10,8 +10,8 @@ import {
 } from "./gameProgress/uiReducer";
 import { migrateLegacyMatch } from "./gameProgress/matchMigration";
 import { LastGoalInfo, updateMatchForGoal } from "./gameProgress/goalScoring";
-import { createGameProgressStyles } from "../app/style/gameProgressStyles";
-import { useColors } from "../app/style/theme";
+import { createGameProgressStyles } from "../styles/gameProgressStyles";
+import { useColors } from "../styles/theme";
 import { useGameStore } from "../store/store";
 import { useAppVisibility, useGoalSound } from "../platform";
 

@@ -36,12 +36,18 @@ cd command-api
 .\mvnw.cmd spring-boot:run        # run service on :8080 (set env vars first)
 ```
 
-Required env vars for running/testing the Java service:
+Config for the Java service lives in `command-api/.env`, which Spring Boot loads
+automatically (`spring.config.import` in `application.yml`) — no shell exports needed.
+Start from `cp command-api/.env.example command-api/.env`. It is parsed as a Java
+properties file, so leave values unquoted; real environment variables override it.
 
-```powershell
-$env:SUPABASE_JWT_SECRET = "test-secret-which-is-at-least-thirty-two-bytes-long"
-$env:SUPABASE_URL        = "http://localhost:9"
-```
+Required keys: `SUPABASE_JWKS_URL`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` (the last
+is required against a hosted project — without it Supabase's gateway returns 401 and
+the `supabase` health component stays DOWN).
+
+JWTs are verified against Supabase's published JWT Signing Keys (ES256/RS256) — there
+is no shared secret. Mint a test token with
+`npx supabase gen bearer-jwt --role authenticated --sub <uuid>`.
 
 ### Supabase / database
 
@@ -103,7 +109,20 @@ Copy env values with `npm run auth:env`. To wire the client to the local Java se
 EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
 ```
 
-Restart Expo after changing `.env.local`.
+Restart Expo with `-c` after changing `.env.local` — `EXPO_PUBLIC_*` values are
+inlined at bundle time, so a plain restart keeps serving the old value.
+
+`localhost` works for the web build directly. For a physical Android device it needs
+a reverse tunnel, the same mechanism Metro uses for its own port:
+
+```bash
+npm run android:tunnel   # adb reverse tcp:8080 tcp:8080
+```
+
+Prefer this over the machine's LAN IP: no inbound firewall rule is involved (a
+blocked one manifests as a *timeout*, not a refusal, which is easy to misread), and
+it survives the host's DHCP address changing. Re-run it whenever the device
+reconnects — reverse tunnels do not persist across USB re-attach.
 
 ---
 
@@ -112,7 +131,7 @@ Restart Expo after changing `.env.local`.
 - **State**: Zustand + AsyncStorage is canonical on-device. Supabase Postgres backs multiplayer/synced state. No other persistence layer.
 - **Auth**: Supabase Auth. Signed-in = host. Guests join via room code and are session-scoped identities.
 - **Match discovery**: client calls `GET /v1/matches` on the Java proxy (not ESPN directly). The proxy applies a configurable in-memory TTL cache (default `PT5M`).
-- **Tamagui**: design system foundation. New UI work should use Tamagui components and move toward the palette defined in `app/style/`.
+- **Tamagui**: design system foundation. New UI work should use Tamagui components and move toward the palette defined in `styles/`.
 - **Supabase project ref**: `qccvlhblytuedgmlqfef` (MCP config in `.mcp.json`).
 
 <!-- SPECKIT START -->

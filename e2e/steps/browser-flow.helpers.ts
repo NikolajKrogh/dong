@@ -476,6 +476,12 @@ export interface ConfigureStartGameAssignment {
   matchId: string;
 }
 
+/** A participant's pre-start pick in player-picked mode (#185). */
+export interface ConfigureStartGamePick {
+  participantId: string;
+  matchId: string;
+}
+
 /**
  * Mutable room-configuration state shared by the `add_room_match` /
  * `set_common_match` / `set_room_assignment_settings` / `start-game` route
@@ -492,6 +498,7 @@ let configureStartGameState: {
   assignmentMode: "automatic" | "host_assigned" | "player_picked";
   matches: ConfigureStartGameMatch[];
   assignments: ConfigureStartGameAssignment[];
+  picks: ConfigureStartGamePick[];
   matchesPerPlayer: number;
   sharedMatchesPerPair: number;
 } = {
@@ -500,6 +507,7 @@ let configureStartGameState: {
   assignmentMode: "automatic",
   matches: [],
   assignments: [],
+  picks: [],
   matchesPerPlayer: 1,
   sharedMatchesPerPair: 0,
 };
@@ -511,6 +519,7 @@ export const resetConfigureStartGameState = () => {
     assignmentMode: "automatic",
     matches: [],
     assignments: [],
+    picks: [],
     matchesPerPlayer: 1,
     sharedMatchesPerPair: 0,
   };
@@ -527,10 +536,15 @@ export const buildHostRoomSnapshot = (
   const participantCount = 1 + extraParticipants.length;
   const matchesPerPlayer = configureStartGameState.matchesPerPlayer;
   const sharedMatchesPerPair = configureStartGameState.sharedMatchesPerPair;
-  const effectivePerPlayer = Math.max(
-    matchesPerPlayer,
-    sharedMatchesPerPair * Math.max(participantCount - 1, 0),
-  );
+  // FR-011: the shared-per-pair minimum only applies to automatic generation,
+  // so outside it the stored count stands unraised -- same as the server.
+  const effectivePerPlayer =
+    configureStartGameState.assignmentMode === "automatic"
+      ? Math.max(
+          matchesPerPlayer,
+          sharedMatchesPerPair * Math.max(participantCount - 1, 0),
+        )
+      : matchesPerPlayer;
   const requiredPoolSize =
     1 +
     (sharedMatchesPerPair * (participantCount * (participantCount - 1))) / 2 +
@@ -558,6 +572,7 @@ export const buildHostRoomSnapshot = (
     ],
     matches: configureStartGameState.matches,
     assignments: configureStartGameState.assignments,
+    picks: configureStartGameState.picks,
     assignmentPlan: {
       participantCount,
       poolSize,
@@ -572,7 +587,27 @@ export const buildHostRoomSnapshot = (
   };
 };
 
-export const mockHostRoomServices = async (page: Page) => {
+/**
+ * @param resetParticipants Pass false to attach the routes to an *additional*
+ *   page without disturbing state the first page already established. Needed
+ *   for the two-device journey, where the second participant's browser has to
+ *   join the room the first one is already sitting in.
+ */
+export const mockHostRoomServices = async (
+  page: Page,
+  { resetParticipants = true }: { resetParticipants?: boolean } = {},
+) => {
+  // Reset the roster injection. `extraSnapshotParticipants` is module-level and
+  // was previously only ever assigned, so a scenario that added members leaked
+  // them into every later scenario in the same worker -- silently changing
+  // participantCount, and with it the assignmentPlan's requiredPoolSize. That
+  // made an unrelated shortfall scenario fail depending on execution order.
+  // Every feature that injects members does so *after* this step, so clearing
+  // here is safe.
+  if (resetParticipants) {
+    extraSnapshotParticipants = [];
+  }
+
   await page.route("**/auth/v1/user", async (route) => {
     await route.fulfill({
       status: 200,
@@ -641,7 +676,10 @@ export const mockHostRoomServices = async (page: Page) => {
     const body = route.request().postDataJSON() as {
       successor_participant_id?: string | null;
     };
-    if (!body?.successor_participant_id && extraSnapshotParticipants.length > 1) {
+    if (
+      !body?.successor_participant_id &&
+      extraSnapshotParticipants.length > 1
+    ) {
       // >1 eligible and no choice → server asks for a successor.
       await route.fulfill({
         status: 400,
@@ -676,6 +714,85 @@ export const setHostRoomSnapshotParticipants = (
   participants: typeof extraSnapshotParticipants,
 ) => {
   extraSnapshotParticipants = participants;
+};
+
+/**
+ * Teams per league, in the openfootball shape `useTeamData` parses (it reads
+ * `matches[].team1` / `matches[].team2` and dedupes).
+ *
+ * Covers every team the setup journeys and match-entry scenarios name, plus a
+ * couple of neighbours so the search modal has something to filter.
+ */
+const OPENFOOTBALL_TEAM_FIXTURES: Record<string, [string, string][]> = {
+  "en.1": [
+    ["Arsenal", "Chelsea"],
+    ["Liverpool", "Everton"],
+    ["Brighton & Hove Albion", "Wolverhampton Wanderers"],
+    ["Manchester City", "Tottenham Hotspur"],
+  ],
+  "en.2": [["Leeds United", "Burnley"]],
+  "en.3": [["Barnsley", "Bolton Wanderers"]],
+  "de.1": [["Bayern Munich", "Borussia Dortmund"]],
+  "es.1": [
+    ["Barcelona", "Real Madrid"],
+    ["Atletico Madrid", "Sevilla"],
+  ],
+  "it.1": [["Juventus", "Inter Milan"]],
+  "fr.1": [
+    ["PSG", "Marseille"],
+    ["Lyon", "Monaco"],
+  ],
+};
+
+/**
+ * Serves the team catalogue locally.
+ *
+ * `useTeamData` fetches seven league files straight from
+ * raw.githubusercontent.com on mount. Unmocked, the team-selection row is
+ * replaced by an "Error fetching teams" banner whenever that call is slow,
+ * rate-limited or offline — which took out every scenario that adds a match by
+ * hand, for reasons that had nothing to do with the app.
+ */
+export const mockTeamDataCatalogue = async (page: Page) => {
+  // `useMatchData` calls the command-api's discovery endpoint on mount, and its
+  // failure is what renders the "Error fetching teams" banner *in place of* the
+  // team-selection row. The command-api origin is a fake one that is never
+  // started, so unmocked this always fails.
+  await page.route(
+    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
+      });
+    },
+  );
+
+  await page.route(
+    "https://raw.githubusercontent.com/openfootball/**",
+    async (route) => {
+      const url = route.request().url();
+      const league = Object.keys(OPENFOOTBALL_TEAM_FIXTURES).find((key) =>
+        url.includes(`/${key}.json`),
+      );
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        // The fetch is cross-origin, so a fulfilled response without this is
+        // blocked by CORS and reaches the app as a bare "Failed to fetch" —
+        // indistinguishable from the unmocked network error being replaced.
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({
+          matches: (league ? OPENFOOTBALL_TEAM_FIXTURES[league] : []).map(
+            ([team1, team2]) => ({ team1, team2 }),
+          ),
+        }),
+      });
+    },
+  );
 };
 
 export const seedHostRoomAuthSession = async (page: Page) => {
@@ -718,6 +835,31 @@ const buildMockGuestParticipant = ({
   currentDrinkTotal: 0,
 });
 
+/**
+ * Mirrors `private.compute_room_assignment_plan` closely enough for the mocked
+ * guest snapshot. Outside `automatic` mode the server leaves
+ * `effectivePerPlayer` at the stored count (FR-011, migration 037), so the
+ * mock does the same rather than applying the FR-009 minimum.
+ */
+const buildGuestFixtureAssignmentPlan = (fixture: GuestRoomHostFixture) => {
+  const participantCount = fixture.participants.length;
+  const poolSize = fixture.matches.length;
+  const effectivePerPlayer = fixture.matchesPerPlayer;
+  const relaxedFloor = 1 + effectivePerPlayer;
+
+  return {
+    participantCount,
+    poolSize,
+    matchesPerPlayer: fixture.matchesPerPlayer,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer,
+    requiredPoolSize: relaxedFloor,
+    relaxedFloor,
+    feasible: poolSize >= relaxedFloor,
+    startable: poolSize >= relaxedFloor,
+  };
+};
+
 export const buildGuestRoomSnapshotFromFixture = (
   fixture: GuestRoomHostFixture,
   guestParticipant?: GuestRoomParticipantSummary,
@@ -726,6 +868,7 @@ export const buildGuestRoomSnapshotFromFixture = (
   joinCode: fixture.joinCode,
   state: fixture.state,
   commonMatchId: fixture.commonMatchId,
+  assignmentMode: fixture.assignmentMode,
   participants: guestParticipant
     ? [
         ...fixture.participants.map(buildGuestFixtureParticipant),
@@ -746,6 +889,11 @@ export const buildGuestRoomSnapshotFromFixture = (
     participantId: assignment.participantId,
     matchId: assignment.matchId,
   })),
+  picks: fixture.picks.map((pick) => ({
+    participantId: pick.participantId,
+    matchId: pick.matchId,
+  })),
+  assignmentPlan: buildGuestFixtureAssignmentPlan(fixture),
 });
 
 export const buildGuestRoomJoinResponseFromFixture = ({
@@ -888,11 +1036,143 @@ export const mockGuestRoomRpcServices = async (
     });
   });
 
+  await page.route(
+    "**/rest/v1/rpc/set_my_room_picks_as_guest",
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        guest_token?: string;
+        match_ids?: string[] | null;
+      };
+      const activeFixture = activeGuestRoomFixture ?? fixture;
+      const guestParticipantId =
+        activeGuestParticipant?.id ?? `guest-${body.guest_token ?? "unknown"}`;
+
+      // Mirrors private.set_my_room_picks_as_guest: identified by token alone,
+      // Common Match stripped, per-player count enforced as a cap, replace-all
+      // scoped to this guest.
+      const submitted = (body.match_ids ?? []).filter(
+        (matchId) => matchId !== activeFixture.commonMatchId,
+      );
+      const deduped = Array.from(new Set(submitted));
+
+      if (deduped.length > activeFixture.matchesPerPlayer) {
+        await route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "pick_limit_exceeded" }),
+        });
+        return;
+      }
+
+      activeGuestRoomFixture = {
+        ...activeFixture,
+        picks: [
+          ...activeFixture.picks.filter(
+            (pick) => pick.participantId !== guestParticipantId,
+          ),
+          ...deduped.map((matchId) => ({
+            participantId: guestParticipantId,
+            matchId,
+          })),
+        ],
+      };
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(null),
+      });
+    },
+  );
+
   return {
     fixture,
     getLatestJoinResponse: () => latestJoinResponse,
     getLatestJoinRequest: () => guestRoomJoinRpcLastRequest,
   };
+};
+
+/**
+ * Attaches the host-room and configure/start-game route mocks to a *second*
+ * page without resetting the room they describe, and seeds it with an auth
+ * session so the app boots signed in.
+ *
+ * This is what a "separate device" means in this suite: a second browser
+ * context with its own storage, whose Supabase calls land on the same
+ * module-level mock state as the first. Propagation between the two is
+ * therefore real — one device's write is the other device's next poll — rather
+ * than a scripted simulation.
+ *
+ * Which participant the second device *is* comes from the `participantId` in
+ * its lobby URL: `useRoomLobby` derives `myRole` by finding that id in the
+ * snapshot roster, so the roster injection has to name it first.
+ */
+export const attachSecondDeviceMocks = async (
+  page: Page,
+  participantId: string,
+) => {
+  await seedHostRoomAuthSession(page);
+  await mockHostRoomServices(page, { resetParticipants: false });
+  await mockConfigureStartGameServices(page, {
+    resetState: false,
+    actingParticipantId: participantId,
+  });
+};
+
+/** Every pick the mocked server currently holds for one participant. */
+export const getMockPicksFor = (participantId: string) =>
+  configureStartGameState.picks
+    .filter((pick) => pick.participantId === participantId)
+    .map((pick) => pick.matchId);
+
+/** The id used for the non-host participant in multi-actor room scenarios. */
+export const SECOND_MEMBER_ID = "member-picker-1" as const;
+
+/**
+ * Simulates another participant's picks arriving via the room snapshot poll,
+ * for scenarios that model other actors as state rather than driving a second
+ * browser. The two-device journey in `player-picked-two-devices.feature` does
+ * the latter; prefer this only where the other actor never needs a screen.
+ */
+export const setMockParticipantPicks = (
+  participantId: string,
+  matchIds: string[],
+) => {
+  configureStartGameState.picks = [
+    ...configureStartGameState.picks.filter(
+      (pick) => pick.participantId !== participantId,
+    ),
+    ...matchIds.map((matchId) => ({ participantId, matchId })),
+  ];
+};
+
+/** The host participant's own picks, as the mocked server currently holds them. */
+export const getMockHostPicks = () =>
+  configureStartGameState.picks
+    .filter((pick) => pick.participantId === HOST_ROOM_PARTICIPANT_ID)
+    .map((pick) => pick.matchId);
+
+/** The room's settled assignments after a mocked start. */
+export const getMockAssignments = () => configureStartGameState.assignments;
+
+/** The mocked guest room's current picks, keyed by participant. */
+export const getMockGuestRoomPicks = () =>
+  (activeGuestRoomFixture?.picks ?? []).map((pick) => ({ ...pick }));
+
+/**
+ * A kickoff inside the match filter's default window.
+ *
+ * `useMatchListFilters` seeds `startTime`/`endTime` to a hardcoded local
+ * 15:00–16:00 and compares fixtures against it. These fixtures used to kick off
+ * at `new Date()`, which meant the bulk add found them only when the suite
+ * happened to run between 15:00 and 16:00 local — and silently added nothing
+ * the rest of the day. Pinning the kickoff to the middle of that window makes
+ * the outcome independent of when the tests run.
+ */
+const withinDefaultFilterWindow = () => {
+  const kickoff = new Date();
+  kickoff.setHours(15, 30, 0, 0);
+  return kickoff.toISOString();
 };
 
 export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
@@ -901,7 +1181,7 @@ export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
     league: "eng.1",
     homeTeam: "Arsenal",
     awayTeam: "Chelsea",
-    startDateTime: new Date().toISOString(),
+    startDateTime: withinDefaultFilterWindow(),
     status: "scheduled" as const,
   },
   {
@@ -909,7 +1189,7 @@ export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
     league: "eng.1",
     homeTeam: "Liverpool",
     awayTeam: "Everton",
-    startDateTime: new Date().toISOString(),
+    startDateTime: withinDefaultFilterWindow(),
     status: "scheduled" as const,
   },
 ];
@@ -923,9 +1203,24 @@ export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
  * generates assignments itself, standing in for the server-side canonical
  * generation this feature added (specs/020-canonical-assignment-generation) —
  * the host journey no longer includes a manual randomize/assign step.
+ *
+ * @param resetState Pass false when attaching to a *second* page in the same
+ *   scenario. `configureStartGameState` is module-level and lives in the Node
+ *   process, so two pages routed through these handlers genuinely share one
+ *   room — which is what makes a pick made on one device show up in the other
+ *   device's next snapshot poll. Resetting on the second attach would wipe the
+ *   matches and Common Match the first device just established.
  */
-export const mockConfigureStartGameServices = async (page: Page) => {
-  resetConfigureStartGameState();
+export const mockConfigureStartGameServices = async (
+  page: Page,
+  {
+    resetState = true,
+    actingParticipantId = HOST_ROOM_PARTICIPANT_ID as string,
+  }: { resetState?: boolean; actingParticipantId?: string } = {},
+) => {
+  if (resetState) {
+    resetConfigureStartGameState();
+  }
 
   await page.route("**/rest/v1/rpc/add_room_match", async (route) => {
     const body = route.request().postDataJSON() as {
@@ -940,7 +1235,8 @@ export const mockConfigureStartGameServices = async (page: Page) => {
         match.sourceProvider === body.source_provider &&
         match.sourceMatchId === body.source_match_id,
     );
-    const id = existing?.id ?? `match-${configureStartGameState.matches.length + 1}`;
+    const id =
+      existing?.id ?? `match-${configureStartGameState.matches.length + 1}`;
     if (!existing) {
       configureStartGameState.matches.push({
         id,
@@ -960,10 +1256,68 @@ export const mockConfigureStartGameServices = async (page: Page) => {
     });
   });
 
+  // The batch add (migration 039), which is what the client actually calls for
+  // every bulk gesture — `useRoomMatchPool.setMatches` goes through
+  // `add_room_matches`, not the singular RPC above. Without this route the
+  // request escaped the mocks entirely and surfaced in the UI as "Something
+  // went wrong. Please try again.", with the pool left empty.
+  await page.route("**/rest/v1/rpc/add_room_matches", async (route) => {
+    const body = route.request().postDataJSON() as {
+      session_id: string;
+      matches: {
+        sourceProvider: string;
+        sourceMatchId: string | null;
+        homeTeamName: string;
+        awayTeamName: string;
+        kickoffAt: string | null;
+      }[];
+    };
+
+    let added = 0;
+    let skipped = 0;
+
+    for (const request of body.matches ?? []) {
+      // Mirrors the RPC's dedupe: repeats are skipped, not failed, which is
+      // what the added/skipped split reports back to the host.
+      const existing = configureStartGameState.matches.find(
+        (match) =>
+          match.sourceProvider === request.sourceProvider &&
+          match.sourceMatchId === request.sourceMatchId &&
+          request.sourceMatchId !== null,
+      );
+      if (existing) {
+        skipped += 1;
+        continue;
+      }
+
+      configureStartGameState.matches.push({
+        id: `match-${configureStartGameState.matches.length + 1}`,
+        sourceProvider: request.sourceProvider,
+        sourceMatchId: request.sourceMatchId,
+        homeTeamName: request.homeTeamName,
+        awayTeamName: request.awayTeamName,
+        kickoffAt: request.kickoffAt,
+        homeScore: 0,
+        awayScore: 0,
+      });
+      added += 1;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ added, skipped }),
+    });
+  });
+
   await page.route("**/rest/v1/rpc/set_common_match", async (route) => {
     const body = route.request().postDataJSON() as { match_id: string };
     configureStartGameState.commonMatchId = body.match_id;
-    await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "",
+    });
   });
 
   await page.route("**/rest/v1/rpc/set_room_assignments", async (route) => {
@@ -971,7 +1325,11 @@ export const mockConfigureStartGameServices = async (page: Page) => {
       assignments: ConfigureStartGameAssignment[];
     };
     configureStartGameState.assignments = body.assignments;
-    await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "",
+    });
   });
 
   await page.route(
@@ -984,25 +1342,88 @@ export const mockConfigureStartGameServices = async (page: Page) => {
       configureStartGameState.matchesPerPlayer = body.matches_per_player;
       configureStartGameState.sharedMatchesPerPair =
         body.shared_matches_per_pair;
-      await route.fulfill({ status: 200, contentType: "application/json", body: "" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "",
+      });
     },
   );
 
-  await page.route(
-    "**/rest/v1/rpc/set_room_assignment_mode",
-    async (route) => {
-      const body = route.request().postDataJSON() as { mode: string };
-      configureStartGameState.assignmentMode =
-        body.mode as typeof configureStartGameState.assignmentMode;
-      await route.fulfill({ status: 200, contentType: "application/json", body: "" });
-    },
-  );
-
-  await page.route(`${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`, async (route) => {
+  await page.route("**/rest/v1/rpc/set_room_assignment_mode", async (route) => {
+    const body = route.request().postDataJSON() as { mode: string };
+    configureStartGameState.assignmentMode =
+      body.mode as typeof configureStartGameState.assignmentMode;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
+      body: "",
+    });
+  });
+
+  await page.route(
+    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`,
+    async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
+      });
+    },
+  );
+
+  await page.route("**/rest/v1/rpc/set_my_room_picks", async (route) => {
+    const body = route.request().postDataJSON() as {
+      session_id: string;
+      match_ids: string[] | null;
+    };
+
+    // Mirrors private.set_my_room_picks: replace-all for the CALLING participant
+    // only, the Common Match stripped rather than rejected, and the per-player
+    // count enforced as a cap.
+    //
+    // The real RPC resolves the caller from auth.uid()/the guest token and takes
+    // no participant argument at all — which is precisely why "acting for
+    // someone else" is not expressible. `actingParticipantId` is this mock's
+    // stand-in for that resolution: it is a property of the *page*, so a second
+    // device writes as itself and cannot be made to write as the host.
+    if (configureStartGameState.assignmentMode !== "player_picked") {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "room_not_player_picked" }),
+      });
+      return;
+    }
+
+    const submitted = (body.match_ids ?? []).filter(
+      (matchId) => matchId !== configureStartGameState.commonMatchId,
+    );
+    const deduped = Array.from(new Set(submitted));
+
+    if (deduped.length > configureStartGameState.matchesPerPlayer) {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "pick_limit_exceeded" }),
+      });
+      return;
+    }
+
+    configureStartGameState.picks = [
+      ...configureStartGameState.picks.filter(
+        (pick) => pick.participantId !== actingParticipantId,
+      ),
+      ...deduped.map((matchId) => ({
+        participantId: actingParticipantId,
+        matchId,
+      })),
+    ];
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(null),
     });
   });
 
@@ -1050,23 +1471,57 @@ export const mockConfigureStartGameServices = async (page: Page) => {
         return;
       }
 
-      // Stand-in for server-side canonical generation: the host gets the
-      // Common Match plus its configured per-player count from the rest of
-      // the selected pool.
+      // Stand-in for server-side canonical generation. In player-picked mode it
+      // mirrors migration 038's settlement: keep every pick, then fill the
+      // remainder from the pool (FR-041). Otherwise each participant simply
+      // gets the Common Match plus the configured per-player count.
+      //
+      // Settled for every participant on the roster, not just the host. FR-041
+      // is a promise made to everyone who picked, so a host-only mock could not
+      // express the two-device journey's closing assertion at all.
       const commonMatchId = configureStartGameState.commonMatchId;
-      const additionalMatches = configureStartGameState.matches
-        .filter((match) => match.id !== commonMatchId)
-        .slice(0, configureStartGameState.matchesPerPlayer);
-      configureStartGameState.assignments = [
-        { participantId: HOST_ROOM_PARTICIPANT_ID, matchId: commonMatchId },
-        ...additionalMatches.map((match) => ({
-          participantId: HOST_ROOM_PARTICIPANT_ID,
-          matchId: match.id,
-        })),
+      const rosterIds = [
+        HOST_ROOM_PARTICIPANT_ID as string,
+        ...extraSnapshotParticipants.map((participant) => participant.id),
       ];
+
+      configureStartGameState.assignments = rosterIds.flatMap(
+        (participantId) => {
+          const keptPicks =
+            configureStartGameState.assignmentMode === "player_picked"
+              ? configureStartGameState.picks
+                  .filter(
+                    (pick) =>
+                      pick.participantId === participantId &&
+                      pick.matchId !== commonMatchId,
+                  )
+                  .slice(0, configureStartGameState.matchesPerPlayer)
+                  .map((pick) => pick.matchId)
+              : [];
+          const fill = configureStartGameState.matches
+            .filter(
+              (match) =>
+                match.id !== commonMatchId && !keptPicks.includes(match.id),
+            )
+            .slice(
+              0,
+              configureStartGameState.matchesPerPlayer - keptPicks.length,
+            )
+            .map((match) => match.id);
+
+          return [
+            { participantId, matchId: commonMatchId },
+            ...[...keptPicks, ...fill].map((matchId) => ({
+              participantId,
+              matchId,
+            })),
+          ];
+        },
+      );
       configureStartGameState.roomState = "in_progress";
 
-      const idempotencyKey = route.request().headers()["idempotency-key"] ?? "unknown";
+      const idempotencyKey =
+        route.request().headers()["idempotency-key"] ?? "unknown";
       await route.fulfill({
         status: 200,
         contentType: "application/json",

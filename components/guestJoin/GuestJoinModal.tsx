@@ -2,11 +2,11 @@ import React, { useMemo } from "react";
 import {
   Modal,
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack, useTheme } from "tamagui";
 
 import type { GuestRoomSession } from "../../types/guestRoom";
@@ -27,6 +27,10 @@ interface GuestJoinModalProps {
   onGuestNameChange: (value: string) => void;
   onSubmit: () => void;
   onLeaveRoom: () => void | Promise<void>;
+  /** Submits the guest's complete next pick set in player-picked mode (#185). */
+  onSetPicks?: (matchIds: string[]) => void | Promise<void>;
+  /** True while a pick submission and its follow-up refresh are in flight. */
+  isPickBusy?: boolean;
 }
 
 const createStyles = (isWideLayout: boolean) =>
@@ -62,6 +66,8 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
   onGuestNameChange,
   onSubmit,
   onLeaveRoom,
+  onSetPicks,
+  isPickBusy,
 }) => {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -157,7 +163,11 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
 
                 {session ? (
                   <YStack gap="$5">
-                    <GuestJoinLobby session={session} />
+                    <GuestJoinLobby
+                      session={session}
+                      onSetPicks={onSetPicks}
+                      isBusy={isPickBusy}
+                    />
                     <ShellActionButton
                       icon={
                         <AppIcon

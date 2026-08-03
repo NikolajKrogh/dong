@@ -236,9 +236,7 @@ const readJsonRequestBody = (
     : never,
 ) => {
   const body = page.request().postDataJSON() as
-    | Record<string, unknown>
-    | Record<string, unknown>[]
-    | null;
+    Record<string, unknown> | Record<string, unknown>[] | null;
 
   if (!body) {
     return {};

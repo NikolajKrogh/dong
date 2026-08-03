@@ -18,12 +18,12 @@
 Create `command-api/.env` (never commit — listed in `.gitignore`):
 
 ```env
-SUPABASE_JWT_SECRET=<your-jwt-secret>
+SUPABASE_JWKS_URL=<your-project-jwks-url>
 SUPABASE_URL=http://127.0.0.1:54321
 ```
 
 **Where to find these values:**
-- `SUPABASE_JWT_SECRET`: `supabase/config.toml` → `[auth] secret` (or `supabase status` output)
+- `SUPABASE_JWKS_URL`: `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json` for a cloud project (once it has migrated off the legacy JWT secret — see [JWT Signing Keys](https://supabase.com/docs/guides/auth/signing-keys)); `http://127.0.0.1:54321/auth/v1/.well-known/jwks.json` for local Supabase once the local project has signing keys configured
 - `SUPABASE_URL`: `http://127.0.0.1:54321` for local Supabase (`supabase start`)
 
 ---
@@ -34,7 +34,7 @@ SUPABASE_URL=http://127.0.0.1:54321
 cd command-api
 
 # Set env vars for this session (PowerShell)
-$env:SUPABASE_JWT_SECRET = "<your-jwt-secret>"
+$env:SUPABASE_JWKS_URL = "<your-project-jwks-url>"
 $env:SUPABASE_URL = "http://127.0.0.1:54321"
 
 # Run (uses Maven Wrapper — no Maven install needed)
@@ -141,4 +141,4 @@ Expected: JSON with `measurements` showing request count and latency for the end
 
 ## CI
 
-The GitHub Actions workflow `.github/workflows/java-ci.yml` runs automatically on pushes that change any file under `command-api/**`. It requires the `SUPABASE_JWT_SECRET` secret to be configured in the repository's GitHub Actions secrets (Settings → Secrets and variables → Actions).
+The GitHub Actions workflow `.github/workflows/java-ci.yml` runs automatically on pushes that change any file under `command-api/**`. It requires the `SUPABASE_JWKS_URL` secret to be configured in the repository's GitHub Actions secrets (Settings → Secrets and variables → Actions).

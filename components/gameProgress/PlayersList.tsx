@@ -13,8 +13,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { createGameProgressStyles } from "../../app/style/gameProgressStyles";
-import { useColors } from "../../app/style/theme";
+import { createGameProgressStyles } from "../../styles/gameProgressStyles";
+import { useColors } from "../../styles/theme";
 import { Match, Player } from "../../store/store";
 import AppIcon from "../AppIcon";
 

@@ -10,14 +10,13 @@ import {
   TouchableOpacity,
   Modal,
   ScrollView,
-  SafeAreaView,
   Animated,
   useWindowDimensions,
 } from "react-native";
 import { Player } from "../../../store/store";
 import { useTeamLogo } from "../../../hooks/useTeamLogo";
 import { useMatchQuickActionsAnimations } from "../../../hooks/useMatchQuickActionsAnimations";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 import { MatchHeader } from "./MatchHeader";
 import { ModalTabBar } from "./ModalTabBar";
 import { ScoreControls } from "./ScoreControls";
@@ -75,8 +74,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   }, [selectedMatchId, matches]);
 
   // Get team logos with async fallback support
-  const homeTeamLogo = useTeamLogo(match?.homeTeam || '');
-  const awayTeamLogo = useTeamLogo(match?.awayTeam || '');
+  const homeTeamLogo = useTeamLogo(match?.homeTeam || "");
+  const awayTeamLogo = useTeamLogo(match?.awayTeam || "");
 
   /** Live data for selected match (if present). */
   const liveMatchData = useMemo(() => {
@@ -92,7 +91,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   const homeTeamScorers = useMemo(() => {
     return (
       liveMatchData?.goalScorers?.filter(
-        (scorer) => scorer.teamId === liveMatchData.homeTeamId
+        (scorer) => scorer.teamId === liveMatchData.homeTeamId,
       ) || []
     );
   }, [liveMatchData]);
@@ -101,7 +100,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   const awayTeamScorers = useMemo(() => {
     return (
       liveMatchData?.goalScorers?.filter(
-        (scorer) => scorer.teamId === liveMatchData.awayTeamId
+        (scorer) => scorer.teamId === liveMatchData.awayTeamId,
       ) || []
     );
   }, [liveMatchData]);
@@ -129,7 +128,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
     return players.filter(
       (p) =>
         match.id === commonMatchId ||
-        playerAssignments[p.id]?.includes(match.id)
+        playerAssignments[p.id]?.includes(match.id),
     );
   }, [match, players, commonMatchId, playerAssignments]);
 
@@ -141,7 +140,10 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
    * @returns {Player[][]} 2D array; each sub-array is a column of players.
    */
   const playerColumns = useMemo(() => {
-    const result: Player[][] = Array.from({ length: playerColumnCount }, () => []);
+    const result: Player[][] = Array.from(
+      { length: playerColumnCount },
+      () => [],
+    );
 
     affectedPlayers.forEach((player, index) => {
       const columnIndex = index % playerColumnCount;
@@ -159,143 +161,147 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   );
 
   return (
-    <SafeAreaView style={{ flex: 0 }}>
-      <Modal
-        animationType="none"
-        transparent={true}
-        visible={isVisible}
-        onRequestClose={onClose}
-        statusBarTranslucent={true}
+    // No SafeAreaView wrapper here. A Modal renders into its own root view, so an
+    // outer wrapper contributes nothing to it -- but it is still a laid-out sibling
+    // of the screen's content, and react-native-safe-area-context's SafeAreaView
+    // applies real inset padding on Android (unlike react-native's, which is a bare
+    // View there). That empty box was eating top+bottom insets of vertical space
+    // from the game screen, clipping the match list and hiding the footer.
+    <Modal
+      animationType="none"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+      statusBarTranslucent={true}
+    >
+      <TouchableOpacity
+        style={styles.overlayTouchable}
+        activeOpacity={1}
+        onPress={onClose}
       >
-        <TouchableOpacity
-          style={styles.overlayTouchable}
-          activeOpacity={1}
-          onPress={onClose}
-        >
-          <View style={styles.centeredView}>
-            <Animated.View
-              style={[
-                styles.modalContainer,
-                {
-                  opacity: modalContentAnim,
-                  transform: [
-                    {
-                      scale: modalContentAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.95, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
+        <View style={styles.centeredView}>
+          <Animated.View
+            style={[
+              styles.modalContainer,
+              {
+                opacity: modalContentAnim,
+                transform: [
+                  {
+                    scale: modalContentAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.95, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles.modalInnerContainer}
             >
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={(e) => e.stopPropagation()}
-                style={styles.modalInnerContainer}
+              <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
               >
-                <ScrollView
-                  contentContainerStyle={styles.scrollContent}
-                  bounces={false}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <MatchHeader
-                    homeTeam={match.homeTeam}
-                    awayTeam={match.awayTeam}
-                    homeTeamLogo={homeTeamLogo}
-                    awayTeamLogo={awayTeamLogo}
-                    isCommonMatch={isCommonMatch}
-                    styles={styles}
-                  />
+                <MatchHeader
+                  homeTeam={match.homeTeam}
+                  awayTeam={match.awayTeam}
+                  homeTeamLogo={homeTeamLogo}
+                  awayTeamLogo={awayTeamLogo}
+                  isCommonMatch={isCommonMatch}
+                  styles={styles}
+                />
 
-                  <View style={styles.divider} />
+                <View style={styles.divider} />
 
-                  <ModalTabBar
-                    activeTab={activeTab}
-                    setActiveTab={setActiveTab}
-                    showStatisticsTab={showStatisticsTab}
-                    styles={styles}
-                  />
+                <ModalTabBar
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  showStatisticsTab={showStatisticsTab}
+                  styles={styles}
+                />
 
-                  <View style={styles.divider} />
+                <View style={styles.divider} />
 
-                  {/* Overview Tab Content */}
-                  {activeTab === "overview" && (
-                    <>
-                      <ScoreControls
-                        matchId={match.id}
-                        homeGoals={match.homeGoals ?? 0}
-                        awayGoals={match.awayGoals ?? 0}
-                        isApiControlledMatch={isApiControlledMatch}
-                        liveHomeScore={liveMatchData?.homeScore ?? 0}
-                        liveAwayScore={liveMatchData?.awayScore ?? 0}
-                        goalValueAnimHome={goalValueAnimHome}
-                        goalValueAnimAway={goalValueAnimAway}
-                        incrementAnimHome={incrementAnimHome}
-                        decrementAnimHome={decrementAnimHome}
-                        incrementAnimAway={incrementAnimAway}
-                        decrementAnimAway={decrementAnimAway}
-                        animateButtonPress={animateButtonPress}
-                        handleGoalIncrement={handleGoalIncrement}
-                        handleGoalDecrement={handleGoalDecrement}
-                        styles={styles}
-                      />
+                {/* Overview Tab Content */}
+                {activeTab === "overview" && (
+                  <>
+                    <ScoreControls
+                      matchId={match.id}
+                      homeGoals={match.homeGoals ?? 0}
+                      awayGoals={match.awayGoals ?? 0}
+                      isApiControlledMatch={isApiControlledMatch}
+                      liveHomeScore={liveMatchData?.homeScore ?? 0}
+                      liveAwayScore={liveMatchData?.awayScore ?? 0}
+                      goalValueAnimHome={goalValueAnimHome}
+                      goalValueAnimAway={goalValueAnimAway}
+                      incrementAnimHome={incrementAnimHome}
+                      decrementAnimHome={decrementAnimHome}
+                      incrementAnimAway={incrementAnimAway}
+                      decrementAnimAway={decrementAnimAway}
+                      animateButtonPress={animateButtonPress}
+                      handleGoalIncrement={handleGoalIncrement}
+                      handleGoalDecrement={handleGoalDecrement}
+                      styles={styles}
+                    />
 
-                      {isApiControlledMatch && (
-                        <GoalScorersSection
-                          homeTeamScorers={homeTeamScorers}
-                          awayTeamScorers={awayTeamScorers}
-                          styles={styles}
-                        />
-                      )}
-
-                      <View style={styles.divider} />
-
-                      <PlayersSection
-                        affectedPlayersCount={affectedPlayers.length}
-                        playerColumns={playerColumns}
-                        modalContentAnim={modalContentAnim}
-                        styles={styles}
-                      />
-                    </>
-                  )}
-
-                  {/* Statistics Tab Content */}
-                  {activeTab === "statistics" &&
-                    isApiControlledMatch &&
-                    liveMatchData?.homeTeamStatistics &&
-                    liveMatchData?.awayTeamStatistics && (
-                      <StatisticsSection
-                        homeStats={liveMatchData.homeTeamStatistics}
-                        awayStats={liveMatchData.awayTeamStatistics}
+                    {isApiControlledMatch && (
+                      <GoalScorersSection
+                        homeTeamScorers={homeTeamScorers}
+                        awayTeamScorers={awayTeamScorers}
                         styles={styles}
                       />
                     )}
 
-                  {/* Close Button */}
-                  <Animated.View
-                    style={{
-                      transform: [{ scale: closeButtonAnim }],
-                      width: "100%",
+                    <View style={styles.divider} />
+
+                    <PlayersSection
+                      affectedPlayersCount={affectedPlayers.length}
+                      playerColumns={playerColumns}
+                      modalContentAnim={modalContentAnim}
+                      styles={styles}
+                    />
+                  </>
+                )}
+
+                {/* Statistics Tab Content */}
+                {activeTab === "statistics" &&
+                  isApiControlledMatch &&
+                  liveMatchData?.homeTeamStatistics &&
+                  liveMatchData?.awayTeamStatistics && (
+                    <StatisticsSection
+                      homeStats={liveMatchData.homeTeamStatistics}
+                      awayStats={liveMatchData.awayTeamStatistics}
+                      styles={styles}
+                    />
+                  )}
+
+                {/* Close Button */}
+                <Animated.View
+                  style={{
+                    transform: [{ scale: closeButtonAnim }],
+                    width: "100%",
+                  }}
+                >
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => {
+                      animateButtonPress(closeButtonAnim);
+                      setTimeout(onClose, 100); // Delay close for animation
                     }}
                   >
-                    <TouchableOpacity
-                      style={styles.closeButton}
-                      onPress={() => {
-                        animateButtonPress(closeButtonAnim);
-                        setTimeout(onClose, 100); // Delay close for animation
-                      }}
-                    >
-                      <Text style={styles.closeButtonText}>Close</Text>
-                    </TouchableOpacity>
-                  </Animated.View>
-                </ScrollView>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </SafeAreaView>
+                    <Text style={styles.closeButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </Animated.View>
+              </ScrollView>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
   );
 };
 

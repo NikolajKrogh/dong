@@ -1,7 +1,7 @@
 import React from "react";
 import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useColors } from "../../../app/style/theme";
+import { useColors } from "../../../styles/theme";
 import { createStyles } from "./styles";
 
 interface ScoreControlsProps {
