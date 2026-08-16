@@ -57,6 +57,14 @@ Deno.serve(async (req: Request) => {
     );
 
     if (ownedSessionIds.length > 0) {
+      const { error: snapshotPurgeError } = await supabaseAdmin.rpc(
+        "purge_assignment_snapshots_for_sessions",
+        { session_ids: ownedSessionIds },
+      );
+      if (snapshotPurgeError) {
+        throw snapshotPurgeError;
+      }
+
       // Delete child rows in dependency order before removing the sessions themselves.
       await supabaseAdmin
         .from("assignments")

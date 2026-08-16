@@ -140,4 +140,6 @@ shell commands, and other important information, read the current plan:
 the `plan.md` in the highest-numbered directory under `specs/` (e.g.
 `specs/019-<slug>/plan.md`) — this pointer is intentionally not pinned to a
 specific feature number so it doesn't go stale as features complete.
+As of 2026-08-03 that resolves to
+[`specs/023-mid-game-reassignment/plan.md`](specs/023-mid-game-reassignment/plan.md).
 <!-- SPECKIT END -->

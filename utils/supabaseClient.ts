@@ -13,6 +13,9 @@ import type {
   AssignmentMode,
   BatchRoomMatchResult,
   EndGameSessionResponse,
+  ReassignParticipantMatchesInput,
+  ReassignParticipantMatchesResponse,
+  ReassignmentErrorCode,
   HostLeaveResponse,
   MemberLeaveResponse,
   MyActiveRoom,
@@ -21,6 +24,7 @@ import type {
   RoomAssignmentSettingsRequest,
   RoomSnapshot,
 } from "../types/room";
+import { ReassignmentRpcError } from "../types/room";
 import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
@@ -70,6 +74,9 @@ export interface RoomRpcClient {
    * already terminal, so a double tap or two racing devices are both safe.
    */
   endGameSession(sessionId: string): Promise<EndGameSessionResponse>;
+  reassignParticipantMatches(
+    input: ReassignParticipantMatchesInput,
+  ): Promise<ReassignParticipantMatchesResponse>;
   addRoomMatch(
     sessionId: string,
     request: AddRoomMatchRequest,
@@ -112,6 +119,43 @@ export interface RoomRpcClient {
 
 /** Shared poll interval for every lobby view (host, member, guest). */
 export const LOBBY_POLL_INTERVAL_MS = 4000;
+
+const REASSIGNMENT_ERROR_MESSAGES: Record<ReassignmentErrorCode, string> = {
+  not_authenticated: "Sign-in is required to change assignments.",
+  room_not_found: "The room no longer exists.",
+  not_host: "Only the host can change assignments.",
+  host_participant_not_found:
+    "The host identity is out of date. Refresh the room and try again.",
+  invalid_reassignment_input:
+    "Choose a valid, duplicate-free set of matches and try again.",
+  game_not_in_progress: "Assignments can only change while the game is running.",
+  participant_not_in_room: "That player is no longer in the room.",
+  cannot_reassign_common_match:
+    "The common match belongs to everyone and cannot be changed here.",
+  match_not_in_room_pool: "That match is not part of this room.",
+  assignment_count_mismatch:
+    "Replace every existing match slot; the number of slots cannot change.",
+  idempotency_key_reused:
+    "This request key was already used for a different assignment change.",
+};
+
+const REASSIGNMENT_ERROR_CODES = new Set<ReassignmentErrorCode>(
+  Object.keys(REASSIGNMENT_ERROR_MESSAGES) as ReassignmentErrorCode[],
+);
+
+const mapReassignmentError = (error: unknown) => {
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : "";
+
+  if (!REASSIGNMENT_ERROR_CODES.has(message as ReassignmentErrorCode)) {
+    return null;
+  }
+
+  const code = message as ReassignmentErrorCode;
+  return new ReassignmentRpcError(code, REASSIGNMENT_ERROR_MESSAGES[code]);
+};
 
 export interface HostRoomRpcClient {
   createRoomAsHost(): Promise<HostRoomCreateResponse>;
@@ -416,6 +460,29 @@ export const createRoomRpcClient = (
       if (!data) {
         throw new Error(
           "Supabase end_game_session returned no response payload.",
+        );
+      }
+
+      return data;
+    },
+
+    async reassignParticipantMatches(input) {
+      const { data, error } = await client
+        .rpc("reassign_participant_matches", {
+          session_id: input.sessionId,
+          participant_id: input.participantId,
+          match_ids: input.matchIds,
+          idempotency_key: input.idempotencyKey,
+        })
+        .overrideTypes<ReassignParticipantMatchesResponse, { merge: false }>();
+
+      if (error) {
+        throw mapReassignmentError(error) ?? error;
+      }
+
+      if (!data) {
+        throw new Error(
+          "Supabase reassign_participant_matches returned no response payload.",
         );
       }
 

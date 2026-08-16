@@ -109,6 +109,45 @@ export interface EndGameSessionResponse {
   sessionId: string;
 }
 
+export interface ReassignParticipantMatchesInput {
+  sessionId: string;
+  participantId: string;
+  matchIds: string[];
+  idempotencyKey: string;
+}
+
+export interface ReassignParticipantMatchesResponse {
+  sessionId: string;
+  participantId: string;
+  addedMatchIds: string[];
+  removedMatchIds: string[];
+  matchIds: string[];
+  sequenceNumber: number | null;
+}
+
+export type ReassignmentErrorCode =
+  | "not_authenticated"
+  | "room_not_found"
+  | "not_host"
+  | "host_participant_not_found"
+  | "invalid_reassignment_input"
+  | "game_not_in_progress"
+  | "participant_not_in_room"
+  | "cannot_reassign_common_match"
+  | "match_not_in_room_pool"
+  | "assignment_count_mismatch"
+  | "idempotency_key_reused";
+
+export class ReassignmentRpcError extends Error {
+  readonly code: ReassignmentErrorCode;
+
+  constructor(code: ReassignmentErrorCode, message: string) {
+    super(message);
+    this.name = "ReassignmentRpcError";
+    this.code = code;
+  }
+}
+
 export interface MemberLeaveResponse {
   sessionId: string;
   status: "left";
@@ -178,6 +217,14 @@ export const ROOM_ERROR = {
   roomNotPlayerPicked: "room_not_player_picked",
   /** The caller isn't an active participant of the room (FR-038a). */
   notAParticipant: "not_a_participant",
+  hostParticipantNotFound: "host_participant_not_found",
+  invalidReassignmentInput: "invalid_reassignment_input",
+  gameNotInProgress: "game_not_in_progress",
+  participantNotInRoom: "participant_not_in_room",
+  cannotReassignCommonMatch: "cannot_reassign_common_match",
+  matchNotInRoomPool: "match_not_in_room_pool",
+  assignmentCountMismatch: "assignment_count_mismatch",
+  idempotencyKeyReused: "idempotency_key_reused",
 } as const;
 
 // NOTE: `start_game_session`'s RPC result (including `filledInParticipantIds`)
