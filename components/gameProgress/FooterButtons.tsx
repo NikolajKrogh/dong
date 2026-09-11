@@ -3,23 +3,27 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Animated,
-  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { useColors } from "../../styles/theme";
+import { Sheet } from "../ui";
 
 /**
  * Props for FooterButtons.
  * @interface
  */
 interface FooterButtonsProps {
+  /** Invoked before navigating Home so active multiplayer context is cleared. */
+  onHome?: () => void;
   /** Invoked when user selects Back to Setup. */
   onBackToSetup: () => void;
   /** Invoked when user selects End Game. */
   onEndGame: () => void;
+  /** Only the current multiplayer host is allowed to see this action. */
+  showEndGame?: boolean;
 }
 
 /**
@@ -30,8 +34,10 @@ interface FooterButtonsProps {
  * @description Renders an animated FAB that rotates when expanded; displays a modal overlay containing actionable menu items. Delegates navigation & end-game logic to parent callbacks.
  */
 const FooterButtons: React.FC<FooterButtonsProps> = ({
+  onHome,
   onBackToSetup,
   onEndGame,
+  showEndGame = true,
 }) => {
   const router = useRouter();
   const colors = useColors();
@@ -70,25 +76,28 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
   /** Navigate to home then close menu. */
   const goToHome = () => {
+    onHome?.();
     router.push("/");
     closeMenu();
   };
 
   return (
     <View style={styles.container}>
-      {/* Menu Modal */}
-      <Modal
-        visible={menuVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={closeMenu}
+      {/* Tamagui Sheet keeps the action menu mounted consistently on native and web. */}
+      <Sheet
+        open={menuVisible}
+        onOpenChange={(open: boolean) =>
+          open ? setMenuVisible(true) : closeMenu()
+        }
+        modal
+        dismissOnOverlayPress
+        dismissOnSnapToBottom
+        snapPoints={["32%"]}
+        snapPointsMode="percent"
       >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={closeMenu}
-        >
-          {/* Menu content */}
+        <Sheet.Overlay backgroundColor={colors.backgroundModalOverlay} />
+        <Sheet.Handle />
+        <Sheet.Frame style={styles.sheetFrame}>
           <View style={styles.menuContainer}>
             <View style={styles.expandableMenu}>
               <TouchableOpacity style={styles.menuItem} onPress={goToHome}>
@@ -115,22 +124,29 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
                 <Text style={styles.menuItemText}>Setup</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  onEndGame();
-                  closeMenu();
-                }}
-              >
-                <Ionicons name="flag-outline" size={22} color={colors.danger} />
-                <Text style={[styles.menuItemText, { color: colors.danger }]}>
-                  End Game
-                </Text>
-              </TouchableOpacity>
+              {showEndGame ? (
+                <TouchableOpacity
+                  testID="FooterEndGameButton"
+                  style={styles.menuItem}
+                  onPress={() => {
+                    onEndGame();
+                    closeMenu();
+                  }}
+                >
+                  <Ionicons
+                    name="flag-outline"
+                    size={22}
+                    color={colors.danger}
+                  />
+                  <Text style={[styles.menuItemText, { color: colors.danger }]}>
+                    End Game
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
-        </TouchableOpacity>
-      </Modal>
+        </Sheet.Frame>
+      </Sheet>
 
       {/* Menu toggle button */}
       <View style={styles.footer}>
@@ -160,6 +176,12 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       justifyContent: "flex-end",
       paddingBottom: 74,
       paddingHorizontal: 24,
+    },
+    sheetFrame: {
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      paddingBottom: 24,
+      paddingTop: 8,
     },
     menuContainer: {
       alignSelf: "flex-start",

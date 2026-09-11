@@ -217,7 +217,9 @@ Available font families:
 
 Available animation presets:
 
-
+- medium
+- quick
+- slow
 
 ## Components
 
@@ -226,6 +228,7 @@ The following components are available:
 - AlertDialogAction
 - AlertDialogCancel
 - AlertDialogDescription
+- AlertDialogDestructive
 - AlertDialogOverlay
 - AlertDialogTitle
 - AlertDialogTrigger
@@ -236,8 +239,6 @@ The following components are available:
   - AvatarFallback.Frame
 - AvatarFrame
 - Button
-  - Button.Frame
-  - Button.Text
 - Card
   - Card.Background
   - Card.Footer
@@ -247,6 +248,10 @@ The following components are available:
   - Checkbox.Frame
   - Checkbox.IndicatorFrame
 - Circle
+- CollapsibleContent
+  - CollapsibleContent.Frame
+- CollapsibleTrigger
+  - CollapsibleTrigger.Frame
 - DialogClose
 - DialogContent
 - DialogDescription
@@ -255,6 +260,7 @@ The following components are available:
 - DialogPortalFrame
 - DialogTitle
 - DialogTrigger
+- Em
 - EnsureFlexed
 - Fieldset
 - Footer
@@ -275,14 +281,9 @@ The following components are available:
 - Heading
 - Image
 - Input
-  - Input.Frame
 - Label
   - Label.Frame
 - ListItem
-  - ListItem.Frame
-  - ListItem.Subtitle
-  - ListItem.Text
-  - ListItem.Title
 - Main
 - Nav
 - Overlay
@@ -306,28 +307,27 @@ The following components are available:
 - SelectIcon
 - SelectSeparator
 - Separator
-- SheetHandleFrame
-- SheetOverlayFrame
 - SizableStack
 - SizableText
+- SliderActiveFrame
 - SliderFrame
 - SliderThumb
   - SliderThumb.Frame
-- SliderTrackActiveFrame
 - SliderTrackFrame
 - Spacer
+- Span
 - Spinner
 - Square
-- Stack
+- Strong
 - Switch
   - Switch.Frame
   - Switch.Thumb
 - Tabs
 - Text
   - Text.Area
-  - Text.AreaFrame
 - ThemeableStack
 - Thumb
+- Toast
 - View
 - View
 - VisuallyHidden

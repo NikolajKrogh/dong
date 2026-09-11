@@ -32,6 +32,8 @@ interface PlayersListProps {
   handleDrinkIncrement: (playerId: string) => void;
   /** Decrement drink handler. */
   handleDrinkDecrement: (playerId: string) => void;
+  /** Disable drink editing while multiplayer state is not editable. */
+  disabled?: boolean;
 }
 
 /** Props for PlayerCard. @interface */
@@ -52,6 +54,7 @@ interface PlayerCardProps {
   handleDrinkDecrement: (playerId: string) => void;
   /** Whether the current viewport uses the wide layout branch. */
   isWideLayout: boolean;
+  disabled: boolean;
 }
 
 /**
@@ -70,6 +73,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     handleDrinkIncrement,
     handleDrinkDecrement,
     isWideLayout,
+    disabled,
   }) => {
     const colors = useColors();
     const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
@@ -172,8 +176,11 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
 
           <View style={styles.controlsContainer}>
             <TouchableOpacity
+              testID={`DrinkDecrement-${player.id}`}
               style={[styles.controlButton, styles.actionButton]}
+              disabled={disabled}
               onPress={() => {
+                if (disabled) return;
                 handleDrinkDecrement(player.id);
                 handleValueAnimation();
               }}
@@ -187,8 +194,11 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
             </Animated.View>
 
             <TouchableOpacity
+              testID={`DrinkIncrement-${player.id}`}
               style={[styles.controlButton, styles.actionButton]}
+              disabled={disabled}
               onPress={() => {
+                if (disabled) return;
                 handleDrinkIncrement(player.id);
                 handleValueAnimation();
               }}
@@ -214,6 +224,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
   playerAssignments,
   handleDrinkIncrement,
   handleDrinkDecrement,
+  disabled = false,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
@@ -274,6 +285,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
         handleDrinkIncrement={handleDrinkIncrement}
         handleDrinkDecrement={handleDrinkDecrement}
         isWideLayout={isWideLayout}
+        disabled={disabled}
       />
     );
   };

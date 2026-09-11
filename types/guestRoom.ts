@@ -39,6 +39,7 @@ export interface GuestRoomMatchSummary {
   id: string;
   sourceProvider: string | null;
   sourceMatchId: string | null;
+  sourceLeagueCode?: string | null;
   homeTeamName: string;
   awayTeamName: string;
   kickoffAt: string | null;
@@ -78,6 +79,8 @@ export interface GuestRoomSnapshot {
   sessionId: string;
   joinCode: string;
   state: GuestRoomSessionState;
+  ownerParticipantId?: string | null;
+  lastEventSequence?: number;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
   participants: GuestRoomParticipantSummary[];

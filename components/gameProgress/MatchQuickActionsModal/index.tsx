@@ -40,6 +40,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   liveMatches,
   handleGoalIncrement,
   handleGoalDecrement,
+  disabled = false,
 }) => {
   const colors = useThemed();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -84,8 +85,15 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
 
   /** Whether scores are driven by live API (read-only). */
   const isApiControlledMatch = useMemo(() => {
-    return !!liveMatchData; // If liveMatchData exists, this is an API-controlled match
-  }, [liveMatchData]);
+    // Multiplayer snapshots carry the authoritative provider provenance even
+    // when the client is offline or the provider poll has not returned yet.
+    // Solo games retain the legacy live-data check for backwards compatibility.
+    return (
+      (match?.sourceProvider != null &&
+        match.sourceProvider.toLowerCase() !== "manual") ||
+      !!liveMatchData
+    );
+  }, [liveMatchData, match]);
 
   /** Goal scorers array for home team (live data). */
   const homeTeamScorers = useMemo(() => {
@@ -234,8 +242,12 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                       homeGoals={match.homeGoals ?? 0}
                       awayGoals={match.awayGoals ?? 0}
                       isApiControlledMatch={isApiControlledMatch}
-                      liveHomeScore={liveMatchData?.homeScore ?? 0}
-                      liveAwayScore={liveMatchData?.awayScore ?? 0}
+                      liveHomeScore={
+                        liveMatchData?.homeScore ?? match.homeGoals ?? 0
+                      }
+                      liveAwayScore={
+                        liveMatchData?.awayScore ?? match.awayGoals ?? 0
+                      }
                       goalValueAnimHome={goalValueAnimHome}
                       goalValueAnimAway={goalValueAnimAway}
                       incrementAnimHome={incrementAnimHome}
@@ -245,6 +257,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                       animateButtonPress={animateButtonPress}
                       handleGoalIncrement={handleGoalIncrement}
                       handleGoalDecrement={handleGoalDecrement}
+                      disabled={disabled}
                       styles={styles}
                     />
 

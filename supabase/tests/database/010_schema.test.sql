@@ -313,7 +313,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'matches'
         ),
-        'id:uuid:NO,session_id:uuid:NO,source_provider:text:NO,source_match_id:text:YES,home_team_name:text:NO,away_team_name:text:NO,kickoff_at:timestamp with time zone:YES,home_score:integer:NO,away_score:integer:NO,created_at:timestamp with time zone:YES',
+        'id:uuid:NO,session_id:uuid:NO,source_provider:text:NO,source_match_id:text:YES,home_team_name:text:NO,away_team_name:text:NO,kickoff_at:timestamp with time zone:YES,home_score:integer:NO,away_score:integer:NO,created_at:timestamp with time zone:YES,source_league_code:text:YES',
         'matches columns, types, and nullability match expectations'
     );
 SELECT ok(

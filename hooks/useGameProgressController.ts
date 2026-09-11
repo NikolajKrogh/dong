@@ -14,6 +14,7 @@ import { createGameProgressStyles } from "../styles/gameProgressStyles";
 import { useColors } from "../styles/theme";
 import { useGameStore } from "../store/store";
 import { useAppVisibility, useGoalSound } from "../platform";
+import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
 
 const useGameProgressController = () => {
   const router = useRouter();
@@ -34,6 +35,7 @@ const useGameProgressController = () => {
     refreshing,
   } = uiState;
   const { visibilityState } = useAppVisibility();
+  const activeGame = useActiveGameRoomSync();
 
   const {
     players,
@@ -44,6 +46,7 @@ const useGameProgressController = () => {
     setMatches,
     saveGameToHistory,
     resetState,
+    clearActiveGameContext,
     soundEnabled,
     commonMatchNotificationsEnabled,
   } = useGameStore();
@@ -92,6 +95,17 @@ const useGameProgressController = () => {
 
   const handleGoalIncrement = useCallback(
     (matchId: string, team: "home" | "away", newTotal?: number) => {
+      if (activeGame.isMultiplayer) {
+        // Provider observations are accepted through the authenticated Edge
+        // Function path; a live-score callback must never fabricate participant
+        // goals.
+        if (typeof newTotal === "number" || !activeGame.isEditable) {
+          return;
+        }
+        void activeGame.changeManualScore(matchId, team, 1).catch(() => undefined);
+        return;
+      }
+
       let goalScoredInfo: LastGoalInfo | null = null;
 
       setMatches((prevMatches) =>
@@ -115,11 +129,16 @@ const useGameProgressController = () => {
         handleGoalNotification(goalScoredInfo);
       }
     },
-    [handleGoalNotification, setMatches],
+    [activeGame, handleGoalNotification, setMatches],
   );
 
   const handleGoalDecrement = useCallback(
     (matchId: string, team: "home" | "away") => {
+      if (activeGame.isMultiplayer) {
+        if (!activeGame.isEditable) return;
+        void activeGame.changeManualScore(matchId, team, -1).catch(() => undefined);
+        return;
+      }
       setMatches((prevMatches) =>
         prevMatches.map((match) => {
           if (match.id === matchId) {
@@ -136,11 +155,16 @@ const useGameProgressController = () => {
         }),
       );
     },
-    [setMatches],
+    [activeGame, setMatches],
   );
 
   const handleDrinkIncrement = useCallback(
     (playerId: string) => {
+      if (activeGame.isMultiplayer) {
+        if (!activeGame.isEditable) return;
+        void activeGame.changeParticipantDrink(playerId, 1).catch(() => undefined);
+        return;
+      }
       setPlayers((prevPlayers) =>
         prevPlayers.map((player) => {
           return player.id === playerId
@@ -152,11 +176,16 @@ const useGameProgressController = () => {
         }),
       );
     },
-    [setPlayers],
+    [activeGame, setPlayers],
   );
 
   const handleDrinkDecrement = useCallback(
     (playerId: string) => {
+      if (activeGame.isMultiplayer) {
+        if (!activeGame.isEditable) return;
+        void activeGame.changeParticipantDrink(playerId, -1).catch(() => undefined);
+        return;
+      }
       setPlayers((prevPlayers) =>
         prevPlayers.map((player) => {
           return player.id === playerId && (player.drinksTaken ?? 0) > 0
@@ -168,7 +197,7 @@ const useGameProgressController = () => {
         }),
       );
     },
-    [setPlayers],
+    [activeGame, setPlayers],
   );
 
   const setActiveTab = useCallback((tab: string) => {
@@ -179,23 +208,52 @@ const useGameProgressController = () => {
   }, []);
 
   const handleEndGame = useCallback(() => {
+    if (activeGame.isMultiplayer && (!activeGame.isHost || !activeGame.isEditable)) {
+      return;
+    }
     dispatchUi({ type: "setAlertVisible", visible: true });
-  }, []);
+  }, [activeGame.isEditable, activeGame.isHost, activeGame.isMultiplayer]);
 
   const confirmEndGame = useCallback(() => {
     dispatchUi({ type: "setAlertVisible", visible: false });
+    if (activeGame.isMultiplayer) {
+      if (!activeGame.isHost || !activeGame.isEditable) {
+        return;
+      }
+      void activeGame.completeGame().catch(() => undefined);
+      return;
+    }
     saveGameToHistory();
     resetState();
     router.replace("/");
-  }, [resetState, router, saveGameToHistory]);
+  }, [activeGame, resetState, router, saveGameToHistory]);
 
   const cancelEndGame = useCallback(() => {
     dispatchUi({ type: "setAlertVisible", visible: false });
   }, []);
 
   const handleBackToSetup = useCallback(() => {
+    if (activeGame.isMultiplayer) {
+      clearActiveGameContext();
+    }
     router.push("/setupGame");
-  }, [router]);
+  }, [activeGame.isMultiplayer, clearActiveGameContext, router]);
+
+  const handleGoHome = useCallback(() => {
+    const isTerminalRoom =
+      activeGame.status === "ended" ||
+      activeGame.status === "access_lost" ||
+      activeGame.snapshot?.state === "completed" ||
+      activeGame.snapshot?.state === "closed";
+    if (activeGame.isMultiplayer && isTerminalRoom) {
+      clearActiveGameContext();
+    }
+  }, [
+    activeGame.isMultiplayer,
+    activeGame.snapshot?.state,
+    activeGame.status,
+    clearActiveGameContext,
+  ]);
 
   const openQuickActions = useCallback((matchId: string) => {
     dispatchUi({ type: "openQuickActions", matchId });
@@ -216,10 +274,15 @@ const useGameProgressController = () => {
     startPolling,
     stopPolling,
     fetchCurrentScores,
-  } = useLiveScores(matches, handleGoalIncrement, 60000);
+  } = useLiveScores(
+    matches,
+    handleGoalIncrement,
+    60000,
+    !activeGame.isMultiplayer,
+  );
 
   useEffect(() => {
-    if (matches.length === 0) {
+    if (matches.length === 0 || activeGame.isMultiplayer) {
       return;
     }
 
@@ -228,7 +291,7 @@ const useGameProgressController = () => {
     return () => {
       stopPolling();
     };
-  }, [matches.length, startPolling, stopPolling]);
+  }, [activeGame.isMultiplayer, matches.length, startPolling, stopPolling]);
 
   useEffect(() => {
     migrateMatchData();
@@ -237,13 +300,17 @@ const useGameProgressController = () => {
   const onRefresh = useCallback(async () => {
     dispatchUi({ type: "setRefreshing", refreshing: true });
     try {
-      await fetchCurrentScores();
+      if (activeGame.isMultiplayer) {
+        await activeGame.refresh();
+      } else {
+        await fetchCurrentScores();
+      }
     } catch (error) {
       console.error("Error refreshing:", error);
     } finally {
       dispatchUi({ type: "setRefreshing", refreshing: false });
     }
-  }, [fetchCurrentScores]);
+  }, [activeGame, fetchCurrentScores]);
 
   return {
     colors,
@@ -267,11 +334,13 @@ const useGameProgressController = () => {
     handleDrinkIncrement,
     handleDrinkDecrement,
     handleBackToSetup,
+    handleGoHome,
     handleEndGame,
     handleGoalIncrement,
     handleGoalDecrement,
     cancelEndGame,
     confirmEndGame,
+    activeGame,
   };
 };
 

@@ -43,6 +43,7 @@ const SetupGameScreen = () => {
     setCommonMatchId: setGlobalCommonMatchId,
     setPlayerAssignments: setGlobalPlayerAssignments,
     setMatchesPerPlayer,
+    clearActiveGameContext,
   } = useGameStore();
 
   const canAdvanceToMatches = players.length > 0;
@@ -182,6 +183,7 @@ const SetupGameScreen = () => {
         (commonMatchId && match.id === commonMatchId),
     );
     setGlobalMatches(filteredMatches);
+    clearActiveGameContext();
 
     router.push("/gameProgress");
   };

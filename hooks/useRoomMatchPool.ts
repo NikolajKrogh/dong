@@ -54,6 +54,9 @@ const toDisplayMatch = (match: RoomMatchSummary): Match => ({
   awayGoals: match.awayScore,
   startTime: match.kickoffAt ?? undefined,
   kickoffAt: match.kickoffAt ?? undefined,
+  sourceProvider: match.sourceProvider ?? undefined,
+  sourceMatchId: match.sourceMatchId,
+  sourceLeagueCode: match.sourceLeagueCode,
 });
 
 /**
@@ -76,6 +79,7 @@ const toAddRequest = (match: Match): AddRoomMatchRequest =>
     ? {
         sourceProvider: CATALOGUE_SOURCE_PROVIDER,
         sourceMatchId: match.id,
+        sourceLeagueCode: match.sourceLeagueCode ?? null,
         homeTeamName: match.homeTeam,
         awayTeamName: match.awayTeam,
         kickoffAt: match.kickoffAt,
@@ -86,6 +90,7 @@ const toAddRequest = (match: Match): AddRoomMatchRequest =>
         // colliding — at the cost of no server-side dedupe for them.
         sourceProvider: MANUAL_SOURCE_PROVIDER,
         sourceMatchId: null,
+        sourceLeagueCode: null,
         homeTeamName: match.homeTeam,
         awayTeamName: match.awayTeam,
         kickoffAt: null,

@@ -27,6 +27,7 @@ export function useLiveScores(
     newGoals: number,
   ) => void, // Updated signature
   intervalMs = 60000, // Poll every minute by default
+  enabled = true,
 ) {
   const [liveMatches, setLiveMatches] = useState<MatchWithScore[]>([]);
   const [isPolling, setIsPolling] = useState(false);
@@ -41,6 +42,9 @@ export function useLiveScores(
    * detects new goals and updates state; silent on failures.
    */
   const fetchCurrentScores = useCallback(async () => {
+    if (!enabled) {
+      return;
+    }
     // First verify network connectivity
     try {
       // Using a reliable endpoint for connectivity check
@@ -163,7 +167,7 @@ export function useLiveScores(
       console.error("Error fetching or processing scores:", error);
       // Silently fail for the user - we'll try again next polling interval
     }
-  }, [matches, updateCallback, configuredLeagues]);
+  }, [enabled, matches, updateCallback, configuredLeagues]);
 
   const fetchCurrentScoresRef = useRef(fetchCurrentScores);
 
@@ -176,6 +180,7 @@ export function useLiveScores(
    * @description No effect when already polling.
    */
   const startPolling = useCallback(() => {
+    if (!enabled) return;
     if (pollingIntervalRef.current) return;
 
     console.log("Starting live score polling...");
@@ -188,7 +193,7 @@ export function useLiveScores(
     pollingIntervalRef.current = setInterval(() => {
       void fetchCurrentScoresRef.current();
     }, intervalMs);
-  }, [intervalMs]);
+  }, [enabled, intervalMs]);
 
   /**
    * Stop polling and clear the interval.

@@ -86,6 +86,9 @@ describe("useRoomMatchPool", () => {
         awayGoals: 1,
         startTime: "2026-08-22T11:30:00.000Z",
         kickoffAt: "2026-08-22T11:30:00.000Z",
+        sourceProvider: CATALOGUE_SOURCE_PROVIDER,
+        sourceMatchId: "espn-x",
+        sourceLeagueCode: undefined,
       },
     ]);
   });
@@ -161,6 +164,7 @@ describe("useRoomMatchPool", () => {
       {
         sourceProvider: CATALOGUE_SOURCE_PROVIDER,
         sourceMatchId: "401879322",
+        sourceLeagueCode: null,
         homeTeamName: "Hull City",
         awayTeamName: "Manchester United",
         kickoffAt: "2026-08-22T11:30:00.000Z",
@@ -194,6 +198,7 @@ describe("useRoomMatchPool", () => {
       {
         sourceProvider: MANUAL_SOURCE_PROVIDER,
         sourceMatchId: null,
+        sourceLeagueCode: null,
         homeTeamName: "Local Rovers",
         awayTeamName: "Village FC",
         kickoffAt: null,

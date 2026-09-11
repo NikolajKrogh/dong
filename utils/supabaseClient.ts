@@ -13,6 +13,8 @@ import type {
   AssignmentMode,
   BatchRoomMatchResult,
   EndGameSessionResponse,
+  GameplayCommandResult,
+  GameplayErrorCode,
   ReassignParticipantMatchesInput,
   ReassignParticipantMatchesResponse,
   ReassignmentErrorCode,
@@ -24,7 +26,7 @@ import type {
   RoomAssignmentSettingsRequest,
   RoomSnapshot,
 } from "../types/room";
-import { ReassignmentRpcError } from "../types/room";
+import { GameplayRpcError, ReassignmentRpcError } from "../types/room";
 import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
@@ -54,6 +56,52 @@ export interface GuestRoomRpcClient {
    * picks belong to. Same replace-all semantics.
    */
   setMyRoomPicksAsGuest(guestToken: string, matchIds: string[]): Promise<void>;
+  changeManualScoreAsGuest(input: {
+    guestToken: string;
+    matchId: string;
+    team: "home" | "away";
+    deltaGoals: -1 | 1;
+    idempotencyKey: string;
+  }): Promise<GameplayCommandResult>;
+  changeParticipantDrinkAsGuest(input: {
+    guestToken: string;
+    participantId: string;
+    deltaHalfDrinks: -1 | 1;
+    idempotencyKey: string;
+  }): Promise<GameplayCommandResult>;
+}
+
+export interface ProviderScoreRefreshResult {
+  matchId: string;
+  sourceMatchId: string;
+  provider: "espn";
+  homeScore: number;
+  awayScore: number;
+  sequenceNumber: number;
+  changed: boolean;
+  replayed: boolean;
+}
+
+export interface ProviderScoreRefreshResponse {
+  sessionId: string;
+  requestId: string;
+  status: "updated" | "partial" | "not_due";
+  refreshedAt: string | null;
+  results: ProviderScoreRefreshResult[];
+  warnings: {
+    leagueCode?: string;
+    code:
+      | "provider_unavailable"
+      | "invalid_provider_response"
+      | "match_not_found";
+  }[];
+}
+
+export interface ProviderScoreRefreshClient {
+  refreshProviderScores(
+    sessionId: string,
+    idempotencyKey: string,
+  ): Promise<ProviderScoreRefreshResponse>;
 }
 
 export interface RoomRpcClient {
@@ -77,6 +125,19 @@ export interface RoomRpcClient {
   reassignParticipantMatches(
     input: ReassignParticipantMatchesInput,
   ): Promise<ReassignParticipantMatchesResponse>;
+  changeManualScore(input: {
+    sessionId: string;
+    matchId: string;
+    team: "home" | "away";
+    deltaGoals: -1 | 1;
+    idempotencyKey: string;
+  }): Promise<GameplayCommandResult>;
+  changeParticipantDrink(input: {
+    sessionId: string;
+    participantId: string;
+    deltaHalfDrinks: -1 | 1;
+    idempotencyKey: string;
+  }): Promise<GameplayCommandResult>;
   addRoomMatch(
     sessionId: string,
     request: AddRoomMatchRequest,
@@ -143,6 +204,63 @@ const REASSIGNMENT_ERROR_CODES = new Set<ReassignmentErrorCode>(
   Object.keys(REASSIGNMENT_ERROR_MESSAGES) as ReassignmentErrorCode[],
 );
 
+const GAMEPLAY_ERROR_MESSAGES: Record<GameplayErrorCode, string> = {
+  not_authenticated: "Sign-in is required for this action.",
+  not_room_participant: "You are no longer an active participant in this room.",
+  participant_inactive: "That participant is no longer active.",
+  target_inactive: "That participant is no longer active.",
+  room_not_found: "The room no longer exists.",
+  match_not_in_room: "That match is not part of this room.",
+  invalid_room_state: "The game is no longer accepting gameplay changes.",
+  game_not_in_progress: "The game is no longer running.",
+  manual_score_required: "Only manual matches accept participant score changes.",
+  provider_score_required: "Provider-controlled scores cannot be edited manually.",
+  provider_match_mismatch: "The provider match identity no longer matches the room.",
+  invalid_provider_score: "The provider returned an invalid score.",
+  invalid_delta: "That gameplay change is invalid.",
+  negative_result: "A score or drink total cannot become negative.",
+  idempotency_conflict: "That request has already been used for a different action.",
+  idempotency_key_reused: "That request has already been used for a different action.",
+  not_host: "Only the current host can perform this action.",
+  forbidden: "You do not have access to this room.",
+  guest_token_expired: "The guest room session has expired.",
+  service_unavailable: "The shared game service is unavailable. Reconnect and refresh.",
+  unknown_error: "The shared game could not accept that action.",
+};
+
+const GAMEPLAY_ERROR_CODES = new Set<GameplayErrorCode>(
+  Object.keys(GAMEPLAY_ERROR_MESSAGES) as GameplayErrorCode[],
+);
+
+export const mapGameplayError = (error: unknown) => {
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : "";
+  const code = GAMEPLAY_ERROR_CODES.has(message as GameplayErrorCode)
+    ? (message as GameplayErrorCode)
+    : null;
+  return code ? new GameplayRpcError(code, GAMEPLAY_ERROR_MESSAGES[code]) : null;
+};
+
+const readGameplayResult = (
+  data: unknown,
+  functionName: string,
+): GameplayCommandResult => {
+  if (!data || typeof data !== "object") {
+    throw new Error(`Supabase ${functionName} returned no response payload.`);
+  }
+  const result = data as Partial<GameplayCommandResult>;
+  return {
+    ...result,
+    sessionId: String(result.sessionId ?? ""),
+    sequenceNumber:
+      typeof result.sequenceNumber === "number" ? result.sequenceNumber : null,
+    eventId: typeof result.eventId === "string" ? result.eventId : null,
+    replayed: result.replayed === true,
+  } as GameplayCommandResult;
+};
+
 const mapReassignmentError = (error: unknown) => {
   const message =
     error && typeof error === "object" && "message" in error
@@ -167,6 +285,7 @@ let cachedLegacyHistoryImportRpcClient: LegacyHistoryImportRpcClient | null =
 let cachedGuestRoomRpcClient: GuestRoomRpcClient | null = null;
 let cachedHostRoomRpcClient: HostRoomRpcClient | null = null;
 let cachedRoomRpcClient: RoomRpcClient | null = null;
+let cachedProviderScoreRefreshClient: ProviderScoreRefreshClient | null = null;
 
 const readTrimmedEnvValue = (value: string | undefined) => {
   if (typeof value !== "string") {
@@ -324,7 +443,66 @@ export const createGuestRoomRpcClient = (
         throw error;
       }
     },
+
+    async changeManualScoreAsGuest(input) {
+      const { data, error } = await client
+        .rpc("change_manual_score_as_guest", {
+          guest_token: input.guestToken,
+          match_id: input.matchId,
+          team: input.team,
+          delta_goals: input.deltaGoals,
+          idempotency_key: input.idempotencyKey,
+        })
+        .overrideTypes<GameplayCommandResult, { merge: false }>();
+
+      if (error) {
+        throw mapGameplayError(error) ?? error;
+      }
+      return readGameplayResult(data, "change_manual_score_as_guest");
+    },
+
+    async changeParticipantDrinkAsGuest(input) {
+      const { data, error } = await client
+        .rpc("change_participant_drink_as_guest", {
+          guest_token: input.guestToken,
+          participant_id: input.participantId,
+          delta_half_drinks: input.deltaHalfDrinks,
+          idempotency_key: input.idempotencyKey,
+        })
+        .overrideTypes<GameplayCommandResult, { merge: false }>();
+
+      if (error) {
+        throw mapGameplayError(error) ?? error;
+      }
+      return readGameplayResult(data, "change_participant_drink_as_guest");
+    },
   };
+};
+
+export const createProviderScoreRefreshClient = (
+  client: SupabaseClient = getSupabaseClient(),
+): ProviderScoreRefreshClient => ({
+  async refreshProviderScores(sessionId, idempotencyKey) {
+    const { data, error } = await client.functions.invoke(
+      "refresh-provider-scores",
+      {
+        body: { sessionId },
+        headers: { "Idempotency-Key": idempotencyKey },
+      },
+    );
+    if (error) throw error;
+    if (!data || typeof data !== "object") {
+      throw new Error(
+        "Supabase refresh-provider-scores returned no response payload.",
+      );
+    }
+    return data as ProviderScoreRefreshResponse;
+  },
+});
+
+export const getProviderScoreRefreshClient = () => {
+  cachedProviderScoreRefreshClient ??= createProviderScoreRefreshClient();
+  return cachedProviderScoreRefreshClient;
 };
 
 export const getGuestRoomRpcClient = () => {
@@ -489,15 +667,55 @@ export const createRoomRpcClient = (
       return data;
     },
 
+    async changeManualScore(input) {
+      const { data, error } = await client
+        .rpc("change_manual_score", {
+          session_id: input.sessionId,
+          match_id: input.matchId,
+          team: input.team,
+          delta_goals: input.deltaGoals,
+          idempotency_key: input.idempotencyKey,
+        })
+        .overrideTypes<GameplayCommandResult, { merge: false }>();
+
+      if (error) {
+        throw mapGameplayError(error) ?? error;
+      }
+      return readGameplayResult(data, "change_manual_score");
+    },
+
+    async changeParticipantDrink(input) {
+      const { data, error } = await client
+        .rpc("change_participant_drink", {
+          session_id: input.sessionId,
+          participant_id: input.participantId,
+          delta_half_drinks: input.deltaHalfDrinks,
+          idempotency_key: input.idempotencyKey,
+        })
+        .overrideTypes<GameplayCommandResult, { merge: false }>();
+
+      if (error) {
+        throw mapGameplayError(error) ?? error;
+      }
+      return readGameplayResult(data, "change_participant_drink");
+    },
+
     async addRoomMatch(sessionId, request) {
-      const { data, error } = await client.rpc("add_room_match", {
+      const functionName = request.sourceLeagueCode
+        ? "add_room_match_v2"
+        : "add_room_match";
+      const args = {
         session_id: sessionId,
         source_provider: request.sourceProvider,
         source_match_id: request.sourceMatchId,
         home_team_name: request.homeTeamName,
         away_team_name: request.awayTeamName,
         kickoff_at: request.kickoffAt,
-      });
+        ...(request.sourceLeagueCode
+          ? { source_league_code: request.sourceLeagueCode }
+          : {}),
+      };
+      const { data, error } = await client.rpc(functionName, args);
 
       if (error) {
         throw error;

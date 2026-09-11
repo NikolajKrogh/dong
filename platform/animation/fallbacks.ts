@@ -97,7 +97,8 @@ export const ANIMATION_IMPLEMENTATIONS: CapabilityImplementation[] = [
     driver: "lottie-react-native",
     entryPoint: "platform/animation/PlatformAnimation",
     behaviorClass: "full",
-    notes: "Keeps the existing native splash and loading motion on Android.",
+    notes:
+      "Uses Android-optimized embedded frames for the splash while preserving its native Lottie motion.",
   },
   {
     capability: "animation",

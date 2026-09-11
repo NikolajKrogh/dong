@@ -7,7 +7,7 @@ import { getAnimationFallback } from "./fallbacks";
 
 interface PlatformAnimationProps {
   kind: AnimationKind;
-  source: object;
+  source?: object;
   style?: any;
   autoPlay?: boolean;
   loop?: boolean;

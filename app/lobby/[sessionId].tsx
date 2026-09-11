@@ -47,6 +47,7 @@ import { useRoomExit } from "../../hooks/useRoomExit";
 import { useRoomLobby } from "../../hooks/useRoomLobby";
 import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
 import { useGameStore } from "../../store/store";
+import { roomSnapshotToGameState } from "../../utils/roomSnapshot";
 import { isWideLayout } from "../../styles/responsive";
 import { useColors } from "../../styles/theme";
 import type { AssignmentMode, BatchRoomMatchResult } from "../../types/room";
@@ -118,10 +119,17 @@ const LobbyScreen = () => {
   const setPlayerAssignments = useGameStore(
     (state) => state.setPlayerAssignments,
   );
+  const setActiveGameContext = useGameStore(
+    (state) => state.setActiveGameContext,
+  );
+  const clearActiveGameContext = useGameStore(
+    (state) => state.clearActiveGameContext,
+  );
 
   const goHome = useCallback(() => {
+    clearActiveGameContext?.();
     router.replace("/");
-  }, [router]);
+  }, [clearActiveGameContext, router]);
 
   const [isEndGameConfirmVisible, setIsEndGameConfirmVisible] = useState(false);
 
@@ -186,39 +194,18 @@ const LobbyScreen = () => {
     }
     hasHydratedGameplayRef.current = true;
 
-    setPlayers(
-      snapshot.participants.map((participant) => ({
-        id: participant.id,
-        name: participant.displayName,
-        drinksTaken: participant.currentDrinkTotal,
-      })),
-    );
-    setMatches(
-      snapshot.matches.map((match) => ({
-        id: match.id,
-        homeTeam: match.homeTeamName,
-        awayTeam: match.awayTeamName,
-        homeGoals: match.homeScore,
-        awayGoals: match.awayScore,
-        startTime: match.kickoffAt ?? undefined,
-      })),
-    );
-    setCommonMatchId(snapshot.commonMatchId);
-    setPlayerAssignments(
-      snapshot.participants.reduce<Record<string, string[]>>(
-        (accumulator, participant) => {
-          accumulator[participant.id] = snapshot.assignments
-            .filter(
-              (assignment) =>
-                assignment.participantId === participant.id &&
-                assignment.matchId !== snapshot.commonMatchId,
-            )
-            .map((assignment) => assignment.matchId);
-          return accumulator;
-        },
-        {},
-      ),
-    );
+    const gameState = roomSnapshotToGameState(snapshot);
+    setPlayers(gameState.players);
+    setMatches(gameState.matches);
+    setCommonMatchId(gameState.commonMatchId);
+    setPlayerAssignments(gameState.playerAssignments);
+    setActiveGameContext?.({
+      mode: "multiplayer",
+      sessionId: snapshot.sessionId,
+      participantId,
+      accessKind: "registered",
+      lastAppliedSequence: snapshot.lastEventSequence ?? 0,
+    });
 
     // Hydration always runs -- "Return to game" below needs a populated store --
     // but only a start observed from this lobby redirects.
@@ -233,6 +220,8 @@ const LobbyScreen = () => {
     setMatches,
     setPlayerAssignments,
     setPlayers,
+    setActiveGameContext,
+    participantId,
   ]);
 
   const isHost = lobby.myRole === "owner";

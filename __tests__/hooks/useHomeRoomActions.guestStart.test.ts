@@ -18,6 +18,8 @@ const mockStoreSetters = {
   setMatches: jest.fn(),
   setCommonMatchId: jest.fn(),
   setPlayerAssignments: jest.fn(),
+  setActiveGameContext: jest.fn(),
+  clearActiveGameContext: jest.fn(),
 };
 
 let mockGuestSession: unknown = null;
@@ -78,16 +80,16 @@ jest.mock("../../store/store", () => ({
     selector(mockStoreSetters),
 }));
 
-const buildSession = (state: string) => ({
+const buildSession = (state: string, sessionId = "session-1") => ({
   grant: {
     guestToken: "t",
     participantId: "guest-1",
-    sessionId: "session-1",
+    sessionId,
     joinCode: "ROOM42",
     displayName: "Casey",
   },
   snapshot: {
-    sessionId: "session-1",
+    sessionId,
     joinCode: "ROOM42",
     state,
     commonMatchId: "match-1",
@@ -197,5 +199,22 @@ describe("guest joins the game when the host starts it", () => {
     expect(mockPush).not.toHaveBeenCalled();
     // Hydration still runs, so the game screen has something to show.
     expect(mockStoreSetters.setPlayers).toHaveBeenCalled();
+  });
+
+  it("hydrates a second guest room after leaving the first room identity", () => {
+    mockGuestSession = buildSession("joinable", "session-a");
+    const renderer = renderHook();
+    mockGuestSession = buildSession("in_progress", "session-a");
+    rerender(renderer);
+
+    mockGuestSession = buildSession("joinable", "session-b");
+    rerender(renderer);
+    mockGuestSession = buildSession("in_progress", "session-b");
+    rerender(renderer);
+
+    expect(mockStoreSetters.setActiveGameContext).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sessionId: "session-b", accessKind: "guest" }),
+    );
+    expect(mockStoreSetters.setPlayers).toHaveBeenCalledTimes(2);
   });
 });

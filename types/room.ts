@@ -20,6 +20,7 @@ export interface RoomMatchSummary {
   id: string;
   sourceProvider: string;
   sourceMatchId: string | null;
+  sourceLeagueCode?: string | null;
   homeTeamName: string;
   awayTeamName: string;
   kickoffAt: string | null;
@@ -67,6 +68,10 @@ export interface RoomSnapshot {
   sessionId: string;
   joinCode: string;
   state: RoomState;
+  /** Current host participant, returned by the authoritative active-game snapshot. */
+  ownerParticipantId?: string | null;
+  /** Monotonic room event fence used to reject stale poll responses. */
+  lastEventSequence?: number;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
   participants: RoomParticipantSummary[];
@@ -107,6 +112,65 @@ export type HostLeaveResponse =
 export interface EndGameSessionResponse {
   status: "completed" | "closed";
   sessionId: string;
+}
+
+export type ActiveGameMode = "solo" | "multiplayer";
+export type ActiveGameAccessKind = "registered" | "guest";
+
+export interface ActiveGameContext {
+  mode: ActiveGameMode;
+  sessionId: string | null;
+  participantId: string | null;
+  accessKind: ActiveGameAccessKind | null;
+  lastAppliedSequence: number;
+}
+
+export type GameplayCommandType =
+  | "manual_score"
+  | "drink"
+  | "provider_score"
+  | "reassignment"
+  | "completion";
+
+export type GameplayErrorCode =
+  | "not_authenticated"
+  | "not_room_participant"
+  | "participant_inactive"
+  | "target_inactive"
+  | "room_not_found"
+  | "match_not_in_room"
+  | "invalid_room_state"
+  | "game_not_in_progress"
+  | "manual_score_required"
+  | "provider_score_required"
+  | "provider_match_mismatch"
+  | "invalid_provider_score"
+  | "invalid_delta"
+  | "negative_result"
+  | "idempotency_conflict"
+  | "idempotency_key_reused"
+  | "not_host"
+  | "forbidden"
+  | "guest_token_expired"
+  | "service_unavailable"
+  | "unknown_error";
+
+export interface GameplayCommandResult {
+  sessionId: string;
+  sequenceNumber: number | null;
+  eventId: string | null;
+  replayed: boolean;
+  [key: string]: unknown;
+}
+
+export class GameplayRpcError extends Error {
+  readonly code: GameplayErrorCode;
+
+  constructor(code: GameplayErrorCode, message: string) {
+    super(message);
+    this.name = "GameplayRpcError";
+    this.code = code;
+  }
 }
 
 export interface ReassignParticipantMatchesInput {
@@ -177,6 +241,7 @@ export interface BatchRoomMatchResult {
 export interface AddRoomMatchRequest {
   sourceProvider: string;
   sourceMatchId: string | null;
+  sourceLeagueCode?: string | null;
   homeTeamName: string;
   awayTeamName: string;
   kickoffAt: string | null;
