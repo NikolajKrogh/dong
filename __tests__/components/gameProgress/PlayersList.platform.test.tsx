@@ -41,6 +41,9 @@ const mockStyles = {
   playersListRow: { testStyle: "playersListRow" },
 };
 
+const mockDrinkIncrement = jest.fn();
+const mockDrinkDecrement = jest.fn();
+
 jest.mock("react-native", () => ({
   Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   FlatList: "FlatList",
@@ -73,7 +76,7 @@ jest.mock("../../../styles/gameProgressStyles", () => ({
 
 jest.mock("../../../components/AppIcon", () => () => null);
 
-const renderPlayersList = () => {
+const renderPlayersList = (disabled = false) => {
   const PlayersList =
     require("../../../components/gameProgress/PlayersList").default;
 
@@ -94,8 +97,9 @@ const renderPlayersList = () => {
       ],
       commonMatchId: "m1",
       playerAssignments: { p1: ["m1"], p2: ["m1"] },
-      handleDrinkIncrement: jest.fn(),
-      handleDrinkDecrement: jest.fn(),
+      handleDrinkIncrement: mockDrinkIncrement,
+      handleDrinkDecrement: mockDrinkDecrement,
+      disabled,
     }),
   );
 };
@@ -139,5 +143,26 @@ describe("PlayersList responsive layout", () => {
       mockStyles.listContainer,
       mockStyles.playersListContentWide,
     ]);
+  });
+
+  it("disables drink handlers and animations when editing is unavailable", () => {
+    const renderer = renderPlayersList(true);
+    const list = renderer.root.findByType("FlatList");
+    const card = actCreate(
+      list.props.renderItem({
+        item: { id: "p1", name: "Alice", drinksTaken: 1 },
+      }),
+    );
+    const increment = card.root.findByProps({ testID: "DrinkIncrement-p1" });
+    const decrement = card.root.findByProps({ testID: "DrinkDecrement-p1" });
+
+    expect(increment.props.disabled).toBe(true);
+    expect(decrement.props.disabled).toBe(true);
+    TestRenderer.act(() => {
+      increment.props.onPress();
+      decrement.props.onPress();
+    });
+    expect(mockDrinkIncrement).not.toHaveBeenCalled();
+    expect(mockDrinkDecrement).not.toHaveBeenCalled();
   });
 });

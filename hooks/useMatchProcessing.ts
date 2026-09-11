@@ -94,6 +94,7 @@ export function useMatchProcessing(
           // timestamp (persisting to a multiplayer room) has one. `match.time` is
           // a local "HH:MM" and is not a valid timestamptz.
           kickoffAt: match.startDateTime,
+          sourceLeagueCode: match.leagueCode,
         };
       });
 

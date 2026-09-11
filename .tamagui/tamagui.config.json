@@ -17279,8 +17279,7 @@
                   "width": "33%",
                   "height": "33%",
                   "borderRadius": 1000,
-                  "backgroundColor": "$color",
-                  "pressTheme": true
+                  "backgroundColor": "$color"
                 }
               }
             },
@@ -25425,6 +25424,34 @@
     "onlyAllowShorthands": false,
     "fontLanguages": [],
     "media": {},
+    "animations": {
+      "isReactNative": true,
+      "inputStyle": "value",
+      "outputStyle": "inline",
+      "avoidReRenders": true,
+      "animations": {
+        "quick": {
+          "type": "timing",
+          "duration": 180
+        },
+        "medium": {
+          "type": "timing",
+          "duration": 260
+        },
+        "slow": {
+          "type": "timing",
+          "duration": 420
+        }
+      },
+      "needsCustomComponent": true,
+      "useAnimatedNumber": "Function",
+      "useAnimatedNumberReaction": "Function",
+      "useAnimatedNumberStyle": "Function",
+      "useAnimatedNumbersStyle": "Function",
+      "usePresence": "Function",
+      "ResetPresence": "Function",
+      "useAnimations": "Function"
+    },
     "tokens": {
       "color": {
         "primary": {
@@ -26179,20 +26206,6 @@
       }
     },
     "defaultTheme": "light",
-    "animations": {
-      "isReactNative": false,
-      "inputStyle": "css",
-      "outputStyle": "css",
-      "isStub": true,
-      "animations": {},
-      "useAnimations": "Function",
-      "usePresence": "Function",
-      "ResetPresence": "Function",
-      "useAnimatedNumber": "Function",
-      "useAnimatedNumberStyle": "Function",
-      "useAnimatedNumbersStyle": "Function",
-      "useAnimatedNumberReaction": "Function"
-    },
     "defaultProps": {},
     "settings": {
       "webContainerType": "inline-size"

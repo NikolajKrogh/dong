@@ -23,4 +23,6 @@ export interface MatchQuickActionsModalProps {
   handleGoalDecrement: (matchId: string, team: "home" | "away") => void;
   /** Live match data (if available) used to render API-controlled matches. */
   liveMatches: MatchWithScore[];
+  /** Disable score editing while multiplayer state is not editable. */
+  disabled?: boolean;
 }

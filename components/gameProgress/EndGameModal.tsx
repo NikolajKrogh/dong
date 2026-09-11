@@ -70,8 +70,8 @@ const EndGameModal: React.FC<EndGameModalProps> = ({
             >
               <Text style={modalStyles.modalTitle}>End Game</Text>
               <Text style={modalStyles.modalText}>
-                Are you sure you want to end the current game? This will save
-                the results to history.
+                Are you sure you want to end the current game? This finalizes
+                the shared results for everyone in the room.
               </Text>
               <View style={modalStyles.modalButtons}>
                 <TouchableOpacity
@@ -81,6 +81,7 @@ const EndGameModal: React.FC<EndGameModalProps> = ({
                   <Text style={modalStyles.textStyle}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  testID="EndGameConfirmButton"
                   style={[modalStyles.button, modalStyles.buttonConfirm]}
                   onPress={onConfirm}
                 >

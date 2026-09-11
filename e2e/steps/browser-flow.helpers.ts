@@ -18,6 +18,12 @@ import {
 
 export const PERSISTED_STORE_KEY = "dong-storage" as const;
 
+export const ACTIVE_GAME_ROOM_ID = "active-game-room-1" as const;
+export const ACTIVE_GAME_PARTICIPANT_ID = "active-game-participant-1" as const;
+export const ACTIVE_GAME_GUEST_PARTICIPANT_ID = "active-game-guest-1" as const;
+export const ACTIVE_GAME_SNAPSHOT_RPC_PATH =
+  "**/rest/v1/rpc/get_room_snapshot" as const;
+
 export const LEGACY_HISTORY_IMPORT_SUPABASE_URL =
   "http://127.0.0.1:55321" as const;
 
@@ -400,6 +406,440 @@ export const seedLegacyHistoryImportState = async (page: Page) => {
 
   await page.reload();
   await waitForBrowserFlowReady(page);
+};
+
+/** Minimal canonical snapshot used by the server-authoritative active-game E2E. */
+export const buildActiveGameSnapshot = () => ({
+  sessionId: ACTIVE_GAME_ROOM_ID,
+  joinCode: "ACTIVE1",
+  state: "in_progress" as const,
+  commonMatchId: "active-match",
+  assignmentMode: "automatic" as const,
+  ownerParticipantId: ACTIVE_GAME_PARTICIPANT_ID,
+  lastEventSequence: 7,
+  participants: [
+    {
+      id: ACTIVE_GAME_PARTICIPANT_ID,
+      displayName: "Active Host",
+      membershipType: "registered" as const,
+      sessionRole: "owner" as const,
+      currentDrinkTotal: 1,
+    },
+  ],
+  matches: [
+    {
+      id: "active-match",
+      sourceProvider: "manual",
+      sourceMatchId: null,
+      homeTeamName: "Arsenal",
+      awayTeamName: "Chelsea",
+      kickoffAt: null,
+      homeScore: 2,
+      awayScore: 1,
+    },
+  ],
+  assignments: [
+    {
+      participantId: ACTIVE_GAME_PARTICIPANT_ID,
+      matchId: "active-match",
+    },
+  ],
+  picks: [],
+  assignmentPlan: {
+    participantCount: 1,
+    poolSize: 1,
+    matchesPerPlayer: 1,
+    sharedMatchesPerPair: 0,
+    effectivePerPlayer: 1,
+    requiredPoolSize: 1,
+    relaxedFloor: 2,
+    feasible: true,
+    startable: true,
+  },
+});
+
+/**
+ * Variants used by active-game recovery and authorization journeys. Keeping
+ * these derived from one canonical fixture prevents the browser scenarios
+ * from drifting in roster, assignment, or match shape as the snapshot grows.
+ */
+export const buildActiveGameSnapshotAtSequence = (
+  lastEventSequence: number,
+  overrides: {
+    state?: "joinable" | "in_progress" | "completed" | "closed";
+    [key: string]: unknown;
+  } = {},
+) => ({
+  ...buildActiveGameSnapshot(),
+  lastEventSequence,
+  ...overrides,
+});
+
+export const buildActiveGameGuestSnapshot = () => {
+  const base = buildActiveGameSnapshot();
+  return {
+    ...base,
+    participants: [
+      ...base.participants,
+      {
+        id: ACTIVE_GAME_GUEST_PARTICIPANT_ID,
+        displayName: "Active Guest",
+        membershipType: "guest" as const,
+        sessionRole: "member" as const,
+        currentDrinkTotal: 0,
+      },
+    ],
+    assignments: [
+      ...base.assignments,
+      {
+        participantId: ACTIVE_GAME_GUEST_PARTICIPANT_ID,
+        matchId: "active-match",
+      },
+    ],
+  };
+};
+
+export const buildCompletedActiveGameSnapshot = () =>
+  buildActiveGameSnapshotAtSequence(9, { state: "completed" });
+
+export const buildConcurrentActiveGameSnapshots = () => [
+  buildActiveGameSnapshotAtSequence(8),
+  buildActiveGameSnapshotAtSequence(9, {
+    matches: buildActiveGameSnapshot().matches.map((match) => ({
+      ...match,
+      homeScore: (match.homeScore ?? 0) + 1,
+    })),
+  }),
+];
+
+export const ACTIVE_GAME_MEMBER_ID = "active-game-member-1" as const;
+
+type ActiveTwoClientState = {
+  state: "in_progress" | "completed";
+  lastEventSequence: number;
+  participants: {
+    id: string;
+    displayName: string;
+    membershipType: "registered";
+    sessionRole: "owner" | "member";
+    currentDrinkTotal: number;
+  }[];
+  matches: {
+    id: string;
+    sourceProvider: string;
+    sourceMatchId: string | null;
+    homeTeamName: string;
+    awayTeamName: string;
+    kickoffAt: string | null;
+    homeScore: number;
+    awayScore: number;
+  }[];
+  assignments: { participantId: string; matchId: string }[];
+};
+
+let activeTwoClientState: ActiveTwoClientState | null = null;
+
+export const resetActiveTwoClientFixture = () => {
+  activeTwoClientState = {
+    state: "in_progress",
+    lastEventSequence: 7,
+    participants: [
+      {
+        id: ACTIVE_GAME_PARTICIPANT_ID,
+        displayName: "Active Host",
+        membershipType: "registered",
+        sessionRole: "owner",
+        currentDrinkTotal: 0,
+      },
+      {
+        id: ACTIVE_GAME_MEMBER_ID,
+        displayName: "Active Member",
+        membershipType: "registered",
+        sessionRole: "member",
+        currentDrinkTotal: 0,
+      },
+    ],
+    matches: [
+      {
+        id: "active-common",
+        sourceProvider: "manual",
+        sourceMatchId: "common",
+        homeTeamName: "Common Home",
+        awayTeamName: "Common Away",
+        kickoffAt: null,
+        homeScore: 0,
+        awayScore: 0,
+      },
+      {
+        id: "active-manual",
+        sourceProvider: "manual",
+        sourceMatchId: "manual-1",
+        homeTeamName: "Manual Home",
+        awayTeamName: "Manual Away",
+        kickoffAt: null,
+        homeScore: 0,
+        awayScore: 0,
+      },
+      {
+        id: "active-alternate",
+        sourceProvider: "manual",
+        sourceMatchId: "manual-2",
+        homeTeamName: "Alternate Home",
+        awayTeamName: "Alternate Away",
+        kickoffAt: null,
+        homeScore: 0,
+        awayScore: 0,
+      },
+    ],
+    assignments: [
+      { participantId: ACTIVE_GAME_PARTICIPANT_ID, matchId: "active-common" },
+      { participantId: ACTIVE_GAME_PARTICIPANT_ID, matchId: "active-manual" },
+      { participantId: ACTIVE_GAME_MEMBER_ID, matchId: "active-common" },
+      { participantId: ACTIVE_GAME_MEMBER_ID, matchId: "active-alternate" },
+    ],
+  };
+};
+
+export const getActiveTwoClientFixture = () => {
+  if (!activeTwoClientState) resetActiveTwoClientFixture();
+  return activeTwoClientState!;
+};
+
+export const buildActiveTwoClientSnapshot = () => {
+  const state = getActiveTwoClientFixture();
+  return {
+    sessionId: ACTIVE_GAME_ROOM_ID,
+    joinCode: "ACTIVE1",
+    state: state.state,
+    commonMatchId: "active-common",
+    assignmentMode: "automatic" as const,
+    ownerParticipantId: ACTIVE_GAME_PARTICIPANT_ID,
+    lastEventSequence: state.lastEventSequence,
+    participants: state.participants.map((participant) => ({ ...participant })),
+    matches: state.matches.map((match) => ({ ...match })),
+    assignments: state.assignments.map((assignment) => ({ ...assignment })),
+    picks: [],
+    assignmentPlan: {
+      participantCount: 2,
+      poolSize: state.matches.length,
+      matchesPerPlayer: 1,
+      sharedMatchesPerPair: 0,
+      effectivePerPlayer: 1,
+      requiredPoolSize: 3,
+      relaxedFloor: 2,
+      feasible: true,
+      startable: true,
+    },
+  };
+};
+
+/** Attach one browser's command routes to the shared two-client fixture. */
+export const attachActiveTwoClientMocks = async (
+  page: Page,
+  { reset = false }: { reset?: boolean } = {},
+) => {
+  if (reset || !activeTwoClientState) resetActiveTwoClientFixture();
+
+  await page.route("**/rest/v1/rpc/get_room_snapshot**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildActiveTwoClientSnapshot()),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/change_manual_score**", async (route) => {
+    const body = route.request().postDataJSON() as {
+      match_id: string;
+      team: "home" | "away";
+      delta_goals: number;
+    };
+    const state = getActiveTwoClientFixture();
+    const match = state.matches.find((candidate) => candidate.id === body.match_id);
+    if (!match) {
+      await route.fulfill({ status: 400, body: JSON.stringify({ message: "match_not_in_room" }) });
+      return;
+    }
+    if (body.team === "home") match.homeScore = Math.max(0, match.homeScore + body.delta_goals);
+    else match.awayScore = Math.max(0, match.awayScore + body.delta_goals);
+    state.lastEventSequence += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        sessionId: ACTIVE_GAME_ROOM_ID,
+        matchId: body.match_id,
+        homeScore: match.homeScore,
+        awayScore: match.awayScore,
+        sequenceNumber: state.lastEventSequence,
+        eventId: `event-${state.lastEventSequence}`,
+        replayed: false,
+      }),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/change_participant_drink**", async (route) => {
+    const body = route.request().postDataJSON() as {
+      participant_id: string;
+      delta_half_drinks: number;
+    };
+    const state = getActiveTwoClientFixture();
+    const participant = state.participants.find(
+      (candidate) => candidate.id === body.participant_id,
+    );
+    if (!participant) {
+      await route.fulfill({ status: 400, body: JSON.stringify({ message: "target_inactive" }) });
+      return;
+    }
+    participant.currentDrinkTotal = Math.max(
+      0,
+      participant.currentDrinkTotal + body.delta_half_drinks * 0.5,
+    );
+    state.lastEventSequence += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        sessionId: ACTIVE_GAME_ROOM_ID,
+        participantId: body.participant_id,
+        currentDrinkTotal: participant.currentDrinkTotal,
+        sequenceNumber: state.lastEventSequence,
+        eventId: `event-${state.lastEventSequence}`,
+        replayed: false,
+      }),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/reassign_participant_matches**", async (route) => {
+    const body = route.request().postDataJSON() as {
+      participant_id: string;
+      match_ids: string[];
+    };
+    const state = getActiveTwoClientFixture();
+    const commonMatchId = "active-common";
+    const previous = state.assignments
+      .filter(
+        (assignment) =>
+          assignment.participantId === body.participant_id &&
+          assignment.matchId !== commonMatchId,
+      )
+      .map((assignment) => assignment.matchId);
+    state.assignments = state.assignments.filter(
+      (assignment) =>
+        assignment.participantId !== body.participant_id ||
+        assignment.matchId === commonMatchId,
+    );
+    state.assignments.push(
+      ...body.match_ids.map((matchId) => ({
+        participantId: body.participant_id,
+        matchId,
+      })),
+    );
+    state.lastEventSequence += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        sessionId: ACTIVE_GAME_ROOM_ID,
+        participantId: body.participant_id,
+        addedMatchIds: body.match_ids.filter((matchId) => !previous.includes(matchId)),
+        removedMatchIds: previous.filter((matchId) => !body.match_ids.includes(matchId)),
+        matchIds: body.match_ids,
+        sequenceNumber: state.lastEventSequence,
+      }),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/end_game_session**", async (route) => {
+    const state = getActiveTwoClientFixture();
+    state.state = "completed";
+    state.lastEventSequence += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ status: "completed", sessionId: ACTIVE_GAME_ROOM_ID }),
+    });
+  });
+};
+
+export const seedActiveGameState = async (
+  page: Page,
+  contextOverrides: Partial<{
+    sessionId: string;
+    participantId: string;
+    accessKind: "registered" | "guest";
+    lastAppliedSequence: number;
+  }> = {},
+) => {
+  const activeContext = {
+    mode: "multiplayer" as const,
+    sessionId: contextOverrides.sessionId ?? ACTIVE_GAME_ROOM_ID,
+    participantId:
+      contextOverrides.participantId ?? ACTIVE_GAME_PARTICIPANT_ID,
+    accessKind: contextOverrides.accessKind ?? ("registered" as const),
+    lastAppliedSequence: contextOverrides.lastAppliedSequence ?? 0,
+  };
+  await page.addInitScript(
+    ({ storageKey, activeContext, hostParticipantId }) => {
+      globalThis.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          state: {
+            players: [
+              {
+                id: activeContext.participantId,
+                name:
+                  activeContext.participantId === hostParticipantId
+                    ? "Active Host"
+                    : "Active Member",
+                drinksTaken: 0,
+              },
+            ],
+            matches: [
+              {
+                id: "active-match",
+                homeTeam: "Arsenal",
+                awayTeam: "Chelsea",
+                homeGoals: 0,
+                awayGoals: 0,
+                sourceProvider: "manual",
+              },
+            ],
+            commonMatchId: "active-match",
+            playerAssignments: {
+              [activeContext.participantId]: ["active-match"],
+            },
+            matchesPerPlayer: 1,
+            history: [],
+            theme: "light",
+            activeGameContext: activeContext,
+          },
+          version: 0,
+        }),
+      );
+    },
+    {
+      storageKey: PERSISTED_STORE_KEY,
+      activeContext,
+      hostParticipantId: ACTIVE_GAME_PARTICIPANT_ID,
+    },
+  );
+};
+
+/** Seed a local-only game without any active multiplayer context. */
+export const seedSoloGameState = async (page: Page) => {
+  const state = buildPersistedBrowserStateFromSetupDataset(
+    createSetupJourneyDataset(),
+  );
+  await page.addInitScript(
+    ({ storageKey, persistedState }) => {
+      globalThis.localStorage.setItem(
+        storageKey,
+        JSON.stringify({ state: persistedState.state, version: 0 }),
+      );
+    },
+    { storageKey: PERSISTED_STORE_KEY, persistedState: state },
+  );
 };
 
 export const buildHostRoomAuthSession = () => ({

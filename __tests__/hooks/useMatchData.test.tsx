@@ -107,6 +107,7 @@ describe("useMatchData", () => {
         matches: [
           {
             id: "match-1",
+            leagueCode: "eng.1",
             team1: "Arsenal",
             team2: "Chelsea",
             date: "2026-05-24",
@@ -123,6 +124,7 @@ describe("useMatchData", () => {
         matches: [
           {
             id: "match-2",
+            leagueCode: "usa.1",
             team1: "LA Galaxy",
             team2: "Inter Miami CF",
             date: "2026-05-24",

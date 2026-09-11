@@ -5,11 +5,12 @@ import {
 } from "../../platform";
 
 describe("platform fallback metadata", () => {
-  it("keeps animation descriptor metadata aligned with web fallbacks", () => {
+  it("keeps animation descriptor metadata aligned with platform fallbacks", () => {
     const animationDescriptor = PLATFORM_CAPABILITY_DESCRIPTORS.animation;
     const loadingFallback = getAnimationFallback("loading", "web");
 
     expect(animationDescriptor.fallbackPlatforms).toContain("web");
+    expect(animationDescriptor.fallbackPlatforms).not.toContain("android");
     expect(animationDescriptor.fallbacks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

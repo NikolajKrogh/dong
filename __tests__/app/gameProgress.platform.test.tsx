@@ -1,5 +1,4 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -207,4 +206,53 @@ describe("GameProgressScreen responsive layout", () => {
     expect(shell.props.centerContent).toBe(true);
     expect(shell.props.contentMaxWidth).toBe(1280);
   });
+
+  it("disables multiplayer editing and hides End Game for a non-editable member", () => {
+    mockUseGameProgressController.mockReturnValue({
+      ...controllerState,
+      activeGame: {
+        isMultiplayer: true,
+        isHost: false,
+        isEditable: false,
+        status: "offline",
+        error: "Offline",
+        snapshot: null,
+        ownerParticipantId: "owner",
+        participantId: "p1",
+        pendingMutations: [],
+        lastAppliedSequence: 1,
+        refresh: jest.fn(),
+        changeManualScore: jest.fn(),
+        changeParticipantDrink: jest.fn(),
+        retryMutation: jest.fn(),
+        completeGame: jest.fn(),
+        reassignParticipantMatches: jest.fn(),
+      },
+    } as never);
+    const renderer = renderGameProgressScreen();
+
+    expect(renderer.root.findByProps({ testID: "PlayersList" }).props.disabled).toBe(
+      true,
+    );
+    expect(
+      renderer.root.findByProps({ testID: "MatchQuickActionsModal" }).props.disabled,
+    ).toBe(true);
+    expect(
+      renderer.root.findByProps({ testID: "FooterButtons" }).props.showEndGame,
+    ).toBe(false);
+    mockUseGameProgressController.mockReturnValue(controllerState);
+  });
+});
+
+jest.mock("../../components/gameProgress/MultiplayerGameStatus", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  return {
+    MultiplayerGameStatus: (props: any) =>
+      ReactLocal.createElement(ReactNativeLocal.View, {
+        testID: "MultiplayerGameStatus",
+        ...props,
+      }),
+  };
 });

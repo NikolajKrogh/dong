@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useGameStore } from "../store/store";
+import { roomSnapshotToGameState } from "../utils/roomSnapshot";
 import { useAccountAuth } from "./useAccountAuth";
 import { useGuestRoomJoin } from "./useGuestRoomJoin";
 import { useHostRoomCreate } from "./useHostRoomCreate";
@@ -16,6 +17,9 @@ import { useRoomExit } from "./useRoomExit";
  */
 export const useHomeRoomActions = () => {
   const router = useRouter();
+  const clearActiveGameContext = useGameStore(
+    (state) => state.clearActiveGameContext,
+  );
   const { account } = useAccountAuth();
   const {
     isCreating: isCreatingRoom,
@@ -93,6 +97,7 @@ export const useHomeRoomActions = () => {
     if (!result) {
       return;
     }
+    clearActiveGameContext?.();
     await refreshActiveRoom();
     clearConflict();
     // Retry the original join with the same code.
@@ -110,6 +115,7 @@ export const useHomeRoomActions = () => {
     }
   }, [
     clearConflict,
+    clearActiveGameContext,
     conflictRoom,
     exit,
     joinRegisteredRoom,
@@ -130,6 +136,7 @@ export const useHomeRoomActions = () => {
       if (!result) {
         return;
       }
+      clearActiveGameContext?.();
       await refreshActiveRoom();
       clearConflict();
       const response = await joinRegisteredRoom(registeredJoinCode);
@@ -147,6 +154,7 @@ export const useHomeRoomActions = () => {
     },
     [
       clearConflict,
+      clearActiveGameContext,
       conflictRoom,
       exit,
       joinRegisteredRoom,
@@ -164,6 +172,7 @@ export const useHomeRoomActions = () => {
     if (!result) {
       return;
     }
+    clearActiveGameContext?.();
     await refreshActiveRoom();
     clearConflict();
     const response = await joinRegisteredRoom(registeredJoinCode);
@@ -180,6 +189,7 @@ export const useHomeRoomActions = () => {
     }
   }, [
     clearConflict,
+    clearActiveGameContext,
     conflictRoom,
     exit,
     joinRegisteredRoom,
@@ -200,11 +210,14 @@ export const useHomeRoomActions = () => {
 
   const handleLeaveGuestJoin = useCallback(async () => {
     await leaveGuestRoom();
+    hydratedGuestGameplaySessionIdRef.current = null;
+    seenGuestPreStartRef.current = false;
+    clearActiveGameContext?.();
     setGuestJoinCode("");
     setGuestName("");
     setHasDismissedGuestJoinModal(false);
     setIsGuestJoinModalVisible(false);
-  }, [leaveGuestRoom]);
+  }, [clearActiveGameContext, leaveGuestRoom]);
 
   const guestJoinActionLabel = guestRoomSession
     ? "Return to Guest Room"
@@ -228,7 +241,10 @@ export const useHomeRoomActions = () => {
   const setPlayerAssignments = useGameStore(
     (state) => state.setPlayerAssignments,
   );
-  const hasHydratedGuestGameplayRef = useRef(false);
+  const setActiveGameContext = useGameStore(
+    (state) => state.setActiveGameContext,
+  );
+  const hydratedGuestGameplaySessionIdRef = useRef<string | null>(null);
   // Same discriminator as the registered lobby: without it, opening the guest
   // card on an already-running room bounces straight to the game, and "Leave
   // Guest Room" -- which lives inside that card -- becomes unreachable.
@@ -247,47 +263,24 @@ export const useHomeRoomActions = () => {
     if (
       !guestGameStarted ||
       !guestSnapshot ||
-      hasHydratedGuestGameplayRef.current
+      hydratedGuestGameplaySessionIdRef.current === guestSnapshot.sessionId
     ) {
       return;
     }
-    hasHydratedGuestGameplayRef.current = true;
+    hydratedGuestGameplaySessionIdRef.current = guestSnapshot.sessionId;
 
-    setPlayers(
-      guestSnapshot.participants.map((participant) => ({
-        id: participant.id,
-        name: participant.displayName,
-        drinksTaken: participant.currentDrinkTotal,
-      })),
-    );
-    setMatches(
-      guestSnapshot.matches.map((match) => ({
-        id: match.id,
-        homeTeam: match.homeTeamName,
-        awayTeam: match.awayTeamName,
-        // Coalesced: a guest's scores are nullable where the registered
-        // snapshot's are not, and the game screen increments these.
-        homeGoals: match.homeScore ?? 0,
-        awayGoals: match.awayScore ?? 0,
-        startTime: match.kickoffAt ?? undefined,
-      })),
-    );
-    setCommonMatchId(guestSnapshot.commonMatchId);
-    setPlayerAssignments(
-      guestSnapshot.participants.reduce<Record<string, string[]>>(
-        (accumulator, participant) => {
-          accumulator[participant.id] = guestSnapshot.assignments
-            .filter(
-              (assignment) =>
-                assignment.participantId === participant.id &&
-                assignment.matchId !== guestSnapshot.commonMatchId,
-            )
-            .map((assignment) => assignment.matchId);
-          return accumulator;
-        },
-        {},
-      ),
-    );
+    const gameState = roomSnapshotToGameState(guestSnapshot);
+    setPlayers(gameState.players);
+    setMatches(gameState.matches);
+    setCommonMatchId(gameState.commonMatchId);
+    setPlayerAssignments(gameState.playerAssignments);
+    setActiveGameContext?.({
+      mode: "multiplayer",
+      sessionId: guestSnapshot.sessionId,
+      participantId: guestRoomSession?.grant.participantId ?? null,
+      accessKind: "guest",
+      lastAppliedSequence: guestSnapshot.lastEventSequence ?? 0,
+    });
 
     if (!seenGuestPreStartRef.current) {
       return;
@@ -308,12 +301,24 @@ export const useHomeRoomActions = () => {
     setMatches,
     setPlayerAssignments,
     setPlayers,
+    setActiveGameContext,
+    guestRoomSession,
   ]);
 
   useEffect(() => {
     if (!guestRoomSession) {
+      hydratedGuestGameplaySessionIdRef.current = null;
+      seenGuestPreStartRef.current = false;
       setHasDismissedGuestJoinModal(false);
       return;
+    }
+
+    if (
+      hydratedGuestGameplaySessionIdRef.current !== null &&
+      hydratedGuestGameplaySessionIdRef.current !== guestRoomSession.snapshot.sessionId
+    ) {
+      hydratedGuestGameplaySessionIdRef.current = null;
+      seenGuestPreStartRef.current = false;
     }
 
     // Never auto-open over a running game. This effect re-runs on every poll

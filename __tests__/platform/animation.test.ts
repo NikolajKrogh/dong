@@ -18,6 +18,14 @@ describe("platform animation adapters", () => {
     expect(canUseNativeAnimation("splash", "web")).toBe(false);
   });
 
+  it("keeps splash and lightweight loading animations enabled on Android", () => {
+    expect(getAnimationFallback("splash", "android")).toMatchObject({
+      useNativeRenderer: true,
+      fallbackType: "reducedAnimation",
+    });
+    expect(canUseNativeAnimation("loading", "android")).toBe(true);
+  });
+
   it("renders the provided fallback when native animation is unavailable", () => {
     jest.doMock("react-native", () => createReactNativePlatformMock("web"));
     jest.doMock("../../styles/theme", () => ({

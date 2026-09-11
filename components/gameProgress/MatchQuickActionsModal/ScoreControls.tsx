@@ -20,6 +20,7 @@ interface ScoreControlsProps {
   animateButtonPress: (buttonAnim: Animated.Value) => void;
   handleGoalIncrement: (matchId: string, team: "home" | "away") => void;
   handleGoalDecrement: (matchId: string, team: "home" | "away") => void;
+  disabled?: boolean;
   styles: ReturnType<typeof createStyles>;
 }
 
@@ -43,6 +44,7 @@ export const ScoreControls = ({
   animateButtonPress,
   handleGoalIncrement,
   handleGoalDecrement,
+  disabled = false,
   styles,
 }: ScoreControlsProps) => {
   const colors = useColors();
@@ -81,8 +83,11 @@ export const ScoreControls = ({
         <View style={styles.scoreControlRow}>
           <Animated.View style={{ transform: [{ scale: decrementAnimHome }] }}>
             <TouchableOpacity
+              testID={`ManualScoreDecrement-${matchId}-home`}
               style={[styles.actionButton, styles.blueButton]}
+              disabled={disabled}
               onPress={() => {
+                if (disabled) return;
                 handleGoalDecrement(matchId, "home");
                 animateButtonPress(decrementAnimHome);
               }}
@@ -99,8 +104,11 @@ export const ScoreControls = ({
 
           <Animated.View style={{ transform: [{ scale: incrementAnimHome }] }}>
             <TouchableOpacity
+              testID={`ManualScoreIncrement-${matchId}-home`}
               style={[styles.actionButton, styles.blueButton]}
+              disabled={disabled}
               onPress={() => {
+                if (disabled) return;
                 handleGoalIncrement(matchId, "home");
                 animateButtonPress(incrementAnimHome);
               }}
@@ -116,8 +124,11 @@ export const ScoreControls = ({
         <View style={styles.scoreControlRow}>
           <Animated.View style={{ transform: [{ scale: decrementAnimAway }] }}>
             <TouchableOpacity
+              testID={`ManualScoreDecrement-${matchId}-away`}
               style={[styles.actionButton, styles.blueButton]}
+              disabled={disabled}
               onPress={() => {
+                if (disabled) return;
                 handleGoalDecrement(matchId, "away");
                 animateButtonPress(decrementAnimAway);
               }}
@@ -134,8 +145,11 @@ export const ScoreControls = ({
 
           <Animated.View style={{ transform: [{ scale: incrementAnimAway }] }}>
             <TouchableOpacity
+              testID={`ManualScoreIncrement-${matchId}-away`}
               style={[styles.actionButton, styles.blueButton]}
+              disabled={disabled}
               onPress={() => {
+                if (disabled) return;
                 handleGoalIncrement(matchId, "away");
                 animateButtonPress(incrementAnimAway);
               }}

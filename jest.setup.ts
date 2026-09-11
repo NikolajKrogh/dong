@@ -65,3 +65,13 @@ if (!globalWithAnimation.matchMedia) {
       dispatchEvent: jest.fn(),
     }));
 }
+
+// React 19 reports uncaught test-renderer errors through the browser-style
+// global event API. The React Native Jest environment exposes `window` as a
+// plain object, so provide the one method that reporter path needs.
+const testWindow = (globalThis as typeof globalThis & {
+  window?: { dispatchEvent?: (event: unknown) => boolean };
+}).window;
+if (testWindow && !testWindow.dispatchEvent) {
+  testWindow.dispatchEvent = jest.fn(() => true);
+}

@@ -62,6 +62,7 @@ const mapNormalizedMatchesToApiData = (
       .filter((match) => match.league === league.code)
       .map((match) => ({
         id: match.id,
+        leagueCode: match.league,
         team1: match.homeTeam,
         team2: match.awayTeam,
         date: match.startDateTime.split("T")[0] || "",

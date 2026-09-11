@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { Image } from "react-native";
+import { Image, type ImageStyle } from "react-native";
 import Animated, {
   Easing,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { PlatformAnimation } from "../../platform";
+import { splashAnimationSource } from "../../platform/animation/splashSource";
 import createStyles from "../../styles/indexStyles";
 
 interface HomeSplashProps {
@@ -49,7 +50,7 @@ export const HomeSplash: React.FC<HomeSplashProps> = ({
         },
         (finished) => {
           if (finished) {
-            runOnJS(completeSplash)();
+            scheduleOnRN(completeSplash);
           }
         },
       ),
@@ -64,14 +65,18 @@ export const HomeSplash: React.FC<HomeSplashProps> = ({
     <Animated.View style={[styles.splashContainer, animatedStyle]}>
       <PlatformAnimation
         kind="splash"
-        source={require("../../assets/lottie/dong_logo_animation.json")}
+        source={splashAnimationSource}
         autoPlay
         loop={false}
         style={styles.splashAnimation}
         fallback={
           <Image
             source={require("../../assets/icons/logo_png/dong_logo.png")}
-            style={styles.splashAnimation}
+            resizeMode="contain"
+            style={[
+              styles.splashAnimation as ImageStyle,
+              { alignSelf: "center", width: "80%" },
+            ]}
           />
         }
       />

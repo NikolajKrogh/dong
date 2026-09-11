@@ -8,6 +8,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import EndGameModal from "../components/gameProgress/EndGameModal";
 import FooterButtons from "../components/gameProgress/FooterButtons";
+import { MultiplayerGameStatus } from "../components/gameProgress/MultiplayerGameStatus";
+import { ReassignmentControl } from "../components/gameProgress/ReassignmentControl";
 import MatchesGrid from "../components/gameProgress/MatchesGrid/";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import PlayersList from "../components/gameProgress/PlayersList";
@@ -41,12 +43,38 @@ const GameProgressScreen = () => {
     handleDrinkIncrement,
     handleDrinkDecrement,
     handleBackToSetup,
+    handleGoHome,
     handleEndGame,
     handleGoalIncrement,
     handleGoalDecrement,
     cancelEndGame,
     confirmEndGame,
+    activeGame: activeGameFromController,
   } = useGameProgressController();
+  // Keep the route resilient to older test harnesses and persisted solo state
+  // that predate the multiplayer controller return value.
+  const activeGame =
+    activeGameFromController ??
+    ({
+      isMultiplayer: false,
+      isHost: false,
+      isEditable: false,
+      status: "idle",
+      error: null,
+      snapshot: null,
+      ownerParticipantId: null,
+      participantId: null,
+      pendingMutations: [],
+      lastAppliedSequence: 0,
+      refresh: async () => null,
+      changeManualScore: async () => undefined,
+      changeParticipantDrink: async () => undefined,
+      retryMutation: async () => null,
+      completeGame: async () => null,
+      reassignParticipantMatches: async () => {
+        throw new Error("Multiplayer game context is unavailable.");
+      },
+    } as NonNullable<typeof activeGameFromController>);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -56,6 +84,21 @@ const GameProgressScreen = () => {
         contentMaxWidth={wideLayout ? 1280 : undefined}
       >
         <View style={styles.container}>
+          <MultiplayerGameStatus
+            status={activeGame.status}
+            error={activeGame.error}
+            pendingMutations={activeGame.pendingMutations}
+            onRefresh={() => void activeGame.refresh()}
+            onRetryMutation={(id) => void activeGame.retryMutation(id)}
+          />
+          {activeGame.isHost && activeGame.isEditable && activeGame.snapshot ? (
+            <ReassignmentControl
+              snapshot={activeGame.snapshot}
+              pending={activeGame.status === "refreshing"}
+              disabled={!activeGame.isEditable}
+              onReassign={activeGame.reassignParticipantMatches}
+            />
+          ) : null}
           <TabNavigation
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -93,14 +136,20 @@ const GameProgressScreen = () => {
                 playerAssignments={playerAssignments}
                 handleDrinkIncrement={handleDrinkIncrement}
                 handleDrinkDecrement={handleDrinkDecrement}
+                disabled={activeGame.isMultiplayer && !activeGame.isEditable}
               />
             </View>
           </TabNavigation>
 
           <View style={styles.footerContainer}>
             <FooterButtons
+              onHome={handleGoHome}
               onBackToSetup={handleBackToSetup}
               onEndGame={handleEndGame}
+              showEndGame={
+                !activeGame.isMultiplayer ||
+                (activeGame.isHost && activeGame.isEditable)
+              }
             />
           </View>
         </View>
@@ -117,6 +166,7 @@ const GameProgressScreen = () => {
         handleGoalIncrement={handleGoalIncrement}
         handleGoalDecrement={handleGoalDecrement}
         liveMatches={liveMatches}
+        disabled={activeGame.isMultiplayer && !activeGame.isEditable}
       />
 
       <EndGameModal

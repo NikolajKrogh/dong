@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
+import type { ActiveGameContext } from "../types/room";
 
 type ThemeMode = "light" | "dark";
 
@@ -174,6 +175,10 @@ export interface Match {
   homeGoals: number;
   /** Number of goals scored by the away team. */
   awayGoals: number;
+  /** Multiplayer source identity used to keep provider matches read-only. */
+  sourceProvider?: string;
+  sourceMatchId?: string | null;
+  sourceLeagueCode?: string | null;
   /** Optional total number of goals in the match (legacy / derived). */
   goals?: number;
   /**
@@ -248,6 +253,8 @@ interface GameState {
   configuredLeagues: LeagueEndpoint[];
   /** Default leagues pre-selected when opening match list. */
   defaultSelectedLeagues: LeagueEndpoint[];
+  /** Identifies whether the current game is server-backed or solo-local. */
+  activeGameContext: ActiveGameContext;
 
   // Game history
   /** Completed game sessions history. */
@@ -323,6 +330,10 @@ interface GameState {
   setDefaultSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
   /** Sets the current theme (light or dark). */
   setTheme: (theme: "light" | "dark") => void;
+  setActiveGameContext: (
+    context: Partial<ActiveGameContext>,
+  ) => void;
+  clearActiveGameContext: () => void;
 
   // Actions for game history
   /** Saves current game state as a new history entry. */
@@ -347,6 +358,13 @@ export const useGameStore = create<GameState>()(
       hasVideoPlayed: false,
       ...createDefaultSyncedPreferenceState(),
       history: [],
+      activeGameContext: {
+        mode: "solo",
+        sessionId: null,
+        participantId: null,
+        accessKind: null,
+        lastAppliedSequence: 0,
+      },
 
       // --- Actions ---
       setPlayers: (players) =>
@@ -391,6 +409,23 @@ export const useGameStore = create<GameState>()(
         set({ defaultSelectedLeagues: leagues }),
 
       setTheme: (theme) => set({ theme }),
+      setActiveGameContext: (context) =>
+        set((state) => ({
+          activeGameContext: {
+            ...state.activeGameContext,
+            ...context,
+          },
+        })),
+      clearActiveGameContext: () =>
+        set({
+          activeGameContext: {
+            mode: "solo",
+            sessionId: null,
+            participantId: null,
+            accessKind: null,
+            lastAppliedSequence: 0,
+          },
+        }),
 
       saveGameToHistory: () =>
         set((state) => {
@@ -415,6 +450,13 @@ export const useGameStore = create<GameState>()(
           commonMatchId: null,
           playerAssignments: {},
           matchesPerPlayer: 1,
+          activeGameContext: {
+            mode: "solo",
+            sessionId: null,
+            participantId: null,
+            accessKind: null,
+            lastAppliedSequence: 0,
+          },
           // Note: hasVideoPlayed and soundEnabled are intentionally not reset here
         }),
     }),
@@ -430,6 +472,7 @@ export const useGameStore = create<GameState>()(
         playerAssignments: state.playerAssignments,
         matchesPerPlayer: state.matchesPerPlayer,
         history: state.history,
+        activeGameContext: state.activeGameContext,
         ...serializeSyncedPreferenceState(state),
       }),
     },

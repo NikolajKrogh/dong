@@ -20,6 +20,7 @@ export interface RoomMatchSummary {
   id: string;
   sourceProvider: string;
   sourceMatchId: string | null;
+  sourceLeagueCode?: string | null;
   homeTeamName: string;
   awayTeamName: string;
   kickoffAt: string | null;
@@ -67,6 +68,10 @@ export interface RoomSnapshot {
   sessionId: string;
   joinCode: string;
   state: RoomState;
+  /** Current host participant, returned by the authoritative active-game snapshot. */
+  ownerParticipantId?: string | null;
+  /** Monotonic room event fence used to reject stale poll responses. */
+  lastEventSequence?: number;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
   participants: RoomParticipantSummary[];
@@ -109,6 +114,104 @@ export interface EndGameSessionResponse {
   sessionId: string;
 }
 
+export type ActiveGameMode = "solo" | "multiplayer";
+export type ActiveGameAccessKind = "registered" | "guest";
+
+export interface ActiveGameContext {
+  mode: ActiveGameMode;
+  sessionId: string | null;
+  participantId: string | null;
+  accessKind: ActiveGameAccessKind | null;
+  lastAppliedSequence: number;
+}
+
+export type GameplayCommandType =
+  | "manual_score"
+  | "drink"
+  | "provider_score"
+  | "reassignment"
+  | "completion";
+
+export type GameplayErrorCode =
+  | "not_authenticated"
+  | "not_room_participant"
+  | "participant_inactive"
+  | "target_inactive"
+  | "room_not_found"
+  | "match_not_in_room"
+  | "invalid_room_state"
+  | "game_not_in_progress"
+  | "manual_score_required"
+  | "provider_score_required"
+  | "provider_match_mismatch"
+  | "invalid_provider_score"
+  | "invalid_delta"
+  | "negative_result"
+  | "idempotency_conflict"
+  | "idempotency_key_reused"
+  | "not_host"
+  | "forbidden"
+  | "guest_token_expired"
+  | "service_unavailable"
+  | "unknown_error";
+
+export interface GameplayCommandResult {
+  sessionId: string;
+  sequenceNumber: number | null;
+  eventId: string | null;
+  replayed: boolean;
+  [key: string]: unknown;
+}
+
+export class GameplayRpcError extends Error {
+  readonly code: GameplayErrorCode;
+
+  constructor(code: GameplayErrorCode, message: string) {
+    super(message);
+    this.name = "GameplayRpcError";
+    this.code = code;
+  }
+}
+
+export interface ReassignParticipantMatchesInput {
+  sessionId: string;
+  participantId: string;
+  matchIds: string[];
+  idempotencyKey: string;
+}
+
+export interface ReassignParticipantMatchesResponse {
+  sessionId: string;
+  participantId: string;
+  addedMatchIds: string[];
+  removedMatchIds: string[];
+  matchIds: string[];
+  sequenceNumber: number | null;
+}
+
+export type ReassignmentErrorCode =
+  | "not_authenticated"
+  | "room_not_found"
+  | "not_host"
+  | "host_participant_not_found"
+  | "invalid_reassignment_input"
+  | "game_not_in_progress"
+  | "participant_not_in_room"
+  | "cannot_reassign_common_match"
+  | "match_not_in_room_pool"
+  | "assignment_count_mismatch"
+  | "idempotency_key_reused";
+
+export class ReassignmentRpcError extends Error {
+  readonly code: ReassignmentErrorCode;
+
+  constructor(code: ReassignmentErrorCode, message: string) {
+    super(message);
+    this.name = "ReassignmentRpcError";
+    this.code = code;
+  }
+}
+
 export interface MemberLeaveResponse {
   sessionId: string;
   status: "left";
@@ -138,6 +241,7 @@ export interface BatchRoomMatchResult {
 export interface AddRoomMatchRequest {
   sourceProvider: string;
   sourceMatchId: string | null;
+  sourceLeagueCode?: string | null;
   homeTeamName: string;
   awayTeamName: string;
   kickoffAt: string | null;
@@ -178,6 +282,14 @@ export const ROOM_ERROR = {
   roomNotPlayerPicked: "room_not_player_picked",
   /** The caller isn't an active participant of the room (FR-038a). */
   notAParticipant: "not_a_participant",
+  hostParticipantNotFound: "host_participant_not_found",
+  invalidReassignmentInput: "invalid_reassignment_input",
+  gameNotInProgress: "game_not_in_progress",
+  participantNotInRoom: "participant_not_in_room",
+  cannotReassignCommonMatch: "cannot_reassign_common_match",
+  matchNotInRoomPool: "match_not_in_room_pool",
+  assignmentCountMismatch: "assignment_count_mismatch",
+  idempotencyKeyReused: "idempotency_key_reused",
 } as const;
 
 // NOTE: `start_game_session`'s RPC result (including `filledInParticipantIds`)
