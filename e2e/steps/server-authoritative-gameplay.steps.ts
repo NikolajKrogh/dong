@@ -24,6 +24,39 @@ const secondClient = () => {
   return secondActivePage;
 };
 
+const expectInsideViewport = async (page: Page, locator: ReturnType<Page["getByTestId"]>) => {
+  await expect
+    .poll(async () => {
+      const box = await locator.first().boundingBox();
+      const viewport = page.viewportSize();
+      if (!box || !viewport) return false;
+      return (
+        box.x >= 0 &&
+        box.y >= 0 &&
+        box.x + box.width <= viewport.width &&
+        box.y + box.height <= viewport.height
+      );
+    })
+    .toBe(true);
+  await expect(locator.first()).toHaveCSS("pointer-events", /^(?!none$).+/);
+};
+
+const expectInteractiveSheet = async (
+  page: Page,
+  testId: string,
+  rowTestIds: string[] = [],
+) => {
+  const frame = page.getByTestId(testId);
+  await expect(frame).toBeVisible();
+  await expectInsideViewport(page, frame);
+
+  for (const rowTestId of rowTestIds) {
+    const row = page.getByTestId(rowTestId);
+    await expect(row).toBeVisible();
+    await expectInsideViewport(page, row);
+  }
+};
+
 After(async () => {
   await secondActiveContext?.close();
   secondActiveContext = null;
@@ -52,6 +85,9 @@ Given(
         exact: true,
       }),
     ).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByText("Shared game · synced", { exact: true })).toBeVisible({
       timeout: 20_000,
     });
   },
@@ -127,12 +163,23 @@ When("the browser reloads the active game", async ({ page }) => {
 
 When("the host confirms end game", async ({ page }) => {
   await page.getByTestId("GameProgressMenuButton").click();
-  await page.getByTestId("FooterEndGameButton").evaluate((element) => {
-    (element as HTMLElement).click();
-  });
-  await page.getByTestId("EndGameConfirmButton").evaluate((element) => {
-    (element as HTMLElement).click();
-  });
+  await expectInteractiveSheet(page, "GameActionsSheetFrame", [
+    "FooterHomeButton",
+    "FooterSetupButton",
+    "FooterEndGameButton",
+  ]);
+  const sheetToggle = page.getByTestId("GameProgressSheetMenuButton");
+  await expectInsideViewport(page, sheetToggle);
+  await sheetToggle.click();
+  await expect(page.getByTestId("GameActionsSheetFrame")).toHaveAttribute("data-state", "closed");
+  await page.getByTestId("GameProgressMenuButton").click();
+  await expectInteractiveSheet(page, "GameActionsSheetFrame", [
+    "FooterHomeButton",
+    "FooterSetupButton",
+    "FooterEndGameButton",
+  ]);
+  await page.getByTestId("FooterEndGameButton").click();
+  await page.getByTestId("EndGameConfirmButton").click();
 });
 
 When("the browser opens the solo game", async ({ page, baseURL }) => {
@@ -200,15 +247,10 @@ Then("the host sees the canonical drink total", async ({ page }) => {
 
 When("the host reassigns their match to the alternate fixture", async ({ page }) => {
   await page.getByTestId("ReassignMatchesButton").click();
-  await page.getByTestId("ReassignmentMatch-active-manual").evaluate((element) => {
-    (element as HTMLElement).click();
-  });
-  await page.getByTestId("ReassignmentMatch-active-alternate").evaluate((element) => {
-    (element as HTMLElement).click();
-  });
-  await page.getByTestId("ReassignmentSaveButton").evaluate((element) => {
-    (element as HTMLElement).click();
-  });
+  await expectInteractiveSheet(page, "ReassignmentSheetFrame");
+  await page.getByTestId("ReassignmentMatch-active-manual").click();
+  await page.getByTestId("ReassignmentMatch-active-alternate").click();
+  await page.getByTestId("ReassignmentSaveButton").click();
   await expect(page.getByText("Shared game · synced", { exact: true })).toBeVisible({
     timeout: 20_000,
   });

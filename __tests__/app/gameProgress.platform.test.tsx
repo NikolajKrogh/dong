@@ -149,6 +149,10 @@ jest.mock("../../components/gameProgress/FooterButtons", () => {
     });
 });
 
+jest.mock("../../components/gameProgress/ReassignmentControl", () => ({
+  ReassignmentControl: () => null,
+}));
+
 const renderGameProgressScreen = () => {
   const GameProgressScreen = require("../../app/gameProgress").default;
 
@@ -207,7 +211,7 @@ describe("GameProgressScreen responsive layout", () => {
     expect(shell.props.contentMaxWidth).toBe(1280);
   });
 
-  it("disables multiplayer editing and hides End Game for a non-editable member", () => {
+  it("disables multiplayer editing and End Game for a non-editable member", () => {
     mockUseGameProgressController.mockReturnValue({
       ...controllerState,
       activeGame: {

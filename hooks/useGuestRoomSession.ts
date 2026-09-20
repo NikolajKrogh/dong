@@ -291,7 +291,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       } catch (joinError) {
         setStatus("failed");
         setError(getGuestRoomErrorMessage(joinError));
-        throw joinError;
+        return null;
       }
     },
     [pendingGuestToken, replaceSession, session],

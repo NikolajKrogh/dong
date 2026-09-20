@@ -199,8 +199,13 @@ describe("useGuestRoomJoin", () => {
     await TestRenderer.act(async () => {
       await expect(
         observedHook?.submitGuestJoin("ROOM42", "Casey"),
-      ).rejects.toThrow("transient failure");
+      ).resolves.toBeNull();
     });
+
+    expect(observedHook?.status).toBe("failed");
+    expect(observedHook?.isSubmitting).toBe(false);
+    expect(observedHook?.session).toBeNull();
+    expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
 
     await TestRenderer.act(async () => {
       await observedHook?.submitGuestJoin("ROOM42", "Casey");
@@ -223,7 +228,7 @@ describe("useGuestRoomJoin", () => {
     });
   });
 
-  it("rejects blank guest names before calling the guest join RPC", async () => {
+  it("handles blank guest names before calling the guest join RPC", async () => {
     const joinRoomAsGuest = jest.fn();
 
     mockGetGuestRoomRpcClient.mockReturnValue({
@@ -283,13 +288,15 @@ describe("useGuestRoomJoin", () => {
     await TestRenderer.act(async () => {
       await expect(
         observedHook?.submitGuestJoin("ROOM42", "Casey"),
-      ).rejects.toThrow("room_not_found");
+      ).resolves.toBeNull();
     });
 
     expect(observedHook?.status).toBe("failed");
     expect(observedHook?.error).toBe(
       "We couldn't find that room. Check the code and try again.",
     );
+    expect(observedHook?.isSubmitting).toBe(false);
+    expect(observedHook?.session).toBeNull();
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
 
@@ -324,13 +331,16 @@ describe("useGuestRoomJoin", () => {
     await TestRenderer.act(async () => {
       await expect(
         observedHook?.submitGuestJoin("ROOM42", "Casey"),
-      ).rejects.toThrow("room_not_joinable");
+      ).resolves.toBeNull();
     });
 
     expect(observedHook?.status).toBe("failed");
     expect(observedHook?.error).toBe(
       "This room is no longer accepting guest joins.",
     );
+    expect(observedHook?.isSubmitting).toBe(false);
+    expect(observedHook?.session).toBeNull();
+    expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
 
     TestRenderer.act(() => {
       renderer.unmount();

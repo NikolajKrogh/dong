@@ -26144,6 +26144,7 @@
         "borderColorLight": "#30363d",
         "borderColorLighter": "#343a42",
         "borderColorSubtle": "#2d333b",
+        "dangerForeground": "#ff7582",
         "id": "dark"
       },
       "light": {
@@ -26202,6 +26203,7 @@
         "borderColorLight": "#e0e0e0",
         "borderColorLighter": "#eee",
         "borderColorSubtle": "#e9ecef",
+        "dangerForeground": "#ad1f30",
         "id": "light"
       }
     },

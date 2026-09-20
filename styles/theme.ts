@@ -28,6 +28,7 @@ export const darkColors = {
   primaryTransparentLight: "rgba(88, 166, 255, 0.12)",
   successLight: "#12361c",
   dangerLight: "#3b1519",
+  dangerForeground: "#ff7582",
   warningLight: "#3b2e0d",
   infoLight: "#11343a",
   toastBackground: "#0d1117",

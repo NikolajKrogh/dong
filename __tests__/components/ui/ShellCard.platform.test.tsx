@@ -1,11 +1,12 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
 describe("ShellCard primitive", () => {
   it("renders children inside the card frame", () => {
     const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         null,
@@ -13,11 +14,12 @@ describe("ShellCard primitive", () => {
       )
     );
     expect(tree.toJSON()).toBeDefined();
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("accepts the elevated variant", () => {
     const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         null,
@@ -25,11 +27,12 @@ describe("ShellCard primitive", () => {
       )
     );
     expect(tree.toJSON()).toBeDefined();
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("accepts the compact variant", () => {
     const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         null,
@@ -37,11 +40,12 @@ describe("ShellCard primitive", () => {
       )
     );
     expect(tree.toJSON()).toBeDefined();
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("renders in dark theme without crashing", () => {
     const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = TestRenderer.create(
+    const tree = actCreate(
       React.createElement(
         TamaguiTestProvider,
         { theme: "dark" },
@@ -49,5 +53,6 @@ describe("ShellCard primitive", () => {
       )
     );
     expect(tree.toJSON()).toBeDefined();
+    TestRenderer.act(() => tree.unmount());
   });
 });

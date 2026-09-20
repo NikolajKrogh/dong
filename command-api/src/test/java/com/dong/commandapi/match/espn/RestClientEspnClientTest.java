@@ -4,6 +4,7 @@ import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -40,6 +42,9 @@ class RestClientEspnClientTest {
     void wellFormedResponseIsParsed() {
         server.expect(requestTo(EXPECTED_URI))
                 .andExpect(method(HttpMethod.GET))
+                .andExpect(header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(header(HttpHeaders.USER_AGENT,
+                        "DONG-command-api/0.1 (+https://github.com/NikolajKrogh/dong)"))
                 .andRespond(withSuccess(
                         "{\"events\":[{\"id\":\"401791345\",\"name\":\"Chelsea at Arsenal\","
                                 + "\"date\":\"2026-05-24T19:00:00Z\",\"competitions\":[]}]}",

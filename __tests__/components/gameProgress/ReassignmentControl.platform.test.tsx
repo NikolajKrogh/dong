@@ -4,6 +4,8 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 import type { RoomSnapshot } from "../../../types/room";
 
+let mockSheetProps: Record<string, unknown> = {};
+
 jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     backgroundModalOverlay: "rgba(0,0,0,.5)",
@@ -36,20 +38,31 @@ jest.mock("../../../components/ui", () => {
       { ...props, accessibilityRole: "button" },
       ReactModule.createElement(Text, null, props.label),
     );
+  return { ShellActionButton };
+});
+
+jest.mock("tamagui", () => {
+  const ReactModule = jest.requireActual("react") as typeof React;
   const Sheet = ({
     open,
     children,
+    ...props
   }: {
     open: boolean;
     children: React.ReactNode;
-  }) => (open ? ReactModule.createElement(ReactModule.Fragment, null, children) : null);
+    snapPoints?: number[];
+    snapPointsMode?: string;
+  }) => {
+    mockSheetProps = { open, ...props };
+    return open ? ReactModule.createElement(ReactModule.Fragment, null, children) : null;
+  };
   Object.assign(Sheet, {
     Overlay: () => null,
     Handle: () => null,
-    Frame: ({ children }: { children: React.ReactNode }) =>
-      ReactModule.createElement(ReactModule.Fragment, null, children),
+    Frame: ({ children, ...props }: { children: React.ReactNode; testID?: string }) =>
+      ReactModule.createElement("View", props, children),
   });
-  return { ShellActionButton, Sheet };
+  return { Sheet };
 });
 
 const snapshot: RoomSnapshot = {
@@ -161,8 +174,14 @@ describe("ReassignmentControl", () => {
       }),
     );
 
+    expect(mockSheetProps.snapPoints).toEqual([80]);
+    expect(mockSheetProps.snapPointsMode).toBe("percent");
+    expect(mockSheetProps.animation).toBe("quick");
+
     const openButton = renderer.root.findByProps({ testID: "ReassignMatchesButton" });
     TestRenderer.act(() => openButton.props.onPress());
+
+    expect(renderer.root.findByProps({ testID: "ReassignmentSheetFrame" })).toBeDefined();
 
     const includesText = (needle: string) =>
       renderer.root.findAll((node) => {
