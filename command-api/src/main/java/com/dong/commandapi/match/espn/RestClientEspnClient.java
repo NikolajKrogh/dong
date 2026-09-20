@@ -5,6 +5,8 @@ import com.dong.commandapi.error.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -17,6 +19,8 @@ import java.time.format.DateTimeFormatter;
 public class RestClientEspnClient implements EspnClient {
 
     private static final Logger log = LoggerFactory.getLogger(RestClientEspnClient.class);
+    private static final String UPSTREAM_USER_AGENT =
+            "DONG-command-api/0.1 (+https://github.com/NikolajKrogh/dong)";
 
     private final RestClient restClient;
 
@@ -29,6 +33,8 @@ public class RestClientEspnClient implements EspnClient {
         try {
             EspnScoreboardResponse response = restClient.get()
                     .uri("/{leagueCode}/scoreboard?dates={dates}", leagueCode, matchDate.format(DateTimeFormatter.BASIC_ISO_DATE))
+                    .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                    .header(HttpHeaders.USER_AGENT, UPSTREAM_USER_AGENT)
                     .retrieve()
                     .body(EspnScoreboardResponse.class);
 

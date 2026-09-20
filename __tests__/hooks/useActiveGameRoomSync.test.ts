@@ -613,4 +613,48 @@ describe("active room sync composition", () => {
     expect(endGameSession).toHaveBeenCalledTimes(1);
     await TestRenderer.act(async () => renderer!.unmount());
   });
+
+  it("keeps host actions available during a routine snapshot refresh", async () => {
+    const rpcSnapshot = snapshot();
+    const getRoomSnapshot = jest.fn().mockResolvedValue(rpcSnapshot);
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    useGameStore.setState({
+      activeGameContext: {
+        mode: "multiplayer",
+        sessionId: rpcSnapshot.sessionId,
+        participantId: "participant-1",
+        accessKind: "registered",
+        lastAppliedSequence: 10,
+      },
+    });
+
+    let latest: ReturnType<typeof useActiveGameRoomSync> | undefined;
+    const Probe = () => {
+      latest = useActiveGameRoomSync();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+      await Promise.resolve();
+    });
+    expect(latest!.status).toBe("ready");
+    expect(latest!.isEditable).toBe(true);
+
+    let resolveRefresh!: (value: RoomSnapshot) => void;
+    getRoomSnapshot.mockImplementationOnce(
+      () => new Promise<RoomSnapshot>((resolve) => { resolveRefresh = resolve; }),
+    );
+    let pending!: ReturnType<ReturnType<typeof useActiveGameRoomSync>["refresh"]>;
+    await TestRenderer.act(async () => {
+      pending = latest!.refresh();
+    });
+    expect(latest!.status).toBe("refreshing");
+    expect(latest!.isEditable).toBe(true);
+
+    resolveRefresh(rpcSnapshot);
+    await TestRenderer.act(async () => { await pending; });
+    expect(latest!.status).toBe("ready");
+    await TestRenderer.act(async () => renderer!.unmount());
+  });
 });

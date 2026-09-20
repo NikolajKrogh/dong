@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { Sheet } from "tamagui";
 import {
   ScrollView,
   StyleSheet,
@@ -14,7 +15,7 @@ import type {
   RoomSnapshot,
 } from "../../types/room";
 import { useColors } from "../../styles/theme";
-import { ShellActionButton, Sheet } from "../ui";
+import { ShellActionButton } from "../ui";
 
 type ActiveRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 
@@ -39,6 +40,7 @@ export function ReassignmentControl({
   const { width } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors, width), [colors, width]);
   const [open, setOpen] = useState(false);
+  const [sheetPosition, setSheetPosition] = useState(0);
   const [participantId, setParticipantId] = useState(
     snapshot.participants[0]?.id ?? "",
   );
@@ -62,6 +64,7 @@ export function ReassignmentControl({
     if (disabled || pending || snapshot.state !== "in_progress") return;
     const firstParticipant = snapshot.participants[0]?.id ?? "";
     chooseParticipant(firstParticipant);
+    setSheetPosition(0);
     setOpen(true);
   };
 
@@ -105,18 +108,21 @@ export function ReassignmentControl({
       />
       <Sheet
         open={open}
+        position={sheetPosition}
+        onPositionChange={setSheetPosition}
+        animation="quick"
         onOpenChange={(nextOpen: boolean) => {
           if (!disabled || !nextOpen) setOpen(nextOpen);
         }}
         modal
         dismissOnOverlayPress
         dismissOnSnapToBottom
-        snapPoints={["80%"]}
+        snapPoints={[80]}
         snapPointsMode="percent"
       >
         <Sheet.Overlay backgroundColor={colors.backgroundModalOverlay} />
         <Sheet.Handle />
-        <Sheet.Frame style={styles.dialog}>
+        <Sheet.Frame testID="ReassignmentSheetFrame" style={styles.dialog}>
           <Text style={styles.title}>Reassign matches</Text>
           <Text style={styles.description}>
             Replace one participant&apos;s non-common matches. Accepted scores
@@ -202,8 +208,6 @@ const createStyles = (colors: ReturnType<typeof useColors>, width: number) =>
       backgroundColor: colors.surface,
       borderTopLeftRadius: 16,
       borderTopRightRadius: 16,
-      flex: 0,
-      maxHeight: "80%",
       padding: 20,
       width: Math.min(width - 32, 560),
     },

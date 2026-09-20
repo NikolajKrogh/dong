@@ -28,6 +28,7 @@ export const colors = {
   // --- Status: Danger/Error ---
   danger: "#dc3545",
   dangerLight: "#ffebee",
+  dangerForeground: "#ad1f30",
   dangerText: "#fff",
   dangerOwedText: "#d32f2f",
   error: "#dc3545", // Alias for danger

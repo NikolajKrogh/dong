@@ -38,6 +38,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-audio",
     "expo-web-browser",
     [
+      "expo-dev-client",
+      {
+        launchMode: "most-recent",
+        android: {
+          defaultLaunchURL: "http://localhost:8081",
+        },
+      },
+    ],
+    [
       "expo-splash-screen",
       {
         image: "./assets/icons/splash_screen_dark.png",

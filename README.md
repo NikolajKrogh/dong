@@ -66,8 +66,8 @@ produces failures that look like something else entirely.
 | # | What | Command (run from the repo root unless noted) | Needed for |
 | - | ---- | --------------------------------------------- | ---------- |
 | 1 | Java `command-api` | `cd command-api` then `./mvnw.cmd spring-boot:run` (`./mvnw` on macOS/Linux) | Match discovery and Start Game. Without it the setup flow cannot list fixtures. |
-| 2 | adb reverse tunnel | `npm run android:tunnel` | **Physical Android device only.** Not needed for web or an emulator you reach over localhost. |
-| 3 | Expo dev server | `npx expo start --dev-client --android` (native) or `npx expo start --web` | The app itself. |
+| 2 | Android dev client | `npm run android:dev` | **Physical Android device only.** Establishes reverse tunnels for the command API (`8080`) and Metro (`8081`), starts Metro on IPv4 localhost, and launches the app. |
+| 3 | Expo web server | `npx expo start --web` | Web only. Do not run this separately for the Android flow above. |
 
 **`--dev-client` is not optional for native.** This project depends on
 `expo-dev-client`, so what runs on the device is a *development build*, not Expo
@@ -79,8 +79,9 @@ then waits for you to launch the dev build yourself (or press `a` in the CLI),
 which reads as the same "nothing happened" symptom.
 
 The first time on a machine, and after any change to native dependencies or app
-config, build and install the dev client instead — this also starts the dev server,
-so you do not run step 3 separately:
+config, build and install the dev client once. In particular, the configured
+Android fallback URL is native app configuration, so changing it requires a
+rebuild. After that, use `npm run android:dev` for normal development reloads:
 
 ```bash
 npx expo run:android
@@ -120,7 +121,7 @@ unaffected.
 | Device shows Expo Go, or the dev build will not connect | `npx expo start` was used instead of `npx expo start --dev-client`. See above. |
 | Dev server starts but nothing happens on the device | `--android` was omitted, so nothing launched the app. Add it, press `a` in the CLI, or open the dev build by hand. |
 | App: `Missing command API configuration` | `EXPO_PUBLIC_COMMAND_API_URL` is unset in `.env.local`, or Expo was not restarted with `-c` after adding it. `EXPO_PUBLIC_*` values are inlined at bundle time, so a plain restart keeps serving the old value. |
-| App on device: `Match discovery request timed out` | The reverse tunnel is missing (step 2). Re-run `npm run android:tunnel` — tunnels do not survive a USB re-attach. If you point at a LAN IP instead, a blocked inbound firewall rule presents as a *timeout*, not a refusal. |
+| App on device: `Match discovery request timed out` or Metro tries a stale LAN address | The reverse tunnels are missing. Re-run `npm run android:dev` — tunnels do not survive a USB re-attach. The script maps both command-api `8080` and Metro `8081` to localhost. |
 | Web: `NetworkError when attempting to fetch resource` | CORS. `command-api/.env` must contain `spring.profiles.active=dev`; CORS lives in `application-dev.yml` and is off in every other profile. |
 | Health `DOWN`, component `supabase` | `SUPABASE_ANON_KEY` is missing. Supabase's hosted gateway answers `401 No API key found in request` without it. |
 | Health `DOWN`, component `supabaseJwks` | `SUPABASE_JWKS_URL` is wrong or unreachable. It must include the full path, e.g. `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`. |
@@ -228,11 +229,13 @@ For web preview:
 npx expo start --dev-client
 ```
 
-For Android preview:
+For Android development after installing the dev client once:
 
 ```bash
-npx expo run:android
+npm run android:dev
 ```
+
+Re-run `npx expo run:android` after changing native dependencies or `app.config.ts`.
 
 ### Building The Application
 

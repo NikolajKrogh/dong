@@ -1,15 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import {
-  Animated,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useRef, useState } from "react";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
-import { Sheet } from "../ui";
+import GameActionsSheet from "./GameActionsSheet";
 
 /**
  * Props for FooterButtons.
@@ -22,7 +16,7 @@ interface FooterButtonsProps {
   onBackToSetup: () => void;
   /** Invoked when user selects End Game. */
   onEndGame: () => void;
-  /** Only the current multiplayer host is allowed to see this action. */
+  /** Only the current multiplayer host can use this action. */
   showEndGame?: boolean;
 }
 
@@ -31,7 +25,7 @@ interface FooterButtonsProps {
  * @component
  * @param {FooterButtonsProps} props Component props.
  * @returns {React.ReactElement} Footer menu UI.
- * @description Renders an animated FAB that rotates when expanded; displays a modal overlay containing actionable menu items. Delegates navigation & end-game logic to parent callbacks.
+ * @description Renders an animated FAB that rotates when expanded and delegates action-sheet behavior to GameActionsSheet.
  */
 const FooterButtons: React.FC<FooterButtonsProps> = ({
   onHome,
@@ -43,18 +37,23 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   const colors = useColors();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
-  const [rotation] = useState(() => new Animated.Value(0));
+  const [sheetPosition, setSheetPosition] = useState(0);
+  const rotationRef = useRef<Animated.Value | null>(null);
+  if (rotationRef.current === null) rotationRef.current = new Animated.Value(0);
+  const rotation = rotationRef.current;
 
-  /** Toggle expandable menu visibility with rotation animation. */
+  /** Toggle menu visibility with rotation animation. */
   const toggleMenu = () => {
-    // Animate the button rotation
+    const nextVisible = !menuVisible;
+
     Animated.timing(rotation, {
-      toValue: menuVisible ? 0 : 1,
+      toValue: nextVisible ? 1 : 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
 
-    setMenuVisible(!menuVisible);
+    if (nextVisible) setSheetPosition(0);
+    setMenuVisible(nextVisible);
   };
 
   /** Close menu and reset rotation. */
@@ -69,98 +68,66 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   };
 
   // Interpolate rotation value for the button animation
+  // The ref is intentionally read here because Animated.View needs the stable
+  // native animated node on every render.
+  // eslint-disable-next-line react-hooks/refs
   const rotateInterpolate = rotation.interpolate({
     inputRange: [0, 1],
     outputRange: ["0deg", "45deg"],
   });
 
-  /** Navigate to home then close menu. */
-  const goToHome = () => {
-    onHome?.();
-    router.push("/");
+  const runAction = (action: () => void) => {
     closeMenu();
+    action();
   };
+
+  /** Navigate to home after closing the sheet. */
+  const goToHome = () => {
+    runAction(() => {
+      onHome?.();
+      router.push("/");
+    });
+  };
+
+  const goToSetup = () => runAction(onBackToSetup);
+  const endGame = () => runAction(onEndGame);
+
+  const renderToggle = (inSheet: boolean) => (
+    <TouchableOpacity
+      testID={inSheet ? "GameProgressSheetMenuButton" : "GameProgressMenuButton"}
+      style={styles.menuButton}
+      onPress={toggleMenu}
+      accessibilityRole="button"
+      accessibilityLabel={inSheet ? "Close game actions" : "Open game actions"}
+      accessibilityElementsHidden={!inSheet && menuVisible}
+      importantForAccessibility={!inSheet && menuVisible ? "no-hide-descendants" : "auto"}
+      disabled={!inSheet && menuVisible}
+    >
+      <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
+        <Ionicons name="add" size={24} color={colors.white} />
+      </Animated.View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Tamagui Sheet keeps the action menu mounted consistently on native and web. */}
-      <Sheet
-        open={menuVisible}
+      <GameActionsSheet
+        onBackToSetup={goToSetup}
+        onEndGame={endGame}
+        onHome={goToHome}
         onOpenChange={(open: boolean) =>
           open ? setMenuVisible(true) : closeMenu()
         }
-        modal
-        dismissOnOverlayPress
-        dismissOnSnapToBottom
-        snapPoints={["32%"]}
-        snapPointsMode="percent"
-      >
-        <Sheet.Overlay backgroundColor={colors.backgroundModalOverlay} />
-        <Sheet.Handle />
-        <Sheet.Frame style={styles.sheetFrame}>
-          <View style={styles.menuContainer}>
-            <View style={styles.expandableMenu}>
-              <TouchableOpacity style={styles.menuItem} onPress={goToHome}>
-                <Ionicons
-                  name="home-outline"
-                  size={22}
-                  color={colors.textMuted}
-                />
-                <Text style={styles.menuItemText}>Home</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  onBackToSetup();
-                  closeMenu();
-                }}
-              >
-                <Ionicons
-                  name="settings-outline"
-                  size={22}
-                  color={colors.textMuted}
-                />
-                <Text style={styles.menuItemText}>Setup</Text>
-              </TouchableOpacity>
-
-              {showEndGame ? (
-                <TouchableOpacity
-                  testID="FooterEndGameButton"
-                  style={styles.menuItem}
-                  onPress={() => {
-                    onEndGame();
-                    closeMenu();
-                  }}
-                >
-                  <Ionicons
-                    name="flag-outline"
-                    size={22}
-                    color={colors.danger}
-                  />
-                  <Text style={[styles.menuItemText, { color: colors.danger }]}>
-                    End Game
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-          </View>
-        </Sheet.Frame>
-      </Sheet>
+        onPositionChange={setSheetPosition}
+        open={menuVisible}
+        position={sheetPosition}
+        showEndGame={showEndGame}
+        floatingToggle={renderToggle(true)}
+      />
 
       {/* Menu toggle button */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          testID="GameProgressMenuButton"
-          style={styles.menuButton}
-          onPress={toggleMenu}
-          accessibilityRole="button"
-          accessibilityLabel="Open game actions"
-        >
-          <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
-            <Ionicons name="add" size={24} color={colors.white} />
-          </Animated.View>
-        </TouchableOpacity>
+        {renderToggle(false)}
       </View>
     </View>
   );
@@ -170,46 +137,6 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     container: {
       position: "relative",
-    },
-    modalOverlay: {
-      flex: 1,
-      justifyContent: "flex-end",
-      paddingBottom: 74,
-      paddingHorizontal: 24,
-    },
-    sheetFrame: {
-      alignItems: "center",
-      backgroundColor: colors.surface,
-      paddingBottom: 24,
-      paddingTop: 8,
-    },
-    menuContainer: {
-      alignSelf: "flex-start",
-    },
-    expandableMenu: {
-      backgroundColor: colors.surface,
-      borderRadius: 12,
-      paddingVertical: 8,
-      paddingHorizontal: 4,
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
-      elevation: 5,
-      width: 160,
-    },
-    menuItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: 12,
-      paddingHorizontal: 16,
-      borderRadius: 8,
-      marginVertical: 4,
-    },
-    menuItemText: {
-      fontSize: 16,
-      marginLeft: 16,
-      color: colors.textMuted,
     },
     footer: {
       flexDirection: "row",

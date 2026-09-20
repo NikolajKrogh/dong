@@ -575,7 +575,12 @@ export const useActiveGameRoomSync = () => {
   const isHost = Boolean(
     context.participantId && ownerParticipantId === context.participantId,
   );
-  const isEditable = isMultiplayer && status === "ready" && snapshot?.state === "in_progress";
+  // Keep actions available against the last accepted snapshot while a poll is
+  // in flight. A failed poll still moves to offline/access_lost and disables them.
+  const isEditable =
+    isMultiplayer &&
+    (status === "ready" || status === "refreshing") &&
+    snapshot?.state === "in_progress";
 
   const completeGame = useCallback(async () => {
     const currentContext = contextRef.current;

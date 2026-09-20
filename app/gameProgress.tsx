@@ -91,7 +91,7 @@ const GameProgressScreen = () => {
             onRefresh={() => void activeGame.refresh()}
             onRetryMutation={(id) => void activeGame.retryMutation(id)}
           />
-          {activeGame.isHost && activeGame.isEditable && activeGame.snapshot ? (
+          {activeGame.isHost && activeGame.snapshot?.state === "in_progress" ? (
             <ReassignmentControl
               snapshot={activeGame.snapshot}
               pending={activeGame.status === "refreshing"}
