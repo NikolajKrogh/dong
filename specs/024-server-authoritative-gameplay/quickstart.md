@@ -15,7 +15,6 @@ npm run db:start
 npm run db:reset
 npm run db:test
 npx supabase functions serve refresh-provider-scores
-npm run test:e2e -- --grep "server-authoritative"
 ```
 
 pgTAP covers registered/guest authorization, departed users, manual/provider
@@ -26,9 +25,9 @@ permissions, and the offline solo branch. Jest also covers Edge request helpers,
 scoreboard normalization, malformed events, concurrency, and timeouts. JUnit
 covers the retained Java discovery integration. Local Edge integration uses an
 authenticated test user and a mocked `PROVIDER_SCORE_ESPN_BASE_URL`; CI must not
-call live ESPN. The tagged Playwright smoke covers resumed
-canonical hydration, stale reconnect, host completion, solo isolation, and the
-complete two-client score/drink/reassign/reconnect/complete journey.
+call live ESPN. Prior tagged Playwright results are historical. Do not add or
+run E2E tests for the 2026-09-27 amendment; the user owns the pending manual
+browser and physical-device acceptance below.
 
 ## Physical Android smoke
 
@@ -42,10 +41,18 @@ adb reverse tcp:54321 tcp:54321
 npm run android
 ```
 
-On the device, join/start the same room; record a manual goal and half-drink;
-background/resume; reassign when host; and complete. Confirm web convergence
-within five seconds and identical final state. Record device serial, build,
-date, and pass/fail evidence in the implementation handoff.
+The user performs this acceptance after an isolated test room is available.
+Join/start the same room in browser and on the device; record a manual goal and
+half-drink; background/resume; reassign when host; and complete. Confirm
+five-second synchronization and terminal-notice targets. Verify the host
+reaches unchanged Home directly; the guest sees Room Ended, its five-second
+countdown pauses in background and resumes with the remaining time, then routes
+Home. With a screen reader enabled, verify the accessible Home button and
+absence of timed navigation. Current React Native Web accessibility detection
+reports enabled for every browser session, so the browser currently follows
+button-only behavior; do not record that as countdown acceptance. Record device
+serial, build, date, browser/version, measured times, accessibility mode, and
+evidence. No E2E test may be added or run for this amendment.
 
 ## Failure checks
 
@@ -122,3 +129,14 @@ snapshot function. Retain accepted events and canonical completed history.
   scenarios passing before the two-worker retry exhausted the heap).
 - Hosted authenticated Android-plus-web validation remains pending under T051;
   browser mocks and local database tests do not satisfy that release gate.
+
+## Room-ended manual checklist (2026-09-27)
+
+Android is user-confirmed working; no agent manual testing was performed.
+- End as host: host goes Home; guest sees the explanation without Retry Join.
+- Measure detection separately from five foreground seconds; background/resume pauses countdown.
+- Check immediate Home button, Android Back, screen-reader button-only dismissal.
+- Reconnect: no restored room or stale errors; join a new room from unchanged Home.
+- Check dark mode, large text and safe areas.
+
+No E2E tests added/run. Browser uses button-only dismissal because RN Web always reports screen-reader mode; browser countdown preference remains pending.

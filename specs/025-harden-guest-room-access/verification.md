@@ -1,6 +1,6 @@
 # #191 verification — 2026-09-20
 
-**Current task status (2026-09-27): all Spec Kit tasks are closed on the user's confirmation that all needed verification is complete.** T041, T053, and T055 were closed at the user's direction. This is user-confirmed verification, not an assertion that Codex independently reran the hosted canary, collected p95 latency figures, or issued a release certification. Network-origin diversity remains outside T040 scope. Historical evidence below retains the scope and status recorded when each check was performed.
+**Prior #191 closeout (2026-09-27):** The original task set was closed at the user's direction. T041, T053, and T055 were user-confirmed; this does not claim Codex independently reran the hosted canary, collected p95 latency figures, or issued a release certification. The later guest-departure amendment has T071–T073 implemented and T074 still open for manual browser/Android verification. Network-origin diversity remains outside T040 scope. Historical evidence below retains the scope and status recorded when each check was performed.
 
 ## 2026-09-26 expiry-aware roster regression (open baseline repro)
 
@@ -149,3 +149,16 @@ FR-001–010, FR-013–019 have local automated coverage in varying depth, but a
 - The user confirmed that all verification needing to be done has been verified and requested that all remaining tasks be closed.
 - T041, T053, and T055 are therefore marked complete in `tasks.md` based on that confirmation. No new hosted traffic probe, sustained 1 Hz observation, invalid-request test, p95 measurement, or independent release audit was performed by Codex for this closeout; no numerical latency or additional backend evidence is claimed.
 - This closeout supersedes the earlier task-open status statements as a record of task tracking. It does not claim independent Codex verification or change the scope of the historical evidence above.
+
+## Friendly room-ended verification (2026-09-27)
+
+- Applied migration 20260927145117_guest_room_completion_signal to DONG qccvlhblytuedgmlqfef. Existing Edge ingress forwards the new envelope; no redeployment required.
+- Focused Jest: 10 suites, 77 tests passed.
+- Hosted rollback-only SQL: 270=15, 304=18, 312=15; 48 assertions passed.
+- Targeted ESLint: zero errors. Full TypeScript checking has unrelated existing diagnostics; no full-project green claim.
+- Independent client and SQL reviews completed without outstanding blocking findings.
+- User confirms Android works; individual unreported edge cases are not claimed verified.
+- Explicit user-scoped E2E exception: none added or run. No agent manual browser/device tests.
+- Cross-artifact analysis: secure terminal classification, serialized cleanup, once-only navigation and separate detection/countdown timing align. Convergence leaves browser countdown preference in 024 T066; RN Web currently reports screen-reader mode for every session and uses button-only dismissal.
+
+User subsequently confirmed: Browser also works. Android and browser acceptance are user-confirmed; browser remains button-only with the installed RN Web accessibility API. This does not claim browser countdown timing was verified.

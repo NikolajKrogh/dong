@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { useRouter } from "expo-router";
 
 import { useLiveScores } from "./useLiveScores";
@@ -36,8 +36,12 @@ const useGameProgressController = () => {
   } = uiState;
   const { visibilityState } = useAppVisibility();
   const activeGame = useActiveGameRoomSync();
+  const lastActiveSessionIdRef = useRef<string | null>(null);
+  const terminalSessionIdRef = useRef<string | null>(null);
 
   const {
+    activeGameContext,
+    endedGuestSessionId,
     players,
     matches,
     commonMatchId,
@@ -50,6 +54,38 @@ const useGameProgressController = () => {
     soundEnabled,
     commonMatchNotificationsEnabled,
   } = useGameStore();
+
+  if (activeGameContext.sessionId) {
+    lastActiveSessionIdRef.current = activeGameContext.sessionId;
+  }
+
+  useEffect(() => {
+    const isTerminal = activeGame.status === "ended"
+      || activeGame.status === "access_lost"
+      || activeGame.snapshot?.state === "completed"
+      || activeGame.snapshot?.state === "closed";
+    const sessionId = activeGame.snapshot?.sessionId
+      ?? activeGameContext.sessionId
+      ?? lastActiveSessionIdRef.current;
+    if (!activeGame.isMultiplayer || !isTerminal || !sessionId
+      || endedGuestSessionId === sessionId
+      || terminalSessionIdRef.current === sessionId) {
+      return;
+    }
+
+    terminalSessionIdRef.current = sessionId;
+    resetState();
+    router.replace("/");
+  }, [
+    activeGame.isMultiplayer,
+    activeGame.snapshot?.sessionId,
+    activeGame.snapshot?.state,
+    activeGame.status,
+    activeGameContext.sessionId,
+    resetState,
+    router,
+    endedGuestSessionId,
+  ]);
   const { playGoalSound } = useGoalSound({
     enabled: soundEnabled,
     visibilityState,

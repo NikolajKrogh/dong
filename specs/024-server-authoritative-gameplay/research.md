@@ -2,14 +2,25 @@
 
 ## R1. Synchronization transport
 
-**Decision**: Reuse `get_room_snapshot` with a four-second active-game poll,
-plus immediate fetch on mount, foreground, reconnect, and successful commands.
-Add `lastEventSequence` to snapshots and command results; ignore older snapshots.
+**Decision**: Registered participants use a private `room:<session UUID>`
+Realtime channel for an empty `room_changed` Broadcast and Presence. An
+authorized subscription or presence change triggers the existing canonical
+snapshot RPC; the message payload never carries game state. The database emits
+the Broadcast from committed gameplay events. Keep the four-second poll,
+foreground refresh, mount hydration, and sequence fencing as recovery paths.
+Only registered participants in an `in_progress` room may authorize the
+channel; terminal rooms converge through the polling fallback.
+Guests continue polling because their room-scoped bearer grants are not Auth
+JWTs; do not make their channel public or put a guest credential in its topic.
 
-**Rationale**: The lobby already proves this polling path, it meets the
-five-second budget, and sequence fencing prevents slow responses rolling state
-back. **Rejected**: Realtime adds channel/guest authorization work without an
-acceptance benefit here; client timestamps do not define commit order.
+**Rationale**: Issue #140 explicitly asks to restore subscriptions and presence.
+Private channels plus `realtime.messages` RLS preserve the existing trust
+boundary, while canonical RPC reads keep Broadcast payloads advisory. Guests
+still recover within the existing poll bound. Supabase documents channel
+authorization through `realtime.messages` RLS and private channels at
+[Realtime Authorization](https://supabase.com/docs/guides/realtime/authorization)
+and client/database Broadcast at
+[Broadcast](https://supabase.com/docs/guides/realtime/broadcast).
 
 ## R2. Transactions, ordering, and idempotency
 
@@ -78,8 +89,10 @@ In-place optimistic store mutation does not.
 
 ## R7. Completion and history
 
-**Decision**: Use the existing canonical `end_game_session` transaction. Show a
-read-only final snapshot before leaving and never call local history creation
+**Decision**: Use the existing canonical `end_game_session` transaction and
+retain the database state `completed`, because history read models include only
+that state. A completion event revokes guest grants; clients fetch the final
+canonical snapshot and leave the game screen. Never call local history creation
 for multiplayer. Solo completion remains unchanged.
 
 **Rationale**: #186 already preserves assignment history; room ordering decides
@@ -87,11 +100,11 @@ whether an in-flight action precedes completion or is rejected after it.
 
 ## R8. UI and testing
 
-**Decision**: Use Tamagui for new responsive multiplayer/reassignment surfaces.
-Use existing Jest/react-test-renderer for hooks and pure Edge modules, pgTAP for
-persistence, JUnit for retained Java discovery, Playwright BDD for two clients,
-and ADB for native smoke. Do not add RNTL
-solely for this feature.
+**Decision**: Use existing Jest/react-test-renderer for hooks and pure Edge
+modules, pgTAP for persistence and privileges, JUnit for retained Java
+discovery, manual browser verification, and ARTEMIS for the connected Android
+device. Do not create or run E2E tests for this task, per the user's explicit
+instruction. Do not add RNTL solely for this feature.
 
 Supabase guidance requires careful function privileges and recommends an
 explicit `search_path` for `SECURITY DEFINER`; new functions therefore revoke
@@ -107,3 +120,35 @@ available. The generated guidance is retained in `tamagui-prompt.md`; the
 multiplayer status and host reassignment surfaces use the existing shared
 Tamagui-backed UI primitives while keeping their platform-specific modal and
 layout behavior behind React Native-compatible components.
+
+## R10. Guest-only Room Ended outcome
+
+**Decision**: Preserve direct navigation to the existing Home screen for the
+host and registered participants. A guest whose grant was valid when canonical
+host completion committed receives only a data-free `room_ended` outcome; the
+client clears its guest grant and active-room context once and shows a standalone
+Room Ended screen. With screen-reader access disabled, its visible five-second
+countdown measures only interactive foreground time and pauses while inactive.
+Screen-reader users receive one explicit accessible Home action and no timed
+redirect. Repeated poll, Realtime, and foreground signals use a single
+non-persisted marker and navigation owner.
+
+**Races and cleanup**: Room completion, confirmed guest leave, and grant expiry
+are distinguished by server ordering. Only a grant active when completion
+commits receives `room_ended`; a grant expired or revoked first keeps the
+generic access-loss result. The terminal result never authorizes a snapshot or
+mutation. Any completion-only grant-matching metadata is non-reversible and is
+non-authorizing; retained with the existing historical participant row without deleting participants,
+completed gameplay/history, or abuse counts.
+
+**Platform limitation**: Current React Native Web accessibility detection
+reports enabled for every browser session. Until the pending platform-choice
+question is resolved, web follows the safe button-only path; do not claim the
+five-second timer is available to all web users.
+
+**Coverage**: Automated pgTAP/Jest/static checks cover terminal mapping,
+expiry/completion/leave ordering, cleanup, history preservation, countdown
+timing, accessibility, and exact-once navigation. The user owns pending manual
+browser and physical Android acceptance in T051. No E2E may be added or run for
+this amendment; the new substantial screen's Principle V E2E requirement is
+intentionally unmet and tracked in `plan.md`.

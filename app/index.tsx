@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -22,6 +22,7 @@ import { GuestJoinModal } from "../components/guestJoin/GuestJoinModal";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { ShellActionButton, ShellScreen } from "../components/ui";
 import { useHomeRoomActions } from "../hooks/useHomeRoomActions";
+import { useHistory } from "../hooks/useHistory";
 import { useGameStore } from "../store/store";
 import { getTopDrinker, getTotalDrinks } from "../utils/homeStats";
 import createStyles from "../styles/indexStyles";
@@ -45,7 +46,9 @@ const HomeScreen = () => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const wideLayout = isWideLayout(width);
-  const { players, matches, history, resetState } = useGameStore();
+  const { players, matches, resetState } = useGameStore();
+  const { history, refresh: refreshHistory, accountId: historyAccountId } = useHistory();
+  useFocusEffect(useCallback(() => { void refreshHistory(); }, [refreshHistory]));
   const {
     account,
     activeRoom,
@@ -207,6 +210,17 @@ const HomeScreen = () => {
                 topDrinkerInfo={topDrinkerInfo}
                 totalDrinks={totalDrinks}
                 onPress={handleOpenHistory}
+              />
+            )}
+
+            {history.length === 0 && historyAccountId !== null && (
+              <ShellActionButton
+                variant="surface"
+                label="View History"
+                testID="home-history-button"
+                onPress={handleOpenHistory}
+                widthMode={wideLayout ? "wide" : undefined}
+                style={{ marginTop: 16 }}
               />
             )}
 

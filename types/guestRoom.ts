@@ -1,7 +1,7 @@
 import type { AssignmentMode, AssignmentPlan } from "./room";
 
 export type GuestRoomSessionStatus =
-  "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired" | "pending_leave" | "renewing" | "left";
+  "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired" | "pending_leave" | "renewing" | "left" | "ended";
 
 /**
  * The room states a guest can observe.
@@ -30,6 +30,7 @@ export type GuestRoomErrorCode =
   | "protected_storage_unavailable"
   | "secure_random_unavailable"
   | "guest_access_lost"
+  | "room_ended"
   | "not_permitted"
   | "invalid_request"
   | "unknown_error";

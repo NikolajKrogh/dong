@@ -28,6 +28,12 @@
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
+- [x] Recovery describes missed notifications and canonical re-read
+- [x] Completion describes home navigation and ended guest access
+- [x] Completion and notification recovery have measurable time bounds
+- [x] Host and registered-client completion routing is distinct from guest terminal routing
+- [x] Guest countdown defines foreground timing, background pause, and screen-reader action
+- [x] Completion terminal cause is distinct from prior grant expiry and repeated signals are idempotent
 
 ## Notes
 
@@ -38,3 +44,11 @@
   the related issues as tracking records.
 - Provider-score transport is intentionally deferred to planning; the required
   user-visible authority and correction behavior is specified in FR-018.
+- Issue #140 clarifies live recovery. Guests remain on the bounded snapshot poll
+  because their room grants are not Supabase Auth credentials.
+- `completed` remains the history state; it is terminal for active gameplay and
+  guest access. The user explicitly prohibited E2E tests for this work.
+- The 2026-09-27 Room Ended screen is specified, but Principle V E2E coverage
+  remains intentionally unmet under the user's no-E2E instruction. User-performed
+  browser/Android evidence is pending in T051; this checklist records spec
+  completeness, not runtime acceptance.

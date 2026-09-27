@@ -57,7 +57,10 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         drinks: playerInGame?.drinksTaken || 0,
       };
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Latest first
+    .sort((a, b) => {
+      if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
 
   return (
     <Modal

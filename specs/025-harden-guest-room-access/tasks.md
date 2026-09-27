@@ -2,9 +2,9 @@
 
 **Input**: [plan](plan.md), [spec](spec.md), [research](research.md), [data model](data-model.md), [RPC contract](contracts/guest-access-rpcs.md), [storage contract](contracts/credential-storage.md), [quickstart](quickstart.md).
 
-**Tests**: Required by FR-017 and the DONG constitution. Write each story's failing pgTAP/Jest/BDD assertions before its implementation; browser mocks are not a substitute for hosted or physical-device evidence.
+**Tests**: Existing #191 coverage remains historical. The 2026-09-27 amendment adds pgTAP/Jest checks; the user explicitly prohibited adding or running E2E tests for this work, so its browser/native acceptance is tracked as manual T074.
 
-**2026-09-27 status:** All tasks are closed. The user confirmed that the remaining verification is complete and requested closure of T041, T053, and T055; see the user-confirmed closeout in `verification.md`. This records the user's verification and does not claim Codex independently reran the hosted canary or measured p95 latency. Historical evidence and its original scope remain documented below.
+**2026-09-27 status:** The original task set was closed at the user's direction; see the prior closeout in `verification.md`. The guest-departure amendment below adds T071–T074: T071–T073 are implemented and T074 remains open pending manual browser/Android verification. Historical evidence and its original scope remain documented below.
 
 **Organization**: Four user-story phases in spec priority order. The single additive migration is `supabase/migrations/20260920095616_harden_guest_room_access.sql`; edits to it are sequential, not parallel. Each checkbox has an exact repository path. `[P]` denotes different-file work without an unfinished task dependency.
 
@@ -55,22 +55,22 @@
 
 ## Phase 4: User Story 2 — Guest access ends predictably (P1)
 
-**Goal**: Expiry, rotation, completed/closed access, and honest leave outcomes without changing #165 in-progress departure semantics.
+**Goal**: Expiry, rotation, completed/closed access, and honest leave outcomes without changing #165 settled gameplay or history effects.
 
 **Independent Test**: Rotate with a lost response and restart, then prove old token cannot read/act; expire, leave, complete, and close separate rooms and verify the specified read/write matrix and UI recovery.
 
 ### Tests first
 
 - [X] T020 [P] [US2] Add failing atomic rotation, exact retry tuple, expiry, and old-hash denial assertions in `supabase/tests/database/303_guest_grant_rotation.test.sql`; verify concurrent copied-token replay with independent database sessions in `scripts/test-guest-concurrency.mjs`.
-- [X] T021 [P] [US2] Add failing confirmed/pending leave, one leave event, completed final-only read, and closed denial assertions in `supabase/tests/database/304_guest_grant_lifecycle.test.sql`; verify a room-close/rotation terminal race with independent database sessions in `scripts/test-guest-concurrency.mjs`.
+- [X] T021 [P] [US2] Add confirmed/pending leave, one leave event, original completed final-only read, and closed denial assertions in `supabase/tests/database/304_guest_grant_lifecycle.test.sql`; T073 later supersedes the final-read assertion with host-completion revocation. Verify a room-close/rotation terminal race with independent database sessions in `scripts/test-guest-concurrency.mjs`.
 - [X] T022 [P] [US2] Extend `__tests__/hooks/useGuestRoomSession.test.ts` with failing proactive renewal, persist-before-call, crash/restart retry, no old-token poll, offline leave retry, and accurate expiry/rejoin copy tests.
 - [X] T023 [P] [US2] Add web expiry/renewal/confirmed-leave/completed-final/closed-room scenarios in `e2e/features/guest-room-join.feature` and `e2e/steps/guest-room-join.steps.ts`, initially failing against current browser fixtures.
 
 ### Implementation
 
 - [X] T024 [US2] Add `rotate_guest_room_grant(old_token,new_token,operation_id)` and bounded previous-hash retry confirmation to `supabase/migrations/20260920095616_harden_guest_room_access.sql`; swap hash/expiry transactionally, without storing or echoing the new raw bearer.
-- [X] T025 [US2] Route guest snapshot, picks, score, and drink operations through the shared resolver in `supabase/migrations/20260920095616_harden_guest_room_access.sql`; apply current/expired/left/room-state checks and a final-result-only completed projection while preserving game-command idempotency.
-- [X] T026 [US2] Correct `leave_room_as_guest` in `supabase/migrations/20260920095616_harden_guest_room_access.sql` to revoke only on confirmed permitted leave, produce one event, return `not_permitted` for #165 in-progress scope, and never claim success on an unrevoked active grant.
+- [X] T025 [US2] Route guest snapshot, picks, score, and drink operations through the shared resolver in `supabase/migrations/20260920095616_harden_guest_room_access.sql`; apply current/expired/left/room-state checks and the original final-result-only completed projection while preserving game-command idempotency. T073 later revokes completed-room guest reads.
+- [X] T026 [US2] Implement the original joinable-only leave boundary in `supabase/migrations/20260920095616_harden_guest_room_access.sql`; its in-progress `not_permitted` behavior is superseded by the later confirmed-departure amendment in T071.
 - [X] T027 [US2] Extend `types/guestRoom.ts` with grant expiry, rotation ID, pending leave, and confirmed/invalid/not-permitted outcomes aligned to `contracts/guest-access-rpcs.md`.
 - [X] T028 [US2] Implement rotation/leave RPCs and parse access-loss/terminal envelopes in `utils/supabaseClient.ts`, preserving compatible existing snapshot success fields.
 - [X] T029 [US2] Implement proactive renewal, persisted pending replacement before RPC, exact retry on uncertain response, protected pending-leave retry, and terminal/access-loss clearing in `hooks/useGuestRoomSession.ts`.
@@ -192,3 +192,18 @@ US2 relies on US1's protected pending-token storage and joined identity. US3 rel
 **Incremental completion**: Add US2 for bounded/revocable grants, US3 for verified server abuse controls, US4 for comprehensive boundary audit, then complete all local, hosted, web, and physical-native release gates. If the hosted caller address is spoofable or unverifiable, stop at T040 and revise the ingress design before proceeding to release.
 
 **Notes**: Tests should be observed failing for the intended reason before implementation. Do not reset a linked database, overwrite unrelated local work, put service/Vault secrets in the client, or equate browser mocks with hosted or physical-device validation. Optional Spec Kit git-commit hooks are not prerequisites to the tasks.
+
+## User-reported guest departure amendment (2026-09-27)
+
+- [x] T071 Allow a guest with a valid grant to leave a joinable or in-progress room; on confirmed in-progress leave, set `left_at`, append one `participant_left` event, deny the old grant, and preserve settled gameplay/history. Add pgTAP coverage.
+- [x] T072 Return a confirmed/pending outcome from `useGuestRoomSession.leaveRoom`; only clear local room context and close the guest modal after the server confirms or reports access already invalid. Add Jest coverage for confirmed, denied, and offline outcomes.
+- [x] T073 Verify host completion invalidates guest snapshot and mutation access without deleting the historical participant or changing scores, assignments, or events; extend pgTAP coverage in coordination with #140 T061.
+- [ ] T074 Manually verify the in-progress leave and host-completion paths in the browser and on the connected Android device after an isolated test room is available; record that guest access loss and host-completion home navigation meet #140 SC-011's five-second target. No E2E test may be added or run for this task.
+
+## Friendly room-ended amendment
+
+- [x] T075 Add secure room_ended response in migration 20260927145117 and database test 312.
+- [x] T076 Preserve terminal reason; serialize cleanup and reject stale responses and duplicate navigation.
+- [x] T077 Run focused unit/database/static checks and independent review; see verification.md. No E2E.
+
+Android is user-confirmed working; browser timing and unreported manual subcases remain pending.

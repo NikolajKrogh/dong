@@ -3,6 +3,8 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
 
 jest.mock("expo-router", () => ({
+  useRootNavigationState: () => ({ key: "root" }),
+  useRouter: () => ({ replace: jest.fn() }),
   Stack: Object.assign(
     ({ children }: { children: React.ReactNode }) => children,
     { Screen: () => null }

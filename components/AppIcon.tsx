@@ -35,6 +35,7 @@ type AppIconName =
   | "person-outline"
   | "play"
   | "remove"
+  | "stats-chart-outline"
   | "time"
   | "time-outline"
   | "trash-outline"
@@ -84,6 +85,7 @@ const ICON_MAP: Record<AppIconName, IoniconName> = {
   "person-outline": "person-outline",
   play: "play",
   remove: "remove",
+  "stats-chart-outline": "stats-chart-outline",
   time: "time",
   "time-outline": "time-outline",
   "trash-outline": "trash-outline",

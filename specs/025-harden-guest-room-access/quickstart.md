@@ -24,7 +24,7 @@ npx tsc --noEmit
 
 `db:reset` is intentionally omitted: it is destructive. T049's fresh-install rehearsal has passed in a separate disposable CLI workdir using hash-matched current migrations/tests; the existing local stacks were not reset. The full run passed 50 pgTAP files / 721 assertions, and the fresh PostgREST stack denied direct execution of all seven guest RPCs. Independent local database sessions also verified quota concurrency, rotation replay, and the terminal-room race; hosted concurrency/performance remains open. The whole-repo TypeScript check has recorded typing failures; do not treat Jest/lint success as a clean typecheck.
 
-For web E2E, `npm run test:e2e -- --grep "Guest Room Join"` starts/uses the configured web server and runs desktop/phone-sized Chromium mocks. It checks join, same-tab restore, completed final read, confirmed leave, expiry, access-loss copy, and browser-secret placement. These fixtures do not prove hosted authorization. Before authoring mobile test code, explore the installed app with ARTEMIS as required by `AGENTS.md`.
+The existing #191 web E2E scenario uses desktop/phone-sized Chromium mocks to check join, same-tab restore, completed final read, confirmed leave, expiry, access-loss copy, and browser-secret placement; it does not prove hosted authorization. It is historical coverage and was not run for the 2026-09-27 amendment, per the user's instruction. That amendment uses the manual browser/Android checks in T051 and T074, including timing the convergence/home-navigation checks against the five-second target. Before authoring mobile test code, explore the installed app with ARTEMIS as required by `AGENTS.md`.
 
 ## Hosted security and performance gates
 
@@ -46,10 +46,14 @@ For web E2E, `npm run test:e2e -- --grep "Guest Room Join"` starts/uses the conf
 - Run the focused pgTAP case for registered, valid guest, expired guest, and left guest in both host and guest snapshots. Verify the private eligibility helper is not client-callable, assignment feasibility and game start exclude only the expired guest, and an over-limit attempt stays limited after expiry. Verify a started game's participant list, assignments, scores, events, and caller/code abuse-window counts remain unchanged after expiry.
 - Run the snapshot conversion and lobby component tests, then the web guest-room scenario. Confirm lobby roster and pre-start allocation lists consume activeRoster, while roomSnapshotToGameState continues consuming participants.
 - For physical Android verification, use a fresh test room on the already-approved pre-release Supabase project, expire only that test guest grant, and confirm the next successful refresh removes the guest from the lobby roster without recording a leave. Do not run a traffic/abuse load probe as part of this roster check.
-- Complete local migration dry-run and targeted pgTAP/Jest/Playwright checks before any hosted migration. Record the exact target and test-room cleanup state in verification.md; never substitute a browser mock for hosted authorization or device evidence.
+- Complete local migration dry-run and targeted pgTAP/Jest checks plus manual browser/Android verification before any hosted migration. Record the exact target and test-room cleanup state in verification.md; never substitute a browser mock for hosted authorization or device evidence.
 
 ## Migration compatibility and recovery
 
 - Run the global duplicate-hash preflight against the exact target before deploy. Historical `IMP-` completed-room placeholders are re-randomized by the migration and future legacy imports by the insertion trigger; real duplicate active bearers still abort migration. Verify existing imported history and signed-in room reads after deployment.
 - Deploy additive SQL first, provision the Vault key, reload PostgREST schema cache if necessary, then canary the upgraded client. Older clients calling original guest RPCs now fail closed. Deploy the `guest-room-access` function and upgraded client; require an app upgrade.
 - If a rollout breaks, use a forward SQL/client fix. Never restore an expired, replaced, or revoked bearer. Affected guests may rejoin only while the room is joinable. Preserve immutable gameplay history and inspect pending leave/rotation records before any recovery action.
+
+## Friendly room-ended acceptance
+
+Use the Room-ended manual checklist in ../024-server-authoritative-gameplay/quickstart.md. Android is user-confirmed working; unreported subcases and browser timing remain pending. Detection and the five-second explanation are separate measurements. No E2E tests or agent manual tests were run.

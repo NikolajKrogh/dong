@@ -17,6 +17,7 @@ import { useRoomExit } from "./useRoomExit";
  */
 export const useHomeRoomActions = () => {
   const router = useRouter();
+  const endedGuestSessionId = useGameStore((state) => state.endedGuestSessionId);
   const clearActiveGameContext = useGameStore(
     (state) => state.clearActiveGameContext,
   );
@@ -211,14 +212,7 @@ export const useHomeRoomActions = () => {
 
   const handleLeaveGuestJoin = useCallback(async () => {
     await leaveGuestRoom();
-    hydratedGuestGameplaySessionIdRef.current = null;
-    seenGuestPreStartRef.current = false;
-    clearActiveGameContext?.();
-    setGuestJoinCode("");
-    setGuestName("");
-    setHasDismissedGuestJoinModal(false);
-    setIsGuestJoinModalVisible(false);
-  }, [clearActiveGameContext, leaveGuestRoom]);
+  }, [leaveGuestRoom]);
 
   const guestJoinActionLabel = guestRoomSession
     ? "Return to Guest Room"
@@ -246,6 +240,7 @@ export const useHomeRoomActions = () => {
     (state) => state.setActiveGameContext,
   );
   const hydratedGuestGameplaySessionIdRef = useRef<string | null>(null);
+  const handledGuestDepartureRef = useRef(false);
   // Same discriminator as the registered lobby: without it, opening the guest
   // card on an already-running room bounces straight to the game, and "Leave
   // Guest Room" -- which lives inside that card -- becomes unreachable.
@@ -264,6 +259,7 @@ export const useHomeRoomActions = () => {
     if (
       !guestGameStarted ||
       !guestSnapshot ||
+      guestSnapshot.sessionId === endedGuestSessionId ||
       hydratedGuestGameplaySessionIdRef.current === guestSnapshot.sessionId
     ) {
       return;
@@ -305,14 +301,38 @@ export const useHomeRoomActions = () => {
     setActiveGameContext,
     guestRoomSession,
     guestRoomStatus,
+    endedGuestSessionId,
   ]);
 
   useEffect(() => {
+    if (guestRoomStatus === "ended" || (guestRoomSession && guestRoomSession.grant.sessionId === endedGuestSessionId)) {
+      hydratedGuestGameplaySessionIdRef.current = null;
+      seenGuestPreStartRef.current = false;
+      setGuestJoinCode("");
+      setGuestName("");
+      setIsGuestJoinModalVisible(false);
+      setHasDismissedGuestJoinModal(false);
+      return;
+    }
+    if (guestRoomStatus !== "left") {
+      handledGuestDepartureRef.current = false;
+    }
     if (!guestRoomSession) {
       hydratedGuestGameplaySessionIdRef.current = null;
       seenGuestPreStartRef.current = false;
       setHasDismissedGuestJoinModal(false);
-      if (guestRoomStatus === "pending_leave" || guestRoomStatus === "renewing" || guestRoomStatus === "expired" || guestRoomStatus === "left") {
+      if (guestRoomStatus === "left") {
+        if (!handledGuestDepartureRef.current) {
+          handledGuestDepartureRef.current = true;
+          clearActiveGameContext?.();
+          setGuestJoinCode("");
+          setGuestName("");
+          setIsGuestJoinModalVisible(false);
+          router.replace("/");
+        }
+        return;
+      }
+      if (guestRoomStatus === "pending_leave" || guestRoomStatus === "renewing" || guestRoomStatus === "expired") {
         setIsGuestJoinModalVisible(true);
       }
       return;
@@ -338,7 +358,15 @@ export const useHomeRoomActions = () => {
     if (!hasDismissedGuestJoinModal) {
       setIsGuestJoinModalVisible(true);
     }
-  }, [guestGameStarted, guestRoomSession, guestRoomStatus, hasDismissedGuestJoinModal]);
+  }, [
+    clearActiveGameContext,
+    guestGameStarted,
+    guestRoomSession,
+    guestRoomStatus,
+    hasDismissedGuestJoinModal,
+    router,
+    endedGuestSessionId,
+  ]);
 
   return {
     account,

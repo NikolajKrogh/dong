@@ -14,6 +14,13 @@ const mockUseAccountAuth = jest.fn(() => ({
   account: null as { id: string } | null,
 }));
 
+const mockRefreshHistory = jest.fn();
+const mockPush = jest.fn();
+const mockUseHistory = jest.fn();
+jest.mock("../../hooks/useHistory", () => ({
+  useHistory: () => mockUseHistory(),
+}));
+
 const mockUseHostRoomCreate = jest.fn(() => ({
   isCreating: false,
   error: null as string | null,
@@ -100,8 +107,11 @@ jest.mock("../../hooks/useRoomExit", () => ({
 }));
 
 jest.mock("expo-router", () => ({
+  useFocusEffect: (callback: () => void) => {
+    require("react").useEffect(callback, [callback]);
+  },
   useRouter: () => ({
-    push: jest.fn(),
+    push: mockPush,
   }),
 }));
 
@@ -268,6 +278,13 @@ describe("HomeScreen platform adoption", () => {
     mockStoreState.matches = [];
     mockStoreState.history = [];
     mockStoreState.resetState = jest.fn();
+    mockRefreshHistory.mockClear();
+    mockPush.mockClear();
+    mockUseHistory.mockImplementation(() => ({
+      history: mockStoreState.history,
+      refresh: mockRefreshHistory,
+      accountId: null,
+    }));
   });
 
   afterEach(() => {
@@ -294,6 +311,32 @@ describe("HomeScreen platform adoption", () => {
     TestRenderer.act(() => {
       renderer.unmount();
     });
+  });
+
+  it("shows cloud history on Home without local games and opens History", () => {
+    mockUseHistory.mockReturnValue({
+      history: [{ id: "cloud-game", players: [], matches: [] }],
+      refresh: mockRefreshHistory,
+      accountId: "host",
+    });
+    const HomeScreen = require("../../app/index").default;
+    const renderer = actCreate(React.createElement(HomeScreen));
+    expect(mockStoreState.history).toEqual([]);
+    const card = renderer.root.findByProps({ testID: "home-history-stats-card" });
+    TestRenderer.act(() => card.props.onPress());
+    expect(mockPush).toHaveBeenCalledWith("/history");
+    expect(mockRefreshHistory).toHaveBeenCalled();
+    TestRenderer.act(() => renderer.unmount());
+  });
+
+  it("keeps History reachable before cloud games load", () => {
+    mockUseHistory.mockReturnValue({ history: [], refresh: mockRefreshHistory, accountId: "host" });
+    const HomeScreen = require("../../app/index").default;
+    const renderer = actCreate(React.createElement(HomeScreen));
+    const button = renderer.root.findByProps({ testID: "home-history-button" });
+    TestRenderer.act(() => button.props.onPress());
+    expect(mockPush).toHaveBeenCalledWith("/history");
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("shows ShellActionButton for Start New Game when no game in progress", () => {

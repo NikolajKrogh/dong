@@ -12,11 +12,18 @@ import {
   GameplayRpcError as GameplayRpcErrorClass,
   ReassignmentRpcError,
 } from "../types/room";
-import { readGuestRoomSessionGrant } from "../utils/guestRoom";
+import {
+  getGuestRoomErrorCode,
+  isExpiredGuestRoomError,
+  readGuestRoomPendingLeave,
+  readGuestRoomSessionGrant,
+} from "../utils/guestRoom";
+import { confirmGuestRoomEnded, isGuestRoomEnded } from "../utils/guestRoomTermination";
 import {
   getGuestRoomRpcClient,
   getProviderScoreRefreshClient,
   getRoomRpcClient,
+  getSupabaseClient,
   mapGameplayError,
 } from "../utils/supabaseClient";
 import { generateIdempotencyKey } from "../utils/commandApiClient";
@@ -197,6 +204,7 @@ export const useActiveGameRoomSync = () => {
         currentContext.mode !== "multiplayer" ||
         !expectedSessionId ||
         currentContext.sessionId !== expectedSessionId ||
+        (currentContext.accessKind === "guest" && isGuestRoomEnded(expectedSessionId)) ||
         nextSnapshot.sessionId !== expectedSessionId
       ) {
         return false;
@@ -249,6 +257,7 @@ export const useActiveGameRoomSync = () => {
     }
     const generation = generationRef.current;
     const sessionId = currentContext.sessionId;
+    if (currentContext.accessKind === "guest" && isGuestRoomEnded(sessionId)) return null;
     if (refreshInFlightRef.current === generation) {
       return snapshotRef.current;
     }
@@ -258,6 +267,13 @@ export const useActiveGameRoomSync = () => {
     try {
       let nextSnapshot: CompatibleRoomSnapshot;
       if (currentContext.accessKind === "guest") {
+        const pendingLeave = await readGuestRoomPendingLeave();
+        if (generationRef.current !== generation) return null;
+        if (pendingLeave?.sessionId === sessionId) {
+          setStatus("offline");
+          setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
+          return snapshotRef.current;
+        }
         guestGrantRef.current ??= await readGuestRoomSessionGrant();
         if (generationRef.current !== generation) return null;
         const grant = guestGrantRef.current;
@@ -292,23 +308,59 @@ export const useActiveGameRoomSync = () => {
           sessionId,
         );
       }
+      if (currentContext.accessKind === "guest") {
+        const pendingLeave = await readGuestRoomPendingLeave();
+        if (generationRef.current !== generation) return null;
+        if (pendingLeave?.sessionId === sessionId) {
+          setStatus("offline");
+          setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
+          return snapshotRef.current;
+        }
+      }
       applySnapshot(nextSnapshot, generation, sessionId);
       return nextSnapshot;
     } catch (refreshError) {
       if (generationRef.current !== generation) return null;
+      if (currentContext.accessKind === "guest" && getGuestRoomErrorCode(refreshError) === "room_ended") {
+        generationRef.current += 1;
+        pendingRef.current = [];
+        commandsRef.current.clear();
+        setPendingMutations([]);
+        try {
+          await confirmGuestRoomEnded(sessionId);
+        } catch {
+          setError("Secure guest storage could not be cleared.");
+        }
+        return null;
+      }
       const mapped = refreshError instanceof GameplayRpcErrorClass
         ? refreshError
         : mapGameplayError(refreshError);
       if (
-        mapped &&
-        [
+        currentContext.accessKind === "guest" &&
+        isExpiredGuestRoomError(refreshError)
+      ) {
+        try {
+          const pendingLeave = await readGuestRoomPendingLeave();
+          if (pendingLeave?.sessionId === sessionId) {
+            setStatus("offline");
+            setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
+            return null;
+          }
+        } catch {
+          // If protected storage is unavailable, keep the regular access-loss path.
+        }
+      }
+      if (
+        (currentContext.accessKind === "guest" && isExpiredGuestRoomError(refreshError))
+        || (mapped && [
           "not_authenticated",
           "not_room_participant",
           "participant_inactive",
           "room_not_found",
           "guest_token_expired",
           "forbidden",
-        ].includes(mapped.code)
+        ].includes(mapped.code))
       ) {
         setStatus("access_lost");
         setAccessLost(true);
@@ -435,6 +487,7 @@ export const useActiveGameRoomSync = () => {
       }
 
       commandsRef.current.set(mutation.id, command);
+      const generation = generationRef.current;
       updatePending(
         pendingRef.current.some((candidate) => candidate.id === mutation.id)
           ? pendingRef.current.map((candidate) =>
@@ -444,10 +497,12 @@ export const useActiveGameRoomSync = () => {
       );
       try {
         const result = await command();
+        if (generationRef.current !== generation || (currentContext.accessKind === "guest" && isGuestRoomEnded(currentContext.sessionId))) return result;
         applyCommandResult(mutation, result);
         commandsRef.current.delete(mutation.id);
         return result;
       } catch (mutationError) {
+        if (generationRef.current !== generation || (currentContext.accessKind === "guest" && isGuestRoomEnded(currentContext.sessionId))) throw mutationError;
         if (isStableGameplayError(mutationError)) {
           commandsRef.current.delete(mutation.id);
           updatePending(
@@ -665,6 +720,47 @@ export const useActiveGameRoomSync = () => {
       setAccessLost(false);
     }
   }, [accessLost, context.mode, context.sessionId]);
+
+  useEffect(() => {
+    if (
+      !isMultiplayer ||
+      context.accessKind !== "registered" ||
+      !context.sessionId ||
+      !context.participantId ||
+      !isInteractive
+    ) {
+      return;
+    }
+
+    const client = getSupabaseClient();
+    const channel = client.channel(`room:${context.sessionId}`, {
+      config: { private: true, presence: { key: context.participantId } },
+    });
+    let previousPresence = "";
+    channel.on("broadcast", { event: "room_changed" }, () => {
+      void refresh();
+    });
+    channel.on("presence", { event: "sync" }, () => {
+      const currentPresence = Object.keys(channel.presenceState()).sort().join("|");
+      if (currentPresence === previousPresence) return;
+      previousPresence = currentPresence;
+      if (currentPresence) void refresh();
+    });
+    channel.subscribe((state) => {
+      if (state === "SUBSCRIBED") void channel.track({});
+    });
+
+    return () => {
+      void client.removeChannel(channel);
+    };
+  }, [
+    context.accessKind,
+    context.participantId,
+    context.sessionId,
+    isInteractive,
+    isMultiplayer,
+    refresh,
+  ]);
 
   useEffect(() => {
     if (!isMultiplayer) {

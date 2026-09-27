@@ -48,6 +48,13 @@ participant, access kind, and last sequence. Guest secrets stay in the existing
 guest grant. `PendingGameplayMutation` holds an ephemeral request UUID, target,
 and optimistic delta; it is never auto-replayed after restart.
 
+Host completion also sets a non-persisted `endedGuestSessionId` marker for one
+root-layout navigation owner. The marker is published once, the guest credential
+and active-room context are cleared once, and repeated polling/Realtime/
+foreground signals must not restart the countdown or navigate twice. The Room
+Ended timer is ephemeral UI state and pauses while the app/browser is inactive;
+it is not persisted in game state or history.
+
 ## Invariants
 
 1. Mutations require `in_progress` and active membership.

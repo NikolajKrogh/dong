@@ -255,6 +255,8 @@ interface GameState {
   defaultSelectedLeagues: LeagueEndpoint[];
   /** Identifies whether the current game is server-backed or solo-local. */
   activeGameContext: ActiveGameContext;
+  /** In-memory terminal notice; deliberately excluded from persistence. */
+  endedGuestSessionId: string | null;
 
   // Game history
   /** Completed game sessions history. */
@@ -358,6 +360,7 @@ export const useGameStore = create<GameState>()(
       hasVideoPlayed: false,
       ...createDefaultSyncedPreferenceState(),
       history: [],
+      endedGuestSessionId: null,
       activeGameContext: {
         mode: "solo",
         sessionId: null,
