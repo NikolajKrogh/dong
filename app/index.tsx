@@ -62,6 +62,7 @@ const HomeScreen = () => {
     registeredJoinCode,
     setRegisteredJoinCode,
     guestRoomSession,
+    guestRoomStatus,
     guestRoomError,
     isGuestJoinSubmitting,
     submitGuestJoin,
@@ -328,6 +329,7 @@ const HomeScreen = () => {
               void submitGuestJoin(guestJoinCode, guestName);
             }}
             session={guestRoomSession}
+            status={guestRoomStatus}
             visible={isGuestJoinModalVisible}
           />
 

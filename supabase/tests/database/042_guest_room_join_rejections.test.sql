@@ -1,7 +1,8 @@
 BEGIN;
+\ir guest_abuse_setup.inc
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(4);
+SELECT plan(7);
 CREATE TEMP TABLE guest_room_rejection_context AS WITH host_auth AS (
     INSERT INTO auth.users (
             id,
@@ -52,6 +53,16 @@ closed_session AS (
         'in_progress'::public.session_state
     FROM host_account
     RETURNING id
+),
+completed_session AS (
+    INSERT INTO public.game_sessions (owner_account_id, join_code, state)
+    SELECT id, 'DONE42', 'completed'::public.session_state
+    FROM host_account RETURNING id
+),
+truly_closed_session AS (
+    INSERT INTO public.game_sessions (owner_account_id, join_code, state)
+    SELECT id, 'CLOSE2', 'closed'::public.session_state
+    FROM host_account RETURNING id
 )
 SELECT (
         SELECT id
@@ -60,47 +71,32 @@ SELECT (
     (
         SELECT id
         FROM closed_session
-    ) AS closed_session_id;
+    ) AS closed_session_id,
+    (SELECT id FROM completed_session) AS completed_session_id,
+    (SELECT id FROM truly_closed_session) AS truly_closed_session_id;
 CREATE TEMP TABLE guest_room_rejection_results (
     name text PRIMARY KEY,
     actual text NOT NULL
 );
+CREATE TEMP TABLE guest_room_failure_shapes (name text PRIMARY KEY, payload jsonb);
 GRANT SELECT,
-    INSERT ON TABLE guest_room_rejection_results TO anon;
-SET LOCAL ROLE anon;
-SELECT set_config('request.jwt.claim.role', 'anon', true);
-DO $$ BEGIN BEGIN PERFORM public.join_room_as_guest('NOPE42', 'Casey', 'guest-token-invalid-room');
+    INSERT ON TABLE guest_room_rejection_results TO service_role;
+GRANT SELECT, INSERT ON TABLE guest_room_failure_shapes TO service_role;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
+DO $$ BEGIN
+INSERT INTO guest_room_rejection_results VALUES
+  ('invalid_room', public.join_room_as_guest('NOPE42', 'Casey', 'guest-token-invalid-room')->>'code'),
+  ('closed_room', public.join_room_as_guest('CLOSE1', 'Casey', 'guest-token-closed-room')->>'code'),
+  ('blank_name', public.join_room_as_guest('ROOM42', '   ', 'guest-token-blank-name')->>'code');
 INSERT INTO guest_room_rejection_results
-VALUES ('invalid_room', 'no_error');
-EXCEPTION
-WHEN OTHERS THEN
-INSERT INTO guest_room_rejection_results
-VALUES ('invalid_room', SQLERRM);
-END;
-BEGIN PERFORM public.join_room_as_guest('CLOSE1', 'Casey', 'guest-token-closed-room');
-INSERT INTO guest_room_rejection_results
-VALUES ('closed_room', 'no_error');
-EXCEPTION
-WHEN OTHERS THEN
-INSERT INTO guest_room_rejection_results
-VALUES ('closed_room', SQLERRM);
-END;
-BEGIN PERFORM public.join_room_as_guest('ROOM42', '   ', 'guest-token-blank-name');
-INSERT INTO guest_room_rejection_results
-VALUES ('blank_name', 'no_error');
-EXCEPTION
-WHEN OTHERS THEN
-INSERT INTO guest_room_rejection_results
-VALUES ('blank_name', SQLERRM);
-END;
-BEGIN PERFORM public.get_guest_room_snapshot('missing-guest-token');
-INSERT INTO guest_room_rejection_results
-VALUES ('expired_token', 'no_error');
-EXCEPTION
-WHEN OTHERS THEN
-INSERT INTO guest_room_rejection_results
-VALUES ('expired_token', SQLERRM);
-END;
+VALUES ('expired_token', public.get_guest_room_snapshot('missing-guest-token')->>'code');
+INSERT INTO guest_room_failure_shapes VALUES
+  ('unknown', public.join_room_as_guest('NOPE43','Casey',repeat('1',64))),
+  ('started', public.join_room_as_guest('CLOSE1','Casey',repeat('2',64))),
+  ('completed', public.join_room_as_guest('DONE42','Casey',repeat('3',64))),
+  ('closed', public.join_room_as_guest('CLOSE2','Casey',repeat('4',64)));
 END;
 $$;
 RESET ROLE;
@@ -110,8 +106,8 @@ SELECT is(
             FROM guest_room_rejection_results
             WHERE name = 'invalid_room'
         ),
-        'room_not_found',
-        'guest join rejects an unknown room code'
+        'room_unavailable',
+        'unknown room returns the same public unavailable code'
     );
 SELECT is(
         (
@@ -119,17 +115,26 @@ SELECT is(
             FROM guest_room_rejection_results
             WHERE name = 'closed_room'
         ),
-        'room_not_joinable',
-        'guest join rejects rooms that are no longer joinable'
+        'room_unavailable',
+        'non-joinable room returns the same public unavailable code'
     );
+SELECT is((SELECT payload FROM guest_room_failure_shapes WHERE name='unknown'),
+  (SELECT payload FROM guest_room_failure_shapes WHERE name='started'),
+  'unknown and in-progress room failures have identical public shape');
+SELECT is((SELECT payload FROM guest_room_failure_shapes WHERE name='unknown'),
+  (SELECT payload FROM guest_room_failure_shapes WHERE name='completed'),
+  'unknown and completed room failures have identical public shape');
+SELECT is((SELECT payload FROM guest_room_failure_shapes WHERE name='unknown'),
+  (SELECT payload FROM guest_room_failure_shapes WHERE name='closed'),
+  'unknown and closed room failures have identical public shape');
 SELECT is(
         (
             SELECT actual
             FROM guest_room_rejection_results
             WHERE name = 'blank_name'
         ),
-        'guest_name_required',
-        'guest join rejects blank guest names'
+        'invalid_request',
+        'guest join rejects blank guest names without a room lookup'
     );
 SELECT is(
         (
@@ -137,7 +142,7 @@ SELECT is(
             FROM guest_room_rejection_results
             WHERE name = 'expired_token'
         ),
-        'guest_token_expired',
+        'guest_access_lost',
         'guest snapshot rejects unknown or expired guest tokens'
     );
 SELECT *

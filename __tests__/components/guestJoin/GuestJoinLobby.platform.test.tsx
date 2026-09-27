@@ -111,8 +111,37 @@ describe("GuestJoinLobby", () => {
     expect(renderedText).toContain("Host Owner · registered");
     expect(renderedText).toContain("Casey · guest");
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
+
+  it("renders only the current active roster while retaining the snapshot's participants separately", () => {
+    const expiredGuest = {
+      id: "expired-guest-1",
+      displayName: "Expired Guest",
+      membershipType: "guest" as const,
+      sessionRole: "member" as const,
+      currentDrinkTotal: 0,
+    };
+    const tree = renderLobby({
+      session: buildSession({
+        participants: [...PARTICIPANTS, expiredGuest],
+        activeRoster: PARTICIPANTS,
+      }),
+    });
+
+    const { Text } = require("react-native");
+    const renderedText = tree.root
+      .findAllByType(Text)
+      .flatMap((node: any) => node.props.children)
+      .join("");
+
+    expect(renderedText).toContain("Host Owner · registered");
+    expect(renderedText).toContain("Casey · guest");
+    expect(renderedText).not.toContain("Expired Guest");
+
+    TestRenderer.act(() => tree.unmount());
+  });
+
   // Before #185 a guest's room view had no actions at all. The panel must appear
   // only in player-picked mode, and only while the room is still joinable.
   it("shows no pick panel outside player-picked mode", () => {
@@ -122,7 +151,7 @@ describe("GuestJoinLobby", () => {
       tree.root.findAllByProps({ testID: "guest-player-pick-panel" }),
     ).toHaveLength(0);
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("shows the pick panel to a guest in a joinable player-picked room", () => {
@@ -141,7 +170,7 @@ describe("GuestJoinLobby", () => {
       tree.root.findAllByProps({ testID: "guest-player-pick-panel" }).length,
     ).toBeGreaterThan(0);
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("hides the pick panel once the room has left the lobby", () => {
@@ -163,7 +192,7 @@ describe("GuestJoinLobby", () => {
       tree.root.findAllByProps({ testID: "guest-player-pick-panel" }),
     ).toHaveLength(0);
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("hides the pick panel when no pick handler is wired up", () => {
@@ -181,7 +210,7 @@ describe("GuestJoinLobby", () => {
       tree.root.findAllByProps({ testID: "guest-player-pick-panel" }),
     ).toHaveLength(0);
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
 
   // FR-042: a guest sees every participant's progress, not only their own.
@@ -209,7 +238,7 @@ describe("GuestJoinLobby", () => {
     expect(renderedText).toContain("1/1 picked");
     expect(renderedText).toContain("0/1 picked");
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
   it("stops showing pick progress once the room has started", () => {
     const tree = actCreate(
@@ -237,7 +266,7 @@ describe("GuestJoinLobby", () => {
     // not keep implying they still decide anything.
     expect(renderedText).not.toContain("picked");
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
   // Regression: a client can meet a server that predates migration 038, whose
   // snapshot simply omits `picks` (and, on an older server still,
@@ -283,6 +312,6 @@ describe("GuestJoinLobby", () => {
     ).toHaveLength(0);
     expect(renderedText).not.toContain("picked");
 
-    tree.unmount();
+    TestRenderer.act(() => tree.unmount());
   });
 });

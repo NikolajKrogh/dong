@@ -47,7 +47,10 @@ import { useRoomExit } from "../../hooks/useRoomExit";
 import { useRoomLobby } from "../../hooks/useRoomLobby";
 import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
 import { useGameStore } from "../../store/store";
-import { roomSnapshotToGameState } from "../../utils/roomSnapshot";
+import {
+  roomSnapshotToActiveRoster,
+  roomSnapshotToGameState,
+} from "../../utils/roomSnapshot";
 import { isWideLayout } from "../../styles/responsive";
 import { useColors } from "../../styles/theme";
 import type { AssignmentMode, BatchRoomMatchResult } from "../../types/room";
@@ -240,7 +243,9 @@ const LobbyScreen = () => {
   };
   const assignmentMode: AssignmentMode =
     lobby.snapshot?.assignmentMode ?? "automatic";
-  const participants = lobby.snapshot?.participants ?? [];
+  const participants = lobby.snapshot
+    ? roomSnapshotToActiveRoster(lobby.snapshot)
+    : [];
   const assignments = useMemo(
     () => lobby.snapshot?.assignments ?? [],
     [lobby.snapshot?.assignments],
@@ -393,23 +398,28 @@ const LobbyScreen = () => {
   // sending a diff.
   const toggleAllocation = useCallback(
     (participantId: string, matchId: string) => {
-      const exists = assignments.some(
+      const activeAssignments = assignments.filter((assignment) =>
+        participants.some(
+          (participant) => participant.id === assignment.participantId,
+        ),
+      );
+      const exists = activeAssignments.some(
         (assignment) =>
           assignment.participantId === participantId &&
           assignment.matchId === matchId,
       );
       const next = exists
-        ? assignments.filter(
+        ? activeAssignments.filter(
             (assignment) =>
               !(
                 assignment.participantId === participantId &&
                 assignment.matchId === matchId
               ),
           )
-        : [...assignments, { participantId, matchId }];
+        : [...activeAssignments, { participantId, matchId }];
       void configure.setAssignments(next);
     },
-    [assignments, configure],
+    [assignments, configure, participants],
   );
 
   // ---------------------------------------------------------------------------
@@ -432,7 +442,7 @@ const LobbyScreen = () => {
       </Text>
       <RoomIdentityPanel
         joinCode={lobby.joinCode}
-        participants={lobby.participants}
+        participants={participants}
         pickProgress={pickProgress}
       />
       {exit.error ? (

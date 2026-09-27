@@ -74,6 +74,12 @@ export interface RoomSnapshot {
   lastEventSequence?: number;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
+  /**
+   * Derived live roster. Optional during rolling deployment; consumers fall
+   * back to participants when the server has not added this projection yet.
+   * Game/history hydration must continue to use `participants`.
+   */
+  activeRoster?: RoomParticipantSummary[];
   participants: RoomParticipantSummary[];
   matches: RoomMatchSummary[];
   assignments: RoomAssignmentSummary[];

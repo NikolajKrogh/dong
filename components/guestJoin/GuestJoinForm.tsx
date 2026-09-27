@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, StyleSheet, TextInput } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, TextInput } from "react-native";
 import { Text, XStack, YStack, styled, useTheme } from "tamagui";
 
 import { ShellActionButton } from "../ui";
@@ -113,6 +113,12 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
         onPress={onSubmit}
         variant="success"
       />
+
+      {Platform.OS === "web" ? (
+        <Text color="$colorMuted" fontSize={12} lineHeight={17}>
+          Guest access stays in this browser session. If you close the tab or lose access, ask the host for a fresh invitation.
+        </Text>
+      ) : null}
 
       {isSubmitting ? (
         <XStack justifyContent="center" paddingTop="$1">

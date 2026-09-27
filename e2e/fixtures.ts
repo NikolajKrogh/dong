@@ -1,4 +1,5 @@
 import { test as base } from "@playwright/test";
+import type { GuestRoomSessionState } from "../types/guestRoom";
 
 export const test = base.extend<{ appUrl: string }>({
   appUrl: ["http://localhost:8081", { option: true }],
@@ -37,7 +38,7 @@ export interface GuestRoomFixturePick {
 export interface GuestRoomHostFixture {
   sessionId: string;
   joinCode: string;
-  state: "joinable" | "in_progress" | "completed";
+  state: GuestRoomSessionState;
   commonMatchId: string | null;
   defaultGuestName: string;
   participants: GuestRoomFixtureParticipant[];

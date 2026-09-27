@@ -8,12 +8,13 @@
 -- extension is not installable here). The count below is therefore measured,
 -- not hand-counted.
 BEGIN;
+\ir guest_abuse_setup.inc
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT plan(36);
 
 CREATE TEMP TABLE results (name text PRIMARY KEY, passed boolean NOT NULL, detail text);
-GRANT SELECT, INSERT ON TABLE results TO authenticated, anon;
+GRANT SELECT, INSERT ON TABLE results TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- p1: the main room -- host + registered member + guest (P=3), 6 matches, a
@@ -44,7 +45,7 @@ acc AS (
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0001' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM out1) AS outsider,
        (SELECT id FROM room) AS room;
-GRANT SELECT ON TABLE p1_ctx TO authenticated, anon;
+GRANT SELECT ON TABLE p1_ctx TO authenticated, anon, service_role;
 
 CREATE TEMP TABLE p1_matches AS
 WITH i AS (
@@ -53,7 +54,7 @@ WITH i AS (
       (VALUES ('Common','Z'),('Alpha','Z'),('Bravo','Z'),('Charlie','Z'),('Delta','Z'),('Echo','Z')) AS t(h,a)
     RETURNING id, home_team_name
 ) SELECT id, home_team_name FROM i;
-GRANT SELECT ON TABLE p1_matches TO authenticated, anon;
+GRANT SELECT ON TABLE p1_matches TO authenticated, anon, service_role;
 
 -- A second room, so pool confinement can be tested against a real match id that
 -- simply belongs elsewhere.
@@ -69,7 +70,7 @@ m2 AS (
     SELECT id, 'espn', 'Foreign', 'Match' FROM r2 RETURNING id
 )
 SELECT (SELECT id FROM r2) AS room, (SELECT id FROM m2) AS match;
-GRANT SELECT ON TABLE p1_foreign TO authenticated, anon;
+GRANT SELECT ON TABLE p1_foreign TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- p2: settlement -- host + m1 (P=2), 5 matches, cap 2. m1 picks 1, the host
@@ -90,7 +91,7 @@ acc AS (
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0003' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
-GRANT SELECT ON TABLE p2_ctx TO authenticated, anon;
+GRANT SELECT ON TABLE p2_ctx TO authenticated, anon, service_role;
 
 CREATE TEMP TABLE p2_matches AS
 WITH i AS (
@@ -99,7 +100,7 @@ WITH i AS (
       (VALUES ('Common','Z'),('Alpha','Z'),('Bravo','Z'),('Charlie','Z'),('Delta','Z')) AS t(h,a)
     RETURNING id, home_team_name
 ) SELECT id, home_team_name FROM i;
-GRANT SELECT ON TABLE p2_matches TO authenticated, anon;
+GRANT SELECT ON TABLE p2_matches TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- p3: nobody picks anything (T020) -- host + m1 (P=2), cap 1.
@@ -119,7 +120,7 @@ acc AS (
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0004' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
-GRANT SELECT ON TABLE p3_ctx TO authenticated, anon;
+GRANT SELECT ON TABLE p3_ctx TO authenticated, anon, service_role;
 
 CREATE TEMP TABLE p3_matches AS
 WITH i AS (
@@ -128,7 +129,7 @@ WITH i AS (
       (VALUES ('Common','Z'),('Alpha','Z'),('Bravo','Z')) AS t(h,a)
     RETURNING id, home_team_name
 ) SELECT id, home_team_name FROM i;
-GRANT SELECT ON TABLE p3_matches TO authenticated, anon;
+GRANT SELECT ON TABLE p3_matches TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- p4: a participant leaves after picking (T021) -- host + m1 (P=2), cap 1.
@@ -148,7 +149,7 @@ acc AS (
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0005' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
-GRANT SELECT ON TABLE p4_ctx TO authenticated, anon;
+GRANT SELECT ON TABLE p4_ctx TO authenticated, anon, service_role;
 
 CREATE TEMP TABLE p4_matches AS
 WITH i AS (
@@ -157,7 +158,7 @@ WITH i AS (
       (VALUES ('Common','Z'),('Alpha','Z'),('Bravo','Z')) AS t(h,a)
     RETURNING id, home_team_name
 ) SELECT id, home_team_name FROM i;
-GRANT SELECT ON TABLE p4_matches TO authenticated, anon;
+GRANT SELECT ON TABLE p4_matches TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- p5: a picked match is promoted to Common Match (T022) -- host + m1, cap 1.
@@ -177,7 +178,7 @@ acc AS (
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0006' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
-GRANT SELECT ON TABLE p5_ctx TO authenticated, anon;
+GRANT SELECT ON TABLE p5_ctx TO authenticated, anon, service_role;
 
 CREATE TEMP TABLE p5_matches AS
 WITH i AS (
@@ -186,7 +187,7 @@ WITH i AS (
       (VALUES ('First','Z'),('Chosen','Z'),('Spare','Z')) AS t(h,a)
     RETURNING id, home_team_name
 ) SELECT id, home_team_name FROM i;
-GRANT SELECT ON TABLE p5_matches TO authenticated, anon;
+GRANT SELECT ON TABLE p5_matches TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- p6: the cap is LOWERED after picking (T023) -- host + m1, cap 3 then 2.
@@ -207,7 +208,7 @@ acc AS (
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0007' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
-GRANT SELECT ON TABLE p6_ctx TO authenticated, anon;
+GRANT SELECT ON TABLE p6_ctx TO authenticated, anon, service_role;
 
 CREATE TEMP TABLE p6_matches AS
 WITH i AS (
@@ -216,7 +217,7 @@ WITH i AS (
       (VALUES ('Common','Z'),('P1','Z'),('P2','Z'),('P3','Z'),('P4','Z'),('P5','Z'),('P6','Z')) AS t(h,a)
     RETURNING id, home_team_name
 ) SELECT id, home_team_name FROM i;
-GRANT SELECT ON TABLE p6_matches TO authenticated, anon;
+GRANT SELECT ON TABLE p6_matches TO authenticated, anon, service_role;
 
 -- =============================================================================
 -- Switch to the authenticated role. Everything below runs as a per-actor JWT
@@ -231,7 +232,8 @@ SELECT set_config('request.jwt.claim.role','authenticated',true);
 SELECT set_config('request.jwt.claim.sub', (SELECT m1::text FROM p1_ctx), true);
 SELECT public.join_room_as_registered('PPR0001');
 
-SET LOCAL ROLE anon;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
 SELECT public.join_room_as_guest('PPR0001', 'PP Guest', 'pp-guest-token-1');
 SET LOCAL ROLE authenticated;
 
@@ -246,7 +248,7 @@ SELECT (SELECT p.id FROM public.participants p
          WHERE p.session_id = (SELECT room FROM p1_ctx)
            AND p.membership_type = 'guest'::public.participant_membership_type
          LIMIT 1) AS guest_p;
-GRANT SELECT ON TABLE p1_actors TO authenticated, anon;
+GRANT SELECT ON TABLE p1_actors TO authenticated, anon, service_role;
 
 SELECT set_config('request.jwt.claim.sub', (SELECT host::text FROM p1_ctx), true);
 SELECT public.set_common_match((SELECT room FROM p1_ctx), (SELECT id FROM p1_matches WHERE home_team_name='Common'));
@@ -306,10 +308,12 @@ WHERE session_id = (SELECT room FROM p1_ctx) AND participant_id = (SELECT host_p
 -- ---------------------------------------------------------------------------
 -- T011: a session-scoped guest writes its own picks, by room-scoped token only.
 -- ---------------------------------------------------------------------------
-SET LOCAL ROLE anon;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
 SELECT public.set_my_room_picks_as_guest('pp-guest-token-1', ARRAY[(SELECT id FROM p1_matches WHERE home_team_name='Delta')]);
 
 -- T013 (part 1): anon has no grant on the table at all.
+SET LOCAL ROLE anon;
 DO $$ BEGIN
   BEGIN
     PERFORM 1 FROM public.assignment_picks LIMIT 1;
@@ -320,6 +324,7 @@ DO $$ BEGIN
 END $$;
 
 -- T012 (part 1): a stale/blank guest token is refused.
+SET LOCAL ROLE service_role;
 DO $$ BEGIN
   BEGIN
     PERFORM public.set_my_room_picks_as_guest('not-a-real-token', ARRAY[]::uuid[]);
@@ -503,11 +508,12 @@ END $$;
 
 -- Every surface sees pick progress through the snapshot it already polls.
 CREATE TEMP TABLE p1_snapshot AS SELECT public.get_room_snapshot((SELECT room FROM p1_ctx)) AS snapshot;
-GRANT SELECT ON TABLE p1_snapshot TO authenticated, anon;
+GRANT SELECT ON TABLE p1_snapshot TO authenticated, anon, service_role;
 
-SET LOCAL ROLE anon;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
 CREATE TEMP TABLE p1_guest_snapshot AS SELECT public.get_guest_room_snapshot('pp-guest-token-1') AS snapshot;
-GRANT SELECT ON TABLE p1_guest_snapshot TO authenticated, anon;
+GRANT SELECT ON TABLE p1_guest_snapshot TO authenticated, anon, service_role;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', (SELECT host::text FROM p1_ctx), true);
 
@@ -542,12 +548,12 @@ SELECT public.set_my_room_picks((SELECT room FROM p2_ctx), ARRAY[(SELECT id FROM
 
 CREATE TEMP TABLE p2_picks_before AS
 SELECT participant_id, match_id FROM public.assignment_picks WHERE session_id = (SELECT room FROM p2_ctx);
-GRANT SELECT ON TABLE p2_picks_before TO authenticated, anon;
+GRANT SELECT ON TABLE p2_picks_before TO authenticated, anon, service_role;
 
 SELECT set_config('request.jwt.claim.sub', (SELECT host::text FROM p2_ctx), true);
 CREATE TEMP TABLE p2_start AS
 SELECT public.start_game_session((SELECT room FROM p2_ctx), gen_random_uuid(), false) AS r;
-GRANT SELECT ON TABLE p2_start TO authenticated, anon;
+GRANT SELECT ON TABLE p2_start TO authenticated, anon, service_role;
 
 INSERT INTO results
 SELECT 'p2_every_pick_survives_settlement',
@@ -586,7 +592,7 @@ SELECT public.set_room_assignment_mode((SELECT room FROM p3_ctx), 'player_picked
 SELECT public.set_room_assignment_settings((SELECT room FROM p3_ctx), 1, 0);
 CREATE TEMP TABLE p3_start AS
 SELECT public.start_game_session((SELECT room FROM p3_ctx), gen_random_uuid(), false) AS r;
-GRANT SELECT ON TABLE p3_start TO authenticated, anon;
+GRANT SELECT ON TABLE p3_start TO authenticated, anon, service_role;
 
 INSERT INTO results
 SELECT 'p3_no_picks_at_all_still_settles_fully',
@@ -613,7 +619,7 @@ SELECT public.set_room_assignment_settings((SELECT room FROM p4_ctx), 1, 0);
 CREATE TEMP TABLE p4_actors AS
 SELECT (SELECT p.id FROM public.participants p
          WHERE p.session_id = (SELECT room FROM p4_ctx) AND p.account_id = (SELECT m1 FROM p4_ctx) LIMIT 1) AS m1_p;
-GRANT SELECT ON TABLE p4_actors TO authenticated, anon;
+GRANT SELECT ON TABLE p4_actors TO authenticated, anon, service_role;
 
 SELECT set_config('request.jwt.claim.sub', (SELECT m1::text FROM p4_ctx), true);
 SELECT public.set_my_room_picks((SELECT room FROM p4_ctx), ARRAY[(SELECT id FROM p4_matches WHERE home_team_name='Alpha')]);
@@ -629,7 +635,7 @@ SELECT 'p4_leave_is_soft_so_the_pick_row_persists',
 
 CREATE TEMP TABLE p4_start AS
 SELECT public.start_game_session((SELECT room FROM p4_ctx), gen_random_uuid(), false) AS r;
-GRANT SELECT ON TABLE p4_start TO authenticated, anon;
+GRANT SELECT ON TABLE p4_start TO authenticated, anon, service_role;
 
 INSERT INTO results
 SELECT 'p4_departed_participant_receives_no_assignments',
@@ -658,7 +664,7 @@ SELECT public.set_room_assignment_settings((SELECT room FROM p5_ctx), 1, 0);
 CREATE TEMP TABLE p5_actors AS
 SELECT (SELECT p.id FROM public.participants p
          WHERE p.session_id = (SELECT room FROM p5_ctx) AND p.account_id = (SELECT m1 FROM p5_ctx) LIMIT 1) AS m1_p;
-GRANT SELECT ON TABLE p5_actors TO authenticated, anon;
+GRANT SELECT ON TABLE p5_actors TO authenticated, anon, service_role;
 
 SELECT set_config('request.jwt.claim.sub', (SELECT m1::text FROM p5_ctx), true);
 SELECT public.set_my_room_picks((SELECT room FROM p5_ctx), ARRAY[(SELECT id FROM p5_matches WHERE home_team_name='Chosen')]);
@@ -668,7 +674,7 @@ SELECT set_config('request.jwt.claim.sub', (SELECT host::text FROM p5_ctx), true
 SELECT public.set_common_match((SELECT room FROM p5_ctx), (SELECT id FROM p5_matches WHERE home_team_name='Chosen'));
 CREATE TEMP TABLE p5_start AS
 SELECT public.start_game_session((SELECT room FROM p5_ctx), gen_random_uuid(), false) AS r;
-GRANT SELECT ON TABLE p5_start TO authenticated, anon;
+GRANT SELECT ON TABLE p5_start TO authenticated, anon, service_role;
 
 INSERT INTO results
 SELECT 'p5_promoted_pick_is_held_once_and_refilled',
@@ -704,7 +710,7 @@ SELECT set_config('request.jwt.claim.sub', (SELECT host::text FROM p6_ctx), true
 SELECT public.set_room_assignment_settings((SELECT room FROM p6_ctx), 2, 0);
 CREATE TEMP TABLE p6_start AS
 SELECT public.start_game_session((SELECT room FROM p6_ctx), gen_random_uuid(), false) AS r;
-GRANT SELECT ON TABLE p6_start TO authenticated, anon;
+GRANT SELECT ON TABLE p6_start TO authenticated, anon, service_role;
 
 INSERT INTO results
 SELECT 'p6_lowered_cap_is_enforced_at_settlement',

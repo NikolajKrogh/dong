@@ -83,7 +83,7 @@ describe("browser-flow.helpers", () => {
     });
 
     expect(joinResponse).toMatchObject({
-      participantId: "guest-guest-token-1",
+      participantId: "guest-mocked-participant",
       sessionId: fixture.sessionId,
       guestToken: "guest-token-1",
       joinCode: fixture.joinCode,
@@ -94,7 +94,7 @@ describe("browser-flow.helpers", () => {
     );
     expect(sessionGrant).toEqual({
       guestToken: "guest-token-1",
-      participantId: "guest-guest-token-1",
+      participantId: "guest-mocked-participant",
       sessionId: fixture.sessionId,
       joinCode: fixture.joinCode,
       displayName: "Casey",

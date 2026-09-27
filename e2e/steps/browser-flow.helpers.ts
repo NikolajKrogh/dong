@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
 import { expect } from "@playwright/test";
 
 import type {
@@ -6,6 +6,7 @@ import type {
   GuestRoomParticipantSummary,
   GuestRoomSnapshot,
 } from "../../types/guestRoom";
+import type { RoomSnapshot } from "../../types/room";
 import type {
   ImportLegacyHistoryRpcRequest,
   ImportLegacyHistoryRpcResponse,
@@ -81,6 +82,11 @@ let guestRoomJoinRpcLastRequest: {
 } | null = null;
 let activeGuestRoomFixture: GuestRoomHostFixture | null = null;
 let activeGuestParticipant: GuestRoomParticipantSummary | null = null;
+const expiredMockRosterParticipantIds = new Set<string>();
+
+export const expireMockRoomRosterParticipant = (participantId: string) => {
+  expiredMockRosterParticipantIds.add(participantId);
+};
 
 export const getLegacyHistoryImportRpcCallCount = () =>
   legacyHistoryImportRpcCallCount;
@@ -655,12 +661,18 @@ export const attachActiveTwoClientMocks = async (
       delta_goals: number;
     };
     const state = getActiveTwoClientFixture();
-    const match = state.matches.find((candidate) => candidate.id === body.match_id);
+    const match = state.matches.find(
+      (candidate) => candidate.id === body.match_id,
+    );
     if (!match) {
-      await route.fulfill({ status: 400, body: JSON.stringify({ message: "match_not_in_room" }) });
+      await route.fulfill({
+        status: 400,
+        body: JSON.stringify({ message: "match_not_in_room" }),
+      });
       return;
     }
-    if (body.team === "home") match.homeScore = Math.max(0, match.homeScore + body.delta_goals);
+    if (body.team === "home")
+      match.homeScore = Math.max(0, match.homeScore + body.delta_goals);
     else match.awayScore = Math.max(0, match.awayScore + body.delta_goals);
     state.lastEventSequence += 1;
     await route.fulfill({
@@ -678,77 +690,90 @@ export const attachActiveTwoClientMocks = async (
     });
   });
 
-  await page.route("**/rest/v1/rpc/change_participant_drink**", async (route) => {
-    const body = route.request().postDataJSON() as {
-      participant_id: string;
-      delta_half_drinks: number;
-    };
-    const state = getActiveTwoClientFixture();
-    const participant = state.participants.find(
-      (candidate) => candidate.id === body.participant_id,
-    );
-    if (!participant) {
-      await route.fulfill({ status: 400, body: JSON.stringify({ message: "target_inactive" }) });
-      return;
-    }
-    participant.currentDrinkTotal = Math.max(
-      0,
-      participant.currentDrinkTotal + body.delta_half_drinks * 0.5,
-    );
-    state.lastEventSequence += 1;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        sessionId: ACTIVE_GAME_ROOM_ID,
-        participantId: body.participant_id,
-        currentDrinkTotal: participant.currentDrinkTotal,
-        sequenceNumber: state.lastEventSequence,
-        eventId: `event-${state.lastEventSequence}`,
-        replayed: false,
-      }),
-    });
-  });
+  await page.route(
+    "**/rest/v1/rpc/change_participant_drink**",
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        participant_id: string;
+        delta_half_drinks: number;
+      };
+      const state = getActiveTwoClientFixture();
+      const participant = state.participants.find(
+        (candidate) => candidate.id === body.participant_id,
+      );
+      if (!participant) {
+        await route.fulfill({
+          status: 400,
+          body: JSON.stringify({ message: "target_inactive" }),
+        });
+        return;
+      }
+      participant.currentDrinkTotal = Math.max(
+        0,
+        participant.currentDrinkTotal + body.delta_half_drinks * 0.5,
+      );
+      state.lastEventSequence += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          sessionId: ACTIVE_GAME_ROOM_ID,
+          participantId: body.participant_id,
+          currentDrinkTotal: participant.currentDrinkTotal,
+          sequenceNumber: state.lastEventSequence,
+          eventId: `event-${state.lastEventSequence}`,
+          replayed: false,
+        }),
+      });
+    },
+  );
 
-  await page.route("**/rest/v1/rpc/reassign_participant_matches**", async (route) => {
-    const body = route.request().postDataJSON() as {
-      participant_id: string;
-      match_ids: string[];
-    };
-    const state = getActiveTwoClientFixture();
-    const commonMatchId = "active-common";
-    const previous = state.assignments
-      .filter(
+  await page.route(
+    "**/rest/v1/rpc/reassign_participant_matches**",
+    async (route) => {
+      const body = route.request().postDataJSON() as {
+        participant_id: string;
+        match_ids: string[];
+      };
+      const state = getActiveTwoClientFixture();
+      const commonMatchId = "active-common";
+      const previous = state.assignments
+        .filter(
+          (assignment) =>
+            assignment.participantId === body.participant_id &&
+            assignment.matchId !== commonMatchId,
+        )
+        .map((assignment) => assignment.matchId);
+      state.assignments = state.assignments.filter(
         (assignment) =>
-          assignment.participantId === body.participant_id &&
-          assignment.matchId !== commonMatchId,
-      )
-      .map((assignment) => assignment.matchId);
-    state.assignments = state.assignments.filter(
-      (assignment) =>
-        assignment.participantId !== body.participant_id ||
-        assignment.matchId === commonMatchId,
-    );
-    state.assignments.push(
-      ...body.match_ids.map((matchId) => ({
-        participantId: body.participant_id,
-        matchId,
-      })),
-    );
-    state.lastEventSequence += 1;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        sessionId: ACTIVE_GAME_ROOM_ID,
-        participantId: body.participant_id,
-        addedMatchIds: body.match_ids.filter((matchId) => !previous.includes(matchId)),
-        removedMatchIds: previous.filter((matchId) => !body.match_ids.includes(matchId)),
-        matchIds: body.match_ids,
-        sequenceNumber: state.lastEventSequence,
-      }),
-    });
-  });
+          assignment.participantId !== body.participant_id ||
+          assignment.matchId === commonMatchId,
+      );
+      state.assignments.push(
+        ...body.match_ids.map((matchId) => ({
+          participantId: body.participant_id,
+          matchId,
+        })),
+      );
+      state.lastEventSequence += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          sessionId: ACTIVE_GAME_ROOM_ID,
+          participantId: body.participant_id,
+          addedMatchIds: body.match_ids.filter(
+            (matchId) => !previous.includes(matchId),
+          ),
+          removedMatchIds: previous.filter(
+            (matchId) => !body.match_ids.includes(matchId),
+          ),
+          matchIds: body.match_ids,
+          sequenceNumber: state.lastEventSequence,
+        }),
+      });
+    },
+  );
 
   await page.route("**/rest/v1/rpc/end_game_session**", async (route) => {
     const state = getActiveTwoClientFixture();
@@ -757,7 +782,10 @@ export const attachActiveTwoClientMocks = async (
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ status: "completed", sessionId: ACTIVE_GAME_ROOM_ID }),
+      body: JSON.stringify({
+        status: "completed",
+        sessionId: ACTIVE_GAME_ROOM_ID,
+      }),
     });
   });
 };
@@ -774,8 +802,7 @@ export const seedActiveGameState = async (
   const activeContext = {
     mode: "multiplayer" as const,
     sessionId: contextOverrides.sessionId ?? ACTIVE_GAME_ROOM_ID,
-    participantId:
-      contextOverrides.participantId ?? ACTIVE_GAME_PARTICIPANT_ID,
+    participantId: contextOverrides.participantId ?? ACTIVE_GAME_PARTICIPANT_ID,
     accessKind: contextOverrides.accessKind ?? ("registered" as const),
     lastAppliedSequence: contextOverrides.lastAppliedSequence ?? 0,
   };
@@ -972,8 +999,24 @@ export const buildHostRoomSnapshot = (
     membershipType: "registered" | "guest";
     sessionRole: "owner" | "member";
   }[] = [],
-) => {
-  const participantCount = 1 + extraParticipants.length;
+): RoomSnapshot => {
+  const participants = [
+    {
+      id: HOST_ROOM_PARTICIPANT_ID,
+      displayName: HOST_ROOM_DISPLAY_NAME,
+      membershipType: "registered" as const,
+      sessionRole: "owner" as const,
+      currentDrinkTotal: 0,
+    },
+    ...extraParticipants.map((participant) => ({
+      ...participant,
+      currentDrinkTotal: 0,
+    })),
+  ];
+  const activeRoster = participants.filter(
+    (participant) => !expiredMockRosterParticipantIds.has(participant.id),
+  );
+  const participantCount = activeRoster.length;
   const matchesPerPlayer = configureStartGameState.matchesPerPlayer;
   const sharedMatchesPerPair = configureStartGameState.sharedMatchesPerPair;
   // FR-011: the shared-per-pair minimum only applies to automatic generation,
@@ -1000,16 +1043,8 @@ export const buildHostRoomSnapshot = (
     state: configureStartGameState.roomState,
     commonMatchId: configureStartGameState.commonMatchId,
     assignmentMode: configureStartGameState.assignmentMode,
-    participants: [
-      {
-        id: HOST_ROOM_PARTICIPANT_ID,
-        displayName: HOST_ROOM_DISPLAY_NAME,
-        membershipType: "registered",
-        sessionRole: "owner",
-        currentDrinkTotal: 0,
-      },
-      ...extraParticipants.map((p) => ({ ...p, currentDrinkTotal: 0 })),
-    ],
+    participants,
+    activeRoster,
     matches: configureStartGameState.matches,
     assignments: configureStartGameState.assignments,
     picks: configureStartGameState.picks,
@@ -1026,6 +1061,13 @@ export const buildHostRoomSnapshot = (
     },
   };
 };
+
+let lastMockHostRoomSnapshot: RoomSnapshot | null = null;
+let mockHostRoomSnapshotResponseCount = 0;
+
+export const getLastMockHostRoomSnapshot = () => lastMockHostRoomSnapshot;
+export const getMockHostRoomSnapshotResponseCount = () =>
+  mockHostRoomSnapshotResponseCount;
 
 /**
  * @param resetParticipants Pass false to attach the routes to an *additional*
@@ -1046,6 +1088,9 @@ export const mockHostRoomServices = async (
   // here is safe.
   if (resetParticipants) {
     extraSnapshotParticipants = [];
+    expiredMockRosterParticipantIds.clear();
+    lastMockHostRoomSnapshot = null;
+    mockHostRoomSnapshotResponseCount = 0;
   }
 
   await page.route("**/auth/v1/user", async (route) => {
@@ -1089,10 +1134,12 @@ export const mockHostRoomServices = async (
   });
 
   await page.route(HOST_ROOM_SNAPSHOT_RPC_PATH, async (route) => {
+    lastMockHostRoomSnapshot = buildHostRoomSnapshot(extraSnapshotParticipants);
+    mockHostRoomSnapshotResponseCount += 1;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(buildHostRoomSnapshot(extraSnapshotParticipants)),
+      body: JSON.stringify(lastMockHostRoomSnapshot),
     });
   });
 
@@ -1263,12 +1310,10 @@ const buildGuestFixtureParticipant = (
 
 const buildMockGuestParticipant = ({
   guestName,
-  guestToken,
 }: {
   guestName: string;
-  guestToken: string;
 }): GuestRoomParticipantSummary => ({
-  id: `guest-${guestToken}`,
+  id: "guest-mocked-participant",
   displayName: guestName,
   membershipType: "guest",
   sessionRole: "member",
@@ -1281,8 +1326,18 @@ const buildMockGuestParticipant = ({
  * `effectivePerPlayer` at the stored count (FR-011, migration 037), so the
  * mock does the same rather than applying the FR-009 minimum.
  */
-const buildGuestFixtureAssignmentPlan = (fixture: GuestRoomHostFixture) => {
-  const participantCount = fixture.participants.length;
+const buildGuestFixtureAssignmentPlan = (
+  fixture: GuestRoomHostFixture,
+  guestParticipant?: GuestRoomParticipantSummary,
+) => {
+  const participantCount =
+    fixture.participants.filter(
+      (participant) => !expiredMockRosterParticipantIds.has(participant.id),
+    ).length +
+    (guestParticipant &&
+    !expiredMockRosterParticipantIds.has(guestParticipant.id)
+      ? 1
+      : 0);
   const poolSize = fixture.matches.length;
   const effectivePerPlayer = fixture.matchesPerPlayer;
   const relaxedFloor = 1 + effectivePerPlayer;
@@ -1303,38 +1358,53 @@ const buildGuestFixtureAssignmentPlan = (fixture: GuestRoomHostFixture) => {
 export const buildGuestRoomSnapshotFromFixture = (
   fixture: GuestRoomHostFixture,
   guestParticipant?: GuestRoomParticipantSummary,
-): GuestRoomSnapshot => ({
-  sessionId: fixture.sessionId,
-  joinCode: fixture.joinCode,
-  state: fixture.state,
-  commonMatchId: fixture.commonMatchId,
-  assignmentMode: fixture.assignmentMode,
-  participants: guestParticipant
+): GuestRoomSnapshot => {
+  const participants = guestParticipant
     ? [
         ...fixture.participants.map(buildGuestFixtureParticipant),
         guestParticipant,
       ]
-    : fixture.participants.map(buildGuestFixtureParticipant),
-  matches: fixture.matches.map((match) => ({
-    id: match.id,
-    sourceProvider: match.sourceProvider,
-    sourceMatchId: match.sourceMatchId,
-    homeTeamName: match.homeTeamName,
-    awayTeamName: match.awayTeamName,
-    kickoffAt: match.kickoffAt,
-    homeScore: match.homeScore,
-    awayScore: match.awayScore,
-  })),
-  assignments: fixture.assignments.map((assignment) => ({
-    participantId: assignment.participantId,
-    matchId: assignment.matchId,
-  })),
-  picks: fixture.picks.map((pick) => ({
-    participantId: pick.participantId,
-    matchId: pick.matchId,
-  })),
-  assignmentPlan: buildGuestFixtureAssignmentPlan(fixture),
-});
+    : fixture.participants.map(buildGuestFixtureParticipant);
+  const activeRoster = participants.filter(
+    (participant) => !expiredMockRosterParticipantIds.has(participant.id),
+  );
+
+  return {
+    sessionId: fixture.sessionId,
+    joinCode: fixture.joinCode,
+    state: fixture.state,
+    commonMatchId: fixture.commonMatchId,
+    assignmentMode: fixture.assignmentMode,
+    participants,
+    activeRoster,
+    matches: fixture.matches.map((match) => ({
+      id: match.id,
+      sourceProvider: match.sourceProvider,
+      sourceMatchId: match.sourceMatchId,
+      homeTeamName: match.homeTeamName,
+      awayTeamName: match.awayTeamName,
+      kickoffAt: match.kickoffAt,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+    })),
+    assignments: fixture.assignments.map((assignment) => ({
+      participantId: assignment.participantId,
+      matchId: assignment.matchId,
+    })),
+    picks: fixture.picks.map((pick) => ({
+      participantId: pick.participantId,
+      matchId: pick.matchId,
+    })),
+    assignmentPlan: buildGuestFixtureAssignmentPlan(fixture, guestParticipant),
+  };
+};
+
+let lastMockGuestRoomSnapshot: GuestRoomSnapshot | null = null;
+let mockGuestRoomSnapshotResponseCount = 0;
+
+export const getLastMockGuestRoomSnapshot = () => lastMockGuestRoomSnapshot;
+export const getMockGuestRoomSnapshotResponseCount = () =>
+  mockGuestRoomSnapshotResponseCount;
 
 export const buildGuestRoomJoinResponseFromFixture = ({
   fixture,
@@ -1347,7 +1417,6 @@ export const buildGuestRoomJoinResponseFromFixture = ({
 }): GuestRoomJoinResponse => {
   const guestParticipant = buildMockGuestParticipant({
     guestName,
-    guestToken,
   });
 
   return {
@@ -1356,6 +1425,7 @@ export const buildGuestRoomJoinResponseFromFixture = ({
     guestToken,
     joinCode: fixture.joinCode,
     displayName: guestName,
+    grantExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
     snapshot: buildGuestRoomSnapshotFromFixture(fixture, guestParticipant),
   };
 };
@@ -1372,6 +1442,9 @@ export const transitionMockGuestRoomToState = (
     state: nextState,
   };
 };
+
+let expireGuestGrant: (() => void) | null = null;
+export const expireMockGuestGrant = () => expireGuestGrant?.();
 
 export const buildGuestRoomSessionGrantFromFixture = ({
   fixture,
@@ -1415,21 +1488,58 @@ export const seedGuestRoomSessionGrant = async (
 export const mockGuestRoomRpcServices = async (
   page: Page,
   fixture: GuestRoomHostFixture = createGuestRoomHostFixture(),
+  options: { grantExpiresAt?: string } = {},
 ) => {
+  const handlers: Record<string, (route: Route) => Promise<void>> = {};
+  const registerGuestRoute = (
+    path: string,
+    handler: (route: Route) => Promise<void>,
+  ) => {
+    handlers[path.split("/").pop()!] = handler;
+  };
   let latestJoinResponse: GuestRoomJoinResponse | null = null;
+  let activeGuestToken: string | null = null;
+  const revokedGuestTokens = new Set<string>();
+  let previousRotation: {
+    oldToken: string;
+    newToken: string;
+    operationId: string;
+  } | null = null;
+  let currentGuestExpiresAt =
+    options.grantExpiresAt ??
+    new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  expireGuestGrant = () => {
+    currentGuestExpiresAt = new Date(Date.now() - 1000).toISOString();
+  };
 
   guestRoomJoinRpcLastRequest = null;
   activeGuestRoomFixture = fixture;
   activeGuestParticipant = null;
+  expiredMockRosterParticipantIds.clear();
+  lastMockGuestRoomSnapshot = null;
+  mockGuestRoomSnapshotResponseCount = 0;
 
-  await page.route(GUEST_ROOM_JOIN_RPC_PATH, async (route) => {
-    const body = route.request().postDataJSON() as {
+  registerGuestRoute(GUEST_ROOM_JOIN_RPC_PATH, async (route) => {
+    const body = route.request().postDataJSON().args as {
       join_code?: string;
       guest_name?: string;
       guest_token?: string;
     };
 
     guestRoomJoinRpcLastRequest = body;
+
+    if (
+      body.join_code?.trim().toUpperCase() !== fixture.joinCode ||
+      ((activeGuestRoomFixture ?? fixture).state !== "joinable" &&
+        body.guest_token !== activeGuestToken)
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "room_unavailable" }),
+      });
+      return;
+    }
 
     latestJoinResponse = buildGuestRoomJoinResponseFromFixture({
       fixture: activeGuestRoomFixture ?? fixture,
@@ -1440,6 +1550,7 @@ export const mockGuestRoomRpcServices = async (
       latestJoinResponse.snapshot.participants.find(
         (participant) => participant.id === latestJoinResponse?.participantId,
       ) ?? null;
+    activeGuestToken = latestJoinResponse.guestToken;
 
     await route.fulfill({
       status: 200,
@@ -1448,8 +1559,8 @@ export const mockGuestRoomRpcServices = async (
     });
   });
 
-  await page.route(GUEST_ROOM_SNAPSHOT_RPC_PATH, async (route) => {
-    const body = route.request().postDataJSON() as {
+  registerGuestRoute(GUEST_ROOM_SNAPSHOT_RPC_PATH, async (route) => {
+    const body = route.request().postDataJSON().args as {
       guest_token?: string;
     };
 
@@ -1457,29 +1568,155 @@ export const mockGuestRoomRpcServices = async (
       body.guest_token?.trim() ||
       latestJoinResponse?.guestToken ||
       "guest-room-test-token";
+    if (
+      revokedGuestTokens.has(guestToken) ||
+      (activeGuestToken && guestToken !== activeGuestToken) ||
+      Date.parse(currentGuestExpiresAt) <= Date.now()
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "guest_access_lost" }),
+      });
+      return;
+    }
+    if ((activeGuestRoomFixture ?? fixture).state === "closed") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "guest_access_lost" }),
+      });
+      return;
+    }
+    activeGuestToken ??= guestToken;
     const guestParticipant =
       activeGuestParticipant ??
       buildMockGuestParticipant({
         guestName: latestJoinResponse?.displayName || fixture.defaultGuestName,
-        guestToken,
       });
+    activeGuestParticipant ??= guestParticipant;
 
     const snapshot = buildGuestRoomSnapshotFromFixture(
       activeGuestRoomFixture ?? fixture,
       guestParticipant,
     );
+    lastMockGuestRoomSnapshot = snapshot;
+    mockGuestRoomSnapshotResponseCount += 1;
+    const completed = snapshot.state === "completed";
 
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(snapshot),
+      body: JSON.stringify({
+        ...snapshot,
+        grantExpiresAt: currentGuestExpiresAt,
+        finalOnly: completed,
+        picks: completed ? [] : snapshot.picks,
+      }),
     });
   });
 
-  await page.route(
+  registerGuestRoute(
+    "**/rest/v1/rpc/rotate_guest_room_grant",
+    async (route) => {
+      const body = route.request().postDataJSON().args as {
+        old_token?: string;
+        new_token?: string;
+        operation_id?: string;
+      };
+      const state = (activeGuestRoomFixture ?? fixture).state;
+      if (state === "closed" || state === "completed") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: false, code: "room_unavailable" }),
+        });
+        return;
+      }
+      if (
+        previousRotation?.oldToken === body.old_token &&
+        previousRotation.newToken === body.new_token &&
+        previousRotation.operationId === body.operation_id
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            participantId:
+              activeGuestParticipant?.id ?? latestJoinResponse?.participantId,
+            grantExpiresAt: new Date(
+              Date.now() + 48 * 60 * 60 * 1000,
+            ).toISOString(),
+            replayed: true,
+          }),
+        });
+        return;
+      }
+      if (
+        !body.old_token ||
+        !body.new_token ||
+        !body.operation_id ||
+        body.old_token !== activeGuestToken
+      ) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ ok: false, code: "guest_access_lost" }),
+        });
+        return;
+      }
+      previousRotation = {
+        oldToken: body.old_token,
+        newToken: body.new_token,
+        operationId: body.operation_id,
+      };
+      activeGuestToken = body.new_token;
+      currentGuestExpiresAt = new Date(
+        Date.now() + 48 * 60 * 60 * 1000,
+      ).toISOString();
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          participantId:
+            activeGuestParticipant?.id ?? latestJoinResponse?.participantId,
+          grantExpiresAt: currentGuestExpiresAt,
+          replayed: false,
+        }),
+      });
+    },
+  );
+
+  registerGuestRoute("**/rest/v1/rpc/leave_room_as_guest", async (route) => {
+    const body = route.request().postDataJSON().args as {
+      guest_token?: string;
+    };
+    const state = (activeGuestRoomFixture ?? fixture).state;
+    const response =
+      !activeGuestToken ||
+      body.guest_token !== activeGuestToken ||
+      state === "closed"
+        ? { ok: true, status: "already_invalid" }
+        : state !== "joinable"
+          ? { ok: false, code: "not_permitted" }
+          : { ok: true, status: "confirmed" };
+    if (response.ok && response.status === "confirmed") {
+      if (activeGuestToken) revokedGuestTokens.add(activeGuestToken);
+      activeGuestToken = null;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(response),
+    });
+  });
+
+  registerGuestRoute(
     "**/rest/v1/rpc/set_my_room_picks_as_guest",
     async (route) => {
-      const body = route.request().postDataJSON() as {
+      const body = route.request().postDataJSON().args as {
         guest_token?: string;
         match_ids?: string[] | null;
       };
@@ -1497,9 +1734,9 @@ export const mockGuestRoomRpcServices = async (
 
       if (deduped.length > activeFixture.matchesPerPlayer) {
         await route.fulfill({
-          status: 400,
+          status: 200,
           contentType: "application/json",
-          body: JSON.stringify({ message: "pick_limit_exceeded" }),
+          body: JSON.stringify({ ok: false, code: "pick_limit_exceeded" }),
         });
         return;
       }
@@ -1524,6 +1761,32 @@ export const mockGuestRoomRpcServices = async (
       });
     },
   );
+
+  await page.route("**/functions/v1/guest-room-access", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": "*",
+          "access-control-allow-headers":
+            "authorization, apikey, content-type, x-client-info",
+        },
+      });
+      return;
+    }
+    const operation = route.request().postDataJSON()?.operation;
+    const handler =
+      typeof operation === "string" && Object.hasOwn(handlers, operation)
+        ? handlers[operation]
+        : null;
+    if (handler) await handler(route);
+    else
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: false, code: "invalid_request" }),
+      });
+  });
 
   return {
     fixture,
@@ -1920,10 +2183,10 @@ export const mockConfigureStartGameServices = async (
       // is a promise made to everyone who picked, so a host-only mock could not
       // express the two-device journey's closing assertion at all.
       const commonMatchId = configureStartGameState.commonMatchId;
-      const rosterIds = [
-        HOST_ROOM_PARTICIPANT_ID as string,
-        ...extraSnapshotParticipants.map((participant) => participant.id),
-      ];
+      const rosterIds =
+        buildHostRoomSnapshot(extraSnapshotParticipants).activeRoster?.map(
+          (participant) => participant.id,
+        ) ?? [];
 
       configureStartGameState.assignments = rosterIds.flatMap(
         (participantId) => {

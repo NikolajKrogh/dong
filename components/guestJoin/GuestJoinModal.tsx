@@ -9,7 +9,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack, useTheme } from "tamagui";
 
-import type { GuestRoomSession } from "../../types/guestRoom";
+import type { GuestRoomSession, GuestRoomSessionStatus } from "../../types/guestRoom";
 import AppIcon from "../AppIcon";
 import { ShellActionButton, ShellCard } from "../ui";
 import { GuestJoinForm } from "./GuestJoinForm";
@@ -20,6 +20,7 @@ interface GuestJoinModalProps {
   joinCode: string;
   guestName: string;
   session: GuestRoomSession | null;
+  status: GuestRoomSessionStatus;
   error: string | null;
   isSubmitting: boolean;
   onClose: () => void;
@@ -59,6 +60,7 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
   joinCode,
   guestName,
   session,
+  status,
   error,
   isSubmitting,
   onClose,
@@ -75,11 +77,17 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
   const styles = useMemo(() => createStyles(isWideLayout), [isWideLayout]);
   const submitLabel = error ? "Retry Join" : "Join Room";
   const retryMessage = error
-    ? "Update the room code or guest name and try again."
+    ? "Check your invitation or try again. If access was lost, ask the host for a fresh invitation."
     : null;
-  const title = session ? "Guest Room Active" : "Join as a guest";
+  const title = status === "pending_leave" ? "Departure pending"
+    : status === "renewing" ? "Renewing guest access"
+    : status === "left" ? "Guest room left"
+    : session ? "Guest Room Active" : "Join as a guest";
   const subtitle = session
     ? `Connected as ${session.grant.displayName}`
+    : status === "pending_leave" ? "Room actions are paused until departure is confirmed."
+    : status === "renewing" ? "Room actions are paused until renewal is confirmed."
+    : status === "left" ? "Your departure was confirmed and guest access was revoked."
     : "Enter a room to play";
   const headerIconColor = session ? theme.success.val : theme.primary.val;
   const headerBackground = session
@@ -161,13 +169,26 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
                   </Pressable>
                 </XStack>
 
-                {session ? (
+                {status === "pending_leave" || status === "renewing" ? (
+                  <YStack gap="$3">
+                    <Text color="$colorMuted" fontSize={14} lineHeight={20}>
+                      {status === "pending_leave"
+                        ? "We have not confirmed that your guest access was revoked. We will retry when connected."
+                        : "Your guest identity is being renewed. We will retry safely with the same request."}
+                    </Text>
+                    {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
+                    {status === "pending_leave" ? (
+                      <ShellActionButton label="Retry departure" onPress={() => { void onLeaveRoom(); }} variant="surface" />
+                    ) : null}
+                  </YStack>
+                ) : session ? (
                   <YStack gap="$5">
                     <GuestJoinLobby
                       session={session}
                       onSetPicks={onSetPicks}
                       isBusy={isPickBusy}
                     />
+                    {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
                     <ShellActionButton
                       icon={
                         <AppIcon
@@ -184,6 +205,12 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
                     />
                   </YStack>
                 ) : (
+                  <YStack gap="$3">
+                  {status === "left" ? (
+                    <Text color="$colorMuted" fontSize={13} lineHeight={18}>
+                      You can join again only if the host is still accepting guests. Otherwise, ask for a new invitation.
+                    </Text>
+                  ) : null}
                   <GuestJoinForm
                     error={error}
                     guestName={guestName}
@@ -195,6 +222,7 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
                     retryMessage={retryMessage}
                     submitLabel={submitLabel}
                   />
+                  </YStack>
                 )}
               </ShellCard>
             </Pressable>

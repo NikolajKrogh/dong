@@ -32,6 +32,7 @@ SELECT set_config('request.jwt.claim.sub', (SELECT member::text FROM ctx), true)
 SELECT public.leave_room_as_member((SELECT session_id FROM ctx));
 
 -- Guest leaves (token-scoped)
+SET LOCAL ROLE service_role;
 SELECT public.leave_room_as_guest('lv-guest-token');
 
 SET CONSTRAINTS ALL IMMEDIATE;

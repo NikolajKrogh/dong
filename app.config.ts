@@ -36,6 +36,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-router",
     "expo-asset",
     "expo-audio",
+    "expo-secure-store",
     "expo-web-browser",
     [
       "expo-dev-client",
