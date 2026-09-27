@@ -1,4 +1,5 @@
 BEGIN;
+\ir guest_abuse_setup.inc
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT plan(6);
@@ -48,9 +49,10 @@ session_row AS (
 )
 SELECT *
 FROM session_row;
-GRANT SELECT ON TABLE guest_room_join_context TO anon;
-SET LOCAL ROLE anon;
-SELECT set_config('request.jwt.claim.role', 'anon', true);
+GRANT SELECT ON TABLE guest_room_join_context TO service_role;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
 CREATE TEMP TABLE guest_room_join_first_result AS
 SELECT public.join_room_as_guest(' room42 ', 'Guest Player', 'guest-token-1') AS payload;
 CREATE TEMP TABLE guest_room_join_replay_result AS

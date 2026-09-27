@@ -9,11 +9,20 @@ import {
   buildGuestRoomSessionGrant,
   clearGuestRoomSessionGrant,
   createGuestRoomToken,
+  createGuestRoomRotationId,
   getGuestRoomErrorMessage,
+  getGuestRoomErrorCode,
   isExpiredGuestRoomError,
   normalizeGuestRoomDisplayName,
   normalizeGuestRoomJoinCode,
+  readAndRemoveLegacyGuestRoomSessionGrant,
+  readGuestRoomPendingJoin,
+  readGuestRoomPendingLeave,
+  readGuestRoomPendingRotation,
   readGuestRoomSessionGrant,
+  saveGuestRoomPendingJoin,
+  saveGuestRoomPendingLeave,
+  saveGuestRoomPendingRotation,
   saveGuestRoomSessionGrant,
 } from "../utils/guestRoom";
 import { getGuestRoomRpcClient } from "../utils/supabaseClient";
@@ -49,6 +58,31 @@ export interface UseGuestRoomSessionResult {
 }
 
 export const GUEST_ROOM_POLL_INTERVAL_MS = 1000;
+const GUEST_ROOM_RENEWAL_WINDOW_MS = 10 * 60 * 1000;
+
+const grantFromPendingRotation = (record: NonNullable<Awaited<ReturnType<typeof readGuestRoomPendingRotation>>>): GuestRoomSessionGrant => ({
+  guestToken: record.token,
+  participantId: record.participantId,
+  sessionId: record.sessionId,
+  joinCode: record.joinCode,
+  displayName: record.displayName,
+  grantExpiresAt: record.grantExpiresAt,
+});
+
+const confirmPendingRotation = async (record: NonNullable<Awaited<ReturnType<typeof readGuestRoomPendingRotation>>>) => {
+  const outcome = await getGuestRoomRpcClient().rotateGuestRoomGrant(
+    record.token, record.replacementToken, record.operationId,
+  );
+  if (!outcome.ok) throw new Error(outcome.code);
+  if (outcome.participantId !== record.participantId) throw new Error("guest_access_lost");
+  const grant = {
+    ...grantFromPendingRotation(record),
+    guestToken: record.replacementToken,
+    grantExpiresAt: outcome.grantExpiresAt,
+  } satisfies GuestRoomSessionGrant;
+  await saveGuestRoomSessionGrant(grant);
+  return buildSessionFromGrant(grant);
+};
 
 const buildSessionFromGrant = async (grant: GuestRoomSessionGrant) => {
   const snapshot = await getGuestRoomRpcClient().getGuestRoomSnapshot(
@@ -56,7 +90,7 @@ const buildSessionFromGrant = async (grant: GuestRoomSessionGrant) => {
   );
 
   return {
-    grant,
+    grant: snapshot.grantExpiresAt ? { ...grant, grantExpiresAt: snapshot.grantExpiresAt } : grant,
     snapshot,
   } satisfies GuestRoomSession;
 };
@@ -66,12 +100,10 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
   const [session, setSession] = useState<GuestRoomSession | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
-  const [pendingGuestToken, setPendingGuestToken] = useState<string | null>(
-    null,
-  );
   const sessionRef = useRef<GuestRoomSession | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const refreshInFlightRef = useRef(false);
+  const leaveInFlightRef = useRef(false);
   const activeGrant = session?.grant ?? null;
 
   useEffect(() => {
@@ -82,16 +114,72 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
     let isMounted = true;
 
     const restorePersistedSession = async () => {
-      const persistedGrant = await readGuestRoomSessionGrant();
-
-      if (!persistedGrant || !isMounted) {
-        return;
-      }
-
-      setStatus("refreshing");
-
+      let restoringPendingLeave = false;
+      let restoringPendingRotation = false;
       try {
-        const restoredSession = await buildSessionFromGrant(persistedGrant);
+        // The legacy AsyncStorage bearer is erased before the first network wait.
+        const legacyGrant = await readAndRemoveLegacyGuestRoomSessionGrant();
+        const pendingRotation = await readGuestRoomPendingRotation();
+        const pendingLeave = await readGuestRoomPendingLeave();
+        const pendingJoin = await readGuestRoomPendingJoin();
+        const persistedGrant = await readGuestRoomSessionGrant();
+        if (!isMounted) return;
+        if (!pendingRotation && !pendingLeave && !pendingJoin && !persistedGrant && !legacyGrant) return;
+
+        if (pendingRotation) {
+          restoringPendingRotation = true;
+          setStatus("renewing");
+          const renewed = await confirmPendingRotation(pendingRotation);
+          if (isMounted) {
+            setSession(renewed);
+            setStatus("joined");
+            setError(null);
+          }
+          return;
+        }
+
+        if (pendingLeave) {
+          restoringPendingLeave = true;
+          setSession(null);
+          setStatus("pending_leave");
+          const outcome = await getGuestRoomRpcClient().leaveRoomAsGuest(pendingLeave.guestToken);
+          if (outcome.ok) {
+            await clearGuestRoomSessionGrant();
+            if (isMounted) { setStatus("left"); setError(null); }
+          } else if (outcome.code === "not_permitted") {
+            await saveGuestRoomSessionGrant(pendingLeave);
+            const restored = await buildSessionFromGrant(pendingLeave);
+            if (isMounted) {
+              setSession(restored);
+              setStatus("joined");
+              setError(getGuestRoomErrorMessage("not_permitted"));
+            }
+          } else if (isMounted) {
+            setError(getGuestRoomErrorMessage(outcome.code));
+          }
+          return;
+        }
+
+        setStatus("refreshing");
+        if (pendingJoin) {
+          const response = await getGuestRoomRpcClient().joinRoomAsGuest({
+            joinCode: pendingJoin.joinCode,
+            guestName: pendingJoin.displayName,
+            guestToken: pendingJoin.token,
+          });
+          const joined = { grant: buildGuestRoomSessionGrant(response), snapshot: response.snapshot } satisfies GuestRoomSession;
+          await saveGuestRoomSessionGrant(joined.grant);
+          if (!isMounted) return;
+          setSession(joined);
+          setStatus("joined");
+          setError(null);
+          return;
+        }
+
+        const grant = persistedGrant ?? legacyGrant;
+        if (!grant) return;
+        const restoredSession = await buildSessionFromGrant(grant);
+        if (legacyGrant && !persistedGrant) await saveGuestRoomSessionGrant(restoredSession.grant);
 
         if (!isMounted) {
           return;
@@ -112,12 +200,15 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         }
 
         setSession(null);
-        setStatus(hasExpiredGrant ? "expired" : "failed");
+        setStatus(hasExpiredGrant
+          ? (restoringPendingLeave ? "idle" : "expired")
+          : restoringPendingLeave ? "pending_leave" : restoringPendingRotation ? "renewing" : "failed");
         setError(
-          getGuestRoomErrorMessage(
-            restoreError,
-            "Unable to restore the room right now.",
-          ),
+          restoringPendingLeave
+            ? "Could not confirm departure. We will retry when you reconnect."
+            : restoringPendingRotation && !hasExpiredGrant
+              ? "Guest access renewal is pending. We will retry when connected."
+            : getGuestRoomErrorMessage(restoreError, "Unable to restore the room right now."),
         );
       }
     };
@@ -136,7 +227,6 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         setSession(null);
         setStatus("idle");
         setError(null);
-        setPendingGuestToken(null);
         return;
       }
 
@@ -144,30 +234,86 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       setSession(nextSession);
       setStatus("joined");
       setError(null);
-      setPendingGuestToken(null);
     },
     [],
   );
 
   const refreshRoom = useCallback(async () => {
     const currentSession = sessionRef.current;
-
-    if (!currentSession?.grant) {
-      return null;
-    }
-
-    setStatus("refreshing");
-
+    let rotationPending = false;
     try {
+      let pendingRotation = await readGuestRoomPendingRotation();
+      const snapshotGrant = currentSession?.grant ?? (!pendingRotation ? await readGuestRoomSessionGrant() : null);
+      if (!snapshotGrant && !pendingRotation) return null;
+      const expiry = snapshotGrant?.grantExpiresAt;
+      if (!pendingRotation && expiry && Date.parse(expiry) - Date.now() <= GUEST_ROOM_RENEWAL_WINDOW_MS) {
+        const replacementToken = await createGuestRoomToken();
+        const operationId = await createGuestRoomRotationId();
+        await saveGuestRoomPendingRotation(snapshotGrant!, replacementToken, operationId);
+        pendingRotation = await readGuestRoomPendingRotation();
+        // The just-written record must be readable before a server mutation.
+        if (!pendingRotation) throw new Error("protected_storage_unavailable");
+      }
+      if (pendingRotation) {
+        rotationPending = true;
+        setSession(null);
+        setStatus("renewing");
+        const renewed = await confirmPendingRotation(pendingRotation);
+        setSession(renewed);
+        setStatus("joined");
+        setError(null);
+        return renewed;
+      }
+
+      setStatus("refreshing");
       const refreshedSession = await buildSessionFromGrant(
-        currentSession.grant,
+        snapshotGrant!,
       );
-      await saveGuestRoomSessionGrant(refreshedSession.grant);
       setSession(refreshedSession);
       setStatus("joined");
       setError(null);
       return refreshedSession;
     } catch (refreshError) {
+      if (rotationPending) {
+        if (getGuestRoomErrorCode(refreshError) === "room_unavailable") {
+          try {
+            const deniedRotation = await readGuestRoomPendingRotation();
+            if (deniedRotation) {
+              const originalGrant = grantFromPendingRotation(deniedRotation);
+              await saveGuestRoomSessionGrant(originalGrant);
+              try {
+                const finalSession = await buildSessionFromGrant(originalGrant);
+                setSession(finalSession);
+                setStatus("joined");
+                setError(null);
+                return finalSession;
+              } catch {
+                await clearGuestRoomSessionGrant();
+                setSession(null);
+                setStatus("expired");
+                setError(getGuestRoomErrorMessage("guest_access_lost"));
+                return null;
+              }
+            }
+          } catch {
+            setSession(null);
+            setStatus("renewing");
+            setError(getGuestRoomErrorMessage("protected_storage_unavailable"));
+            return null;
+          }
+        }
+        if (isExpiredGuestRoomError(refreshError)) {
+          await clearGuestRoomSessionGrant();
+          setSession(null);
+          setStatus("expired");
+          setError(getGuestRoomErrorMessage(refreshError));
+          return null;
+        }
+        setSession(null);
+        setStatus("renewing");
+        setError("Guest access renewal is pending. We will retry when connected.");
+        return null;
+      }
       if (isExpiredGuestRoomError(refreshError)) {
         await clearGuestRoomSessionGrant();
         setSession(null);
@@ -210,11 +356,11 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       void refreshRoom().finally(() => {
         refreshInFlightRef.current = false;
       });
-    }, GUEST_ROOM_POLL_INTERVAL_MS);
-  }, [refreshRoom]);
+    }, status === "renewing" ? 5000 : GUEST_ROOM_POLL_INTERVAL_MS);
+  }, [refreshRoom, status]);
 
   useEffect(() => {
-    if (!activeGrant) {
+    if (!activeGrant && status !== "renewing") {
       stopPolling();
       return;
     }
@@ -224,25 +370,50 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
     return () => {
       stopPolling();
     };
-  }, [activeGrant, startPolling, stopPolling]);
+  }, [activeGrant, startPolling, status, stopPolling]);
 
   const leaveRoom = useCallback(async () => {
+    if (leaveInFlightRef.current) return;
+    leaveInFlightRef.current = true;
     stopPolling();
-    const guestToken = sessionRef.current?.grant.guestToken ?? null;
-    if (guestToken) {
-      // Best-effort server-side removal so the host's roster updates (FR-003).
+    const currentSession = sessionRef.current;
+    try {
+      const grant = currentSession?.grant ?? await readGuestRoomPendingLeave();
+      if (!grant) return;
+      if (currentSession) await saveGuestRoomPendingLeave(grant);
+      setSession(null);
+      setStatus("pending_leave");
+      setError(null);
       try {
-        await getGuestRoomRpcClient().leaveRoomAsGuest(guestToken);
+        const outcome = await getGuestRoomRpcClient().leaveRoomAsGuest(grant.guestToken);
+        if (outcome.ok) {
+          await clearGuestRoomSessionGrant();
+          setStatus("left");
+        } else if (outcome.code === "not_permitted") {
+          await saveGuestRoomSessionGrant(grant);
+          const restored = currentSession ?? await buildSessionFromGrant(grant);
+          setSession(restored);
+          setStatus("joined");
+          setError(getGuestRoomErrorMessage("not_permitted"));
+        } else {
+          setError(getGuestRoomErrorMessage(outcome.code));
+        }
       } catch {
-        // Ignore — local session is cleared regardless.
+        setError("Could not confirm departure. We will retry when you reconnect.");
       }
+    } catch (storageError) {
+      setStatus("failed");
+      setError(getGuestRoomErrorMessage(storageError));
+    } finally {
+      leaveInFlightRef.current = false;
     }
-    await clearGuestRoomSessionGrant();
-    setSession(null);
-    setStatus("idle");
-    setError(null);
-    setPendingGuestToken(null);
   }, [stopPolling]);
+
+  useEffect(() => {
+    if (status !== "pending_leave") return;
+    const timer = setInterval(() => { void leaveRoom(); }, 5000);
+    return () => clearInterval(timer);
+  }, [leaveRoom, status]);
 
   const joinRoom = useCallback(
     async (joinCode: string, guestName: string) => {
@@ -261,19 +432,21 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         return null;
       }
 
-      const nextGuestToken =
-        session?.grant.guestToken ??
-        pendingGuestToken ??
-        createGuestRoomToken();
-
-      if (!session?.grant.guestToken && !pendingGuestToken) {
-        setPendingGuestToken(nextGuestToken);
-      }
-
       setStatus("joining");
       setError(null);
 
       try {
+        const storedPending = await readGuestRoomPendingJoin();
+        const samePending = storedPending?.joinCode === normalizedJoinCode && storedPending.displayName === normalizedGuestName;
+        const nextGuestToken =
+          session?.grant.guestToken ??
+          (samePending ? storedPending.token : null) ??
+          await createGuestRoomToken();
+
+        if (!session?.grant.guestToken) {
+          await saveGuestRoomPendingJoin(normalizedJoinCode, normalizedGuestName, nextGuestToken);
+        }
+
         const response = await getGuestRoomRpcClient().joinRoomAsGuest({
           joinCode: normalizedJoinCode,
           guestName: normalizedGuestName,
@@ -294,7 +467,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         return null;
       }
     },
-    [pendingGuestToken, replaceSession, session],
+    [replaceSession, session],
   );
 
   const setMyPicks = useCallback(

@@ -1,6 +1,7 @@
 -- 042_server_authoritative_gameplay.sql: canonical active-game commands,
 -- guest participation, provider provenance, replay safety, and completion locks.
 BEGIN;
+\ir guest_abuse_setup.inc
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT plan(62);
@@ -108,6 +109,7 @@ END $$;
 SELECT ok((SELECT passed FROM results WHERE name = 'score_conflict'), 'same key with different intent is rejected');
 
 SELECT set_config('request.jwt.claim.sub', NULL, true);
+SET LOCAL ROLE service_role;
 SELECT is(
   public.change_manual_score_as_guest(
     'gameplay-guest-token',
@@ -595,7 +597,8 @@ DO $$ BEGIN
 END $$;
 SELECT ok((SELECT passed FROM results WHERE name = 'outsider_read'), 'outsiders cannot read active snapshots');
 
-SET LOCAL ROLE anon;
+SET LOCAL ROLE service_role;
+SELECT set_config('request.jwt.claim.role', 'service_role', true);
 SELECT is(
   public.get_guest_room_snapshot('gameplay-guest-token') -> 'state',
   '"in_progress"'::jsonb,

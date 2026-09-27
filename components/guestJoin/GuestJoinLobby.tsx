@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Text, XStack, YStack } from "tamagui";
 
 import type { GuestRoomSession } from "../../types/guestRoom";
+import { roomSnapshotToActiveRoster } from "../../utils/roomSnapshot";
 import { PlayerPickPanel } from "../lobby/PlayerPickPanel";
 
 interface GuestJoinLobbyProps {
@@ -21,6 +22,7 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
   isBusy = false,
 }) => {
   const { snapshot, grant } = session;
+  const participants = roomSnapshotToActiveRoster(snapshot);
 
   // `picks` and `assignmentPlan` are typed as required because that is the
   // contract once migration 038 is applied -- but a client can meet a server
@@ -95,6 +97,16 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
         You are connected as {grant.displayName}. Guest access is temporary and
         only applies to this room on this device.
       </Text>
+      {snapshot.finalOnly ? (
+        <Text color="$colorMuted" fontSize={13} lineHeight={18}>
+          Final results only. Room actions are no longer available.
+        </Text>
+      ) : null}
+      {grant.grantExpiresAt ? (
+        <Text color="$colorMuted" fontSize={13} lineHeight={18}>
+          Guest access is time-limited. If it expires, ask the host for a fresh invitation; rejoining depends on the room still accepting guests.
+        </Text>
+      ) : null}
 
       {canPick && onSetPicks ? (
         <PlayerPickPanel
@@ -110,7 +122,7 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
       <Text color="$color" fontSize={16} fontWeight="700">
         Participants
       </Text>
-      {snapshot.participants.map((participant) => (
+      {participants.map((participant) => (
         <XStack
           alignItems="center"
           backgroundColor="$backgroundLight"

@@ -136,10 +136,6 @@ reconnects — reverse tunnels do not persist across USB re-attach.
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan:
-the `plan.md` in the highest-numbered directory under `specs/` (e.g.
-`specs/019-<slug>/plan.md`) — this pointer is intentionally not pinned to a
-specific feature number so it doesn't go stale as features complete.
-As of 2026-08-16 that resolves to
-[`specs/024-server-authoritative-gameplay/plan.md`](specs/024-server-authoritative-gameplay/plan.md).
+shell commands, and other important information, read the current plan
+at specs/025-harden-guest-room-access/plan.md
 <!-- SPECKIT END -->

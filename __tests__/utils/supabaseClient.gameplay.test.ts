@@ -17,7 +17,8 @@ const fakeClient = (result: FakeResult) => {
   const rpc = jest.fn(() => ({
     overrideTypes: jest.fn().mockResolvedValue(result),
   }));
-  return { client: { rpc } as never, rpc };
+  const invoke = jest.fn().mockResolvedValue(result);
+  return { client: { rpc, functions: { invoke } } as never, rpc, invoke };
 };
 
 const result: GameplayCommandResult = {
@@ -82,7 +83,7 @@ describe("server-authoritative gameplay RPC clients", () => {
   });
 
   it("serializes guest drink changes without exposing a participant actor override", async () => {
-    const { client, rpc } = fakeClient({
+    const { client, invoke } = fakeClient({
       data: { ...result, participantId: "participant-1", currentDrinkTotal: 0.5 },
       error: null,
     });
@@ -94,12 +95,38 @@ describe("server-authoritative gameplay RPC clients", () => {
       deltaHalfDrinks: 1,
       idempotencyKey: "00000000-0000-4000-8000-000000000002",
     });
-    expect(rpc).toHaveBeenCalledWith("change_participant_drink_as_guest", {
+    expect(invoke).toHaveBeenCalledWith("guest-room-access", { body: { operation: "change_participant_drink_as_guest", args: {
       guest_token: "guest-token",
       participant_id: "participant-1",
       delta_half_drinks: 1,
       idempotency_key: "00000000-0000-4000-8000-000000000002",
-    });
+    } } });
+  });
+
+  it("keeps guest score and picks scoped to the bearer, without a caller-supplied actor", async () => {
+    const { client, invoke } = fakeClient({ data: result, error: null });
+    const guestClient = createGuestRoomRpcClient(client);
+    await expect(guestClient.changeManualScoreAsGuest({
+      guestToken: "guest-token",
+      matchId: "match-1",
+      team: "home",
+      deltaGoals: 1,
+      idempotencyKey: "00000000-0000-4000-8000-000000000004",
+    })).resolves.toEqual(result);
+    expect(invoke).toHaveBeenCalledWith("guest-room-access", { body: { operation: "change_manual_score_as_guest", args: {
+      guest_token: "guest-token",
+      match_id: "match-1",
+      team: "home",
+      delta_goals: 1,
+      idempotency_key: "00000000-0000-4000-8000-000000000004",
+    } } });
+
+    const picksRpc = jest.fn().mockResolvedValue({ data: null, error: null });
+    await createGuestRoomRpcClient({ functions: { invoke: picksRpc } } as never)
+      .setMyRoomPicksAsGuest("guest-token", ["match-1"]);
+    expect(picksRpc).toHaveBeenCalledWith("guest-room-access", { body: { operation: "set_my_room_picks_as_guest", args: {
+      guest_token: "guest-token", match_ids: ["match-1"],
+    } } });
   });
 
   it.each([

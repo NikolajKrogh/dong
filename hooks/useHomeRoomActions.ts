@@ -41,6 +41,7 @@ export const useHomeRoomActions = () => {
   const [registeredJoinCode, setRegisteredJoinCode] = useState("");
   const {
     session: guestRoomSession,
+    status: guestRoomStatus,
     error: guestRoomError,
     isSubmitting: isGuestJoinSubmitting,
     leaveRoom: leaveGuestRoom,
@@ -303,6 +304,7 @@ export const useHomeRoomActions = () => {
     setPlayers,
     setActiveGameContext,
     guestRoomSession,
+    guestRoomStatus,
   ]);
 
   useEffect(() => {
@@ -310,6 +312,9 @@ export const useHomeRoomActions = () => {
       hydratedGuestGameplaySessionIdRef.current = null;
       seenGuestPreStartRef.current = false;
       setHasDismissedGuestJoinModal(false);
+      if (guestRoomStatus === "pending_leave" || guestRoomStatus === "renewing" || guestRoomStatus === "expired" || guestRoomStatus === "left") {
+        setIsGuestJoinModalVisible(true);
+      }
       return;
     }
 
@@ -333,7 +338,7 @@ export const useHomeRoomActions = () => {
     if (!hasDismissedGuestJoinModal) {
       setIsGuestJoinModalVisible(true);
     }
-  }, [guestGameStarted, guestRoomSession, hasDismissedGuestJoinModal]);
+  }, [guestGameStarted, guestRoomSession, guestRoomStatus, hasDismissedGuestJoinModal]);
 
   return {
     account,
@@ -351,6 +356,7 @@ export const useHomeRoomActions = () => {
     registeredJoinCode,
     setRegisteredJoinCode,
     guestRoomSession,
+    guestRoomStatus,
     guestRoomError,
     isGuestJoinSubmitting,
     submitGuestJoin,

@@ -4,6 +4,14 @@ import type { Match, Player } from "../store/store";
 
 export type CompatibleRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 
+/**
+ * Selects the current, server-derived lobby roster. The fallback is only for a
+ * server that has not yet received the additive activeRoster snapshot field.
+ */
+export const roomSnapshotToActiveRoster = (
+  snapshot: CompatibleRoomSnapshot,
+) => snapshot.activeRoster ?? snapshot.participants;
+
 export const roomSnapshotToGameState = (snapshot: CompatibleRoomSnapshot) => {
   const players: Player[] = snapshot.participants.map((participant) => ({
     id: participant.id,

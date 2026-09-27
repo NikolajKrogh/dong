@@ -17,6 +17,7 @@ export const RoomEndedNotice: React.FC<RoomEndedNoticeProps> = ({
       </Text>
       <Text color="$colorMuted" fontSize={15} lineHeight={22}>
         This room is no longer available. The host left or the room expired.
+        Guest access cannot be restored to a closed room; ask the host for a new joinable invitation.
       </Text>
       <ShellActionButton
         variant="primary"

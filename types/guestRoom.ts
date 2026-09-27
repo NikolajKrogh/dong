@@ -1,7 +1,7 @@
 import type { AssignmentMode, AssignmentPlan } from "./room";
 
 export type GuestRoomSessionStatus =
-  "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired";
+  "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired" | "pending_leave" | "renewing" | "left";
 
 /**
  * The room states a guest can observe.
@@ -25,6 +25,13 @@ export type GuestRoomErrorCode =
   | "room_not_joinable"
   | "guest_name_required"
   | "guest_token_expired"
+  | "room_unavailable"
+  | "rate_limited"
+  | "protected_storage_unavailable"
+  | "secure_random_unavailable"
+  | "guest_access_lost"
+  | "not_permitted"
+  | "invalid_request"
   | "unknown_error";
 
 export interface GuestRoomParticipantSummary {
@@ -83,11 +90,15 @@ export interface GuestRoomSnapshot {
   lastEventSequence?: number;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
+  /** Live roster projection; absent on servers predating the roster migration. */
+  activeRoster?: GuestRoomParticipantSummary[];
   participants: GuestRoomParticipantSummary[];
   matches: GuestRoomMatchSummary[];
   assignments: GuestRoomAssignmentSummary[];
   picks: GuestRoomPickSummary[];
   assignmentPlan: AssignmentPlan;
+  grantExpiresAt?: string;
+  finalOnly?: boolean;
 }
 
 export interface GuestRoomJoinRequest {
@@ -102,6 +113,7 @@ export interface GuestRoomSessionGrant {
   sessionId: string;
   joinCode: string;
   displayName: string;
+  grantExpiresAt?: string;
 }
 
 export interface GuestRoomJoinResponse {
@@ -110,12 +122,27 @@ export interface GuestRoomJoinResponse {
   guestToken: string;
   joinCode: string;
   displayName: string;
+  grantExpiresAt?: string;
   snapshot: GuestRoomSnapshot;
 }
 
 export interface GuestRoomSession {
   grant: GuestRoomSessionGrant;
   snapshot: GuestRoomSnapshot;
+}
+
+export type GuestRoomLeaveResponse =
+  | { ok: true; status: "confirmed" | "already_invalid" }
+  | { ok: false; code: "not_permitted" | "rate_limited" };
+
+export type GuestRoomRotationResponse =
+  | { ok: true; participantId: string; grantExpiresAt: string; replayed: boolean }
+  | { ok: false; code: "guest_access_lost" | "room_unavailable" | "rate_limited" | "invalid_request" };
+
+export interface GuestRoomRotationRequest {
+  oldToken: string;
+  newToken: string;
+  operationId: string;
 }
 
 export interface GuestRoomRpcError {
