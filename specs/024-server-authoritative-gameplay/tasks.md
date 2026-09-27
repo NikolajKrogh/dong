@@ -197,7 +197,7 @@ record release/recovery evidence.
 - [X] T048 [P] Add the complete two-client primary journey tags, deterministic fixture reset, shared command routes, and convergence assertions in `e2e/features/server-authoritative-gameplay.feature` and `e2e/steps/browser-flow.helpers.ts`
 - [X] T049 [P] Regenerate Supabase types after migration 042; retain explicit domain result DTOs where generated RPC returns `Json` so client parsing remains typed in `types/database.types.ts`, `types/room.ts`, and `utils/supabaseClient.ts`
 - [X] T050 Run `npm run lint`, `npm run test:ci -- --runInBand`, `npm run db:reset`, `npm run db:test`, `command-api/mvnw.cmd clean verify`, and the tagged Playwright journey; record results and the physical-device limitation in `specs/024-server-authoritative-gameplay/quickstart.md`
-- [ ] T051 Perform the physical Android plus web second-client smoke for goal, drink, resume, reassignment, completion, and final-state convergence (pending authenticated room/session credentials); record device serial/build/date/evidence in `specs/024-server-authoritative-gameplay/quickstart.md`
+- [ ] T051 **User-owned manual acceptance**: after an isolated authenticated test session is available, verify goal/drink, resume, presence/recovery, reassignment, guest leave, and host completion in browser plus connected Android. Record five-second convergence and terminal-notice timing; verify the host reaches unchanged Home directly, the guest sees Room Ended, its visible timer accumulates five interactive foreground seconds and pauses in background, and screen-reader mode offers one explicit accessible Home action. Record timings, device serial/build/date, browser version, and evidence in `specs/024-server-authoritative-gameplay/quickstart.md`. Do not add or run E2E tests; the user performs this manual testing.
 - [X] T052 Review migration grants, explicit `search_path`, token/JWT redaction, authorization-before-replay, retained event recovery, and forward rollback instructions in `supabase/migrations/042_server_authoritative_gameplay.sql` and `specs/024-server-authoritative-gameplay/quickstart.md`
 - [X] T053 Run the read-only cross-artifact analysis and resolve all HIGH/CRITICAL findings in `specs/024-server-authoritative-gameplay/spec.md`, `specs/024-server-authoritative-gameplay/plan.md`, and `specs/024-server-authoritative-gameplay/tasks.md`
 - [X] T054 Restrict provider lease and batch RPCs to `service_role`, preserve league metadata and legacy compatibility, and add pgTAP privilege/lease/atomicity/correction coverage
@@ -328,3 +328,21 @@ Task T045: solo-no-network E2E scenario
 - Never place guest tokens, JWTs, or service credentials in fixtures, logs, or
   gameplay events.
 - Commit after logical groups only if the user chooses the optional git hook.
+
+## Issue #140 and room-exit convergence amendment (2026-09-27)
+
+- [x] T058 Inspect existing snapshot hydration, sequencing, guest grant handling, completion flow, and live Supabase state before changing behavior.
+- [x] T059 Add a room-scoped private Realtime Broadcast/Presence authorization path and emit empty `room_changed` notifications from committed gameplay events; cover policy and trigger behavior in pgTAP.
+- [x] T060 Subscribe registered active-game clients, track participant presence, and refetch only the canonical snapshot on broadcast/presence changes; retain polling/foreground refresh; add hook coverage.
+- [x] T061 Revoke guest grants in the host completion transaction while preserving `completed` history, then return all clients home and clear active room context after canonical terminal confirmation; add pgTAP and controller coverage.
+
+## Guest Room Ended experience amendment (2026-09-27)
+
+- [x] T062 Publish host-completion terminal state once, clear the guest grant and active-room context, and let one root-layout navigation owner route the guest to the standalone terminal screen; repeated polling/foreground signals must not repeat navigation; cleanup remains retryable. Implemented in `utils/guestRoomTermination.ts`, `hooks/useGuestRoomEndedNavigation.ts`, `hooks/useActiveGameRoomSync.ts`, `hooks/useGuestRoomSession.ts`, `store/store.ts`, and `app/_layout.tsx`.
+- [x] T063 Add the guest-only Room Ended route with a five-second interactive foreground countdown, background pause/resume, and an accessible button-only path for screen-reader access in `app/roomEnded.tsx` and `platform/navigation/useRoomEndedExit.ts`; leave existing Home unchanged.
+- [x] T064 Add Jest coverage for countdown timing, background pause, screen-reader button-only behavior, one-shot navigation, credential cleanup, and gameplay/session races in `__tests__/hooks/useRoomEndedExit.test.ts`, `__tests__/hooks/useGuestRoomEndedNavigation.test.ts`, `__tests__/app/_layout.platform.test.tsx`, `__tests__/hooks/useActiveGameRoomSync.test.ts`, and `__tests__/hooks/useGuestRoomSession.test.ts`.
+- [x] T065 Complete automated integration coverage for the server `room_ended` result, grant-expiry distinction, completion/leave/expiry ordering, and serialized client cleanup in coordination with #191 T075–T077; add no E2E coverage.
+
+## Phase 10: Convergence
+
+- [x] T066 Record platform acceptance: user confirms both Android and browser work. Browser uses button-only dismissal because RN Web always reports screen-reader mode; browser countdown remains an explicit platform limitation, not a verified behavior.

@@ -36,9 +36,11 @@ Responses use no-store and CORS for existing native/web clients.
 No direct RPC fallback in the updated client. Old clients require an upgrade;
 retaining old guest RPC grants would preserve the security bypass.
 
-Completed-room leave is credential revocation, not a gameplay mutation: it
-expires the grant and returns `confirmed`, preserving the completed roster and
-event stream. Replays return `already_invalid`; in-progress leave stays denied.
+Confirmed guest leave in a joinable or in-progress room revokes the grant,
+marks `left_at`, and appends one `participant_left` event without changing
+settled gameplay. Host completion revokes all guest grants while preserving the
+completed roster and event stream; a retry after revocation returns
+`already_invalid`.
 
 ## Deployment and verification
 
@@ -51,3 +53,7 @@ second-origin, valid-eight-guest, native and broader acceptance gates separately
 
 Sources: https://developers.cloudflare.com/fundamentals/reference/http-headers/
 and https://supabase.com/docs/guides/database/debugging-performance .
+
+## Friendly termination outcome
+
+After existing quotas, snapshot returns exactly { "ok": false, "code": "room_ended" } for the current token of a guest valid at host completion/closure. No room data or authorization is returned. Unknown, replaced, previously expired and left tokens retain generic denial. Direct API-role execution remains revoked; existing trusted ingress forwards the envelope. A nullable guest_revocation_reason on the participant uses the existing current token hash; no new bearer, receipt or backfill. History and quotas remain intact.

@@ -26,10 +26,24 @@ visibility is recalculated from every snapshot.
 
 ## Completion
 
-At `completed`, stop mutations, clear pending overlays, show one read-only final
-snapshot, and offer navigation away. The multiplayer branch never invokes local
-history creation. Guests may view the final result but gain no persistent
-account history.
+At `completed`, stop mutations and clear pending overlays. The host and
+registered participants clear active-room context and navigate directly to the
+existing Home screen, whose content and behavior remain unchanged. A guest whose
+grant was valid when the host completion committed receives only the
+`room_ended` terminal outcome, never a completed-room snapshot or final history;
+the grant cannot authorize any later read or mutation. The client clears the
+guest credential and room context once, then one root navigation owner shows
+the standalone Room Ended screen.
+
+With screen-reader access disabled, Room Ended shows a five-second countdown
+measured only while the app/browser is interactive; backgrounding or losing
+visibility pauses the remaining time. With screen-reader access enabled, it
+offers one accessible Home button and performs no timed redirect. Repeated
+polling, Realtime, and foreground signals must not duplicate cleanup, restart
+the timer, or navigate twice. The multiplayer branch never invokes local
+history creation; guests gain no persistent account history. Current React
+Native Web accessibility detection reports enabled for every browser session,
+so web uses the conservative button-only path pending resolution.
 
 ## Platform parity
 

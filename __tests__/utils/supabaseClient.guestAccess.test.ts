@@ -9,6 +9,11 @@ const fakeClient = (data: unknown, error: unknown = null) => {
 };
 
 describe("guest access RPC envelopes", () => {
+  it("preserves a server-confirmed room-ended signal without a room snapshot", async () => {
+    const { client } = fakeClient({ ok: false, code: "room_ended" });
+    await expect(createGuestRoomRpcClient(client).getGuestRoomSnapshot(request.guestToken))
+      .rejects.toMatchObject({ code: "room_ended" });
+  });
   it("accepts a joined identity and expiry without changing response fields", async () => {
     const data = {
       participantId: "guest-1", sessionId: "room-1", guestToken: request.guestToken,

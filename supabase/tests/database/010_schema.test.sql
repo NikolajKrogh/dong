@@ -290,7 +290,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'participants'
         ),
-        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO,left_at:timestamp with time zone:YES,guest_grant_issued_at:timestamp with time zone:YES,guest_grant_expires_at:timestamp with time zone:YES,guest_grant_previous_hash:text:YES,guest_grant_rotation_id:uuid:YES,guest_grant_retry_until:timestamp with time zone:YES',
+        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO,left_at:timestamp with time zone:YES,guest_grant_issued_at:timestamp with time zone:YES,guest_grant_expires_at:timestamp with time zone:YES,guest_grant_previous_hash:text:YES,guest_grant_rotation_id:uuid:YES,guest_grant_retry_until:timestamp with time zone:YES,guest_revocation_reason:text:YES',
         'participants columns, types, and nullability match expectations'
     );
 SELECT ok(

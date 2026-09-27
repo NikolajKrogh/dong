@@ -225,7 +225,15 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
                           marginRight: styles.modalPlayerIcon.marginRight,
                         }}
                       />
-                      <Text style={styles.modalPlayerName}>{player.name}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.modalPlayerName}>{player.name}</Text>
+                        {player.leftAt && <Text style={{ color: colors.textMuted }}>Left early</Text>}
+                        <Text style={{ color: colors.textMuted }}>
+                          Final assignments: {game.matches.filter((match) =>
+                            game.playerAssignments?.[player.id]?.includes(match.id)
+                          ).map((match) => `${match.homeTeam} vs ${match.awayTeam}`).join(", ") || "None"}
+                        </Text>
+                      </View>
                     </View>
                     {/* Player Drink Count Badge */}
                     <View style={styles.modalDrinkBadge}>

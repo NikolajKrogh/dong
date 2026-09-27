@@ -14,7 +14,13 @@ jest.mock("../../platform", () => ({
   useAppVisibility: jest.fn(),
 }));
 jest.mock("../../utils/guestRoom", () => ({
+  ...jest.requireActual("../../utils/guestRoom"),
+  readGuestRoomPendingLeave: jest.fn(),
   readGuestRoomSessionGrant: jest.fn(),
+  clearGuestRoomSessionGrant: jest.fn(async () => undefined),
+  isExpiredGuestRoomError: jest.fn((error: unknown) =>
+    error instanceof Error && error.message === "guest_access_lost",
+  ),
 }));
 jest.mock("../../utils/commandApiClient", () => ({
   generateIdempotencyKey: jest.fn(
@@ -34,13 +40,25 @@ jest.mock("../../utils/supabaseClient", () => ({
     }),
   })),
   getRoomRpcClient: jest.fn(),
+  getSupabaseClient: jest.fn(() => ({
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+      track: jest.fn().mockResolvedValue("ok"),
+      presenceState: jest.fn(() => ({})),
+    })),
+    removeChannel: jest.fn().mockResolvedValue("ok"),
+  })),
   mapGameplayError: jest.fn(() => null),
 }));
 
 const mockVisibility = jest.mocked(useAppVisibility);
-const { getRoomRpcClient, mapGameplayError } = jest.requireMock(
+const { getGuestRoomRpcClient, getRoomRpcClient, getSupabaseClient, mapGameplayError } = jest.requireMock(
   "../../utils/supabaseClient",
-) as { getRoomRpcClient: jest.Mock; mapGameplayError: jest.Mock };
+) as { getGuestRoomRpcClient: jest.Mock; getRoomRpcClient: jest.Mock; getSupabaseClient: jest.Mock; mapGameplayError: jest.Mock };
+const { isExpiredGuestRoomError, readGuestRoomPendingLeave, readGuestRoomSessionGrant } = jest.requireMock(
+  "../../utils/guestRoom",
+) as { isExpiredGuestRoomError: jest.Mock; readGuestRoomPendingLeave: jest.Mock; readGuestRoomSessionGrant: jest.Mock };
 
 const snapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
   sessionId: "session-1",
@@ -102,7 +120,10 @@ const snapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
 
 describe("active room sync composition", () => {
   beforeEach(() => {
+    useGameStore.setState({ endedGuestSessionId: null });
     jest.clearAllMocks();
+    readGuestRoomPendingLeave.mockResolvedValue(null);
+    readGuestRoomSessionGrant.mockResolvedValue(null);
     mockVisibility.mockReturnValue({
       snapshot: {
         state: "active",
@@ -113,6 +134,46 @@ describe("active room sync composition", () => {
       visibilityState: "active",
       isInteractive: true,
     });
+  });
+
+  it("publishes host termination and discards a late guest mutation result", async () => {
+    const rpcSnapshot = snapshot();
+    readGuestRoomSessionGrant.mockResolvedValue({ guestToken: "guest-token", sessionId: "session-1", participantId: "participant-1" });
+    const getGuestRoomSnapshot = jest.fn().mockResolvedValue(rpcSnapshot);
+    let finishMutation!: (value: unknown) => void;
+    const changeManualScoreAsGuest = jest.fn(() => new Promise((resolve) => { finishMutation = resolve; }));
+    getGuestRoomRpcClient.mockReturnValue({ getGuestRoomSnapshot, changeManualScoreAsGuest });
+    useGameStore.setState({
+      activeGameContext: { mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "guest", lastAppliedSequence: 10 },
+      players: [], matches: [], commonMatchId: null, playerAssignments: {},
+    });
+    let latest!: ReturnType<typeof useActiveGameRoomSync>;
+    function Probe() {
+      const value = useActiveGameRoomSync();
+      React.useEffect(() => { latest = value; }, [value]);
+      return null;
+    }
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(React.createElement(Probe)); });
+    let pending!: ReturnType<typeof latest.changeManualScore>;
+    await TestRenderer.act(async () => { pending = latest.changeManualScore("match-manual", "home", 1); });
+    expect(latest.pendingMutations).toHaveLength(1);
+    getGuestRoomSnapshot.mockRejectedValue(new Error("room_ended"));
+    await TestRenderer.act(async () => { await latest.refresh(); });
+    expect(useGameStore.getState().endedGuestSessionId).toBe("session-1");
+    expect(useGameStore.getState().activeGameContext.sessionId).toBeNull();
+    expect(useGameStore.getState().matches).toEqual([]);
+    const { clearGuestRoomSessionGrant } = jest.requireMock("../../utils/guestRoom");
+    expect(clearGuestRoomSessionGrant).toHaveBeenCalledWith("session-1");
+    await TestRenderer.act(async () => {
+      finishMutation({ sessionId: "session-1", matchId: "match-manual", homeScore: 1, awayScore: 0, lastEventSequence: 11 });
+      await pending;
+    });
+    expect(useGameStore.getState().matches).toEqual([]);
+    expect(useGameStore.getState().players).toEqual([]);
+    expect(useGameStore.getState().activeGameContext.sessionId).toBeNull();
+    expect(latest.pendingMutations).toEqual([]);
+    await TestRenderer.act(async () => renderer.unmount());
   });
 
   it("renders pending score and drink changes over the last canonical snapshot", () => {
@@ -407,6 +468,64 @@ describe("active room sync composition", () => {
     await TestRenderer.act(async () => renderer!.unmount());
   });
 
+  it("uses private registered-room broadcasts to refresh the canonical snapshot", async () => {
+    const handlers = new Map<string, () => void>();
+    const channel: any = {};
+    channel.on = jest.fn((_type: string, filter: { event: string }, callback: () => void) => {
+        handlers.set(filter.event, callback);
+        return channel;
+      });
+    channel.subscribe = jest.fn((callback: (state: string) => void) => {
+        callback("SUBSCRIBED");
+        return channel;
+      });
+    channel.track = jest.fn().mockResolvedValue("ok");
+    channel.presenceState = jest.fn(() => ({}));
+    const removeChannel = jest.fn().mockResolvedValue("ok");
+    const supabaseClient = {
+      channel: jest.fn(() => channel),
+      removeChannel,
+    };
+    getSupabaseClient.mockReturnValueOnce(supabaseClient);
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    useGameStore.setState({
+      activeGameContext: {
+        mode: "multiplayer",
+        sessionId: "session-1",
+        participantId: "participant-1",
+        accessKind: "registered",
+        lastAppliedSequence: 10,
+      },
+    });
+
+    let renderer: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(() => {
+        useActiveGameRoomSync();
+        return null;
+      }));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(channel.on).toHaveBeenCalledWith("broadcast", { event: "room_changed" }, expect.any(Function));
+    expect(supabaseClient.channel).toHaveBeenCalledWith("room:session-1", {
+      config: { private: true, presence: { key: "participant-1" } },
+    });
+    expect(channel.track).toHaveBeenCalledWith({});
+
+    await TestRenderer.act(async () => {
+      handlers.get("room_changed")?.();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getRoomSnapshot).toHaveBeenCalledTimes(2);
+
+    await TestRenderer.act(async () => renderer!.unmount());
+    expect(removeChannel).toHaveBeenCalledWith(channel);
+  });
+
   it("maps raw snapshot authorization errors to terminal access loss", async () => {
     getRoomRpcClient.mockReturnValue({
       getRoomSnapshot: jest.fn().mockRejectedValue({ message: "forbidden" }),
@@ -438,6 +557,144 @@ describe("active room sync composition", () => {
     expect(mapGameplayError).toHaveBeenCalledWith({ message: "forbidden" });
     expect(latest!.status).toBe("access_lost");
     expect(useGameStore.getState().activeGameContext.mode).toBe("solo");
+    await TestRenderer.act(async () => renderer!.unmount());
+  });
+
+  it("treats host-revoked guest access as terminal access loss", async () => {
+    readGuestRoomSessionGrant.mockResolvedValue({
+      guestToken: "guest-token",
+      participantId: "participant-1",
+      sessionId: "session-1",
+      joinCode: "ROOM1",
+      displayName: "Guest",
+    });
+    getGuestRoomRpcClient.mockReturnValue({
+      getGuestRoomSnapshot: jest.fn().mockRejectedValue(new Error("guest_access_lost")),
+    });
+    useGameStore.setState({
+      activeGameContext: {
+        mode: "multiplayer",
+        sessionId: "session-1",
+        participantId: "participant-1",
+        accessKind: "guest",
+        lastAppliedSequence: 10,
+      },
+    });
+
+    let latest: ReturnType<typeof useActiveGameRoomSync> | undefined;
+    const Probe = () => {
+      latest = useActiveGameRoomSync();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(isExpiredGuestRoomError).toHaveBeenCalledWith(expect.any(Error));
+    expect(latest!.status).toBe("access_lost");
+    expect(useGameStore.getState().activeGameContext.mode).toBe("solo");
+    await TestRenderer.act(async () => renderer!.unmount());
+  });
+
+  it("keeps gameplay state when a guest leave is still awaiting confirmation", async () => {
+    const pendingLeave = {
+      guestToken: "guest-token",
+      participantId: "participant-1",
+      sessionId: "session-1",
+      joinCode: "ROOM1",
+      displayName: "Guest",
+    };
+    const getGuestRoomSnapshot = jest.fn();
+    readGuestRoomPendingLeave.mockResolvedValue(pendingLeave);
+    readGuestRoomSessionGrant.mockResolvedValue(pendingLeave);
+    getGuestRoomRpcClient.mockReturnValue({ getGuestRoomSnapshot });
+    useGameStore.setState({
+      activeGameContext: {
+        mode: "multiplayer",
+        sessionId: "session-1",
+        participantId: "participant-1",
+        accessKind: "guest",
+        lastAppliedSequence: 10,
+      },
+    });
+
+    let latest: ReturnType<typeof useActiveGameRoomSync> | undefined;
+    const Probe = () => {
+      latest = useActiveGameRoomSync();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(latest!.status).toBe("offline");
+    expect(latest!.error).toContain("awaiting confirmation");
+    expect(readGuestRoomSessionGrant).not.toHaveBeenCalled();
+    expect(getGuestRoomSnapshot).not.toHaveBeenCalled();
+    expect(useGameStore.getState().activeGameContext).toMatchObject({
+      mode: "multiplayer",
+      sessionId: "session-1",
+    });
+    await TestRenderer.act(async () => renderer!.unmount());
+  });
+
+  it("does not apply a guest snapshot fetched before leave became pending", async () => {
+    const pendingLeave = {
+      guestToken: "guest-token",
+      participantId: "participant-1",
+      sessionId: "session-1",
+      joinCode: "ROOM1",
+      displayName: "Guest",
+    };
+    let resolveSnapshot!: (value: RoomSnapshot) => void;
+    const snapshotRequest = new Promise<RoomSnapshot>((resolve) => {
+      resolveSnapshot = resolve;
+    });
+    const getGuestRoomSnapshot = jest.fn(() => snapshotRequest);
+    readGuestRoomSessionGrant.mockResolvedValue(pendingLeave);
+    getGuestRoomRpcClient.mockReturnValue({ getGuestRoomSnapshot });
+    useGameStore.setState({
+      activeGameContext: {
+        mode: "multiplayer",
+        sessionId: "session-1",
+        participantId: "participant-1",
+        accessKind: "guest",
+        lastAppliedSequence: 10,
+      },
+    });
+
+    let latest: ReturnType<typeof useActiveGameRoomSync> | undefined;
+    const Probe = () => {
+      latest = useActiveGameRoomSync();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(1);
+
+    readGuestRoomPendingLeave.mockResolvedValue(pendingLeave);
+    await TestRenderer.act(async () => {
+      resolveSnapshot(snapshot());
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(latest!.status).toBe("offline");
+    expect(latest!.snapshot).toBeNull();
+    expect(useGameStore.getState().activeGameContext).toMatchObject({
+      mode: "multiplayer",
+      sessionId: "session-1",
+    });
     await TestRenderer.act(async () => renderer!.unmount());
   });
 

@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGameStore } from "../store/store";
 import { clear as clearCredential, generateToken, read as readCredential, write as writeCredential } from "../platform/guestCredential";
 import type { GuestCredentialRecord } from "../platform/guestCredential/types";
 
@@ -11,6 +12,20 @@ import type {
 export const GUEST_ROOM_SESSION_GRANT_STORAGE_KEY =
   "dong:guest-room-session-grant" as const;
 
+// Serialize credential mutations so a late renewal cannot undo terminal cleanup.
+let credentialMutation: Promise<unknown> = Promise.resolve();
+const mutateCredential = <T>(operation: () => Promise<T>): Promise<T> => {
+  const next = credentialMutation.then(operation);
+  credentialMutation = next.catch(() => undefined);
+  return next;
+};
+const writeGuestCredential = (record: GuestCredentialRecord) => mutateCredential(async () => {
+  if ("sessionId" in record && useGameStore.getState().endedGuestSessionId === record.sessionId) {
+    throw new GuestRoomAccessError("room_ended");
+  }
+  await writeCredential(record);
+});
+
 const GUEST_ROOM_ERROR_MESSAGES: Record<GuestRoomErrorCode, string> = {
   room_not_found: "We couldn't find that room. Check the code and try again.",
   room_not_joinable: "This room is no longer accepting guest joins.",
@@ -22,7 +37,8 @@ const GUEST_ROOM_ERROR_MESSAGES: Record<GuestRoomErrorCode, string> = {
   protected_storage_unavailable: "Secure guest storage is unavailable on this device. Guest access was not saved.",
   secure_random_unavailable: "Secure guest access is unavailable on this device. Please try again later.",
   guest_access_lost: "Your guest access is no longer valid. Ask the host for a fresh invitation.",
-  not_permitted: "You cannot leave while this game is in progress. Your guest access remains active.",
+  room_ended: "The host has ended this shared game.",
+  not_permitted: "Could not confirm departure. Your guest access remains active.",
   invalid_request: "Unable to continue guest access right now. Try again.",
   unknown_error: "Unable to join the room right now. Try again.",
 };
@@ -38,6 +54,7 @@ const GUEST_ROOM_KNOWN_ERRORS = new Set<string>([
   "protected_storage_unavailable",
   "secure_random_unavailable",
   "guest_access_lost",
+  "room_ended",
   "not_permitted",
   "invalid_request",
 ]);
@@ -222,7 +239,7 @@ export const readGuestRoomPendingJoin = async () => {
 };
 
 export const saveGuestRoomPendingJoin = async (joinCode: string, displayName: string, token: string) => {
-  await writeCredential({ kind: "pending_join", joinCode, displayName, token });
+  await writeGuestCredential({ kind: "pending_join", joinCode, displayName, token });
 };
 
 export const readGuestRoomPendingLeave = async (): Promise<GuestRoomSessionGrant | null> => {
@@ -239,7 +256,7 @@ export const readGuestRoomPendingLeave = async (): Promise<GuestRoomSessionGrant
 };
 
 export const saveGuestRoomPendingLeave = async (grant: GuestRoomSessionGrant): Promise<void> => {
-  await writeCredential({
+  await writeGuestCredential({
     kind: "pending_leave", token: grant.guestToken,
     participantId: grant.participantId, sessionId: grant.sessionId,
     joinCode: grant.joinCode, displayName: grant.displayName,
@@ -258,7 +275,7 @@ export const saveGuestRoomPendingRotation = async (
   operationId: string,
 ): Promise<void> => {
   if (!grant.grantExpiresAt) throw new Error("invalid_request");
-  await writeCredential({
+  await writeGuestCredential({
     kind: "pending_rotation", token: grant.guestToken,
     replacementToken, operationId,
     participantId: grant.participantId, sessionId: grant.sessionId,
@@ -288,7 +305,10 @@ export const readAndRemoveLegacyGuestRoomSessionGrant = async (): Promise<GuestR
 export const saveGuestRoomSessionGrant = async (
   grant: GuestRoomSessionGrant,
 ) => {
-  await writeCredential({
+  if (useGameStore.getState().endedGuestSessionId === grant.sessionId) {
+    throw new GuestRoomAccessError("room_ended");
+  }
+  await writeGuestCredential({
     kind: "joined",
     token: grant.guestToken,
     participantId: grant.participantId,
@@ -298,10 +318,19 @@ export const saveGuestRoomSessionGrant = async (
     grantExpiresAt: grant.grantExpiresAt,
   });
 
+  if (useGameStore.getState().endedGuestSessionId === grant.sessionId) {
+    await clearGuestRoomSessionGrant(grant.sessionId);
+    throw new GuestRoomAccessError("room_ended");
+  }
+
   return grant;
 };
 
-export const clearGuestRoomSessionGrant = async () => {
+export const clearGuestRoomSessionGrant = (sessionId?: string) => mutateCredential(async () => {
+  if (sessionId) {
+    const current = await readCredential();
+    if (current && (!('sessionId' in current) || current.sessionId !== sessionId)) return;
+  }
   await clearCredential();
   await AsyncStorage.removeItem(GUEST_ROOM_SESSION_GRANT_STORAGE_KEY);
-};
+});

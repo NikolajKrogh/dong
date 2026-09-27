@@ -39,11 +39,12 @@ As a guest, I know whether I can still access a room after leaving, expiry, cred
 2. **Given** an active room and a guest grant approaching expiry, **When** the guest is online, **Then** access can be renewed without creating a second participant, and the replaced grant ceases to authorize room reads or writes.
 3. **Given** the guest's grant expires before renewal, **When** the guest opens or acts in the room, **Then** access is rejected, the local grant is cleared, and the guest sees a safe recovery path appropriate to the room's state.
 4. **Given** the guest leaves and the leave is confirmed, **When** the old grant is reused for a snapshot or gameplay action, **Then** it is rejected and the guest is absent from the active roster.
-5. **Given** a room completes, **When** a current guest views the final result, **Then** the grant permits only that read-only final view until expiry or leave; when the room closes, the grant permits no further reads or writes.
+5. **Given** the host completes a room, **When** the shared completion is confirmed, **Then** every guest grant is revoked immediately and the guest cannot continue reading or acting in the room; the completed history still retains that guest's contribution.
 6. **Given** a leave request cannot reach the server, **When** the guest leaves, **Then** the app does not claim that server access was revoked; it explains the pending outcome and retries revocation when connectivity returns.
 7. **Given** a current grant is copied to another device, **When** either copy is used before revocation, **Then** both are treated as the same room participant with the same permissions; renewal or revocation makes every old copy unusable.
 8. **Given** a room is still joinable and a guest grant expires, **When** the room roster is refreshed or the host starts the game, **Then** the guest is absent from the live roster and is not included among the participants eligible for that game, while the guest identity and prior records remain retained.
 9. **Given** a guest grant expires after a game has started, **When** an authorized participant views the ongoing game or its history, **Then** the settled participant, assignments, scores, and events remain unchanged while the expired grant is denied access.
+10. **Given** a guest is active in an in-progress room, **When** they request to leave and the server confirms it, **Then** the guest loses room access and leaves the active roster while their settled game contribution and event history remain intact.
 
 ---
 
@@ -79,6 +80,22 @@ As a room participant, I can trust that every guest entry point applies the same
 2. **Given** a rejected or limited anonymous request, **When** it is recorded for diagnosis, **Then** the record contains the outcome and safe correlation information but no raw guest credential or full room code.
 3. **Given** a valid guest action, **When** access rules are tightened, **Then** the guest can still perform the actions permitted to their participant and room state.
 
+---
+
+### User Story 5 - Distinguish host completion from grant expiry (Priority: P1)
+
+As a guest whose access ends because the host completed the room, I can tell the room ended rather than mistaking completion for an expired grant, while the server still denies all room data and gameplay access.
+
+**Why this priority**: Completion must end guest access immediately, while a connected guest still needs a safe terminal signal to reach the dedicated Room Ended experience.
+
+**Independent Test**: Complete one room while a guest grant is valid; separately expire or revoke a grant before completion. Verify only the former receives a data-free `room_ended` result, all guest reads/writes remain denied, and completion/leave/expiry races preserve participant and gameplay history.
+
+**Acceptance Scenarios**:
+
+1. **Given** a guest grant is valid when host completion commits, **When** that guest next requests room state, **Then** the server returns only `room_ended` with no snapshot or participant data, and subsequent mutations remain denied.
+2. **Given** a grant expired or was revoked before host completion, **When** the guest next requests room state, **Then** the existing generic access-loss response is returned rather than `room_ended`.
+3. **Given** host completion races a confirmed guest leave or grant expiry, **When** the server serializes the outcome, **Then** the committed order determines the terminal result and no participant, gameplay/history, or abuse-window data is deleted or reset.
+
 ### Edge Cases
 
 - A join succeeds remotely but its response is lost; retrying with the same pending identity must not create a second participant.
@@ -93,6 +110,8 @@ As a room participant, I can trust that every guest entry point applies the same
 - An older app version still holds a plaintext local grant when this feature is released.
 - Room closure races with join, renewal, or a guest gameplay command; the terminal room state wins.
 - A request fails partway through access validation; neither partial membership nor partial gameplay writes may remain.
+- Completion races with a guest leave or an already-expired grant; only a grant valid at the committed completion event receives `room_ended`.
+- A delayed/replayed terminal request arrives after the original grant expiry; no room data is returned.
 
 ## Requirements *(mandatory)*
 
@@ -105,8 +124,8 @@ As a room participant, I can trust that every guest entry point applies the same
 - **FR-005**: On upgrade, any legacy grant in unprotected storage MUST be removed. A guest with a valid legacy grant MAY be transferred to protected storage only after the server confirms its validity; otherwise the app MUST offer the normal join or access-lost path.
 - **FR-006**: Each guest grant MUST have an enforced expiry no later than 48 hours after issue. Valid guests in active rooms MUST be able to renew before expiry without changing their participant identity; ordinary snapshot reads MUST NOT silently extend expiry.
 - **FR-007**: Renewal MUST replace the prior grant atomically, be safe to retry after an uncertain response, and leave no interval in which an unconfirmed replacement permanently locks out the legitimate guest. A replaced grant MUST NOT authorize room reads or writes.
-- **FR-008**: Where the room's leave rules permit leaving, a confirmed guest leave MUST revoke access immediately and remove the guest from the active roster. If confirmation is unavailable, the client MUST show the pending state and retry revocation; it MUST NOT represent local clearing as confirmed revocation.
-- **FR-009**: A completed room MUST reject all guest gameplay mutations but MAY permit a current guest to view only its final result until grant expiry or leave. Completed-room leave MUST revoke only credential validity, without removing historical participants or altering scores, assignments, or gameplay events. A closed room MUST reject all guest reads and writes regardless of grant expiry.
+- **FR-008**: A guest MUST be permitted to leave a joinable or in-progress room. A confirmed leave MUST revoke access immediately and remove the guest from the active roster; it MUST preserve settled game contribution and history. If confirmation is unavailable, the client MUST show the pending state and retry revocation; it MUST NOT represent local clearing as confirmed revocation.
+- **FR-009**: Host completion MUST immediately revoke every guest grant. A completed or closed room MUST reject all guest reads and writes; revocation MUST NOT remove historical participants or alter scores, assignments, or gameplay events.
 - **FR-010**: An expired, revoked, or unknown grant MUST be denied consistently across guest snapshots, lobby actions, and gameplay commands. The client MUST clear unusable local access and explain whether rejoining is possible in the current room state.
 - **FR-011**: Anonymous join attempts MUST be limited by caller and submitted room code, with limits enforced before a guest is created. Limits MUST be configurable and must not depend on client-side controls.
 - **FR-012**: Anonymous snapshot requests MUST be limited by caller and grant, with stricter handling for invalid grants. Valid guests' ordinary refresh cadence MUST remain usable under the configured limits.
@@ -117,6 +136,8 @@ As a room participant, I can trust that every guest entry point applies the same
 - **FR-017**: Join, renewal, revocation, expiry, and denial behavior MUST be covered by automated tests, including invalid, replayed, cross-room, terminal-room, and over-limit requests.
 - **FR-018**: When a guest grant expires before a joinable room starts, the guest MUST be omitted from the live room roster and the next game's eligible participant set. Expiry MUST NOT be recorded as a confirmed leave or delete the guest identity or prior records. If expiry occurs after game start, it MUST NOT change the settled participants, assignments, scores, or gameplay events.
 - **FR-019**: Expiring or revoking a guest grant MUST NOT reset or refund anonymous abuse limits keyed by caller or submitted room code.
+- **FR-020**: A guest grant valid at canonical host completion MUST receive a data-free `room_ended` terminal outcome on the next guest snapshot request. This outcome MUST NOT authorize a snapshot, room read, or mutation.
+- **FR-021**: A grant expired, replaced, left, or revoked before host completion MUST retain the existing generic access-loss behavior; unknown callers MUST NOT learn whether a room exists or ended. Any completion-only grant-matching metadata MUST be non-reversible, non-authorizing, and retained with the existing historical participant row without deleting history or abuse records.
 
 ### Key Entities
 
@@ -134,7 +155,7 @@ As a room participant, I can trust that every guest entry point applies the same
 
 - **SC-001**: In native and web validation, 100% of guest joins fail before a network join request when secure credential generation is unavailable; no generated credential uses predictable fallback randomness.
 - **SC-002**: In native storage inspection and browser-session tests, zero guest bearer credentials remain in unprotected native storage or durable browser storage after joining, restarting, or closing the browser session.
-- **SC-003**: In the access test matrix, 100% of expired, replaced, revoked, and cross-room grants fail to read room data or change state; closed rooms reject all guest access, and completed rooms reject every guest mutation while allowing only the authorized final view.
+- **SC-003**: In the access test matrix, 100% of expired, replaced, revoked, completed-room, and cross-room grants fail to read room data or change state; completed and closed rooms reject all guest access while retaining completed history.
 - **SC-004**: Repeating a join or renewal after a lost response produces one participant and one current grant in 100% of tested retries.
 - **SC-005**: In abuse tests, 100% of attempts beyond the configured anonymous join and invalid-read quotas are limited, while a valid group of eight invited guests can join and active guests can continue their normal refresh cadence.
 - **SC-006**: In traffic, event, and diagnostic samples from the validation journeys, zero raw guest credentials and full room codes appear outside their intended confidential exchange.
@@ -142,13 +163,17 @@ As a room participant, I can trust that every guest entry point applies the same
 - **SC-008**: In native and web journeys, 100% of guests receiving confirmed revocation or expiry see an accurate access state and a usable recovery explanation within five seconds of the next online interaction.
 - **SC-009**: In every tested joinable-room expiry case, the expired guest is absent from both host and guest live-roster views on the next successful refresh and is excluded from the game-start participant set; participant identity and any started-game history remain intact.
 - **SC-010**: In every tested expiry case, caller- and submitted-code abuse windows retain their prior counts and continue enforcing configured limits.
+- **SC-011**: In 100% of confirmed in-progress guest departures, the prior grant is denied on the next request, the guest is absent from the active roster, and settled game history is unchanged.
+- **SC-012**: In 100% of host-completion cases, every guest grant is denied before completion returns while participant and gameplay history remain unchanged.
+- **SC-013**: In 100% of tested completion/expiry/leave orderings, only a grant valid at the completion event receives `room_ended`; that response contains no snapshot or participant data and all later reads/writes are denied.
+- **SC-014**: Terminal classification grants no room access; cleanup does not delete participants, gameplay events, completed history, or abuse-window counts.
 
 ## Assumptions
 
 - Guest participants remain temporary identities scoped to one room and intended for use on one device or browser session; guests do not become registered users or hosts.
 - A currently valid bearer grant cannot prove which physical device holds it. A copied grant can impersonate that same participant until it is replaced, revoked, or expires; protection at rest, secrecy in diagnostics, and short validity reduce this residual risk.
 - A grant lasts at most 48 hours from issue. An online guest may renew it before that deadline; an offline guest returning after expiry may rejoin only if the room still accepts new guests. The app explains the loss of access if the game has already started.
-- A completed room may show its final result to a current guest until grant expiry or leave. A closed room offers no guest access. Completed history available to registered users is governed by its existing authorization rules.
+- A completed room and a closed room offer no guest access. Completed history available to registered users is governed by its existing authorization rules.
 - If a grant expires before the room starts, the guest is no longer a live roster/game-start participant, but expiry is not a voluntary departure and does not set the confirmed-leave state. If it expires after start, only access ends; the settled game's history is unchanged. Abuse-window accounting is independent of this lifecycle.
 - Web browser sessions may restore a room in the same tab, but closing the session can remove the guest's ability to return. The join flow should make this limitation clear before play.
 - The feature changes guest identity and access protection, not scoring rules, room assignment rules, or registered-user sign-in.
@@ -161,11 +186,11 @@ As a room participant, I can trust that every guest entry point applies the same
 - **Authentication and guest access**: Hosts remain authenticated; guest joins remain anonymous and tied to a single room-scoped identity. All guest-facing operations share the same validity rules.
 - **Shared state**: The room remains authoritative for membership, grant validity, and permitted gameplay. Grant replacement and leave must not create duplicate participants or partially apply actions.
 - **Migration and backfill**: Existing native plaintext grants require a safe upgrade path. Existing active guest credentials need an expiry and revocation transition without silently converting guests into new participants. Planning must include recovery and rollback notes for persisted data and access rules.
-- **Scope boundary**: Guest credential security, anonymous abuse control, and the distinction between an expired guest's live-roster eligibility and retained game history are in scope. In-progress leave history semantics remain in #165.
+- **Scope boundary**: Guest credential security, anonymous abuse control, in-progress voluntary leave, and the distinction between live access and retained game history are in scope. A guest who leaves during play cannot mutate or read the room afterward, but the participant and settled contribution remain in history.
 
 ## Delivery & Automation Impact
 
 - **Unit coverage**: Secure generation failure, protected storage and legacy-grant cleanup, browser-session behavior, renewal retries, pending leave, expiry handling, and user messages.
 - **Database and API coverage**: Invalid, expired, replaced, revoked, cross-room, replayed, terminal-room, and over-limit requests; expired-before-start roster and game-start eligibility; preservation of settled game history; privilege and room-state enforcement on every guest entry point.
-- **End-to-end coverage**: A guest joins and returns on web, then loses access on leave or expiry without disclosure. Any changed primary native journey also needs a native smoke on a physical device.
+- **End-to-end coverage**: Existing #191 coverage remains historical. For the 2026-09-27 amendment, the user explicitly prohibited adding or running E2E tests; automate authorization/state transitions with pgTAP and unit/static checks, and leave browser/native acceptance to the user in T051/T074. Principle V's new-screen E2E coverage is intentionally unmet and recorded in #024's plan.
 - **Applicable skills for planning and implementation**: `speckit-plan`, `supabase`, `supabase-postgres-best-practices`, `database-testing`, `react-native-testing`, and `codebase-memory`.

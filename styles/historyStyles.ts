@@ -131,7 +131,7 @@ export function createHistoryStyles(
       width: screenWidth * 3, // Assuming 3 tabs
     },
     tabContent: {
-      width: screenWidth,
+      width: "100%",
       flex: 1,
     },
 

@@ -5,6 +5,7 @@ import { goalToastConfig } from "../components/gameProgress/GoalToast";
 import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
 import { AccountAuthProvider } from "../hooks/useAccountAuth";
+import { useGuestRoomEndedNavigation } from "../hooks/useGuestRoomEndedNavigation";
 
 const toastConfig = {
   // Setup Game toasts
@@ -21,6 +22,7 @@ const toastConfig = {
  * custom screens), and registers themed toast types.
  */
 export default function Layout() {
+  useGuestRoomEndedNavigation();
   return (
     <AccountAuthProvider>
       <TamaguiAppProvider>

@@ -1,12 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
-import { PlayerStat } from "./historyTypes";
+import { GameSession, PlayerStat } from "./historyTypes";
 import { createHistoryStyles } from "../../styles/historyStyles";
 import { useColors } from "../../styles/theme";
 import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import PlayerComparisonModal from "./PlayerComparisonModal";
-import { useGameStore } from "../../store/store";
 
 /**
  * PlayerStatsListProps
@@ -15,6 +14,7 @@ import { useGameStore } from "../../store/store";
  */
 interface PlayerStatsListProps {
   playerStats: PlayerStat[];
+  history: GameSession[];
 }
 
 /**
@@ -23,8 +23,7 @@ interface PlayerStatsListProps {
  * @param {PlayerStatsListProps} props Component props.
  * @returns {React.ReactElement} Player stats list UI.
  */
-const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
-  const { history } = useGameStore();
+const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats, history }) => {
   const colors = useColors();
   const styles = useMemo(() => createHistoryStyles(colors), [colors]);
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | null>(null);
@@ -222,7 +221,7 @@ const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats }) => {
       <PlayerDetailsModal
         visible={isModalVisible}
         onClose={closeModal}
-        player={selectedPlayer}
+        player={playerStats.find((player) => player.name === selectedPlayer?.name) ?? null}
         gameHistory={history}
       />
 

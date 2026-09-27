@@ -28,9 +28,12 @@
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
+- [x] Guest departure behavior covers both joinable and in-progress rooms
+- [x] Host completion closes guest access without discarding history
 
 ## Notes
 
 - The 48-hour default and browser-session behavior are documented assumptions. Planning should validate their usability during longer active games and offline recovery.
 - The quota values remain a planning decision because they must be calibrated against real room sizes and current guest refresh traffic; acceptance requires reproducible over-limit and normal-use tests.
 - The 2026-09-26 expiry amendment is scoped as a derived activeRoster: it does not change the existing participants/game-history projection, fabricate leave events, or reset abuse-window counters.
+- This amendment supersedes the prior joinable-only leave constraint: a confirmed in-progress departure revokes access and retains the settled contribution. Host completion revokes guest grants; the user's no-E2E instruction applies to this task.

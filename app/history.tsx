@@ -2,7 +2,7 @@
  * @file history.tsx
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useReducer } from "react";
 import {
   ActivityIndicator,
@@ -30,8 +30,8 @@ import SortHistoryModal, {
   HistorySortField,
   SortDirection,
 } from "../components/history/SortHistoryModal";
-import { ShellScreen } from "../components/ui";
-import { useGameStore } from "../store/store";
+import { ShellActionButton, ShellScreen } from "../components/ui";
+import { useHistory } from "../hooks/useHistory";
 import { createHistoryStyles } from "../styles/historyStyles";
 import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";
@@ -134,16 +134,20 @@ const historyViewReducer = (
  * @returns {JSX.Element} React element for the history screen.
  */
 const HistoryScreen = () => {
+  const historyState = useHistory();
+  const { refresh } = historyState;
+  useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
+  return <HistoryContent key={historyState.accountId ?? "local"} {...historyState} />;
+};
+
+const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnType<typeof useHistory>) => {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const wideLayout = isWideLayout(width);
-  const { history } = useGameStore();
   const [viewState, dispatch] = useReducer(
     historyViewReducer,
     initialHistoryViewState,
   );
-  const error: string | null = null;
-  const loading = false;
   const {
     selectedGame,
     isDetailVisible,
@@ -152,6 +156,7 @@ const HistoryScreen = () => {
     sortDirection,
     sortModalVisible,
   } = viewState;
+  const selectedResult = history.find((game) => game.id === selectedGame?.id);
 
   // Sort handler
   const handleSortChange = (field: HistorySortField) => {
@@ -207,6 +212,8 @@ const HistoryScreen = () => {
 
       switch (sortField) {
         case "date":
+          // Unknown completion dates stay last in either direction.
+          if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
           comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
           break;
         case "players":
@@ -238,35 +245,29 @@ const HistoryScreen = () => {
     [viewGameDetails],
   );
 
-  // --- Loading and Error States ---
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.emptyStateText}>{error}</Text>
-      </View>
-    );
-  }
+  const cloudStatus = accountId && (loading || error) ? (
+    <View style={{ padding: 16 }}>
+      {loading && <ActivityIndicator accessibilityLabel="Loading cloud history" color={colors.primary} />}
+      {error && <Text accessibilityRole="alert" style={{ color: colors.textPrimary }}>{error}</Text>}
+      {error && <ShellActionButton accessibilityRole="button" variant="surface" widthMode="fit"
+        label="Retry cloud history"
+        disabled={loading} onPress={() => { void refresh(); }} />}
+    </View>
+  ) : null;
 
   // Determine if we have data to show
   const hasGames = history.length > 0;
   const hasPlayers = playerStats.length > 0;
 
   // --- Empty State Rendering ---
-  if (!hasGames && !loading) {
+  if (!hasGames) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <ShellScreen
           padded={false}
           centerContent={wideLayout}
           contentMaxWidth={wideLayout ? 1120 : undefined}
+          contentProps={{ alignSelf: "center" }}
         >
           <HistoryHeader
             onBack={() => router.back()}
@@ -274,6 +275,7 @@ const HistoryScreen = () => {
             sortDirection="desc"
             onOpenSortModal={() => undefined}
           />
+          {cloudStatus}
           <View style={styles.emptyStateContainer}>
             <AppIcon
               name="calendar-outline"
@@ -281,8 +283,7 @@ const HistoryScreen = () => {
               color={colors.neutralGray}
             />
             <Text style={styles.emptyStateText}>
-              No game history yet. Play some games to see your stats and history
-              here!
+              {loading ? "Loading game history…" : error ? "Cloud history is unavailable. You can retry above." : "No game history yet. Play some games to see your stats and history here!"}
             </Text>
           </View>
         </ShellScreen>
@@ -297,6 +298,7 @@ const HistoryScreen = () => {
         padded={false}
         centerContent={wideLayout}
         contentMaxWidth={wideLayout ? 1120 : undefined}
+        contentProps={{ alignSelf: "center" }}
       >
         <HistoryHeader
           onBack={() => router.back()}
@@ -306,6 +308,7 @@ const HistoryScreen = () => {
             dispatch({ type: "toggleSortModal", visible: true })
           }
         />
+        {cloudStatus}
 
         {/* Sort Modal */}
         <SortHistoryModal
@@ -370,7 +373,7 @@ const HistoryScreen = () => {
               <View style={styles.tabContent}>
                 {hasPlayers ? (
                   <ScrollView key="players-scroll">
-                    <PlayerStatsList playerStats={playerStats} />
+                    <PlayerStatsList playerStats={playerStats} history={history} />
                   </ScrollView>
                 ) : (
                   <View style={styles.emptyTabContent}>
@@ -399,9 +402,9 @@ const HistoryScreen = () => {
       </ShellScreen>
 
       {/* Game Details Modal - Render conditionally */}
-      {isDetailVisible && selectedGame && (
+      {isDetailVisible && selectedResult && (
         <GameDetailsModal
-          game={selectedGame}
+          game={selectedResult}
           visible={isDetailVisible}
           onClose={closeDetails}
         />

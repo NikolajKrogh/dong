@@ -116,7 +116,10 @@ canonical room before accepting another gameplay action.
    prompts them to reconnect and refresh.
 4. **Given** the participant was removed or the room ended while disconnected,
    **When** they return, **Then** they cannot submit further gameplay changes
-   and see the appropriate ended or access-lost state.
+   and are returned home without restoring the ended room as their active game.
+5. **Given** a participant returns while the room is still active, **When** the
+   room has changed since their last snapshot, **Then** they fetch and apply the
+   canonical snapshot before editing, even if a live notification was missed.
 
 ---
 
@@ -150,6 +153,21 @@ later writes fail, and the completed record equals the accepted shared state.
    game controls, **Then** they cannot end the shared game.
 5. **Given** host responsibility changes during play, **When** the room reflects
    the handover, **Then** only the new host can end the game.
+6. **Given** the host ends the game while participants are connected, **When**
+   completion is confirmed, **Then** the host and registered participants clear
+   active-room context and go directly to the existing Home screen, whose
+   content and behavior remain unchanged.
+7. **Given** a guest is connected when the host ends the game, **When** the
+   server confirms completion, **Then** the guest's access is revoked, their
+   historical contribution remains in the completed record, and they see a
+   standalone Room Ended screen instead of completed-room data.
+8. **Given** a guest sees Room Ended with screen-reader access disabled, **When**
+   the screen appears, **Then** a visible five-second countdown returns them to
+   the existing Home screen after five cumulative seconds in the foreground.
+9. **Given** a guest's countdown is running, **When** the app or browser becomes
+   inactive, **Then** the countdown pauses and resumes with its remaining time.
+   With screen-reader access enabled, the guest instead receives a single
+   accessible Home button and no timed redirect.
 
 ---
 
@@ -233,6 +251,8 @@ all current local controls and history behavior still work without a room.
   values.
 - A room has participants who left during play; their accepted events and final
   contribution remain in history even though they cannot submit new actions.
+- A live room notification is lost or unavailable; polling and foreground
+  refresh still recover the canonical state and terminal room state.
 
 ## Requirements *(mandatory)*
 
@@ -323,6 +343,26 @@ all current local controls and history behavior still work without a room.
   authorization, retries, concurrent distinct changes, stale recovery,
   completion ordering, reassignment without state loss, guest participation,
   solo regression, and a two-client primary journey.
+- **FR-033**: A connected registered participant MUST receive room-change and
+  participant-presence notifications only after room-scoped authorization; a
+  notification MUST trigger a canonical snapshot read and MUST NOT be treated
+  as room data or authority.
+- **FR-034**: When completion is confirmed, every connected client MUST clear
+  its active-room context. The host and registered participants MUST go directly
+  to the existing Home screen. A guest whose grant was valid when completion
+  committed MUST receive a distinct `room_ended` outcome, see a standalone Room
+  Ended screen, and then go to the existing Home screen. A missed notification
+  MUST still reach the correct outcome through bounded polling or foreground
+  refresh.
+- **FR-035**: Completing a room MUST immediately revoke guest grants without
+  deleting the guest participant or changing the completed gameplay history.
+- **FR-036**: With screen-reader access disabled, the Room Ended screen MUST
+  show a five-second visible countdown measured only while the app/browser is
+  interactive and MUST pause while inactive. With screen-reader access enabled,
+  it MUST offer one accessible Home button and MUST NOT navigate on a timer.
+- **FR-037**: Repeated terminal snapshots, notifications, or foreground events
+  MUST clear the guest credential and room context and navigate at most once per
+  ended room. Leaving Room Ended MUST cancel its timer; retain its nonpersisted terminal marker to reject late responses.
 
 ### Key Entities
 
@@ -368,6 +408,21 @@ all current local controls and history behavior still work without a room.
   at least one physical native device before release.
 - **SC-009**: Existing solo scoring, drinks, completion, and local history tests
   continue to pass with no network connection.
+- **SC-010**: A registered client receiving a room Broadcast or Presence change
+  applies only the server snapshot, and all connected registered clients
+  converge within five seconds; missed notifications still recover by polling.
+- **SC-011**: Within five seconds of confirmed host completion, every connected
+  client clears active-room context; the host and registered participants are
+  on the existing Home screen, and connected guests see Room Ended. No guest
+  snapshot or gameplay data is returned after completion.
+- **SC-012**: For guests with screen-reader access disabled, Room Ended remains
+  visible for five cumulative interactive foreground seconds and pauses while
+  inactive; for screen-reader users it exposes one accessible Home button and
+  performs no timed navigation.
+- **SC-013**: A grant valid when completion commits produces `room_ended` without
+  room data; a grant expired or revoked before completion follows the existing
+  access-loss outcome. Repeated terminal signals cause at most one navigation
+  and do not alter history.
 
 ## Assumptions
 
@@ -418,3 +473,10 @@ all current local controls and history behavior still work without a room.
   reconstruction. A two-client end-to-end journey covers goals, drinks,
   reassignment, reconnect, and completion, with native physical-device smoke
   coverage before release.
+- **2026-09-27 amendment test scope**: Add automated unit, database, and static
+  coverage for terminal classification, cleanup, race handling, countdown,
+  foreground pause, accessibility behavior, and one-shot navigation. The user
+  prohibited adding or running E2E tests for this amendment; the new substantial
+  guest screen's Principle V E2E coverage is intentionally unmet and recorded in
+  the plan. The user owns the pending manual browser and physical Android
+  acceptance in T051.

@@ -10,10 +10,12 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(10);
+SELECT plan(15);
 
 CREATE TEMP TABLE results (name text PRIMARY KEY, passed boolean NOT NULL, detail text);
 GRANT SELECT, INSERT ON TABLE results TO authenticated, anon;
+CREATE TEMP TABLE completion_guest (id uuid NOT NULL);
+GRANT SELECT ON TABLE completion_guest TO authenticated;
 
 -- =============================================================================
 -- Two rooms: r1 is in_progress with a member who could inherit it, r2 is still
@@ -145,6 +147,70 @@ SELECT is(
   'ending an already-ended game is idempotent'
 );
 
+-- Completion revokes guest credentials without removing the guest's history.
+SET LOCAL ROLE postgres;
+WITH guest AS (
+  INSERT INTO public.participants (
+    session_id, account_id, display_name, membership_type, session_role,
+    guest_rejoin_token_hash, guest_grant_issued_at, guest_grant_expires_at
+  ) VALUES (
+    (SELECT r2 FROM ctx), NULL, 'ERG Guest',
+    'guest'::public.participant_membership_type,
+    'member'::public.participant_session_role,
+    encode(extensions.digest(repeat('g',64), 'sha256'), 'hex'),
+    now(), now() + interval '1 hour'
+  ) RETURNING id, session_id
+), guest_event AS (
+  INSERT INTO public.gameplay_events (
+    session_id, sequence_number, actor_participant_id, event_type,
+    idempotency_key, payload, created_at
+  )
+  SELECT guest.session_id, public.allocate_event_sequence(guest.session_id), guest.id,
+    'participant_joined', concat('guest-join:', guest.id::text),
+    jsonb_build_object('participantId', guest.id::text, 'displayName', 'ERG Guest',
+      'membershipType', 'guest', 'sessionRole', 'member'), now()
+  FROM guest
+  RETURNING actor_participant_id
+)
+INSERT INTO completion_guest SELECT actor_participant_id FROM guest_event;
+UPDATE public.game_sessions
+SET state = 'in_progress'::public.session_state, completed_at = NULL
+WHERE id = (SELECT r2 FROM ctx);
+SET LOCAL ROLE authenticated;
+SELECT ok((SELECT count(*) = 1 FROM completion_guest),
+  'a guest roster row and contribution event exist before completion');
+SELECT is(
+  public.end_game_session((SELECT r2 FROM ctx))->>'status',
+  'completed',
+  'the host can also complete the second test room'
+);
+SET LOCAL ROLE postgres;
+SELECT ok(
+  (SELECT guest_grant_expires_at <= now() AND left_at IS NULL
+   FROM public.participants
+   WHERE guest_rejoin_token_hash = encode(extensions.digest(repeat('g',64), 'sha256'), 'hex')),
+  'completion revokes the guest grant and preserves the roster row'
+);
+SELECT is(
+  (SELECT count(*)::int FROM public.gameplay_events
+   WHERE session_id = (SELECT r2 FROM ctx) AND event_type = 'participant_joined'),
+  1,
+  'the completed room retains the guest contribution event'
+);
+DO $$ BEGIN
+  BEGIN
+    PERFORM private.resolve_guest_participant(repeat('g',64));
+    INSERT INTO results VALUES ('completed_guest_token', FALSE, 'token still resolves');
+  EXCEPTION WHEN raise_exception THEN
+    INSERT INTO results VALUES (
+      'completed_guest_token', SQLERRM = 'guest_token_expired', SQLERRM
+    );
+  END;
+END $$;
+SELECT ok((SELECT passed FROM results WHERE name = 'completed_guest_token'),
+  'a completed room rejects the former guest token');
+SET LOCAL ROLE authenticated;
+
 -- =============================================================================
 -- leave_room_as_host during a running game -- the guard this migration widened.
 -- Before 040 this raised room_not_joinable, which is what made the join-conflict
@@ -153,7 +219,7 @@ SELECT is(
 -- Re-arm as postgres: `authenticated` holds no UPDATE grant on game_sessions,
 -- which is exactly why the state transitions all live behind RPCs.
 SET LOCAL ROLE postgres;
-UPDATE public.game_sessions SET state = 'in_progress'::public.session_state
+UPDATE public.game_sessions SET state = 'in_progress'::public.session_state, completed_at = NULL
 WHERE id = (SELECT r1 FROM ctx);
 SET LOCAL ROLE authenticated;
 

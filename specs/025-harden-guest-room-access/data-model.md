@@ -32,12 +32,25 @@ Existing `guest_rejoin_token_hash` remains the current bearer hash. Current hash
 | State | Join | Snapshot / final view | Mutation | Rotate | Leave |
 |---|---|---|---|---|---|
 | Joinable + current/unexpired | same participant on retry | allowed | lobby-permitted actions | allowed | confirmed and revoke |
-| In progress + current/unexpired | no new guest | allowed | existing permitted game commands only | allowed | not permitted under #165 scope |
-| Completed + current/unexpired | no new guest | final-result read only | denied | not needed/denied | revoke if existing leave semantics permit; otherwise expiry/closure |
+| In progress + current/unexpired | no new guest | allowed | existing permitted game commands only | allowed | confirmed, revoke and retain history |
+| Completed + grant valid at completion | no new guest | data-free `room_ended` outcome only | denied | denied | already invalid |
+| Completed + grant expired/revoked before completion | no new guest | generic access-loss denial | denied | denied | already invalid |
 | Closed | denied | denied | denied | denied | already invalid |
 | Expired, replaced, left, unknown | denied (unless new token and room joinable) | denied | denied | only exact bounded retry confirmation for replaced token | already invalid or pending transport |
 
-Room closure and revocation win races with renewal/commands by consistent row lock order. Every authorized mutation keeps existing immutable gameplay event and command idempotency behavior. Failed validation leaves no partial participant or gameplay writes.
+Room completion and confirmed leave win races with renewal/commands by the
+existing consistent row-lock order; grant expiry is compared with the committed
+completion-event time. Every authorized mutation keeps existing immutable
+gameplay event and command idempotency behavior. Failed validation leaves no
+partial participant or gameplay writes.
+
+For `room_ended`, retain only the existing one-way guest token hash and the
+nullable guest_revocation_reason as a non-authorizing reason.
+The resolver may return the terminal code only when that exact grant was valid
+at the canonical completion event; it returns no snapshot, participant details,
+or mutation capability. A grant that expired or was revoked first retains the
+generic access-loss outcome. Do not delete participants, gameplay events, completed
+history, or abuse-window counters.
 
 ## Derived live-roster projection (2026-09-26 amendment)
 

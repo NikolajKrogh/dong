@@ -12,7 +12,7 @@ All calls use POST RPC bodies over HTTPS. No guest bearer is sent as a URL/query
 ## Snapshot `public.get_guest_room_snapshot(guest_token)`
 
 - Admission: caller/token quotas; shared current-hash, unexpired, not-left, room-state validation. Valid grant reads at 1 Hz must fit configured quota. Invalid tokens use stricter quotas.
-- Success: existing snapshot fields plus grant-expiry metadata in a compatible location. Completed room yields only authorized final read view; closed yields no data. The exact snapshot payload must be checked for embedded mutable controls before completion exposure.
+- Success: existing snapshot fields plus grant-expiry metadata in a compatible location. Host completion revokes every guest grant, so completed and closed rooms yield no guest snapshot. The completed history remains available through the existing registered-user authorization rules.
 - Failure envelope: `{ok:false, code:'guest_access_lost'|'rate_limited', retryAfterSeconds?}`. No distinction among unknown/expired/replaced/revoked to unauthenticated callers.
 - Existing `STABLE` snapshot wrapper becomes `VOLATILE` because quota accounting writes. Test PostgREST schema cache/reload after migration.
 
@@ -25,8 +25,7 @@ All calls use POST RPC bodies over HTTPS. No guest bearer is sent as a URL/query
 
 ## Leave `public.leave_room_as_guest(guest_token)`
 
-- Response: `{ok:true,status:'confirmed'|'already_invalid'}` only if server has revoked access or it was already expired/closed/left. Joinable leave updates `left_at` once and appends one `participant_left` event. A transport failure is **not** a confirmed response and leaves a pending local retry record.
-- `not_permitted` is returned for in-progress departure until #165 defines it; do not claim access was revoked. Completed-room handling follows the room's implemented leave rule; if no leave is allowed, state this plainly and rely on expiry/closure.
+- Response: `{ok:true,status:'confirmed'|'already_invalid'}` only if server revoked access or it was already expired/closed/left. A confirmed joinable or in-progress leave updates `left_at` once and appends one `participant_left` event. Host completion revokes every guest grant; a leave retried after completion is already invalid. A transport failure is **not** a confirmed response and leaves a pending local retry record.
 - All current and copied bearer instances stop authorizing immediately after confirmed leave. Client stops its polling, shows pending/failed state accurately, and retries when connectivity returns.
 
 ## Roster and assignment semantics
@@ -57,3 +56,7 @@ assignments, scores, and events unchanged.
 ## Security test matrix
 
 For every guest-facing operation test current/expired/replaced/left/unknown/cross-room token, joinable/in-progress/completed/closed room, and anon/authenticated invokers. Explicitly test direct `private.*` and table access denied to anon/authenticated, no old function overload bypass, and no raw bearer/code in event payloads, diagnostic traces, or client URLs. Quota tests include concurrent bursts, shared-IP legitimate guests, invalid token spray, response-loss retry, and hosted forwarding-header spoof attempts.
+
+## Friendly termination outcome
+
+After existing quotas, snapshot returns exactly { "ok": false, "code": "room_ended" } for the current token of a guest valid at host completion/closure. No room data or authorization is returned. Unknown, replaced, previously expired and left tokens retain generic denial. Direct API-role execution remains revoked; existing trusted ingress forwards the envelope. A nullable guest_revocation_reason on the participant uses the existing current token hash; no new bearer, receipt or backfill. History and quotas remain intact.

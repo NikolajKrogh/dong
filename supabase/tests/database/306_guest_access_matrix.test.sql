@@ -50,13 +50,13 @@ SELECT throws_ok(
   format('SELECT public.change_participant_drink_as_guest(%L, %L::uuid, 1, %L::uuid)',
     repeat('a',64), gen_random_uuid(), gen_random_uuid()),
   'P0001', 'guest_token_expired', 'replaced bearer cannot change drinks');
-SELECT is((public.leave_room_as_guest(repeat('b',64))->>'code'),
-  'not_permitted', 'in-progress leave does not falsely revoke');
+SELECT is((public.leave_room_as_guest(repeat('b',64))->>'status'),
+  'confirmed', 'in-progress leave revokes the departing guest');
 
 UPDATE public.game_sessions SET state='completed'::public.session_state
 WHERE id=(SELECT id FROM matrix_room);
-SELECT is((public.get_guest_room_snapshot(repeat('b',64))->>'finalOnly'),
-  'true', 'completed room allows final-only read');
+SELECT is((public.get_guest_room_snapshot(repeat('b',64))->>'code'),
+  'guest_access_lost', 'completion does not restore a departed guest access');
 SELECT throws_ok(
   format('SELECT public.change_participant_drink_as_guest(%L, %L::uuid, 1, %L::uuid)',
     repeat('b',64), gen_random_uuid(), gen_random_uuid()),

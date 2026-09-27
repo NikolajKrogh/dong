@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { useGameStore } from "../../store/store";
 
 import {
   GUEST_ROOM_POLL_INTERVAL_MS,
@@ -158,6 +159,7 @@ const flushEffects = async () => {
 
 describe("useGuestRoomSession", () => {
   beforeEach(() => {
+    useGameStore.setState({ endedGuestSessionId: null });
     jest.clearAllMocks();
     mockReadLegacyGrant.mockResolvedValue(null);
     mockReadPendingJoin.mockResolvedValue(null);
@@ -169,6 +171,41 @@ describe("useGuestRoomSession", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  it("distinguishes host termination on restore and discards a concurrent late snapshot", async () => {
+    mockReadGuestRoomSessionGrant.mockResolvedValue(createGrant());
+    let release!: (snapshot: GuestRoomSnapshot) => void;
+    const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot()
+      .mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }))
+      .mockRejectedValueOnce(new Error("room_ended"));
+    setGuestRoomRpcClient({ getGuestRoomSnapshot });
+    let first!: UseGuestRoomSessionResult;
+    let second!: UseGuestRoomSessionResult;
+    const Probe = () => { first = useGuestRoomSession(); second = useGuestRoomSession(); return null; };
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(React.createElement(Probe)); });
+    expect(useGameStore.getState().endedGuestSessionId).toBe("session-1");
+    expect(second.status).toBe("ended");
+    expect(mockClearGuestRoomSessionGrant).toHaveBeenCalledWith("session-1");
+    await TestRenderer.act(async () => { release(createSnapshot()); });
+    expect(first.status).toBe("ended");
+    expect(first.session).toBeNull();
+    expect(second.error).toBeNull();
+    expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
+    TestRenderer.act(() => renderer.unmount());
+  });
+
+  it("keeps ordinary expiry separate from host termination", async () => {
+    mockReadGuestRoomSessionGrant.mockResolvedValue(createGrant());
+    setGuestRoomRpcClient({ getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot().mockRejectedValue(new Error("guest_access_lost")) });
+    let observed!: UseGuestRoomSessionResult;
+    const Probe = () => { observed = useGuestRoomSession(); return null; };
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(React.createElement(Probe)); });
+    expect(observed.status).toBe("expired");
+    expect(useGameStore.getState().endedGuestSessionId).toBeNull();
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("restores a persisted guest grant into a joined session", async () => {
@@ -445,7 +482,7 @@ describe("useGuestRoomSession", () => {
     });
 
     await TestRenderer.act(async () => {
-      await observedHook?.leaveRoom();
+      await expect(observedHook?.leaveRoom()).resolves.toBe(true);
     });
 
     expect(mockClearGuestRoomSessionGrant).toHaveBeenCalled();
@@ -459,6 +496,40 @@ describe("useGuestRoomSession", () => {
     });
   });
 
+  it("keeps the grant and reports an unconfirmed in-progress departure", async () => {
+    const persistedGrant = createGrant();
+    mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
+    setGuestRoomRpcClient({
+      joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(),
+      getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(async () => createSnapshot()),
+      leaveRoomAsGuest: guestRoomRpcMock.leaveRoomAsGuest(async () => ({
+        ok: false,
+        code: "not_permitted" as const,
+      })),
+    });
+
+    let observedHook!: UseGuestRoomSessionResult;
+    const Probe = () => {
+      observedHook = useGuestRoomSession();
+      return null;
+    };
+    let renderer: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(React.createElement(Probe));
+      await flushEffects();
+    });
+
+    await TestRenderer.act(async () => {
+      await expect(observedHook.leaveRoom()).resolves.toBe(false);
+    });
+
+    expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
+    expect(observedHook.status).toBe("joined");
+    expect(observedHook.session?.grant).toEqual(persistedGrant);
+    expect(observedHook.error).toBe("Could not confirm departure. Your guest access remains active.");
+    await TestRenderer.act(async () => renderer!.unmount());
+  });
+
   it("keeps departure pending and retains protected access when the leave response is lost", async () => {
     const persistedGrant = createGrant();
     mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);
@@ -470,7 +541,7 @@ describe("useGuestRoomSession", () => {
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
     const renderer = TestRenderer.create(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
-    await TestRenderer.act(async () => { await observedHook?.leaveRoom(); });
+    await TestRenderer.act(async () => { await expect(observedHook?.leaveRoom()).resolves.toBe(false); });
     expect(mockSavePendingLeave).toHaveBeenCalledWith(persistedGrant);
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
     expect(observedHook?.session).toBeNull();
@@ -534,6 +605,40 @@ describe("useGuestRoomSession", () => {
     expect(observedHook?.session).toBeNull();
     expect(observedHook?.status).toBe("renewing");
     TestRenderer.act(() => { renderer.unmount(); });
+  });
+
+  it("recognizes termination of the replacement grant after a lost rotation response", async () => {
+    const grant = createGrant({ grantExpiresAt: new Date(Date.now() + 5 * 60_000).toISOString() });
+    const replacementToken = "d".repeat(64);
+    // The successful rotation response was lost, leaving this durable operation.
+    mockReadPendingRotation.mockResolvedValueOnce({
+      kind: "pending_rotation", token: grant.guestToken, replacementToken,
+      operationId: "00000000-0000-4000-8000-000000000001",
+      participantId: grant.participantId, sessionId: grant.sessionId,
+      joinCode: grant.joinCode, displayName: grant.displayName, grantExpiresAt: grant.grantExpiresAt!,
+    });
+    mockReadGuestRoomSessionGrant.mockResolvedValue(null);
+    const rotateGuestRoomGrant = guestRoomRpcMock.rotateGuestRoomGrant(async () => ({ ok: false as const, code: "guest_access_lost" as const }));
+    const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot(async (token) => {
+      throw new Error(token === replacementToken ? "room_ended" : "guest_access_lost");
+    });
+    setGuestRoomRpcClient({ rotateGuestRoomGrant, getGuestRoomSnapshot });
+    let observed!: UseGuestRoomSessionResult;
+    function Probe() {
+      const value = useGuestRoomSession();
+      React.useEffect(() => { observed = value; }, [value]);
+      return null;
+    }
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(React.createElement(Probe)); });
+    expect(getGuestRoomSnapshot).toHaveBeenCalledWith(replacementToken);
+    expect(observed.status).toBe("ended");
+    expect(observed.session).toBeNull();
+    expect(observed.error).toBeNull();
+    expect(useGameStore.getState().endedGuestSessionId).toBe("session-1");
+    expect(mockClearGuestRoomSessionGrant).toHaveBeenCalledWith("session-1");
+    expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("retries an exact pending rotation after restart before any snapshot", async () => {

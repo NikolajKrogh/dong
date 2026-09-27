@@ -441,8 +441,8 @@ SELECT is(
                     '13000000-0000-0000-0000-000000000003'
                 )
         ),
-        '2.0',
-        'no-overlap registered comparison keeps player 2 without-player-1 average'
+        '0.0',
+        'no-overlap comparison hides player 2 totals from rooms the caller cannot access'
     );
 SELECT is(
         (

@@ -26,6 +26,8 @@ import {
   saveGuestRoomSessionGrant,
 } from "../utils/guestRoom";
 import { getGuestRoomRpcClient } from "../utils/supabaseClient";
+import { useGameStore } from "../store/store";
+import { confirmGuestRoomEnded, isGuestRoomEnded } from "../utils/guestRoomTermination";
 
 export interface UseGuestRoomSessionResult {
   status: GuestRoomSessionStatus;
@@ -45,7 +47,7 @@ export interface UseGuestRoomSessionResult {
     guestName: string,
   ) => Promise<GuestRoomSession | null>;
   refreshRoom: () => Promise<GuestRoomSession | null>;
-  leaveRoom: () => Promise<void>;
+  leaveRoom: () => Promise<boolean>;
   replaceSession: (nextSession: GuestRoomSession | null) => Promise<void>;
   /**
    * Replaces this guest's **own** player-picked selections (FR-038, FR-038a).
@@ -73,7 +75,17 @@ const confirmPendingRotation = async (record: NonNullable<Awaited<ReturnType<typ
   const outcome = await getGuestRoomRpcClient().rotateGuestRoomGrant(
     record.token, record.replacementToken, record.operationId,
   );
-  if (!outcome.ok) throw new Error(outcome.code);
+  if (!outcome.ok) {
+    if (outcome.code === "guest_access_lost" || outcome.code === "room_unavailable") {
+      // Rotation cannot grant access to an ended room; the snapshot endpoint can
+      // still identify why this exact grant was revoked without returning data.
+      for (const guestToken of [record.replacementToken, record.token]) {
+        try { await buildSessionFromGrant({ ...grantFromPendingRotation(record), guestToken }); }
+        catch (error) { if (getGuestRoomErrorCode(error) === "room_ended") throw error; }
+      }
+    }
+    throw new Error(outcome.code);
+  }
   if (outcome.participantId !== record.participantId) throw new Error("guest_access_lost");
   const grant = {
     ...grantFromPendingRotation(record),
@@ -85,9 +97,20 @@ const confirmPendingRotation = async (record: NonNullable<Awaited<ReturnType<typ
 };
 
 const buildSessionFromGrant = async (grant: GuestRoomSessionGrant) => {
-  const snapshot = await getGuestRoomRpcClient().getGuestRoomSnapshot(
-    grant.guestToken,
-  );
+  if (isGuestRoomEnded(grant.sessionId)) {
+    await confirmGuestRoomEnded(grant.sessionId);
+    throw new Error("room_ended");
+  }
+  let snapshot;
+  try {
+    snapshot = await getGuestRoomRpcClient().getGuestRoomSnapshot(grant.guestToken);
+  } catch (error) {
+    if (getGuestRoomErrorCode(error) === "room_ended") {
+      await confirmGuestRoomEnded(grant.sessionId);
+    }
+    throw error;
+  }
+  if (isGuestRoomEnded(grant.sessionId)) throw new Error("room_ended");
 
   return {
     grant: snapshot.grantExpiresAt ? { ...grant, grantExpiresAt: snapshot.grantExpiresAt } : grant,
@@ -96,6 +119,7 @@ const buildSessionFromGrant = async (grant: GuestRoomSessionGrant) => {
 };
 
 export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
+  const endedSessionId = useGameStore((state) => state.endedGuestSessionId);
   const [status, setStatus] = useState<GuestRoomSessionStatus>("idle");
   const [session, setSession] = useState<GuestRoomSession | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +133,17 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  useEffect(() => {
+    if (!endedSessionId || (sessionRef.current && sessionRef.current.grant.sessionId !== endedSessionId)) return;
+    sessionRef.current = null;
+    setSession(null);
+    setStatus("ended");
+    setError(null);
+    void clearGuestRoomSessionGrant(endedSessionId).catch(() => {
+      setError("Secure guest storage could not be cleared. Restart the app to retry.");
+    });
+  }, [endedSessionId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -189,6 +224,10 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         setStatus("joined");
         setError(null);
       } catch (restoreError) {
+        if (getGuestRoomErrorCode(restoreError) === "room_ended") {
+          if (isMounted) { setSession(null); setStatus("ended"); setError(null); }
+          return;
+        }
         const hasExpiredGrant = isExpiredGuestRoomError(restoreError);
 
         if (hasExpiredGrant) {
@@ -231,6 +270,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       }
 
       await saveGuestRoomSessionGrant(nextSession.grant);
+      if (isGuestRoomEnded(nextSession.grant.sessionId)) return;
       setSession(nextSession);
       setStatus("joined");
       setError(null);
@@ -240,6 +280,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
 
   const refreshRoom = useCallback(async () => {
     const currentSession = sessionRef.current;
+    if (isGuestRoomEnded(currentSession?.grant.sessionId)) return null;
     let rotationPending = false;
     try {
       let pendingRotation = await readGuestRoomPendingRotation();
@@ -274,6 +315,14 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       setError(null);
       return refreshedSession;
     } catch (refreshError) {
+      if (getGuestRoomErrorCode(refreshError) === "room_ended"
+        || isGuestRoomEnded(currentSession?.grant.sessionId)) {
+        sessionRef.current = null;
+        setSession(null);
+        setStatus("ended");
+        setError(null);
+        return null;
+      }
       if (rotationPending) {
         if (getGuestRoomErrorCode(refreshError) === "room_unavailable") {
           try {
@@ -287,7 +336,13 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
                 setStatus("joined");
                 setError(null);
                 return finalSession;
-              } catch {
+              } catch (finalError) {
+                if (getGuestRoomErrorCode(finalError) === "room_ended") {
+                  setSession(null);
+                  setStatus("ended");
+                  setError(null);
+                  return null;
+                }
                 await clearGuestRoomSessionGrant();
                 setSession(null);
                 setStatus("expired");
@@ -373,13 +428,13 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
   }, [activeGrant, startPolling, status, stopPolling]);
 
   const leaveRoom = useCallback(async () => {
-    if (leaveInFlightRef.current) return;
+    if (leaveInFlightRef.current) return false;
     leaveInFlightRef.current = true;
     stopPolling();
     const currentSession = sessionRef.current;
     try {
       const grant = currentSession?.grant ?? await readGuestRoomPendingLeave();
-      if (!grant) return;
+      if (!grant) return false;
       if (currentSession) await saveGuestRoomPendingLeave(grant);
       setSession(null);
       setStatus("pending_leave");
@@ -389,6 +444,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         if (outcome.ok) {
           await clearGuestRoomSessionGrant();
           setStatus("left");
+          return true;
         } else if (outcome.code === "not_permitted") {
           await saveGuestRoomSessionGrant(grant);
           const restored = currentSession ?? await buildSessionFromGrant(grant);
@@ -401,9 +457,11 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       } catch {
         setError("Could not confirm departure. We will retry when you reconnect.");
       }
+      return false;
     } catch (storageError) {
       setStatus("failed");
       setError(getGuestRoomErrorMessage(storageError));
+      return false;
     } finally {
       leaveInFlightRef.current = false;
     }
@@ -462,6 +520,12 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
 
         return nextSession;
       } catch (joinError) {
+        if (getGuestRoomErrorCode(joinError) === "room_ended") {
+          setSession(null);
+          setStatus("ended");
+          setError(null);
+          return null;
+        }
         setStatus("failed");
         setError(getGuestRoomErrorMessage(joinError));
         return null;
@@ -489,7 +553,12 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
         // submission is built from fresh picks rather than stale ones.
         await refreshRoom();
       } catch (pickError) {
+        if (isGuestRoomEnded(sessionRef.current?.grant.sessionId) || !sessionRef.current) return;
         if (isExpiredGuestRoomError(pickError)) {
+          // A command can race host termination; only the snapshot response
+          // confirms termination, so inspect it before classifying lost access.
+          await refreshRoom();
+          if (!sessionRef.current || isGuestRoomEnded(sessionRef.current.grant.sessionId)) return;
           await clearGuestRoomSessionGrant();
           setSession(null);
           setStatus("expired");

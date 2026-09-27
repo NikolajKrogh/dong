@@ -24,6 +24,8 @@ export interface Player {
   id: string;
   name: string;
   drinksTaken?: number;
+  /** Server departure time for a participant who left before completion. */
+  leftAt?: string | null;
 }
 
 /**
@@ -65,6 +67,7 @@ export type PlayerAssignments = { [playerId: string]: string[] };
  */
 export interface GameSession {
   id: string;
+  /** Completion timestamp; empty when an older cloud record has no evidence. */
   date: string;
   players: Player[];
   matches: Match[];

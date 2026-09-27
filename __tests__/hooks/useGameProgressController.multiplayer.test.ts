@@ -88,6 +88,10 @@ const renderController = () => {
 describe("useGameProgressController multiplayer routing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    multiplayerSync.status = "ready";
+    multiplayerSync.snapshot = null;
+    multiplayerSync.isHost = true;
+    multiplayerSync.isEditable = true;
     changeManualScore.mockResolvedValue({
       sessionId: "room-1",
       sequenceNumber: 4,
@@ -195,6 +199,17 @@ describe("useGameProgressController multiplayer routing", () => {
       60000,
       false,
     );
+
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it("clears a terminal multiplayer game and returns every participant home", async () => {
+    multiplayerSync.status = "ended";
+    const { renderer } = renderController();
+
+    expect(useGameStore.getState().players).toEqual([]);
+    expect(useGameStore.getState().matches).toEqual([]);
+    expect(mockReplace).toHaveBeenCalledWith("/");
 
     await TestRenderer.act(async () => renderer.unmount());
   });

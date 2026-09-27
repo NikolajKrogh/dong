@@ -1,5 +1,5 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+import { ScrollView } from "react-native";
 import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -100,6 +100,19 @@ describe("GameDetailsModal responsive layout", () => {
     expect(renderer.toJSON()).toBeNull();
   });
 
+  it("shows preserved early leavers and their final assignments", () => {
+    const GameDetailsModal = require("../../../components/history/GameDetailsModal").default;
+    const renderer = actCreate(React.createElement(GameDetailsModal, {
+      visible: true, onClose: jest.fn(), game: { ...mockGame,
+        players: [{ ...mockGame.players[0], leftAt: "2026-04-24T20:00:00Z" }],
+        playerAssignments: { p1: ["m1"] },
+      },
+    }));
+    const content = JSON.stringify(renderer.toJSON());
+    expect(content).toContain("Left early");
+    expect(content).toContain("Arsenal vs Chelsea");
+  });
+
   it("adds the wide modal treatment on desktop-sized viewports", () => {
     mockUseWindowDimensions.mockReturnValue({
       width: 1280,
@@ -122,7 +135,7 @@ describe("GameDetailsModal responsive layout", () => {
     const modalView = renderer.root.findByProps({
       testID: "GameDetailsModalView",
     });
-    const scrollView = renderer.root.findByType("ScrollView");
+    const scrollView = renderer.root.findByType(ScrollView);
 
     expect(modalView.props.style).toEqual([{}, { testStyle: "modalViewWide" }]);
     expect(scrollView.props.contentContainerStyle).toEqual([

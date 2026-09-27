@@ -12,6 +12,7 @@ import TestRenderer from "react-test-renderer";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockLeaveGuestRoom = jest.fn();
 
 const mockStoreSetters = {
   setPlayers: jest.fn(),
@@ -20,9 +21,12 @@ const mockStoreSetters = {
   setPlayerAssignments: jest.fn(),
   setActiveGameContext: jest.fn(),
   clearActiveGameContext: jest.fn(),
+  endedGuestSessionId: null as string | null,
 };
 
 let mockGuestSession: unknown = null;
+let mockGuestRoomStatus = "idle";
+let mockHomeRoomActions: Record<string, unknown> = {};
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace }),
@@ -66,9 +70,10 @@ jest.mock("../../hooks/useRoomExit", () => ({
 jest.mock("../../hooks/useGuestRoomJoin", () => ({
   useGuestRoomJoin: () => ({
     session: mockGuestSession,
+    status: mockGuestRoomStatus,
     error: null,
     isSubmitting: false,
-    leaveRoom: jest.fn(),
+    leaveRoom: mockLeaveGuestRoom,
     submitGuestJoin: jest.fn(),
     setMyPicks: jest.fn(),
     isBusy: false,
@@ -139,7 +144,10 @@ const Probe: React.FC = () => {
   const { useHomeRoomActions } = require("../../hooks/useHomeRoomActions") as {
     useHomeRoomActions: () => Record<string, unknown>;
   };
-  useHomeRoomActions();
+  const actions = useHomeRoomActions() as unknown as Record<string, unknown>;
+  React.useEffect(() => {
+    mockHomeRoomActions = actions;
+  }, [actions]);
   return null;
 };
 
@@ -160,7 +168,30 @@ const rerender = (renderer: TestRenderer.ReactTestRenderer) => {
 describe("guest joins the game when the host starts it", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockStoreSetters.endedGuestSessionId = null;
     mockGuestSession = null;
+    mockGuestRoomStatus = "idle";
+    mockLeaveGuestRoom.mockResolvedValue(false);
+  });
+
+  it("closes the guest modal and clears stale fields on host termination", () => {
+    mockGuestSession = buildSession("joinable");
+    const renderer = renderHook();
+    TestRenderer.act(() => {
+      (mockHomeRoomActions.setGuestJoinCode as (value: string) => void)("ROOM42");
+      (mockHomeRoomActions.setGuestName as (value: string) => void)("Casey");
+    });
+    mockStoreSetters.endedGuestSessionId = "session-1";
+    rerender(renderer);
+    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
+    expect(mockHomeRoomActions.guestJoinCode).toBe("");
+    expect(mockHomeRoomActions.guestName).toBe("");
+    mockGuestSession = null;
+    mockGuestRoomStatus = "ended";
+    rerender(renderer);
+    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
+    expect(mockReplace).not.toHaveBeenCalled(); // Root owns the single redirect.
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("redirects when the start is observed from the guest card", () => {
@@ -216,5 +247,47 @@ describe("guest joins the game when the host starts it", () => {
       expect.objectContaining({ sessionId: "session-b", accessKind: "guest" }),
     );
     expect(mockStoreSetters.setPlayers).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the guest join modal open until departure is confirmed", async () => {
+    const renderer = renderHook();
+    const openGuestJoin = mockHomeRoomActions.handleOpenGuestJoin as () => void;
+    const leaveGuestJoin = mockHomeRoomActions.handleLeaveGuestJoin as () => Promise<void>;
+
+    await TestRenderer.act(async () => {
+      openGuestJoin();
+    });
+    await TestRenderer.act(async () => {
+      await leaveGuestJoin();
+    });
+
+    expect(mockStoreSetters.clearActiveGameContext).not.toHaveBeenCalled();
+    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(true);
+
+    mockLeaveGuestRoom.mockResolvedValue(true);
+    await TestRenderer.act(async () => {
+      await (mockHomeRoomActions.handleLeaveGuestJoin as () => Promise<void>)();
+    });
+    mockGuestRoomStatus = "left";
+    rerender(renderer);
+
+    expect(mockStoreSetters.clearActiveGameContext).toHaveBeenCalledTimes(1);
+    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
+    expect(mockReplace).toHaveBeenCalledWith("/");
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it("cleans up when a background leave retry is confirmed", async () => {
+    mockGuestRoomStatus = "pending_leave";
+    const renderer = renderHook();
+    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(true);
+
+    mockGuestRoomStatus = "left";
+    rerender(renderer);
+
+    expect(mockStoreSetters.clearActiveGameContext).toHaveBeenCalledTimes(1);
+    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
+    expect(mockReplace).toHaveBeenCalledWith("/");
+    await TestRenderer.act(async () => renderer.unmount());
   });
 });

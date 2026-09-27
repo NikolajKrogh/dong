@@ -57,6 +57,7 @@ export const findTopDrinker = (players: Player[]): Player[] => {
  */
 export const formatHistoryDate = (dateString: string): string => {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Completion date unknown";
   return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
@@ -72,6 +73,7 @@ export const formatHistoryDate = (dateString: string): string => {
  */
 export const formatModalDate = (dateString: string): string => {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "Completion date unknown";
   return date.toLocaleString(undefined, {
     weekday: "long",
     year: "numeric",
@@ -294,14 +296,14 @@ export const getPlayerHeadToHeadStats = (
   // Top drinker frequency
   player1Games.forEach((game) => {
     const topDrinker = findTopDrinker(game.players);
-    if (topDrinker && topDrinker.name === player1Name) {
+    if (topDrinker.some((player) => player.name === player1Name)) {
       stats.player1TopDrinkerCount++;
     }
   });
 
   player2Games.forEach((game) => {
     const topDrinker = findTopDrinker(game.players);
-    if (topDrinker && topDrinker.name === player2Name) {
+    if (topDrinker.some((player) => player.name === player2Name)) {
       stats.player2TopDrinkerCount++;
     }
   });
