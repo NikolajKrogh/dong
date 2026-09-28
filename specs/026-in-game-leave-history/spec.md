@@ -80,7 +80,7 @@ The host can finish the game with all participants who played, including early l
 - **FR-005**: Completed history MUST include all participants who played, including early leavers and their frozen state. The provisional registered result MUST not duplicate the completed result.
 - **FR-006**: The in-game Leave Game action MUST exist on web and native, with confirmation, error handling, and host handover/close handling. Home and Setup MUST remain navigation actions.
 - **FR-007**: Joinable lobby leave behavior MUST remain unchanged.
-- **FR-008**: No production or hosted database is changed by this work.
+- **FR-008**: Deploy the reviewed migration to the linked hosted database only after explicit authorization. The user authorized that deployment on 2026-09-28 because the unreleased app's production project is serving as a test environment.
 
 ### Key Entities
 

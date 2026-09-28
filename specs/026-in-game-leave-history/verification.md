@@ -4,7 +4,7 @@
 
 - 2026-09-28: `multiplayer` was clean and matched `origin/multiplayer` (`a7566a66e676881f518b00d45db404aec4d756e0`, ahead/behind `0 0`) after fetch. Created `codex/165-in-game-leave-history` from that commit.
 - Read live [issue #165](https://github.com/NikolajKrogh/dong/issues/165): OPEN, no comments; #136 and #138 CLOSED. Its immediate leaver-result requirement is included.
-- No E2E tests or suites were authored or run. No hosted/production database was changed.
+- No E2E tests or suites were authored or run. The hosted database was not changed during initial implementation; the user later authorized applying the migration there because this unreleased app uses that project as its test environment.
 
 ## Automated checks
 
@@ -30,6 +30,13 @@ The older `313_canonical_completed_history.test.sql` could not complete on the p
 - ARTEMIS Pro and Flash attempts were stopped after external Gemini 503 and 429 responses. ADB plus ARTEMIS hierarchy inspection navigated the installed app through Home, local setup, and Game Progress.
 - Local match selection could not load because the installed client's `localhost:8080` command API refused connections. ADB opened `myapp:///gameProgress`; the solo Game actions sheet showed Home, Setup, and End Game. The installed build has no new Leave Game code and no active multiplayer room, so the new Android departure flow was not verified.
 - No Android automated E2E test was run. The web and Android acceptance walkthroughs remain in [quickstart.md](quickstart.md) for a build connected to a local multiplayer room.
+
+## Authorized hosted deployment (2026-09-28)
+
+- Linked project: `qccvlhblytuedgmlqfef`. `supabase migration list --linked` showed local and remote history aligned through `20260927152611`; only `20260928163507` was pending.
+- `supabase db push --linked --dry-run --skip-vault` listed exactly `20260928163507_preserve_in_game_leavers.sql`, with no seeds or roles. `supabase db push --linked --skip-vault --yes` applied that one migration successfully. The subsequent dry run reported `upToDate: true` and no pending migrations.
+- Remote read-only SQL confirmed one migration-history row; the early-history view, capture function, and trigger exist; authenticated has `SELECT` on the view and anon does not. The view has `security_invoker=true`. Neither anon nor authenticated can execute the private capture or private guest leave function; `service_role` can execute guest leave. The view had zero result rows at verification, so no live departure-result record was available to inspect.
+- The security advisor showed no finding on the newly added view, trigger, or private capture function. It lists the existing authenticated `public.leave_room_as_member` security-definer RPC, an intentional authenticated wrapper. Other advisor findings concern existing objects or project settings; see the advisor in the Supabase dashboard for those separate items.
 
 ## Spec Kit review
 

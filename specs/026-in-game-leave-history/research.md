@@ -34,7 +34,7 @@
 
 ## R5. Delivery and verification
 
-**Decision**: Use focused pgTAP and Jest checks, static typing/lint, and manual browser/Android walkthroughs. No E2E tests are authored or run. No hosted database changes are made.
+**Decision**: Use focused pgTAP and Jest checks, static typing/lint, and manual browser/Android walkthroughs. No E2E tests are authored or run. The later user authorization permits applying the verified migration to the linked hosted project used for testing.
 
 **Rationale**: The user explicitly prohibited E2E work and authorized connected Android exploration. Constitution Principle V's E2E gate stays recorded as unmet. Local database verification requires local Supabase availability and must be reported precisely.
 

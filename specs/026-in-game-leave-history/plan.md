@@ -17,7 +17,7 @@ Preserve and freeze early leavers in the canonical session, capture an immutable
 **Target Platform**: Web and Android, with shared React Native behavior
 **Project Type**: Expo client and Supabase database
 **Performance Goals**: One transaction for departure; result visible after the next history refresh
-**Constraints**: No hosted database changes, no E2E tests, immutable event history, guest ingress authorization
+**Constraints**: Hosted deployment only after explicit authorization, no E2E tests, immutable event history, guest ingress authorization
 **Scale/Scope**: Small multiplayer rooms; existing member, guest, and host roles
 
 ## Constitution Check
@@ -67,7 +67,7 @@ __tests__/                    focused non-E2E behavior checks
 
 ## Migration, Deployment, and Recovery
 
-Create a forward-only additive migration. Apply it locally before the client build; do not touch hosted/production databases in this task. Existing clients ignore the extra event payload and guest response property. Roll back a client by reverting code only; retain persisted departure events and participants. Forward-fix SQL if a migration fails. Do not revive grants or alter confirmed history.
+Create a forward-only additive migration and verify it locally. The user subsequently authorized applying it to the linked hosted project, which is serving as a test environment until release. Check remote history and a one-file dry run before pushing, then verify remote objects and grants. Existing clients ignore the extra event payload and guest response property. Roll back a client by reverting code only; retain persisted departure events and participants. Forward-fix SQL if a migration fails. Do not revive grants or alter confirmed history.
 
 ## Complexity Tracking
 

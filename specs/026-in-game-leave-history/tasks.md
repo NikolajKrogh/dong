@@ -10,7 +10,7 @@
 
 ## Phase 2: Foundational
 
-- [x] T003 Create a local-only forward migration under `supabase/migrations/` that restores departed participants in shared game snapshots, retains a separate active roster, and captures exact in-progress departure results on immutable events.
+- [x] T003 Create a forward migration under `supabase/migrations/` that restores departed participants in shared game snapshots, retains a separate active roster, and captures exact in-progress departure results on immutable events.
 - [x] T004 Add focused pgTAP checks under `supabase/tests/database/` for one event, preserved totals, active-write rejection, guest/member/host authorization, and lobby behavior.
 
 ## Phase 3: User Story 1 - Leave and freeze (P1)
@@ -57,3 +57,8 @@ T001 and T002 precede test authoring. T003 precedes T005-T008. T008 precedes T00
 ## Implementation Strategy
 
 Preserve the database truth first, then expose the result through existing history contracts, then wire the shared UI. Use one migration and small focused checks. The E2E coverage requirement remains explicitly unmet under the user's constraint.
+
+## Phase 7: Authorized Hosted Deployment
+
+- [x] T018 Compare linked migration history and dry-run the push; confirm only `20260928163507_preserve_in_game_leavers.sql` is pending.
+- [x] T019 Apply the migration to linked project `qccvlhblytuedgmlqfef` with Vault updates disabled, then verify migration history, objects, grants, and an empty follow-up dry run.

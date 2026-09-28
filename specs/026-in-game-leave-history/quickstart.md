@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Use an isolated local Supabase stack and disposable room data. Do not apply this migration to hosted or production databases for this task.
+- Use disposable room data for manual checks. The migration was applied to the linked hosted project after the user's explicit authorization; that project is the unreleased app's test environment.
 - Use two registered accounts or one registered host and one guest on separate clients. Install the current client build on Android; use a local web build for web checks.
 - Start a multiplayer game with an assigned match and a nonzero drink total for the person who will leave.
 
