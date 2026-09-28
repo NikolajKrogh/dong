@@ -24,6 +24,12 @@ interface CompletedSessionSummaryRow {
   player_assignments: unknown;
 }
 
+interface EarlyLeaveRow {
+  session_id: string;
+  left_at: string;
+  snapshot: unknown;
+}
+
 interface PageResult<T> {
   data: T[] | null;
   error: unknown | null;
@@ -98,6 +104,73 @@ const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSession => ({
   matchesPerPlayer: readNumber(row.matches_per_player),
 });
 
+/** Maps the server's immutable departure capture into the existing history shape. */
+export const mapDepartureResult = (
+  sessionId: string,
+  leftAt: string,
+  value: unknown,
+): GameSession => {
+  if (!isRecord(value) || value.sessionId !== sessionId
+    || value.state !== "in_progress"
+    || !Array.isArray(value.participants)
+    || !Array.isArray(value.matches)
+    || !Array.isArray(value.assignments)
+    || !isRecord(value.assignmentPlan)
+    || !Number.isFinite(Date.parse(leftAt))) {
+    throw new Error("Invalid departure result.");
+  }
+
+  const players: Player[] = value.participants.map((item) => {
+    if (!isRecord(item) || typeof item.id !== "string") {
+      throw new Error("Invalid departure participant.");
+    }
+    return {
+      id: item.id,
+      name: readString(item.displayName),
+      drinksTaken: readNumber(item.currentDrinkTotal),
+      membershipType: item.membershipType === "registered" || item.membershipType === "guest"
+        ? item.membershipType : undefined,
+      leftAt: typeof item.leftAt === "string" ? item.leftAt : null,
+    };
+  });
+  const matches: Match[] = value.matches.map((item) => {
+    if (!isRecord(item) || typeof item.id !== "string") {
+      throw new Error("Invalid departure match.");
+    }
+    const homeGoals = readNumber(item.homeScore);
+    const awayGoals = readNumber(item.awayScore);
+    return {
+      id: item.id,
+      homeTeam: readString(item.homeTeamName),
+      awayTeam: readString(item.awayTeamName),
+      homeGoals,
+      awayGoals,
+      goals: homeGoals + awayGoals,
+    };
+  });
+  const assignments = value.assignments as unknown[];
+  const playerAssignments = Object.fromEntries(players.map((player) => [
+    player.id,
+    assignments
+      .filter((item): item is Record<string, unknown> => isRecord(item)
+        && item.participantId === player.id
+        && typeof item.matchId === "string")
+      .map((item) => item.matchId as string)
+      .filter((id) => id !== value.commonMatchId),
+  ]));
+
+  return {
+    id: sessionId,
+    date: leftAt,
+    players,
+    matches,
+    commonMatchId: typeof value.commonMatchId === "string" ? value.commonMatchId : null,
+    playerAssignments,
+    matchesPerPlayer: readNumber(value.assignmentPlan.matchesPerPlayer),
+    isEarlyLeaveResult: true,
+  };
+};
+
 const readAllPages = async <T>(requestPage: PageRequest<T>): Promise<T[]> => {
   const rows: T[] = [];
 
@@ -115,7 +188,7 @@ const readAllPages = async <T>(requestPage: PageRequest<T>): Promise<T[]> => {
 export const loadCloudHistory = async (
   client: SupabaseClient,
 ): Promise<CloudHistoryData> => {
-  const [summaryRows, importLinks] = await Promise.all([
+  const [summaryRows, earlyLeaveRows, importLinks] = await Promise.all([
     readAllPages<CompletedSessionSummaryRow>((from, to) =>
       client
         .from("completed_session_summaries")
@@ -124,6 +197,13 @@ export const loadCloudHistory = async (
         )
         .order("session_id", { ascending: true })
         .range(from, to) as unknown as PromiseLike<PageResult<CompletedSessionSummaryRow>>,
+    ),
+    readAllPages<EarlyLeaveRow>((from, to) =>
+      client
+        .from("early_leave_results")
+        .select("session_id, left_at, snapshot")
+        .order("session_id", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<PageResult<EarlyLeaveRow>>,
     ),
     readAllPages<HistoryImportLink>((from, to) =>
       client
@@ -135,9 +215,14 @@ export const loadCloudHistory = async (
   ]);
 
   return {
-    sessions: summaryRows
-      .filter((row) => typeof row.session_id === "string" && row.session_id.length > 0)
-      .map(mapCompletedSession),
+    sessions: [
+      ...earlyLeaveRows
+        .filter((row) => typeof row.session_id === "string" && row.session_id.length > 0)
+        .map((row) => mapDepartureResult(row.session_id, row.left_at, row.snapshot)),
+      ...summaryRows
+        .filter((row) => typeof row.session_id === "string" && row.session_id.length > 0)
+        .map(mapCompletedSession),
+    ],
     importLinks: importLinks.filter(
       (link) =>
         typeof link.source_local_session_id === "string" &&

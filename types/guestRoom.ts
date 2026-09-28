@@ -41,6 +41,7 @@ export interface GuestRoomParticipantSummary {
   membershipType: GuestRoomMembershipType;
   sessionRole: GuestRoomParticipantRole;
   currentDrinkTotal: number;
+  leftAt?: string | null;
 }
 
 export interface GuestRoomMatchSummary {
@@ -133,7 +134,7 @@ export interface GuestRoomSession {
 }
 
 export type GuestRoomLeaveResponse =
-  | { ok: true; status: "confirmed" | "already_invalid" }
+  | { ok: true; status: "confirmed" | "already_invalid"; result?: unknown; leftAt?: string }
   | { ok: false; code: "not_permitted" | "rate_limited" };
 
 export type GuestRoomRotationResponse =

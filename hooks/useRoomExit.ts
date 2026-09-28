@@ -8,6 +8,7 @@ import type {
 } from "../types/room";
 import { ROOM_ERROR } from "../types/room";
 import { getRoomRpcClient } from "../utils/supabaseClient";
+import { roomSnapshotToActiveRoster } from "../utils/roomSnapshot";
 
 export type RoomExitResult = HostLeaveResponse | MemberLeaveResponse;
 
@@ -35,7 +36,7 @@ const loadEligibleSuccessors = async (
   sessionId: string,
 ): Promise<RoomParticipantSummary[]> => {
   const snapshot = await getRoomRpcClient().getRoomSnapshot(sessionId);
-  return snapshot.participants.filter(
+  return roomSnapshotToActiveRoster(snapshot).filter(
     (p) => p.membershipType === "registered" && p.sessionRole === "member",
   );
 };

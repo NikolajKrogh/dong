@@ -496,6 +496,37 @@ describe("useGuestRoomSession", () => {
     });
   });
 
+  it("stores a confirmed in-game guest result before clearing the grant", async () => {
+    const grant = createGrant();
+    const leftAt = "2026-09-28T12:00:00Z";
+    useGameStore.setState({ history: [] });
+    mockReadGuestRoomSessionGrant.mockResolvedValue(grant);
+    const snapshot = createSnapshot({ state: "in_progress",
+      participants: createSnapshot().participants.map((p) => p.id === "guest-1"
+        ? { ...p, currentDrinkTotal: 3, leftAt } : p),
+    });
+    setGuestRoomRpcClient({
+      getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(async () => snapshot),
+      leaveRoomAsGuest: guestRoomRpcMock.leaveRoomAsGuest(async () => ({
+        ok: true, status: "confirmed" as const, leftAt,
+        result: snapshot,
+      })),
+    });
+    let observedHook!: UseGuestRoomSessionResult;
+    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
+    const renderer = TestRenderer.create(React.createElement(Probe));
+    await TestRenderer.act(async () => { await flushEffects(); });
+    await TestRenderer.act(async () => {
+      await expect(observedHook.leaveRoom()).resolves.toBe(true);
+    });
+    expect(useGameStore.getState().history).toMatchObject([{
+      id: grant.sessionId, isEarlyLeaveResult: true,
+      players: [{}, { id: "guest-1", drinksTaken: 3, leftAt }],
+    }]);
+    expect(mockClearGuestRoomSessionGrant).toHaveBeenCalled();
+    TestRenderer.act(() => renderer.unmount());
+  });
+
   it("keeps the grant and reports an unconfirmed in-progress departure", async () => {
     const persistedGrant = createGrant();
     mockReadGuestRoomSessionGrant.mockResolvedValue(persistedGrant);

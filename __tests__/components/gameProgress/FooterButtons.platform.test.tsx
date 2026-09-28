@@ -114,4 +114,21 @@ describe("FooterButtons", () => {
 
     timingSpy.mockRestore();
   });
+
+  it("closes the sheet before asking to leave", () => {
+    const timingSpy = jest.spyOn(Animated, "timing").mockImplementation(
+      () => ({ start: jest.fn() }) as any,
+    );
+    const onLeaveGame = jest.fn();
+    const renderer = actCreate(React.createElement(FooterButtons, {
+      onBackToSetup: jest.fn(), onEndGame: jest.fn(), onLeaveGame, showLeaveGame: true,
+    }));
+    TestRenderer.act(() => {
+      renderer.root.findByProps({ testID: "GameProgressMenuButton" }).props.onPress();
+      mockGameActionsSheetProps.onLeaveGame();
+    });
+    expect(onLeaveGame).toHaveBeenCalledTimes(1);
+    expect(mockGameActionsSheetProps.open).toBe(false);
+    timingSpy.mockRestore();
+  });
 });

@@ -16,6 +16,8 @@ interface FooterButtonsProps {
   onBackToSetup: () => void;
   /** Invoked when user selects End Game. */
   onEndGame: () => void;
+  onLeaveGame?: () => void;
+  showLeaveGame?: boolean;
   /** Only the current multiplayer host can use this action. */
   showEndGame?: boolean;
 }
@@ -31,6 +33,8 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   onHome,
   onBackToSetup,
   onEndGame,
+  onLeaveGame,
+  showLeaveGame = false,
   showEndGame = true,
 }) => {
   const router = useRouter();
@@ -91,6 +95,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
   const goToSetup = () => runAction(onBackToSetup);
   const endGame = () => runAction(onEndGame);
+  const leaveGame = () => onLeaveGame && runAction(onLeaveGame);
 
   const renderToggle = (inSheet: boolean) => (
     <TouchableOpacity
@@ -114,6 +119,8 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
       <GameActionsSheet
         onBackToSetup={goToSetup}
         onEndGame={endGame}
+        onLeaveGame={leaveGame}
+        showLeaveGame={showLeaveGame}
         onHome={goToHome}
         onOpenChange={(open: boolean) =>
           open ? setMenuVisible(true) : closeMenu()

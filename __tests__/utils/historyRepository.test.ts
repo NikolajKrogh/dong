@@ -3,13 +3,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import {
   loadCloudHistory,
+  mapDepartureResult,
   mergeHistory,
   type HistoryImportLink,
 } from "../../utils/historyRepository";
 import type { GameSession } from "../../components/history/historyTypes";
 
 interface QueryRequest {
-  source: "summaries" | "links";
+  source: "summaries" | "early" | "links";
   from: number;
   to: number;
 }
@@ -110,8 +111,9 @@ describe("historyRepository", () => {
     const requests: QueryRequest[] = [];
     const orderRequests: OrderRequest[] = [];
     const client = {
-      from: jest.fn(() =>
-        pagedQuery("summaries", summaries, requests, orderRequests),
+      from: jest.fn((table: string) =>
+        pagedQuery(table === "early_leave_results" ? "early" : "summaries",
+          table === "early_leave_results" ? [] : summaries, requests, orderRequests),
       ),
       rpc: jest.fn(() =>
         pagedQuery("links", importLinks, requests, orderRequests),
@@ -121,6 +123,7 @@ describe("historyRepository", () => {
     const result = await loadCloudHistory(client);
 
     expect(client.from).toHaveBeenCalledWith("completed_session_summaries");
+    expect(client.from).toHaveBeenCalledWith("early_leave_results");
     expect(client.rpc).toHaveBeenCalledWith("get_history_import_links");
     expect(result.sessions).toHaveLength(501);
     expect(result.importLinks).toHaveLength(501);
@@ -169,7 +172,8 @@ describe("historyRepository", () => {
     const requests: QueryRequest[] = [];
     const orderRequests: OrderRequest[] = [];
     const client = {
-      from: jest.fn(() => pagedQuery("summaries", [], requests, orderRequests)),
+      from: jest.fn((table: string) => pagedQuery(
+        table === "early_leave_results" ? "early" : "summaries", [], requests, orderRequests)),
       rpc: jest.fn(() =>
         pagedQuery("links", [], requests, orderRequests, {
           message: "private backend detail",
@@ -211,5 +215,21 @@ describe("historyRepository", () => {
     ]);
     expect(merged[0]).toBe(sameNameAndDate);
     expect(merged[1].players[0].drinksTaken).toBe(4);
+  });
+
+  it("maps a frozen departure and replaces it with canonical completion", () => {
+    const provisional = mapDepartureResult("room-1", "2026-09-28T10:00:00Z", {
+      sessionId: "room-1", state: "in_progress", commonMatchId: null,
+      participants: [{ id: "p1", displayName: "Alex", membershipType: "guest",
+        currentDrinkTotal: 3, leftAt: "2026-09-28T10:00:00Z" }],
+      matches: [{ id: "m1", homeTeamName: "A", awayTeamName: "B", homeScore: 2, awayScore: 1 }],
+      assignments: [{ participantId: "p1", matchId: "m1" }],
+      assignmentPlan: { matchesPerPlayer: 1 },
+    });
+    expect(provisional).toMatchObject({ isEarlyLeaveResult: true,
+      players: [{ drinksTaken: 3, leftAt: "2026-09-28T10:00:00Z" }],
+      matches: [{ goals: 3 }], playerAssignments: { p1: ["m1"] } });
+    const completed = localSession("room-1");
+    expect(mergeHistory([provisional], [provisional, completed], [])).toEqual([completed]);
   });
 });

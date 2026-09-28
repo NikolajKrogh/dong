@@ -223,6 +223,7 @@ interface GameSession {
   playerAssignments: PlayerAssignments;
   /** Matches per player in this session. */
   matchesPerPlayer: number;
+  isEarlyLeaveResult?: boolean;
 }
 
 /**
@@ -340,6 +341,7 @@ interface GameState {
   // Actions for game history
   /** Saves current game state as a new history entry. */
   saveGameToHistory: () => void;
+  saveHistorySession: (session: GameSession) => void;
   /** Resets current game state (retains history, soundEnabled, hasVideoPlayed). */
   resetState: () => void;
 }
@@ -445,6 +447,11 @@ export const useGameStore = create<GameState>()(
             history: [...state.history, newGameSession],
           };
         }),
+
+      saveHistorySession: (session) =>
+        set((state) => ({
+          history: [...state.history.filter((game) => game.id !== session.id), session],
+        })),
 
       resetState: () =>
         set({

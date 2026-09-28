@@ -82,6 +82,8 @@ export interface GameSession {
   commonMatchId: string | null;
   playerAssignments: PlayerAssignments;
   matchesPerPlayer: number;
+  /** Immutable personal result captured before the host completed the room. */
+  isEarlyLeaveResult?: boolean;
 }
 
 /**
