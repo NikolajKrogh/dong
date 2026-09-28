@@ -1,35 +1,20 @@
 import React from "react";
-import { KeyboardAvoidingView, Platform, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { KeyboardAvoidingView, Platform } from "react-native";
 
-import AuthHeader from "../../components/auth/AuthHeader";
 import ChangePasswordForm from "../../components/auth/ChangePasswordForm";
-import { ShellScreen } from "../../components/ui";
-import { useColors } from "../../styles/theme";
+import SettingsPage from "../../components/preferences/SettingsPage";
+import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
 
-const ChangePasswordScreen = () => {
-  const colors = useColors();
-
+export default function ChangePasswordScreen() {
+  const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
+  const backTarget = normalizeAccountFlowReturnTo(returnTo) ?? "/userPreferences/profile";
   return (
-    <ShellScreen padded={false} centerContent contentMaxWidth={720}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <AuthHeader />
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            showsVerticalScrollIndicator={false}
-          >
-            <ChangePasswordForm />
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </ShellScreen>
+    <SettingsPage title="Change password" onBack={() => router.replace(backTarget as never)}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ChangePasswordForm />
+      </KeyboardAvoidingView>
+    </SettingsPage>
   );
-};
-
-export default ChangePasswordScreen;
+}

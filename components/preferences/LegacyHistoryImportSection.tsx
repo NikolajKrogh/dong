@@ -103,7 +103,7 @@ const getButtonLabel = (
   return "Import Local History";
 };
 
-const LegacyHistoryImportSection: React.FC = () => {
+const LegacyHistoryImportSection: React.FC<{ showSectionTitle?: boolean }> = ({ showSectionTitle = true }) => {
   const colors = useColors();
   const { legacyHistoryImportStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
@@ -175,7 +175,7 @@ const LegacyHistoryImportSection: React.FC = () => {
   const buttonLabel = getButtonLabel(isImporting, importPhase);
 
   return (
-    <ShellSection title="History Import" marginBottom="$3">
+    <ShellSection title={showSectionTitle ? "History Import" : undefined} marginBottom="$3">
       <ShellCard compact testID="LegacyHistoryImportSection">
         <Text style={legacyHistoryImportStyles.description}>
           Import the sessions saved on this device into your cloud account once.

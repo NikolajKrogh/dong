@@ -23,6 +23,11 @@ Given(
   },
 );
 
+When("the user opens History import from Settings", async ({ page }) => {
+  await page.getByRole("button", { name: "History import" }).click();
+  await expect(page.getByTestId("LegacyHistoryImportButton")).toBeVisible();
+});
+
 When("the user starts the legacy history import", async ({ page }) => {
   const importButton = page.getByTestId("LegacyHistoryImportButton");
 

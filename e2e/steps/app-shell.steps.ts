@@ -85,6 +85,9 @@ const expectLocatorWithinViewport = async (
 };
 
 const setAppearanceTheme = async (page: Page, useDarkTheme: boolean) => {
+  if ((await page.getByTestId("ThemeSettingSwitch").count()) === 0) {
+    await page.getByRole("button", { name: "Appearance" }).click();
+  }
   const themeSwitch = page.getByRole("switch").first();
   const isDarkTheme = await themeSwitch.isChecked();
 
@@ -584,7 +587,7 @@ Then("the shell should reflect the dark theme", async ({ page }) => {
 });
 
 When("the user navigates back to home", async ({ page }) => {
-  await page.goBack();
+  await page.goto(new URL("/", page.url()).toString());
 });
 
 When("the user opens the active game", async ({ page }) => {

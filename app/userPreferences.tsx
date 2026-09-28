@@ -1,177 +1,80 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, useWindowDimensions } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import OnboardingScreen from "../components/OnboardingScreen";
-import AccountSection from "../components/preferences/AccountSection";
-import { LeagueEndpoint } from "../constants/leagues";
-import { useGameStore } from "../store/store";
+import { Text, View } from "react-native";
+import { Text as TText, XStack, YStack } from "tamagui";
 
-import AddLeagueModal from "../components/preferences/AddLeagueModal";
-import AppearanceSettings from "../components/preferences/AppearanceSettings";
-import Header from "../components/preferences/Header";
-import LeagueSettings from "../components/preferences/LeagueSettings";
-import LegacyHistoryImportSection from "../components/preferences/LegacyHistoryImportSection";
-import ManageLeaguesModal from "../components/preferences/ManageLeaguesModal";
-import OnboardingButton from "../components/preferences/OnboardingButton";
-import ProfileSection from "../components/preferences/ProfileSection";
-import SelectDefaultLeaguesModal from "../components/preferences/SelectDefaultLeaguesModal";
-import SoundNotificationSettings from "../components/preferences/SoundNotificationSettings";
-import { ShellScreen } from "../components/ui";
-import { isWideLayout } from "../styles/responsive";
+import OnboardingScreen from "../components/OnboardingScreen";
+import SettingsMenuRow from "../components/preferences/SettingsMenuRow";
+import SettingsPage from "../components/preferences/SettingsPage";
+import { ShellActionButton, ShellCard, ShellSection } from "../components/ui";
+import { buildAccountAuthRoute, useAccountAuth } from "../hooks/useAccountAuth";
+import { useGameStore } from "../store/store";
 import { useColors } from "../styles/theme";
 
-/**
- * User preferences screen for configuring notifications, leagues, appearance, and onboarding.
- * @component
- * @returns {JSX.Element} Preferences screen element.
- * @description Provides toggles for sound & common match notifications, league management (add/remove/reset & default selection), appearance theme controls, and access to onboarding. Uses multiple modals coordinated via local state.
- */
-const UserPreferencesScreen = () => {
+export default function UserPreferencesScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const {
-    soundEnabled,
-    setSoundEnabled,
-    commonMatchNotificationsEnabled,
-    setCommonMatchNotificationsEnabled,
-    configuredLeagues,
-    addLeague,
-    removeLeague,
-    resetLeaguesToDefaults,
-    defaultSelectedLeagues,
-    setDefaultSelectedLeagues,
-  } = useGameStore();
-
   const colors = useColors();
-  const wideLayout = isWideLayout(width);
+  const { account, signOut, sessionNotice, status } = useAccountAuth();
+  const theme = useGameStore((state) => state.theme);
+  const configuredLeagues = useGameStore((state) => state.configuredLeagues);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showAddLeagueModal, setShowAddLeagueModal] = useState(false);
-  const [showManageLeaguesModal, setShowManageLeaguesModal] = useState(false);
-  const [showSelectDefaultLeaguesModal, setShowSelectDefaultLeaguesModal] =
-    useState(false); // State for the new modal
-
-  // State for AddLeagueModal specifically
-  const [leaguesForAddingModal, setLeaguesForAddingModal] = useState<
-    LeagueEndpoint[]
-  >([]);
-  const [searchQueryForAddingModal, setSearchQueryForAddingModal] =
-    useState("");
-
-  /** Navigate back to previous screen. */
-  const goBack = () => {
-    router.push("../");
-  };
-
-  /** Toggle selection of a league in AddLeagueModal multi-select state. */
-  const toggleLeagueSelectionForAdding = (league: LeagueEndpoint) => {
-    setLeaguesForAddingModal((prevSelected) =>
-      prevSelected.some((l) => l.code === league.code)
-        ? prevSelected.filter((l) => l.code !== league.code)
-        : [...prevSelected, league],
-    );
-  };
-
-  /** Add all currently selected leagues (batch) then reset modal selection state. */
-  const handleAddSelectedLeaguesFromModal = () => {
-    leaguesForAddingModal.forEach((leagueToAdd) => addLeague(leagueToAdd)); // Use addLeague from store
-    setLeaguesForAddingModal([]);
-    setSearchQueryForAddingModal(""); // Reset search query
-    setShowAddLeagueModal(false);
-  };
-
-  /** Persist selected default leagues and close modal. */
-  const handleSaveDefaultLeagues = (newDefaults: LeagueEndpoint[]) => {
-    setDefaultSelectedLeagues(newDefaults);
-    setShowSelectDefaultLeaguesModal(false);
-  };
+  const signedIn = status !== "signedOut" && status !== "loading";
+  const displayName = account?.preferredDisplayName?.trim();
 
   if (showOnboarding) {
     return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
   }
 
   return (
-    <ShellScreen
-      padded={false}
-      centerContent={wideLayout}
-      contentMaxWidth={wideLayout ? 960 : undefined}
-    >
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <Header title="Settings" onBack={goBack} />
+    <SettingsPage title="Settings">
+      <ShellSection title="Account" marginBottom="$0">
+        <ShellCard compact testID="AccountSection">
+          {status === "loading" ? (
+            <TText color="$textMuted">Loading account...</TText>
+          ) : signedIn ? (
+            <YStack gap="$3">
+              <XStack gap="$3" alignItems="center">
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ color: colors.textLight, fontWeight: "700", fontSize: 18 }}>
+                    {displayName?.[0]?.toUpperCase() ?? "?"}
+                  </Text>
+                </View>
+                <YStack>
+                  <TText color="$textPrimary" fontWeight="600" fontSize={16}>{displayName ?? "Account"}</TText>
+                  <TText color="$textMuted" fontSize={13}>Signed in</TText>
+                </YStack>
+              </XStack>
+              {status === "ready" ? <SettingsMenuRow label="Profile & display name" icon="person-outline" last onPress={() => router.push("/userPreferences/profile")} /> : null}
+              {status === "needsDisplayName" ? (
+                <ShellActionButton variant="surface" label="Finish account setup" onPress={() => router.push(buildAccountAuthRoute("/auth/onboarding", "/userPreferences") as never)} />
+              ) : null}
+            </YStack>
+          ) : (
+            <YStack gap="$3">
+              {sessionNotice ? <TText color="$danger">{sessionNotice}</TText> : null}
+              <TText color="$textSecondary">Sign in to create and manage multiplayer rooms.</TText>
+              <ShellActionButton variant="surface" label="Sign in or create account" onPress={() => router.push(buildAccountAuthRoute("/auth", "/userPreferences") as never)} />
+            </YStack>
+          )}
+        </ShellCard>
+      </ShellSection>
 
-        <ScrollView
-          testID="UserPreferencesContent"
-          style={{ flex: 1, backgroundColor: colors.backgroundLight }}
-          contentContainerStyle={{
-            paddingHorizontal: 12,
-            paddingTop: 12,
-            paddingBottom: 24,
-          }}
-        >
-          <AccountSection />
-          <ProfileSection />
-          <AppearanceSettings />
-          <SoundNotificationSettings
-            soundEnabled={soundEnabled}
-            setSoundEnabled={setSoundEnabled}
-            commonMatchNotificationsEnabled={commonMatchNotificationsEnabled}
-            setCommonMatchNotificationsEnabled={
-              setCommonMatchNotificationsEnabled
-            }
-          />
+      <ShellSection title="Preferences" marginBottom="$0">
+        <ShellCard compact>
+          <SettingsMenuRow label="Appearance" icon="moon-outline" value={theme === "dark" ? "Dark" : "Light"} onPress={() => router.push("/userPreferences/appearance")} />
+          <SettingsMenuRow label="Sound & notifications" icon="volume-high-outline" onPress={() => router.push("/userPreferences/sound")} />
+          <SettingsMenuRow label="Leagues" icon="football-outline" value={`${configuredLeagues.length} leagues`} last onPress={() => router.push("/userPreferences/leagues")} />
+        </ShellCard>
+      </ShellSection>
 
-          <LeagueSettings
-            configuredLeagues={configuredLeagues}
-            onManageLeaguesPress={() => setShowManageLeaguesModal(true)}
-            onAddLeaguesPress={() => {
-              setLeaguesForAddingModal([]); // Reset for AddLeagueModal
-              setSearchQueryForAddingModal(""); // Reset for AddLeagueModal
-              setShowAddLeagueModal(true);
-            }}
-            defaultSelectedLeagues={defaultSelectedLeagues}
-            onSetDefaultLeaguesPress={() =>
-              setShowSelectDefaultLeaguesModal(true)
-            }
-          />
+      <ShellSection title="Data" marginBottom="$0">
+        <ShellCard compact>
+          <SettingsMenuRow label="History import" icon="cloud-upload-outline" last onPress={() => router.push("/userPreferences/history-import")} />
+        </ShellCard>
+      </ShellSection>
 
-          <LegacyHistoryImportSection />
-
-          <OnboardingButton onPress={() => setShowOnboarding(true)} />
-        </ScrollView>
-
-        <AddLeagueModal
-          visible={showAddLeagueModal}
-          onClose={() => {
-            setShowAddLeagueModal(false);
-            setSearchQueryForAddingModal(""); // Reset search on close
-          }}
-          configuredLeagues={configuredLeagues}
-          selectedLeagues={leaguesForAddingModal}
-          setSelectedLeagues={setLeaguesForAddingModal}
-          toggleLeagueSelection={toggleLeagueSelectionForAdding}
-          handleAddSelectedLeagues={handleAddSelectedLeaguesFromModal}
-          searchQuery={searchQueryForAddingModal}
-          setSearchQuery={setSearchQueryForAddingModal}
-        />
-
-        <ManageLeaguesModal
-          visible={showManageLeaguesModal}
-          onClose={() => setShowManageLeaguesModal(false)}
-          configuredLeagues={configuredLeagues}
-          removeLeague={removeLeague} // removeLeague from store is passed here
-          resetLeaguesToDefaults={resetLeaguesToDefaults} // resetLeaguesToDefaults from store
-        />
-
-        <SelectDefaultLeaguesModal
-          visible={showSelectDefaultLeaguesModal}
-          onClose={() => setShowSelectDefaultLeaguesModal(false)}
-          configuredLeagues={configuredLeagues}
-          currentDefaultLeagues={defaultSelectedLeagues}
-          onSave={handleSaveDefaultLeagues}
-        />
-      </SafeAreaView>
-    </ShellScreen>
+      {signedIn ? <ShellActionButton variant="surface" label="Sign out" onPress={() => { void signOut(); }} /> : null}
+      <ShellActionButton variant="surface" label="View onboarding" onPress={() => setShowOnboarding(true)} />
+    </SettingsPage>
   );
-};
-
-export default UserPreferencesScreen;
+}
