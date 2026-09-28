@@ -14,6 +14,8 @@ interface GameActionsSheetProps {
   onHome: () => void;
   onBackToSetup: () => void;
   onEndGame: () => void;
+  onLeaveGame?: () => void;
+  showLeaveGame?: boolean;
   showEndGame: boolean;
   floatingToggle: React.ReactNode;
 }
@@ -21,7 +23,7 @@ interface GameActionsSheetProps {
 interface ActionRowProps {
   testID: string;
   label: string;
-  icon: "home-outline" | "settings-outline" | "flag-outline";
+  icon: "home-outline" | "settings-outline" | "flag-outline" | "exit-outline";
   iconColor: string;
   danger?: boolean;
   disabled?: boolean;
@@ -71,6 +73,8 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
   onHome,
   onBackToSetup,
   onEndGame,
+  onLeaveGame,
+  showLeaveGame,
   showEndGame,
   floatingToggle,
 }) => {
@@ -146,6 +150,16 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
               onPress={onBackToSetup}
               testID="FooterSetupButton"
             />
+            {showLeaveGame && onLeaveGame ? (
+              <ActionRow
+                danger
+                icon="exit-outline"
+                iconColor={colors.dangerForeground}
+                label="Leave Game"
+                onPress={onLeaveGame}
+                testID="FooterLeaveGameButton"
+              />
+            ) : null}
             <ActionRow
               danger
               disabled={!showEndGame}

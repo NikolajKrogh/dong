@@ -133,4 +133,20 @@ describe("GameActionsSheet", () => {
     expect(props.onEndGame).not.toHaveBeenCalled();
     TestRenderer.act(() => renderer.unmount());
   });
+
+  it("shows a distinct Leave Game action only when allowed", () => {
+    const onLeaveGame = jest.fn();
+    const renderer = renderSheet(createProps({ showLeaveGame: true, onLeaveGame,
+      showEndGame: false }));
+    const leave = renderer.root.findAllByProps({ testID: "FooterLeaveGameButton" })
+      .find((node) => typeof node.props.onPress === "function");
+    expect(leave).toBeDefined();
+    TestRenderer.act(() => leave?.props.onPress());
+    expect(onLeaveGame).toHaveBeenCalledTimes(1);
+    TestRenderer.act(() => renderer.unmount());
+
+    const hidden = renderSheet(createProps({ showLeaveGame: false, onLeaveGame }));
+    expect(hidden.root.findAllByProps({ testID: "FooterLeaveGameButton" })).toHaveLength(0);
+    TestRenderer.act(() => hidden.unmount());
+  });
 });

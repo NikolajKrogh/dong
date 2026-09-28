@@ -1,4 +1,5 @@
 import React from "react";
+import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -11,8 +12,57 @@ const mockUseWindowDimensions = jest.fn(() => ({
 jest.mock("react-native", () => ({
   Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
+  StyleSheet: { create: (styles: unknown) => styles },
+  Modal: ({ children, visible }: { children: React.ReactNode; visible: boolean }) => {
+    if (!visible) return null;
+    const ReactLocal = require("react");
+    const buttons: React.ReactNode[] = [];
+    const visit = (node: any) => {
+      if (Array.isArray(node)) return node.forEach(visit);
+      if (!node?.props) return;
+      if (String(node.props.testID ?? "").startsWith("game-leave-")) {
+        buttons.push(ReactLocal.createElement("View", {
+          testID: node.props.testID, onPress: node.props.onPress,
+        }));
+      }
+      visit(node.props.children);
+    };
+    visit(children);
+    return ReactLocal.createElement("View", { testID: "LeaveModal" }, buttons);
+  },
   RefreshControl: "RefreshControl",
   useWindowDimensions: () => mockUseWindowDimensions(),
+}));
+
+jest.mock("tamagui", () => ({ Text: "Text", YStack: "View" }));
+jest.mock("../../styles/responsive", () => ({ isWideLayout: (width: number) => width >= 768 }));
+
+const mockReplace = jest.fn();
+jest.mock("expo-router", () => ({ useRouter: () => ({ replace: mockReplace }) }));
+
+const mockResetState = jest.fn();
+let mockActiveGameContext = { sessionId: null as string | null,
+  participantId: null as string | null, accessKind: "registered" };
+jest.mock("../../store/store", () => ({
+  useGameStore: (selector: (state: unknown) => unknown) => selector({
+    activeGameContext: mockActiveGameContext, resetState: mockResetState,
+  }),
+}));
+
+const mockExitRoom = jest.fn(async () => ({ status: "left" }));
+jest.mock("../../hooks/useRoomExit", () => ({ useRoomExit: () => ({
+  exitRoom: mockExitRoom, confirmSuccessor: jest.fn(), confirmClose: jest.fn(),
+  cancel: jest.fn(), error: null, isExiting: false,
+  pendingSuccessorChoice: false, eligibleSuccessors: [], needsCloseConfirm: false,
+}) }));
+jest.mock("../../hooks/useGuestRoomSession", () => ({ useGuestRoomSession: () => ({
+  status: "idle", error: null, leaveRoom: jest.fn(),
+}) }));
+jest.mock("../../components/lobby/SuccessorChooserModal", () => ({
+  SuccessorChooserModal: () => null,
+}));
+jest.mock("../../components/gameProgress/MultiplayerGameStatus", () => ({
+  MultiplayerGameStatus: () => null,
 }));
 
 const controllerState = {
@@ -73,6 +123,8 @@ jest.mock("../../components/ui", () => {
   const ReactNativeLocal = require("react-native");
 
   return {
+    ShellActionButton: ({ label, onPress, testID, disabled }: any) =>
+      ReactLocal.createElement("View", { testID, onPress, disabled, label }),
     ShellScreen: ({ children, ...props }: any) =>
       ReactLocal.createElement(
         ReactNativeLocal.View,
@@ -162,12 +214,37 @@ const renderGameProgressScreen = () => {
 describe("GameProgressScreen responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockActiveGameContext = { sessionId: null, participantId: null, accessKind: "registered" };
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
       scale: 1,
       fontScale: 1,
     });
+  });
+
+  it("cancels departure without a command, then confirms once", async () => {
+    mockActiveGameContext = { sessionId: "room-1", participantId: "p1",
+      accessKind: "registered" };
+    mockUseGameProgressController.mockReturnValue({ ...controllerState,
+      activeGame: { isMultiplayer: true, isHost: false, isEditable: true,
+        status: "ready", snapshot: null },
+    } as never);
+    const renderer = renderGameProgressScreen();
+    const footer = renderer.root.findByProps({ testID: "FooterButtons" });
+    expect(footer.props.showLeaveGame).toBe(true);
+    await TestRenderer.act(async () => { footer.props.onLeaveGame(); });
+    await TestRenderer.act(async () => {
+      renderer.root.findByProps({ testID: "game-leave-cancel" }).props.onPress();
+    });
+    expect(mockExitRoom).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => { footer.props.onLeaveGame(); });
+    await TestRenderer.act(async () => {
+      await renderer.root.findByProps({ testID: "game-leave-confirm-button" }).props.onPress();
+    });
+    expect(mockExitRoom).toHaveBeenCalledTimes(1);
+    expect(mockResetState).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith("/");
   });
 
   it("wires controller data into the route layout", () => {

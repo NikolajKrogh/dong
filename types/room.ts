@@ -14,6 +14,7 @@ export interface RoomParticipantSummary {
   membershipType: RoomMembershipType;
   sessionRole: RoomSessionRole;
   currentDrinkTotal: number;
+  leftAt?: string | null;
 }
 
 export interface RoomMatchSummary {
@@ -221,6 +222,8 @@ export class ReassignmentRpcError extends Error {
 export interface MemberLeaveResponse {
   sessionId: string;
   status: "left";
+  result?: unknown;
+  leftAt?: string;
 }
 
 export interface MyActiveRoom {

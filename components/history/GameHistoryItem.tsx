@@ -206,6 +206,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
     topDrinkers.length - visibleTopDrinkers.length,
   );
   const accessibilitySummary = [
+    game.isEarlyLeaveResult ? "Result at departure; game not yet completed" : "",
     dateLabel,
     `${game.players.length} ${game.players.length === 1 ? "player" : "players"}`,
     game.players.length > 0
@@ -240,7 +241,7 @@ const GameHistoryItem: React.FC<GameHistoryItemProps> = ({
           style={{ marginRight: 8 }}
         />
         <Text style={styles.date}>
-          {dateLabel}
+          {game.isEarlyLeaveResult ? `Left early · ${dateLabel}` : dateLabel}
         </Text>
       </View>
 

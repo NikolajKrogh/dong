@@ -16,6 +16,7 @@ import type {
 } from "../../types/room";
 import { useColors } from "../../styles/theme";
 import { ShellActionButton } from "../ui";
+import { roomSnapshotToActiveRoster } from "../../utils/roomSnapshot";
 
 type ActiveRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 
@@ -41,8 +42,9 @@ export function ReassignmentControl({
   const styles = useMemo(() => createStyles(colors, width), [colors, width]);
   const [open, setOpen] = useState(false);
   const [sheetPosition, setSheetPosition] = useState(0);
+  const activeParticipants = roomSnapshotToActiveRoster(snapshot);
   const [participantId, setParticipantId] = useState(
-    snapshot.participants[0]?.id ?? "",
+    activeParticipants[0]?.id ?? "",
   );
   const [selectedMatchIds, setSelectedMatchIds] = useState<string[]>([]);
 
@@ -62,7 +64,7 @@ export function ReassignmentControl({
 
   const openEditor = () => {
     if (disabled || pending || snapshot.state !== "in_progress") return;
-    const firstParticipant = snapshot.participants[0]?.id ?? "";
+    const firstParticipant = activeParticipants[0]?.id ?? "";
     chooseParticipant(firstParticipant);
     setSheetPosition(0);
     setOpen(true);
@@ -132,7 +134,7 @@ export function ReassignmentControl({
           <Text style={styles.label}>Participant</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.row}>
-              {snapshot.participants.map((participant) => {
+              {activeParticipants.map((participant) => {
                 const selected = participant.id === participantId;
                 return (
                   <TouchableOpacity

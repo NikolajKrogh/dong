@@ -82,6 +82,10 @@ const getRenderedText = (renderer: TestRenderer.ReactTestRenderer): string =>
     .join(" ");
 
 describe("GameHistoryItem", () => {
+  it("labels a provisional departure result", () => {
+    const { renderer } = renderGame(makeGame({ isEarlyLeaveResult: true }));
+    expect(getRenderedText(renderer)).toContain("Left early");
+  });
   it("falls back to the first match and opens details from the whole card", () => {
     const game = makeGame({
       matches: [

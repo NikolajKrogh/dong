@@ -4,6 +4,7 @@ import type {
   GuestRoomSession,
   GuestRoomSessionGrant,
   GuestRoomSessionStatus,
+  GuestRoomLeaveResponse,
 } from "../types/guestRoom";
 import {
   buildGuestRoomSessionGrant,
@@ -28,6 +29,7 @@ import {
 import { getGuestRoomRpcClient } from "../utils/supabaseClient";
 import { useGameStore } from "../store/store";
 import { confirmGuestRoomEnded, isGuestRoomEnded } from "../utils/guestRoomTermination";
+import { mapDepartureResult } from "../utils/historyRepository";
 
 export interface UseGuestRoomSessionResult {
   status: GuestRoomSessionStatus;
@@ -70,6 +72,17 @@ const grantFromPendingRotation = (record: NonNullable<Awaited<ReturnType<typeof 
   displayName: record.displayName,
   grantExpiresAt: record.grantExpiresAt,
 });
+
+const saveGuestDepartureResult = (
+  grant: GuestRoomSessionGrant,
+  outcome: GuestRoomLeaveResponse,
+) => {
+  if (outcome.ok && outcome.status === "confirmed" && outcome.result && outcome.leftAt) {
+    useGameStore.getState().saveHistorySession(
+      mapDepartureResult(grant.sessionId, outcome.leftAt, outcome.result),
+    );
+  }
+};
 
 const confirmPendingRotation = async (record: NonNullable<Awaited<ReturnType<typeof readGuestRoomPendingRotation>>>) => {
   const outcome = await getGuestRoomRpcClient().rotateGuestRoomGrant(
@@ -179,6 +192,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
           setStatus("pending_leave");
           const outcome = await getGuestRoomRpcClient().leaveRoomAsGuest(pendingLeave.guestToken);
           if (outcome.ok) {
+            saveGuestDepartureResult(pendingLeave, outcome);
             await clearGuestRoomSessionGrant();
             if (isMounted) { setStatus("left"); setError(null); }
           } else if (outcome.code === "not_permitted") {
@@ -433,15 +447,17 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
     stopPolling();
     const currentSession = sessionRef.current;
     try {
-      const grant = currentSession?.grant ?? await readGuestRoomPendingLeave();
+      const pendingLeave = await readGuestRoomPendingLeave();
+      const grant = currentSession?.grant ?? pendingLeave ?? await readGuestRoomSessionGrant();
       if (!grant) return false;
-      if (currentSession) await saveGuestRoomPendingLeave(grant);
+      if (!pendingLeave) await saveGuestRoomPendingLeave(grant);
       setSession(null);
       setStatus("pending_leave");
       setError(null);
       try {
         const outcome = await getGuestRoomRpcClient().leaveRoomAsGuest(grant.guestToken);
         if (outcome.ok) {
+          saveGuestDepartureResult(grant, outcome);
           await clearGuestRoomSessionGrant();
           setStatus("left");
           return true;

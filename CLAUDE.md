@@ -137,5 +137,5 @@ reconnects — reverse tunnels do not persist across USB re-attach.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/025-harden-guest-room-access/plan.md
+at specs/026-in-game-leave-history/plan.md
 <!-- SPECKIT END -->
