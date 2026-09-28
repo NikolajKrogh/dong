@@ -7,6 +7,10 @@ const mockGetTeamLogo = jest.fn();
 
 jest.mock("react-native", () => ({
   Image: "Image",
+  Platform: {
+    OS: "web",
+    select: (options: Record<string, unknown>) => options.web ?? options.default,
+  },
   Text: "Text",
   View: "View",
 }));

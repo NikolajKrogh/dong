@@ -6,6 +6,10 @@ import { calculateLifetimePlayerStats } from "../../../components/history/histor
 
 let mockLayout = { contentWidth: 800, fontScale: 1, isDesktop: true };
 jest.mock("react-native", () => ({
+  Platform: {
+    OS: "web",
+    select: (options: Record<string, unknown>) => options.web ?? options.default,
+  },
   Text: "Text",
   TouchableOpacity: "TouchableOpacity",
   View: "View",

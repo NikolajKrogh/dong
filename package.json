@@ -12,7 +12,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
-    "test:ci": "jest --ci",
+    "test:ci": "node -r ./scripts/jest-ci-env.cjs ./node_modules/jest/bin/jest.js --ci",
     "lint": "eslint .",
     "bdd:gen": "bddgen",
     "test:e2e": "bddgen && playwright test --config=playwright.config.ts",
