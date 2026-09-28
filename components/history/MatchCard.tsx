@@ -1,81 +1,123 @@
-/**
- * @file MatchCard.tsx
- * @description History screen list item displaying a single match with teams, score, and optional "Common" badge.
- */
 import React, { useMemo } from "react";
-import { View, Text, Image } from "react-native";
-import { Match } from "../../store/store";
+import { StyleSheet, Text, View } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
+import { Match } from "./historyTypes";
 import { useColors } from "../../styles/theme";
-import { createHistoryStyles } from "../../styles/historyStyles";
-import { useTeamLogo } from "../../hooks/useTeamLogo";
+import HistoryTeamBadge from "./HistoryTeamBadge";
 
-/**
- * Props for {@link MatchCard}.
- */
 interface MatchCardProps {
-  /** Full match data including teams and (possibly null) goal counts. */
   match: Match;
-  /** Whether this match is part of the user's common game set; shows a badge when true. */
   isCommon?: boolean;
-  /** Optional style overrides merged onto the outer container. */
-  style?: object;
+  /** Compact single-line team labels for small history previews. */
+  compact?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
-/**
- * MatchCard component
- *
- * Renders a single historical match row with both team logos, names (truncated
- * to a single line), and the score block in the middle. If `isCommon` is set it
- * appends a highlighted badge indicating the match belongs to the common set.
- *
- * Logos are resolved through the `useTeamLogo` hook which prioritizes hardcoded
- * logos over cached API logos, with proper AsyncStorage persistence handling.
- * Null / undefined goal values are displayed as 0 to keep a consistent layout.
- */
-const MatchCard: React.FC<MatchCardProps> = ({ match, isCommon, style }) => {
+/** Compact, non-interactive score card used in game history and details. */
+const MatchCard: React.FC<MatchCardProps> = ({
+  match,
+  isCommon,
+  compact = false,
+  style,
+}) => {
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
-  const homeTeamLogo = useTeamLogo(match.homeTeam);
-  const awayTeamLogo = useTeamLogo(match.awayTeam);
-  
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          minWidth: 0,
+          padding: 10,
+          borderRadius: 12,
+          backgroundColor: colors.backgroundLight,
+          borderWidth: 1,
+          borderColor: colors.borderSubtle,
+        },
+        commonBadge: {
+          alignSelf: "flex-start",
+          marginBottom: 8,
+          paddingHorizontal: 8,
+          paddingVertical: 3,
+          borderRadius: 10,
+          backgroundColor: colors.primaryLight,
+        },
+        commonBadgeText: {
+          color: colors.primary,
+          fontSize: 12,
+          fontWeight: "700",
+        },
+        teams: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          minWidth: 0,
+        },
+        team: {
+          flex: 1,
+          minWidth: 0,
+          alignItems: "center",
+        },
+        teamName: {
+          width: "100%",
+          marginTop: 4,
+          color: colors.textSecondary,
+          fontSize: compact ? 13 : 14,
+          fontWeight: "600",
+          textAlign: "center",
+          lineHeight: compact ? 15 : 19,
+        },
+        score: {
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          minWidth: 52,
+          marginHorizontal: 4,
+        },
+        scoreValue: {
+          color: colors.textPrimary,
+          fontSize: 15,
+          fontWeight: "800",
+          fontVariant: ["tabular-nums"],
+        },
+        scoreDivider: {
+          marginHorizontal: 5,
+          color: colors.textMuted,
+          fontSize: 12,
+          fontWeight: "600",
+        },
+      }),
+    [colors, compact],
+  );
+
   return (
-    <View style={[styles.matchRow, style]}>
-      {" "}
-      {/* Use base style */}
-      <View style={styles.matchTeams}>
-        <View style={styles.matchTeamBlock}>
-          <Image
-            source={homeTeamLogo}
-            style={styles.matchTeamLogo}
-            resizeMode="contain"
-          />
-          <Text style={styles.matchTeamName} numberOfLines={1}>
+    <View
+      testID={`HistoryMatchCard-${match.id}`}
+      style={[styles.card, isCommon && !compact && { backgroundColor: colors.primaryLight }, style]}
+      accessible={false}
+    >
+      {isCommon && (
+        <View style={styles.commonBadge}>
+          <Text style={styles.commonBadgeText}>Common match</Text>
+        </View>
+      )}
+      <View style={styles.teams}>
+        <View style={styles.team}>
+          <HistoryTeamBadge teamName={match.homeTeam} size={30} />
+          <Text style={styles.teamName} numberOfLines={compact ? 1 : undefined}>
             {match.homeTeam}
           </Text>
         </View>
-
-        <View style={styles.scoreBlock}>
-          <Text style={styles.scoreText}>{match.homeGoals ?? 0}</Text>
-          <Text style={styles.vsText}>-</Text>
-          <Text style={styles.scoreText}>{match.awayGoals ?? 0}</Text>
+        <View style={styles.score}>
+          <Text style={styles.scoreValue}>{match.homeGoals ?? 0}</Text>
+          <Text style={styles.scoreDivider}>–</Text>
+          <Text style={styles.scoreValue}>{match.awayGoals ?? 0}</Text>
         </View>
-
-        <View style={styles.matchTeamBlock}>
-          <Image
-            source={awayTeamLogo}
-            style={styles.matchTeamLogo}
-            resizeMode="contain"
-          />
-          <Text style={styles.matchTeamName} numberOfLines={1}>
+        <View style={styles.team}>
+          <HistoryTeamBadge teamName={match.awayTeam} size={30} />
+          <Text style={styles.teamName} numberOfLines={compact ? 1 : undefined}>
             {match.awayTeam}
           </Text>
         </View>
       </View>
-      {isCommon && (
-        <View style={styles.commonBadge}>
-          <Text style={styles.commonBadgeText}>Common</Text>
-        </View>
-      )}
     </View>
   );
 };

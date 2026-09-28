@@ -60,7 +60,14 @@ const cloudSession = (
   common_match_id: null,
   matches_per_player: 2,
   players: [
-    { id: "player-1", name: "Alex", drinksTaken: 3, leftAt: null },
+    {
+      id: "player-1",
+      name: "Alex",
+      drinksTaken: 3,
+      leftAt: null,
+      accountId: "account-1",
+      membershipType: "registered",
+    },
   ],
   matches: [
     {
@@ -120,7 +127,14 @@ describe("historyRepository", () => {
     expect(result.sessions[0]).toMatchObject({
       id: "cloud-000",
       date: "",
-      players: [{ id: "player-1", name: "Alex", drinksTaken: 3, leftAt: null }],
+      players: [{
+        id: "player-1",
+        name: "Alex",
+        drinksTaken: 3,
+        leftAt: null,
+        accountId: "account-1",
+        membershipType: "registered",
+      }],
       matches: [
         {
           id: "match-1",

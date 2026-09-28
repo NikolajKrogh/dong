@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
 import { createHistoryStyles } from "../../styles/historyStyles";
 import { useColors } from "../../styles/theme";
-import { formatModalDate } from "./historyUtils";
+import { findPlayerByIdentityKey, formatModalDate } from "./historyUtils";
 
 /**
  * Player details modal.
@@ -43,23 +43,27 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   if (!player) return null;
 
   // Find all games this player participated in
-  const playerGames = gameHistory.filter((game) =>
-    game.players.some((p) => p.name === player.name)
-  );
-
   // Get per-game drink data for history
-  const gameData = playerGames
-    .map((game) => {
-      const playerInGame = game.players.find((p) => p.name === player.name);
+  const gameData = gameHistory
+    .flatMap((game) => {
+      const playerInGame = findPlayerByIdentityKey(game, player.identityKey);
+      if (!playerInGame) return [];
       return {
         id: game.id,
         date: game.date,
-        drinks: playerInGame?.drinksTaken || 0,
+        drinks: playerInGame.drinksTaken || 0,
       };
     })
     .sort((a, b) => {
-      if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      const aTimestamp = a.date ? new Date(a.date).getTime() : Number.NaN;
+      const bTimestamp = b.date ? new Date(b.date).getTime() : Number.NaN;
+      const aKnown = Number.isNaN(aTimestamp) === false;
+      const bKnown = Number.isNaN(bTimestamp) === false;
+      if (aKnown !== bKnown) return aKnown ? -1 : 1;
+      if (aKnown && bKnown && aTimestamp !== bTimestamp) {
+        return bTimestamp - aTimestamp;
+      }
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
     });
 
   return (
@@ -74,7 +78,12 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
           {/* Modal Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Player Details</Text>
-            <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+            <TouchableOpacity
+              onPress={onClose}
+              style={styles.modalCloseButton}
+              accessibilityRole="button"
+              accessibilityLabel="Close player details"
+            >
               <Ionicons name="close" size={28} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -89,12 +98,36 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
           >
             {/* Player Name and Overview */}
             <View style={styles.playerDetailsHeader}>
-              <Ionicons
-                name="person-circle"
-                size={60}
-                color={colors.secondary}
-              />
+              <View
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={`${player.name} avatar`}
+                style={{
+                  width: 60,
+                  height: 60,
+                  borderRadius: 30,
+                  backgroundColor: colors.secondary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: "#ffffff", fontSize: 20, fontWeight: "700" }}>
+                  {getInitials(player.name)}
+                </Text>
+              </View>
               <Text style={styles.modalTitle}>{player.name}</Text>
+              {player.contextLabel && (
+                <Text
+                  style={{
+                    color: colors.textMuted,
+                    fontSize: 13,
+                    marginTop: 4,
+                    textAlign: "center",
+                  }}
+                >
+                  {player.contextLabel}
+                </Text>
+              )}
             </View>
 
             <View style={styles.modalStatGrid}>
@@ -168,5 +201,14 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
     </Modal>
   );
 };
+
+const getInitials = (name: string): string =>
+  name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("") || "?";
 
 export default PlayerDetailsModal;

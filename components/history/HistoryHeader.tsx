@@ -53,6 +53,8 @@ const HistoryHeader: React.FC<HistoryHeaderProps> = ({
     >
       <TouchableOpacity
         testID="HistoryHeaderBackButton"
+        accessibilityRole="button"
+        accessibilityLabel="Back"
         style={styles.headerBackButton}
         onPress={onBack}
       >
@@ -64,6 +66,8 @@ const HistoryHeader: React.FC<HistoryHeaderProps> = ({
       {showSortButton ? (
         <TouchableOpacity
           testID="HistoryHeaderSortButton"
+          accessibilityRole="button"
+          accessibilityLabel="Sort game history"
           style={styles.headerSortButton}
           onPress={onOpenSortModal}
         >

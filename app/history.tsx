@@ -3,11 +3,10 @@
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useReducer } from "react";
+import React, { useCallback, useMemo, useReducer, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  ScrollView,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -17,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AppIcon from "../components/AppIcon";
 import GameDetailsModal from "../components/history/GameDetailsModal";
 import GameHistoryItem from "../components/history/GameHistoryItem";
+import { buildHistoryRows, type HistoryGameRow } from "../components/history/historyLayout";
 import HistoryHeader from "../components/history/HistoryHeader";
 import { GameSession, PlayerStat } from "../components/history/historyTypes";
 import {
@@ -142,8 +142,12 @@ const HistoryScreen = () => {
 
 const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnType<typeof useHistory>) => {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const wideLayout = isWideLayout(width);
+  const { width, fontScale } = useWindowDimensions();
+  const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
+  const availableWidth = Math.min(measuredWidth ?? width, width, 1120);
+  const wideLayout = isWideLayout(availableWidth);
+  const shellWideLayout = isWideLayout(width);
+  const columns = wideLayout && fontScale < 1.5 ? 2 : 1;
   const [viewState, dispatch] = useReducer(
     historyViewReducer,
     initialHistoryViewState,
@@ -162,9 +166,6 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
   const handleSortChange = (field: HistorySortField) => {
     dispatch({ type: "changeSort", field });
   };
-
-  // Remove gesture/animation related state and hooks
-  // const translateX = useSharedValue(0);
 
   /**
    * Switch the active tab.
@@ -211,11 +212,16 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
       let comparison: number;
 
       switch (sortField) {
-        case "date":
+        case "date": {
           // Unknown completion dates stay last in either direction.
-          if (!a.date || !b.date) return Number(!a.date) - Number(!b.date);
-          comparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+          const aDate = Date.parse(a.date);
+          const bDate = Date.parse(b.date);
+          if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) {
+            return Number(!Number.isFinite(aDate)) - Number(!Number.isFinite(bDate)) || a.id.localeCompare(b.id);
+          }
+          comparison = bDate - aDate;
           break;
+        }
         case "players":
           comparison = b.players.length - a.players.length;
           break;
@@ -234,15 +240,21 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
           comparison = 0;
       }
 
-      return sortDirection === "desc" ? comparison : -comparison;
+      return (sortDirection === "desc" ? comparison : -comparison) || a.id.localeCompare(b.id);
     });
   }, [history, sortDirection, sortField]);
 
-  const renderGameItem = useCallback(
-    (listItem: { item: GameSession }) => (
-      <GameHistoryItem game={listItem.item} onDetailsPress={viewGameDetails} />
-    ),
-    [viewGameDetails],
+  const gameRows = useMemo(() => buildHistoryRows(sortedHistory, columns, sortField === "date"), [sortedHistory, columns, sortField]);
+  const renderGameItem = ({ item }: { item: HistoryGameRow }) => (
+    <View style={{ marginBottom: 16 }}>
+      {item.heading && <Text accessibilityRole="header" style={{ color: colors.textPrimary, fontSize: 22, fontWeight: "700", marginBottom: 16 }}>{item.heading}</Text>}
+      <View style={{ flexDirection: "row", gap: 16, alignItems: "stretch" }}>
+        {item.games.map((game) => <View key={game.id} style={{ flex: 1, minWidth: 0 }}>
+          <GameHistoryItem game={game} onDetailsPress={viewGameDetails} />
+        </View>)}
+        {columns === 2 && item.games.length === 1 && <View style={{ flex: 1 }} />}
+      </View>
+    </View>
   );
 
   const cloudStatus = accountId && (loading || error) ? (
@@ -265,8 +277,8 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
       <SafeAreaView style={styles.safeArea}>
         <ShellScreen
           padded={false}
-          centerContent={wideLayout}
-          contentMaxWidth={wideLayout ? 1120 : undefined}
+          centerContent={shellWideLayout}
+          contentMaxWidth={shellWideLayout ? 1120 : undefined}
           contentProps={{ alignSelf: "center" }}
         >
           <HistoryHeader
@@ -296,8 +308,8 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
     <SafeAreaView style={styles.safeArea}>
       <ShellScreen
         padded={false}
-        centerContent={wideLayout}
-        contentMaxWidth={wideLayout ? 1120 : undefined}
+        centerContent={shellWideLayout}
+        contentMaxWidth={shellWideLayout ? 1120 : undefined}
         contentProps={{ alignSelf: "center" }}
       >
         <HistoryHeader
@@ -327,6 +339,8 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
             <TouchableOpacity
               key={tabName}
               testID={`HistoryTab-${tabName}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTabIndex === index }}
               style={[styles.tab, activeTabIndex === index && styles.activeTab]}
               onPress={() => switchTab(index)}
             >
@@ -352,19 +366,22 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
         </View>
 
         {/* Tab Content Area */}
-        <View style={{ flex: 1 }}>
+        <View testID="HistoryContentViewport" style={{ flex: 1, minHeight: 0 }} onLayout={(event) => {
+          const nextWidth = event.nativeEvent.layout.width;
+          if (nextWidth > 0) setMeasuredWidth(nextWidth);
+        }}>
           <View style={{ flex: 1 }}>
             {activeTabIndex === 0 && (
               <View style={styles.tabContent}>
                 <FlatList
-                  data={sortedHistory}
+                  data={gameRows}
                   keyExtractor={(item) => item.id}
                   renderItem={renderGameItem}
                   contentContainerStyle={[
                     styles.listContent,
                     wideLayout && styles.listContentWide,
                   ]}
-                  key={`games-list-${sortField}-${sortDirection}`}
+                  key={`games-list-${columns}-${sortField}-${sortDirection}`}
                 />
               </View>
             )}
@@ -372,9 +389,7 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
             {activeTabIndex === 1 && (
               <View style={styles.tabContent}>
                 {hasPlayers ? (
-                  <ScrollView key="players-scroll">
-                    <PlayerStatsList playerStats={playerStats} history={history} />
-                  </ScrollView>
+                  <PlayerStatsList playerStats={playerStats} history={history} availableWidth={availableWidth} />
                 ) : (
                   <View style={styles.emptyTabContent}>
                     <AppIcon
@@ -392,9 +407,7 @@ const HistoryContent = ({ history, loading, error, refresh, accountId }: ReturnT
 
             {activeTabIndex === 2 && (
               <View style={styles.tabContent}>
-                <ScrollView key="stats-scroll">
-                  <OverallStats history={history} />
-                </ScrollView>
+                <OverallStats history={history} availableWidth={availableWidth} onGamePress={viewGameDetails} />
               </View>
             )}
           </View>

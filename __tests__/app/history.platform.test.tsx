@@ -225,8 +225,9 @@ describe("HistoryScreen responsive layout", () => {
 
   it("clears an open result immediately when the account changes", () => {
     const renderer = renderHistoryScreen();
-    const item = renderer.root.findByType(FlatList).props.renderItem({ item: mockHistoryStore.history[0] });
-    TestRenderer.act(() => item.props.onDetailsPress(mockHistoryStore.history[0]));
+    const list = renderer.root.findByType(FlatList);
+    const row = actCreate(list.props.renderItem({ item: list.props.data[0] }));
+    TestRenderer.act(() => row.root.findByProps({ testID: "GameHistoryItem" }).props.onDetailsPress(mockHistoryStore.history[0]));
     expect(renderer.root.findAllByProps({ testID: "GameDetailsModal" })).toHaveLength(1);
     mockCloudState.accountId = "account-b";
     TestRenderer.act(() => renderer.update(React.createElement(require("../../app/history").default)));
@@ -342,5 +343,32 @@ describe("HistoryScreen responsive layout", () => {
     expect(renderer.root.findAllByType(TouchableOpacity).some(
       (node) => node.props.label === "Refresh history",
     )).toBe(false);
+  });
+
+  it("uses measured content width for columns and preserves order", () => {
+    mockUseWindowDimensions.mockReturnValue({ width: 1400, height: 900, scale: 1, fontScale: 1 });
+    const original = mockHistoryStore.history;
+    mockHistoryStore.history = [...original, { ...original[0], id: "g2" }];
+    try {
+      const renderer = renderHistoryScreen();
+      expect(renderer.root.findByType(FlatList).props.data[0].games.map((game: { id: string }) => game.id)).toEqual(["g1", "g2"]);
+      TestRenderer.act(() => renderer.root.findByProps({ testID: "HistoryContentViewport" }).props.onLayout({ nativeEvent: { layout: { width: 800 } } }));
+      expect(renderer.root.findByType(FlatList).props.data.map((row: { games: unknown[] }) => row.games.length)).toEqual([1, 1]);
+    } finally { mockHistoryStore.history = original; }
+  });
+
+  it.each([
+    { contentWidth: 1023, fontScale: 1, rowSize: 1 },
+    { contentWidth: 1024, fontScale: 1, rowSize: 2 },
+    { contentWidth: 1100, fontScale: 1.6, rowSize: 1 },
+  ])("uses readable game rows at $contentWidth with font scale $fontScale", ({ contentWidth, fontScale, rowSize }) => {
+    mockUseWindowDimensions.mockReturnValue({ width: 1400, height: 900, scale: 1, fontScale });
+    const original = mockHistoryStore.history;
+    mockHistoryStore.history = [...original, { ...original[0], id: "g2" }];
+    try {
+      const renderer = renderHistoryScreen();
+      TestRenderer.act(() => renderer.root.findByProps({ testID: "HistoryContentViewport" }).props.onLayout({ nativeEvent: { layout: { width: contentWidth } } }));
+      expect(renderer.root.findByType(FlatList).props.data[0].games).toHaveLength(rowSize);
+    } finally { mockHistoryStore.history = original; }
   });
 });

@@ -1,242 +1,173 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
+import { FlatList, Pressable, StyleSheet, TextInput, View, useWindowDimensions } from "react-native";
+import { Text } from "tamagui";
+import AppIcon from "../AppIcon";
 import { GameSession, PlayerStat } from "./historyTypes";
-import { createHistoryStyles } from "../../styles/historyStyles";
 import { useColors } from "../../styles/theme";
-import { Ionicons } from "@expo/vector-icons";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import PlayerComparisonModal from "./PlayerComparisonModal";
 
-/**
- * PlayerStatsListProps
- * @description Props for the PlayerStatsList component.
- * @property {PlayerStat[]} playerStats Player statistics to render.
- */
 interface PlayerStatsListProps {
   playerStats: PlayerStat[];
   history: GameSession[];
+  availableWidth?: number;
 }
 
-/**
- * PlayerStatsList component.
- * @description Displays ranked player statistics (top 3 highlighted) including games, total drinks, and averages with a proportional bar.
- * @param {PlayerStatsListProps} props Component props.
- * @returns {React.ReactElement} Player stats list UI.
- */
-const PlayerStatsList: React.FC<PlayerStatsListProps> = ({ playerStats, history }) => {
+export default function PlayerStatsList({ playerStats, history, availableWidth }: PlayerStatsListProps) {
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
-  const [selectedPlayer, setSelectedPlayer] = useState<PlayerStat | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isComparisonModalVisible, setIsComparisonModalVisible] =
-    useState(false);
-  const [selectedPlayers, setSelectedPlayers] = useState<PlayerStat[]>([]);
+  const window = useWindowDimensions();
+  const columns = (availableWidth ?? window.width) >= 1024 && window.fontScale < 1.5 ? 2 : 1;
+  const [search, setSearch] = useState("");
+  const [selectedPlayerKey, setSelectedPlayerKey] = useState<string | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const rankedPlayers = useMemo(() => [...playerStats]
+    .sort((a, b) => b.totalDrinks - a.totalDrinks || a.name.localeCompare(b.name) || a.identityKey.localeCompare(b.identityKey))
+    .map((player, index) => ({ player, rank: index + 1 })), [playerStats]);
+  const query = search.trim().toLocaleLowerCase();
+  const filteredPlayers = rankedPlayers.filter(({ player }) =>
+    [player.name, player.contextLabel ?? ""].some((value) => value.toLocaleLowerCase().includes(query)));
+  const selectedPlayers = selectedKeys.flatMap((key) => {
+    const player = playerStats.find((candidate) => candidate.identityKey === key);
+    return player ? [player] : [];
+  });
+  const selectedPlayer = playerStats.find((player) => player.identityKey === selectedPlayerKey) ?? null;
+  const maxDrinks = rankedPlayers[0]?.player.totalDrinks ?? 0;
 
-  /**
-   * Handle player press.
-   * @description Selects a player and opens the details modal.
-   * @param {PlayerStat} player Selected player.
-   */
-  const handlePlayerPress = (player: PlayerStat) => {
-    setSelectedPlayer(player);
-    setIsModalVisible(true);
-  };
-
-  /**
-   * Handle player selection for comparison.
-   * @description Toggles/adds player to comparison selection, opening modal when two selected.
-   * @param {PlayerStat} player Selected player.
-   */
-  const handlePlayerSelection = (player: PlayerStat) => {
-    if (selectionMode) {
-      if (selectedPlayers.find((p) => p.name === player.name)) {
-        setSelectedPlayers(
-          selectedPlayers.filter((p) => p.name !== player.name)
-        );
-      } else {
-        const newSelectedPlayers = [...selectedPlayers, player];
-        setSelectedPlayers(newSelectedPlayers);
-
-        if (newSelectedPlayers.length === 2) {
-          setIsComparisonModalVisible(true);
-          setSelectionMode(false);
-        }
-      }
-    } else {
-      handlePlayerPress(player);
-    }
-  };
-
-  /** Close player details modal. */
-  const closeModal = () => {
-    setIsModalVisible(false);
-  };
-
-  /**
-   * Render a player statistic item.
-   * @param {{item:PlayerStat,index:number}} param0 Destructured item + index.
-   * @returns {JSX.Element} Player stat card.
-   */
-  const renderPlayerStatItem = ({
-    item,
-    index,
-  }: {
-    item: PlayerStat;
-    index: number;
-  }) => {
-    const maxDrinks = Math.max(...playerStats.map((p) => p.totalDrinks));
-    const widthPercentage =
-      maxDrinks === 0 ? 0 : Math.max((item.totalDrinks / maxDrinks) * 100, 0);
-    const isSelected = selectedPlayers.find((p) => p.name === item.name);
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => handlePlayerSelection(item)}
-        style={[
-          styles.enhancedPlayerCard,
-          index === 0 ? styles.topPlayerCard : null,
-          isSelected ? styles.selectedPlayerCard : null,
-        ]}
-      >
-        {/* Rank badge for top 3 players */}
-        {index < 3 && (
-          <View
-            style={[
-              styles.rankBadge,
-              index === 0
-                ? styles.goldBadge
-                : index === 1
-                ? styles.silverBadge
-                : styles.bronzeBadge,
-            ]}
-          >
-            <Text style={styles.rankText}>{index + 1}</Text>
-          </View>
-        )}
-
-        {/* Player name and games count */}
-        <View style={styles.playerHeader}>
-          <View style={styles.playerNameContainer}>
-            <Ionicons
-              name="person"
-              size={16}
-              color={colors.secondary}
-              style={styles.playerIcon}
-            />
-            <Text style={styles.playerStatName} numberOfLines={1}>
-              {item.name}
-            </Text>
-          </View>
-        </View>
-
-        {/* Drink visualization bar */}
-        <View style={styles.drinkBarSection}>
-          <View style={styles.drinkBarHeader}>
-            <Ionicons name="beer" size={16} color={colors.primary} />
-            <Text style={styles.drinkBarLabel}>Total Drinks</Text>
-          </View>
-          <View style={styles.drinkBarContainer}>
-            <View style={styles.drinkBarBackground} />
-            <View style={[styles.drinkBar, { width: `${widthPercentage}%` }]}>
-              <Text style={styles.drinkBarText}>
-                {item.totalDrinks.toFixed(1)}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  /** Toggle selection mode for comparison. */
-  const toggleSelectionMode = () => {
-    if (playerStats.length < 2) {
-      Alert.alert(
-        "Cannot Compare",
-        "You need at least two players to use the comparison feature."
-      );
+  function selectPlayer(player: PlayerStat) {
+    if (!selectionMode) {
+      setSelectedPlayerKey(player.identityKey);
       return;
     }
-
-    if (selectionMode) {
+    const current = selectedPlayers.map((candidate) => candidate.identityKey);
+    const next = current.includes(player.identityKey)
+      ? current.filter((key) => key !== player.identityKey)
+      : [...current, player.identityKey].slice(0, 2);
+    setSelectedKeys(next);
+    if (next.length === 2) {
+      setComparing(true);
       setSelectionMode(false);
-      setSelectedPlayers([]);
-    } else {
-      setSelectionMode(true);
-      setSelectedPlayers([]);
     }
-  };
-
-  /** Close comparison modal and reset selected players. */
-  const closeComparisonModal = () => {
-    setIsComparisonModalVisible(false);
-    setSelectedPlayers([]);
-  };
+  }
 
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Player Rankings</Text>
-        <View style={styles.sectionHeaderButtons}>
-          <Text style={styles.sectionSubtitle}>Based on total drinks</Text>
-          <TouchableOpacity
-            style={styles.compareButton}
-            onPress={toggleSelectionMode}
-          >
-            <Ionicons
-              name={selectionMode ? "close-circle" : "git-compare"}
-              size={18}
-              color={selectionMode ? colors.error : colors.primary}
-            />
-            <Text
-              style={[
-                styles.compareButtonText,
-                selectionMode && { color: colors.error },
-              ]}
-            >
-              {selectionMode ? "Cancel" : "Compare"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Add selection instructions if in selection mode */}
-      {selectionMode && (
-        <Text style={styles.selectionInstructions}>
-          Select two players to compare ({selectedPlayers.length}/2)
-        </Text>
-      )}
-
+    <View style={styles.container}>
       <FlatList
-        data={playerStats}
-        keyExtractor={(item) => item.name}
-        renderItem={renderPlayerStatItem}
-        scrollEnabled={false}
-        contentContainerStyle={styles.playerListContent}
+        key={columns}
+        data={filteredPlayers}
+        numColumns={columns}
+        keyExtractor={({ player }) => player.identityKey}
+        contentContainerStyle={styles.content}
+        columnWrapperStyle={columns > 1 ? styles.columns : undefined}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <View style={styles.titleRow}>
+              <View style={styles.titleCopy}>
+                <Text accessibilityRole="header" color="$color" fontSize={23} fontWeight="700">Player rankings</Text>
+                <Text color="$textMuted" fontSize={14}>Ranked by total drinks across your history</Text>
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={selectionMode ? "Cancel comparison" : "Compare players"}
+                accessibilityState={{ disabled: playerStats.length < 2 }}
+                disabled={playerStats.length < 2}
+                onPress={() => {
+                  setSelectionMode(!selectionMode);
+                  setSelectedKeys([]);
+                }}
+                style={[styles.compare, { backgroundColor: colors.primaryLight, opacity: playerStats.length < 2 ? 0.5 : 1 }]}
+              >
+                <Text color="$primary" fontWeight="600">{selectionMode ? "Cancel" : "Compare"}</Text>
+              </Pressable>
+            </View>
+            <View style={styles.searchRow}><TextInput
+              accessibilityLabel="Search players"
+              placeholder="Search players"
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
+              style={[styles.search, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]}
+            />
+            {!!search && <Pressable accessibilityRole="button" accessibilityLabel="Clear player search" onPress={() => setSearch("")} style={styles.clearSearch}>
+              <AppIcon name="close-circle" size={24} color={colors.textMuted} />
+            </Pressable>}</View>
+            <Text color="$textMuted" accessibilityLiveRegion="polite">{filteredPlayers.length} of {playerStats.length} player entries</Text>
+            {selectionMode && <Text color="$textMuted" accessibilityLiveRegion="polite">
+              Select two players ({selectedPlayers.length}/2){selectedPlayers.length ? ": " + selectedPlayers.map((player) => player.name).join(", ") : ""}
+            </Text>}
+          </View>
+        }
+        ListEmptyComponent={<Text color="$textMuted" paddingVertical="$5">{query ? "No players match your search." : "Player rankings will appear after your first game."}</Text>}
+        renderItem={({ item: { player, rank } }) => {
+          const selected = selectedKeys.includes(player.identityKey);
+          return (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Rank ${rank}, ${player.name}${player.contextLabel ? ", " + player.contextLabel : ""}, ${player.totalDrinks.toFixed(1)} drinks`}
+              accessibilityState={{ selected }}
+              onPress={() => selectPlayer(player)}
+              style={[styles.card, {
+                maxWidth: columns > 1 ? ((availableWidth ?? window.width) - 48) / 2 : "100%",
+                backgroundColor: colors.surface,
+                borderColor: selected ? colors.primary : colors.border,
+                borderWidth: selected ? 2 : 1,
+              }]}
+            >
+              <View style={styles.titleRow}>
+                <View style={[styles.rank, { backgroundColor: rank <= 3 ? colors.primaryLight : colors.backgroundSubtle }]}>
+                  <Text color={rank <= 3 ? "$primary" : "$textMuted"} fontWeight="700">#{rank}</Text>
+                </View>
+                <View accessible={false} style={[styles.avatar, { backgroundColor: colors.primaryLight }]}>
+                  <Text color="$primary" fontWeight="700" fontSize={18}>{player.name.trim().slice(0, 1).toLocaleUpperCase() || "?"}</Text>
+                </View>
+                <View style={styles.titleCopy}>
+                  <Text color="$color" fontSize={19} fontWeight="700">{player.name}</Text>
+                  {player.contextLabel && <Text color="$textMuted" fontSize={13}>{player.contextLabel}</Text>}
+                </View>
+                <AppIcon name="chevron-forward" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.metrics}>
+                <View><Text color="$color" fontSize={25} fontWeight="700">{player.totalDrinks.toFixed(1)}</Text><Text color="$textMuted">Total drinks</Text></View>
+                <View><Text color="$color" fontSize={20} fontWeight="600">{player.gamesPlayed}</Text><Text color="$textMuted">Games</Text></View>
+                <View><Text color="$color" fontSize={20} fontWeight="600">{player.averagePerGame.toFixed(1)}</Text><Text color="$textMuted">Per game</Text></View>
+              </View>
+              <View accessible={false} style={[styles.barTrack, { backgroundColor: colors.backgroundSubtle }]}>
+                <View style={[styles.bar, { backgroundColor: colors.primary, width: `${maxDrinks ? Math.min(100, Math.max(0, player.totalDrinks / maxDrinks * 100)) : 0}%` }]} />
+              </View>
+            </Pressable>
+          );
+        }}
       />
-
-      {/* Player Details Modal */}
-      <PlayerDetailsModal
-        visible={isModalVisible}
-        onClose={closeModal}
-        player={playerStats.find((player) => player.name === selectedPlayer?.name) ?? null}
+      <PlayerDetailsModal visible={selectedPlayer !== null} onClose={() => setSelectedPlayerKey(null)} player={selectedPlayer} gameHistory={history} />
+      {comparing && selectedPlayers.length === 2 && <PlayerComparisonModal
+        visible
+        onClose={() => { setComparing(false); setSelectedKeys([]); }}
+        player1={selectedPlayers[0]}
+        player2={selectedPlayers[1]}
         gameHistory={history}
-      />
-
-      {/* Player Comparison Modal */}
-      {selectedPlayers.length === 2 && (
-        <PlayerComparisonModal
-          visible={isComparisonModalVisible}
-          onClose={closeComparisonModal}
-          player1={selectedPlayers[0]}
-          player2={selectedPlayers[1]}
-          gameHistory={history}
-        />
-      )}
+      />}
     </View>
   );
-};
+}
 
-export default PlayerStatsList;
+const styles = StyleSheet.create({
+  container: { flex: 1, minHeight: 0 },
+  content: { padding: 16, paddingBottom: 32 },
+  header: { gap: 16, marginBottom: 20 },
+  titleRow: { flexDirection: "row", alignItems: "center", gap: 12, flexWrap: "wrap" },
+  titleCopy: { flex: 1, minWidth: 120, gap: 4 },
+  compare: { borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 44, justifyContent: "center" },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  search: { flex: 1, borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 13, fontSize: 16, minHeight: 48 },
+  clearSearch: { minHeight: 44, minWidth: 44, alignItems: "center", justifyContent: "center" },
+  columns: { gap: 16 },
+  card: { flex: 1, minWidth: 0, borderRadius: 18, padding: 20, marginBottom: 16, gap: 20 },
+  rank: { padding: 10, minWidth: 44, borderRadius: 12, alignItems: "center" },
+  avatar: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  metrics: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 16 },
+  barTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
+  bar: { height: 6, borderRadius: 3 },
+});

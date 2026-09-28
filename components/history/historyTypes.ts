@@ -7,7 +7,11 @@
  * @property {number} averagePerGame Average drinks per game (totalDrinks / gamesPlayed).
  */
 export interface PlayerStat {
+  /** Stable identity used for selection and matching history records. */
+  identityKey: string;
   name: string;
+  /** Distinguishes same-named guests or local participants when needed. */
+  contextLabel: string | null;
   totalDrinks: number;
   gamesPlayed: number;
   averagePerGame: number;
@@ -24,6 +28,10 @@ export interface Player {
   id: string;
   name: string;
   drinksTaken?: number;
+  /** Authenticated account identity for a registered cloud participant. */
+  accountId?: string | null;
+  /** Cloud membership type; local history may omit it. */
+  membershipType?: "registered" | "guest";
   /** Server departure time for a participant who left before completion. */
   leftAt?: string | null;
 }
