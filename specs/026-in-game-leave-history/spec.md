@@ -1,8 +1,8 @@
 # Feature Specification: In-Game Leave and Preserved History
 
-**Feature Branch**: `codex/165-in-game-leave-history`  
-**Created**: 2026-09-28  
-**Status**: Implemented locally; manual multiplayer acceptance pending  
+**Feature Branch**: `codex/165-in-game-leave-history`
+**Created**: 2026-09-28
+**Status**: Implemented locally; manual multiplayer acceptance pending
 **Input**: [Issue #165](https://github.com/NikolajKrogh/dong/issues/165), its live requirements, and the goal objective.
 
 ## Clarifications

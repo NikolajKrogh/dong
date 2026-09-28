@@ -1,7 +1,7 @@
 # Specification Quality Checklist: In-Game Leave and Preserved History
 
-**Purpose**: Validate specification completeness before planning  
-**Created**: 2026-09-28  
+**Purpose**: Validate specification completeness before planning
+**Created**: 2026-09-28
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality

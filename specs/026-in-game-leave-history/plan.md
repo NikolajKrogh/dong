@@ -10,14 +10,14 @@ Preserve and freeze early leavers in the canonical session, capture an immutable
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.9 / Expo 57; PostgreSQL 17 / PL/pgSQL  
-**Primary Dependencies**: Existing Expo Router, Tamagui, Supabase client, and guest ingress  
-**Storage**: Supabase participant/event/history rows; device-local guest history  
-**Testing**: Focused pgTAP and Jest, TypeScript, lint, manual web and Android; no E2E tests  
-**Target Platform**: Web and Android, with shared React Native behavior  
-**Project Type**: Expo client and Supabase database  
-**Performance Goals**: One transaction for departure; result visible after the next history refresh  
-**Constraints**: No hosted database changes, no E2E tests, immutable event history, guest ingress authorization  
+**Language/Version**: TypeScript 5.9 / Expo 57; PostgreSQL 17 / PL/pgSQL
+**Primary Dependencies**: Existing Expo Router, Tamagui, Supabase client, and guest ingress
+**Storage**: Supabase participant/event/history rows; device-local guest history
+**Testing**: Focused pgTAP and Jest, TypeScript, lint, manual web and Android; no E2E tests
+**Target Platform**: Web and Android, with shared React Native behavior
+**Project Type**: Expo client and Supabase database
+**Performance Goals**: One transaction for departure; result visible after the next history refresh
+**Constraints**: No hosted database changes, no E2E tests, immutable event history, guest ingress authorization
 **Scale/Scope**: Small multiplayer rooms; existing member, guest, and host roles
 
 ## Constitution Check

@@ -1,6 +1,6 @@
 # Tasks: In-Game Leave and Preserved History
 
-**Input**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/in-game-leave.md`  
+**Input**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/in-game-leave.md`
 **Tests**: Focused pgTAP and Jest are required. No E2E tests or suites are authored or run.
 
 ## Phase 1: Setup

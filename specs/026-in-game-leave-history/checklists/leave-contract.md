@@ -1,6 +1,6 @@
 # Leave Contract Requirements Checklist
 
-**Purpose**: Check the precision of the leave and history requirements, not code behavior.  
+**Purpose**: Check the precision of the leave and history requirements, not code behavior.
 **Feature**: [spec.md](../spec.md)
 
 ## Departure and retry
