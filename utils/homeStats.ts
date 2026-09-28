@@ -1,51 +1,43 @@
-export interface HomeStatsPlayer {
-  name: string;
-  drinksTaken?: number;
-}
+import type { GameSession, Player } from "../components/history/historyTypes";
+import {
+  calculateLifetimePlayerStats,
+  type PlayerStatsSession,
+} from "../components/history/historyUtils";
 
-export interface HomeStatsGameSession {
-  players: HomeStatsPlayer[];
-}
+export type HomeStatsPlayer = Player;
+
+export type HomeStatsGameSession = PlayerStatsSession;
 
 export interface TopDrinkerInfo {
+  identityKey: string;
+  contextLabel: string | null;
   name: string;
   drinks: number;
 }
 
-export const getTotalDrinks = (gameHistory: HomeStatsGameSession[]) => {
-  return gameHistory.reduce(
+export const getTotalDrinks = (
+  gameHistory: readonly Pick<GameSession, "players">[],
+): number =>
+  gameHistory.reduce(
     (sum, game) =>
       sum +
       game.players.reduce(
-        (gameSum: number, player: HomeStatsPlayer) =>
-          gameSum + (player.drinksTaken || 0),
+        (gameSum, player) => gameSum + (player.drinksTaken ?? 0),
         0,
       ),
     0,
   );
-};
 
 export const getTopDrinker = (
-  gameHistory: HomeStatsGameSession[],
+  gameHistory: readonly HomeStatsGameSession[],
 ): TopDrinkerInfo | null => {
-  const playerDrinks = new Map<string, number>();
+  const topPlayer = calculateLifetimePlayerStats(gameHistory)[0];
+  if (!topPlayer || topPlayer.totalDrinks <= 0) return null;
 
-  gameHistory.forEach((game) => {
-    game.players.forEach((player) => {
-      const current = playerDrinks.get(player.name) || 0;
-      playerDrinks.set(player.name, current + (player.drinksTaken || 0));
-    });
-  });
-
-  let topPlayer = "";
-  let maxDrinks = 0;
-
-  playerDrinks.forEach((drinks, name) => {
-    if (drinks > maxDrinks) {
-      maxDrinks = drinks;
-      topPlayer = name;
-    }
-  });
-
-  return topPlayer ? { name: topPlayer, drinks: maxDrinks } : null;
+  return {
+    identityKey: topPlayer.identityKey,
+    contextLabel: topPlayer.contextLabel,
+    name: topPlayer.name,
+    drinks: topPlayer.totalDrinks,
+  };
 };

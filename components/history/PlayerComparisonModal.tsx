@@ -1,20 +1,11 @@
-import React, { useMemo } from "react";
-import {
-  View,
-  Text,
-  Modal,
-  ScrollView,
-  TouchableOpacity,
-  useWindowDimensions,
-} from "react-native";
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
-import { createHistoryStyles } from "../../styles/historyStyles";
 import { useColors } from "../../styles/theme";
 import { getPlayerHeadToHeadStats } from "./historyUtils";
 import TooltipModal from "./TooltipModal";
-
-type IoniconName = keyof typeof Ionicons.glyphMap;
+import HistoryModalFrame from "./HistoryModalFrame";
 
 interface PlayerComparisonModalProps {
   visible: boolean;
@@ -24,21 +15,18 @@ interface PlayerComparisonModalProps {
   gameHistory: GameSession[];
 }
 
-interface ComparisonStatItemProps {
-  label: string;
-  value1: string | number;
-  value2: string | number;
-  icon: IoniconName;
-  tooltip?: string;
-}
+const countLabel = (count: number, noun: string) =>
+  `${count} ${noun}${count === 1 ? "" : "s"}`;
 
-/**
- * Player comparison modal.
- * @description Renders head‑to‑head stats, aggregate drinking performance and influence metrics
- * between two selected players. Hidden (returns null) if either player is missing.
- * @param {PlayerComparisonModalProps} props Component props (visibility, close handler, players, history).
- * @returns {React.ReactElement | null} Modal element or null.
- */
+const initials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("") || "?";
+
 const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
   visible,
   onClose,
@@ -47,373 +35,338 @@ const PlayerComparisonModal: React.FC<PlayerComparisonModalProps> = ({
   gameHistory,
 }) => {
   const colors = useColors();
-  const { width } = useWindowDimensions();
-  const isWideLayout = width >= 1024;
-  const styles = useMemo(
-    () => createHistoryStyles(colors, { screenWidth: width, isWideLayout }),
-    [colors, isWideLayout, width],
-  );
   if (!player1 || !player2) return null;
-
-  const stats = getPlayerHeadToHeadStats(
-    gameHistory,
-    player1.name,
-    player2.name
-  );
-
+  const stats = getPlayerHeadToHeadStats(gameHistory, player1, player2);
+  const players = [player1, player2];
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
+    <HistoryModalFrame
       visible={visible}
-      onRequestClose={onClose}
+      onClose={onClose}
+      title="Player Comparison"
+      closeLabel="Close player comparison"
+      testID="PlayerComparisonModal"
     >
-      <View style={styles.modalCenteredView}>
-        <View style={[styles.modalView, isWideLayout && styles.modalViewWide]}>
-          {/* Modal Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Player Comparison</Text>
-            <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
-              <Ionicons name="close" size={28} color={colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Modal Content */}
-          <ScrollView
-            style={styles.modalScrollView}
-            contentContainerStyle={[
-              styles.listContent,
-              isWideLayout && styles.listContentWide,
-            ]}
-          >
-            {/* Header with player names */}
-            <View style={styles.comparisonHeader}>
-              <View style={styles.comparisonHeaderItem}>
-                <Ionicons
-                  name="person-circle"
-                  size={40}
-                  color={colors.primary}
-                />
-                <Text style={styles.comparisonPlayerName}>{player1.name}</Text>
-              </View>
-
-              <View style={styles.comparisonVs}>
-                <Text style={styles.comparisonVsText}>VS</Text>
-              </View>
-
-              <View style={styles.comparisonHeaderItem}>
-                <Ionicons
-                  name="person-circle"
-                  size={40}
-                  color={colors.secondary}
-                />
-                <Text style={styles.comparisonPlayerName}>{player2.name}</Text>
-              </View>
-            </View>
-
-            {/* Basic Stats Comparison */}
-            <View style={styles.comparisonSection}>
-              <Text style={styles.comparisonSectionTitle}>Basic Stats</Text>
-              <View style={styles.comparisonStats}>
-                {/* Games Played Comparison */}
-                <ComparisonStatItem
-                  label="Games Played"
-                  value1={stats.player1.gamesPlayed}
-                  value2={stats.player2.gamesPlayed}
-                  icon="game-controller"
-                />
-
-                {/* Total Drinks Comparison */}
-                <ComparisonStatItem
-                  label="Total Drinks"
-                  value1={stats.player1.totalDrinks.toFixed(1)}
-                  value2={stats.player2.totalDrinks.toFixed(1)}
-                  icon="beer"
-                />
-
-                {/* Average Per Game Comparison */}
-                <ComparisonStatItem
-                  label="Avg. Drinks/Game"
-                  value1={stats.player1.averagePerGame.toFixed(1)}
-                  value2={stats.player2.averagePerGame.toFixed(1)}
-                  icon="stats-chart"
-                />
-              </View>
-            </View>
-
-            {/* Head-to-Head Record */}
-            <View style={styles.comparisonSection}>
-              <Text style={styles.comparisonSectionTitle}>
-                Head-to-Head Record
-              </Text>
-              <View style={styles.headToHeadRecord}>
-                <View style={styles.recordItem}>
-                  <Text style={styles.recordValue}>
-                    {stats.gamesPlayedTogether}
-                  </Text>
-                  <Text style={styles.recordLabel}>Games Together</Text>
-                </View>
-
-                <View style={styles.recordItem}>
-                  <Text style={[styles.recordValue, { color: colors.primary }]}>
-                    {stats.player1WinsCount}
-                  </Text>
-                  <Text style={styles.recordLabel}>Wins</Text>
-                </View>
-
-                <View style={styles.recordItem}>
-                  <Text style={styles.recordValue}>{stats.tiedGamesCount}</Text>
-                  <Text style={styles.recordLabel}>Ties</Text>
-                </View>
-
-                <View style={styles.recordItem}>
-                  <Text
-                    style={[styles.recordValue, { color: colors.secondary }]}
-                  >
-                    {stats.player2WinsCount}
-                  </Text>
-                  <Text style={styles.recordLabel}>Wins</Text>
-                </View>
-              </View>
-            </View>
-
-            {/* Drinking Performance */}
-            <View style={styles.comparisonSection}>
-              <Text style={styles.comparisonSectionTitle}>
-                Drinking Performance
-              </Text>
-              <View style={styles.performanceStats}>
-                <ComparisonStatItem
-                  label="Max in a Game"
-                  value1={stats.player1MaxInAGame.toFixed(1)}
-                  value2={stats.player2MaxInAGame.toFixed(1)}
-                  icon="flame"
-                  tooltip="Max in a Game"
-                />
-
-                <ComparisonStatItem
-                  label="Per-Match Average"
-                  value1={stats.player1Efficiency.toFixed(2)}
-                  value2={stats.player2Efficiency.toFixed(2)}
-                  icon="speedometer"
-                  tooltip="Per-Match Average"
-                />
-
-                <ComparisonStatItem
-                  label="Top Drinker"
-                  value1={`${stats.player1TopDrinkerCount}x`}
-                  value2={`${stats.player2TopDrinkerCount}x`}
-                  icon="trophy"
-                  tooltip="Top Drinker"
-                />
-              </View>
-            </View>
-
-            <View style={styles.comparisonSection}>
-              <Text style={styles.comparisonSectionTitle}>
-                Drinking Influence
-              </Text>
-              <View style={styles.influenceStats}>
-                <View style={styles.influenceItem}>
-                  <Text style={styles.influenceLabel}>
-                    <Text style={{ fontWeight: "bold" }}>{player1.name}</Text>{" "}
-                    drinks{" "}
-                    <Text
-                      style={{
-                        fontWeight: "bold",
-                        color: getInfluenceColor(
-                          colors,
-                          stats.player1AvgWithPlayer2,
-                          stats.player1AvgWithoutPlayer2
-                        ),
-                      }}
+      {({ contentWidth, fontScale, isDesktop }) => {
+        const showBars = contentWidth >= 360 && fontScale < 1.5;
+        const sectionStyle = [
+          styles.section,
+          {
+            backgroundColor: colors.backgroundLight,
+            borderColor: colors.border,
+          },
+        ];
+        const titleStyle = [styles.sectionTitle, { color: colors.textPrimary }];
+        return (
+          <View style={styles.content}>
+            <View style={styles.identityRow}>
+              {players.map((player, index) => (
+                <React.Fragment key={player.identityKey}>
+                  {index === 1 && (
+                    <Text style={{ color: colors.textMuted }}>vs</Text>
+                  )}
+                  <View style={styles.identity}>
+                    <View
+                      accessible
+                      accessibilityRole="image"
+                      accessibilityLabel={`${player.name} avatar`}
+                      style={[
+                        styles.avatar,
+                        {
+                          backgroundColor:
+                            index === 0 ? colors.primary : colors.secondary,
+                        },
+                      ]}
                     >
-                      {getInfluenceText(
-                        stats.player1AvgWithPlayer2,
-                        stats.player1AvgWithoutPlayer2
-                      )}
-                    </Text>{" "}
-                    when playing with {player2.name}
-                  </Text>
-                  <View style={styles.influenceValues}>
-                    <Text style={styles.influenceValue}>
-                      With:{" "}
-                      <Text style={{ fontWeight: "bold" }}>
-                        {stats.player1AvgWithPlayer2.toFixed(1)}
+                      <Text style={styles.initials}>
+                        {initials(player.name)}
                       </Text>
+                    </View>
+                    <Text
+                      style={[styles.playerName, { color: colors.textPrimary }]}
+                    >
+                      {player.name}
                     </Text>
-                    <Text style={styles.influenceValue}>
-                      Without:{" "}
-                      <Text style={{ fontWeight: "bold" }}>
-                        {stats.player1AvgWithoutPlayer2.toFixed(1)}
+                    {player.contextLabel && (
+                      <Text
+                        style={[styles.context, { color: colors.textMuted }]}
+                      >
+                        {player.contextLabel}
                       </Text>
-                    </Text>
+                    )}
                   </View>
-                </View>
-
-                <View style={styles.influenceItem}>
-                  <Text style={styles.influenceLabel}>
-                    {player2.name} drinks{" "}
-                    {getInfluenceText(
-                      stats.player2AvgWithPlayer1,
-                      stats.player2AvgWithoutPlayer1
-                    )}{" "}
-                    when playing with {player1.name}
-                  </Text>
-                  <View style={styles.influenceValues}>
-                    <Text style={styles.influenceValue}>
-                      With: {stats.player2AvgWithPlayer1.toFixed(1)}
-                    </Text>
-                    <Text style={styles.influenceValue}>
-                      Without: {stats.player2AvgWithoutPlayer1.toFixed(1)}
-                    </Text>
-                  </View>
-                </View>
+                </React.Fragment>
+              ))}
+            </View>
+            <View style={sectionStyle}>
+              <Text style={titleStyle}>Basic statistics</Text>
+              <ComparisonRow
+                label="Games played"
+                values={[stats.player1.gamesPlayed, stats.player2.gamesPlayed]}
+                showBars={showBars}
+              />
+              <ComparisonRow
+                label="Total drinks"
+                values={[stats.player1.totalDrinks, stats.player2.totalDrinks]}
+                decimals={1}
+                showBars={showBars}
+              />
+              <ComparisonRow
+                label="Average drinks per game"
+                values={[
+                  stats.player1.averagePerGame,
+                  stats.player2.averagePerGame,
+                ]}
+                decimals={1}
+                showBars={showBars}
+                tooltip="Total drinks divided by the number of games that player participated in."
+              />
+            </View>
+            <View
+              style={[
+                ...sectionStyle,
+                { backgroundColor: colors.primaryLight },
+              ]}
+            >
+              <Text style={titleStyle}>Shared games</Text>
+              <Text
+                style={[styles.sharedSummary, { color: colors.textSecondary }]}
+              >
+                {stats.gamesPlayedTogether
+                  ? `${countLabel(stats.gamesPlayedTogether, "game")} together · ${countLabel(stats.tiedGamesCount, "tie")}`
+                  : "No games together"}
+              </Text>
+              <ComparisonRow
+                label="Higher drink total"
+                values={[stats.player1WinsCount, stats.player2WinsCount]}
+                showBars={showBars}
+                tooltip="Number of shared games where this player's drink total was higher than the other player's. Equal totals count as ties."
+              />
+            </View>
+            <View style={sectionStyle}>
+              <Text style={titleStyle}>More statistics</Text>
+              <ComparisonRow
+                label="Most drinks in one game"
+                values={[stats.player1MaxInAGame, stats.player2MaxInAGame]}
+                decimals={1}
+                showBars={showBars}
+                tooltip="The highest drink total in any single game that player participated in, including games without the other player."
+              />
+              <ComparisonRow
+                label="Drinks per match"
+                values={[stats.player1Efficiency, stats.player2Efficiency]}
+                decimals={2}
+                showBars={showBars}
+                tooltip="Total drinks divided by all stored matches in games that player participated in, including matches not assigned to them. When there are no stored matches, this value is zero."
+              />
+              <ComparisonRow
+                label="Times top drinker"
+                values={[
+                  stats.player1TopDrinkerCount,
+                  stats.player2TopDrinkerCount,
+                ]}
+                showBars={showBars}
+                tooltip="Number of games where the player's drink total was the highest among all participants. Tied highest totals count for every tied player."
+              />
+            </View>
+            <View style={sectionStyle}>
+              <Text style={titleStyle}>With and without this player</Text>
+              <Text
+                style={[
+                  styles.context,
+                  { color: colors.textMuted, textAlign: "left" },
+                ]}
+              >
+                Average drinks per game, grouped by whether the other player
+                participated.
+              </Text>
+              <View
+                style={[
+                  styles.averageCards,
+                  { flexDirection: isDesktop ? "row" : "column" },
+                ]}
+              >
+                {players.map((player, index) => {
+                  const gamesPlayed =
+                    index === 0
+                      ? stats.player1.gamesPlayed
+                      : stats.player2.gamesPlayed;
+                  const withAverage =
+                    index === 0
+                      ? stats.player1AvgWithPlayer2
+                      : stats.player2AvgWithPlayer1;
+                  const withoutAverage =
+                    index === 0
+                      ? stats.player1AvgWithoutPlayer2
+                      : stats.player2AvgWithoutPlayer1;
+                  const withoutCount = gamesPlayed - stats.gamesPlayedTogether;
+                  return (
+                    <View
+                      key={player.identityKey}
+                      testID={`comparison-averages-${index}`}
+                      style={[
+                        styles.averageCard,
+                        { backgroundColor: colors.surface },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.playerName,
+                          { textAlign: "left", color: colors.textPrimary },
+                        ]}
+                      >
+                        {player.name}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.context,
+                          { textAlign: "left", color: colors.textMuted },
+                        ]}
+                      >
+                        With / without {players[1 - index].name}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary }}>
+                        With:{" "}
+                        {stats.gamesPlayedTogether
+                          ? `${withAverage.toFixed(1)} · ${countLabel(stats.gamesPlayedTogether, "game")}`
+                          : "No games together"}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary }}>
+                        Without:{" "}
+                        {withoutCount
+                          ? `${withoutAverage.toFixed(1)} · ${countLabel(withoutCount, "game")}`
+                          : "No other games"}
+                      </Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
+          </View>
+        );
+      }}
+    </HistoryModalFrame>
   );
 };
 
-/**
- * Comparison stat row.
- * @description Shows a single labelled metric for both players with optional tooltip info.
- * @param {ComparisonStatItemProps} props Row props.
- * @returns {React.ReactElement} Stat row element.
- */
-const ComparisonStatItem: React.FC<ComparisonStatItemProps> = ({
+function ComparisonRow({
   label,
-  value1,
-  value2,
-  icon,
+  values,
+  decimals = 0,
+  showBars,
   tooltip,
-}) => {
+}: {
+  label: string;
+  values: [number, number];
+  decimals?: number;
+  showBars: boolean;
+  tooltip?: string;
+}) {
   const colors = useColors();
-  const styles = useMemo(() => createHistoryStyles(colors), [colors]);
-  const [tooltipVisible, setTooltipVisible] = React.useState(false);
-
-  /**
-   * Derive tooltip copy from label.
-   * @description Maps known labels to richer explanations; falls back to provided tooltip text.
-   * @returns {{title: string; description: string}} Tooltip descriptor.
-   */
-  const getTooltipDetails = () => {
-    switch (label) {
-      case "Per-Match Average":
-        return {
-          title: "Per-Match Average",
-          description:
-            "This metric measures how many drinks each player consumes per match watched (not per game session). A higher value means the player drinks more per individual match they watch.",
-        };
-      case "Max in a Game":
-        return {
-          title: "Maximum Drinks in a Game",
-          description:
-            "This shows the highest number of drinks each player has consumed in a single game session. It highlights each player's peak drinking performance.",
-        };
-      case "Top Drinker":
-        return {
-          title: "Top Drinker Frequency",
-          description:
-            "This counts how many times each player ranked as the top drinker in a game session. It shows who tends to outdrink everyone else most often.",
-        };
-      default:
-        return {
-          title: label,
-          description: tooltip || "No additional information available.",
-        };
-    }
-  };
-
-  const tooltipInfo = getTooltipDetails();
-
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const maximum = Math.max(...values);
+  const renderValue = (index: 0 | 1) => (
+    <View style={styles.valueColumn}>
+      <Text
+        testID={`${label}-value-${index}`}
+        style={[
+          styles.value,
+          { color: index === 0 ? colors.primary : colors.textSecondary },
+        ]}
+      >
+        {values[index].toFixed(decimals)}
+      </Text>
+      {showBars && (
+        <View
+          accessible={false}
+          importantForAccessibility="no-hide-descendants"
+          style={[styles.track, { backgroundColor: colors.border }]}
+        >
+          <View
+            testID={`${label}-bar-${index}`}
+            style={{
+              height: 4,
+              borderRadius: 2,
+              width: `${maximum > 0 ? (values[index] / maximum) * 100 : 0}%`,
+              backgroundColor: index === 0 ? colors.primary : colors.secondary,
+            }}
+          />
+        </View>
+      )}
+    </View>
+  );
   return (
-    <View style={styles.comparisonStatItem}>
-      <View style={styles.comparisonStatHeader}>
-        <Ionicons name={icon} size={16} color={colors.textSecondary} />
-        <Text style={styles.comparisonStatLabel}>{label}</Text>
+    <View style={[styles.metricRow, { borderColor: colors.border }]}>
+      {renderValue(0)}
+      <View style={styles.metricLabel}>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>
+          {label}
+        </Text>
         {tooltip && (
           <TouchableOpacity
-            style={styles.tooltipIcon}
+            accessibilityRole="button"
+            accessibilityLabel={`About ${label.toLowerCase()}`}
             onPress={() => setTooltipVisible(true)}
+            style={styles.infoButton}
           >
             <Ionicons
               name="information-circle-outline"
-              size={14}
+              size={18}
               color={colors.textMuted}
             />
           </TouchableOpacity>
         )}
       </View>
-      <View style={styles.comparisonValues}>
-        <Text style={[styles.comparisonValue, { color: colors.primary }]}>
-          {value1}
-        </Text>
-        <Text style={styles.comparisonDivider}>vs</Text>
-        <Text style={[styles.comparisonValue, { color: colors.secondary }]}>
-          {value2}
-        </Text>
-      </View>
-
-      <TooltipModal
-        visible={tooltipVisible}
-        onClose={() => setTooltipVisible(false)}
-        title={tooltipInfo.title}
-        description={tooltipInfo.description}
-      />
+      {renderValue(1)}
+      {tooltip && (
+        <TooltipModal
+          visible={tooltipVisible}
+          onClose={() => setTooltipVisible(false)}
+          title={label}
+          description={tooltip}
+        />
+      )}
     </View>
   );
-};
+}
 
-/**
- * Build influence delta text.
- * @description Returns qualitative phrase describing % change in drinks with vs without the other player.
- * @param {number} withAvg Average drinks when paired.
- * @param {number} withoutAvg Average drinks when not paired.
- * @returns {string} Human readable influence description.
- */
-const getInfluenceText = (withAvg: number, withoutAvg: number): string => {
-  if (withoutAvg === 0) {
-    return withAvg === 0 ? "the same amount" : "exclusively";
-  }
-
-  const percentChange = ((withAvg - withoutAvg) / withoutAvg) * 100;
-  const absChange = Math.abs(percentChange).toFixed(0);
-
-  if (percentChange > 50) return `dramatically more (+${absChange}%)`;
-  if (percentChange > 25) return `considerably more (+${absChange}%)`;
-  if (percentChange > 10) return `notably more (+${absChange}%)`;
-  if (percentChange > 5) return `slightly more (+${absChange}%)`;
-  if (percentChange < -50) return `dramatically less (-${absChange}%)`;
-  if (percentChange < -25) return `considerably less (-${absChange}%)`;
-  if (percentChange < -10) return `notably less (-${absChange}%)`;
-  if (percentChange < -5) return `slightly less (-${absChange}%)`;
-  return "about the same amount";
-};
-
-/**
- * Influence color helper.
- * @description Chooses semantic color based on percentage change thresholds.
- * @param {ReturnType<typeof useColors>} colors Theme colors.
- * @param {number} withAvg Average with partner.
- * @param {number} withoutAvg Average without partner.
- * @returns {string} Hex/color token.
- */
-const getInfluenceColor = (
-  colors: ReturnType<typeof useColors>,
-  withAvg: number,
-  withoutAvg: number
-): string => {
-  if (withoutAvg === 0) return colors.textPrimary;
-
-  const percentChange = ((withAvg - withoutAvg) / withoutAvg) * 100;
-
-  if (percentChange > 10) return colors.primary;
-  if (percentChange < -10) return colors.error;
-  return colors.textPrimary;
-};
+const styles = StyleSheet.create({
+  content: { gap: 18 },
+  identityRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  identity: { flex: 1, minWidth: 0, alignItems: "center", gap: 6 },
+  avatar: {
+    minWidth: 44,
+    minHeight: 44,
+    padding: 8,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  initials: { color: "#ffffff", fontWeight: "700", fontSize: 16 },
+  playerName: { fontSize: 16, fontWeight: "700", textAlign: "center" },
+  context: { fontSize: 12, lineHeight: 18, textAlign: "center" },
+  section: { borderWidth: 1, borderRadius: 16, padding: 14 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 10 },
+  metricRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    gap: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  valueColumn: { flex: 1, minWidth: 0, gap: 8 },
+  value: { fontSize: 20, fontWeight: "700", textAlign: "center" },
+  metricLabel: { flex: 1.4, minWidth: 0, alignItems: "center" },
+  label: { fontSize: 13, textAlign: "center" },
+  infoButton: {
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  track: { height: 4, borderRadius: 2, overflow: "hidden" },
+  sharedSummary: { fontSize: 14, marginBottom: 8 },
+  averageCards: { gap: 12, marginTop: 12 },
+  averageCard: { flex: 1, minWidth: 0, padding: 12, borderRadius: 12, gap: 8 },
+});
 
 export default PlayerComparisonModal;

@@ -48,10 +48,17 @@ const readArray = (value: unknown): unknown[] =>
 
 const mapPlayer = (value: unknown): Player => {
   const player = isRecord(value) ? value : {};
+  const membershipType =
+    player.membershipType === "registered" || player.membershipType === "guest"
+      ? player.membershipType
+      : undefined;
   return {
     id: readString(player.id),
     name: readString(player.name),
     drinksTaken: readNumber(player.drinksTaken),
+    accountId:
+      typeof player.accountId === "string" ? player.accountId : null,
+    membershipType,
     leftAt: typeof player.leftAt === "string" ? player.leftAt : null,
   };
 };

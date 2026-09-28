@@ -121,9 +121,8 @@ export function createHistoryStyles(
       elevation: 2,
     },
     tabsContainerWide: {
-      width: "100%",
       maxWidth: 1120,
-      alignSelf: "center",
+      alignSelf: "stretch",
     },
     tabContentWrapper: {
       flex: 1,
@@ -170,6 +169,7 @@ export function createHistoryStyles(
     // --- Tabs ---
     tab: {
       flex: 1,
+      minHeight: 48,
       paddingVertical: 10,
       alignItems: "center",
       justifyContent: "center",
@@ -726,7 +726,7 @@ export function createHistoryStyles(
       paddingVertical: 12,
     } as ViewStyle,
     modalCloseButton: {
-      padding: 4, // Hit area for close button
+      padding: 12,
     },
     modalScrollView: {
       // No specific style needed unless padding is different

@@ -1,5 +1,4 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -43,6 +42,7 @@ jest.mock("../../../styles/historyStyles", () => ({
 }));
 
 jest.mock("../../../components/history/historyUtils", () => ({
+  ...jest.requireActual("../../../components/history/historyUtils"),
   formatModalDate: () => "Apr 24, 2026",
 }));
 
@@ -51,7 +51,8 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 
 const mockPlayer = {
-  playerId: "p1",
+  identityKey: JSON.stringify(["session", "g1", "participant", "p1"]),
+  contextLabel: "Guest · Apr 24, 2026 · Game 1",
   name: "Alice",
   totalDrinks: 6,
   gamesPlayed: 2,
@@ -64,6 +65,9 @@ const mockGameHistory = [
     date: "2026-04-24T19:00:00.000Z",
     players: [{ id: "p1", name: "Alice", drinksTaken: 3 }],
     matches: [],
+    commonMatchId: null,
+    playerAssignments: {},
+    matchesPerPlayer: 0,
   },
 ];
 
@@ -114,10 +118,19 @@ describe("PlayerDetailsModal responsive layout", () => {
       }),
     );
 
-    const modalView = renderer.root.findAllByType("View")[1];
-    const scrollView = renderer.root.findByType("ScrollView");
+    const modalView = renderer.root.findAllByType("View" as React.ElementType)[1];
+    const scrollView = renderer.root.findByType("ScrollView" as React.ElementType);
+    const avatar = renderer.root.findByProps({ accessibilityLabel: "Alice avatar" });
+    const closeButton = renderer.root.findByProps({
+      accessibilityLabel: "Close player details",
+    });
 
     expect(modalView.props.style).toEqual([{}, { testStyle: "modalViewWide" }]);
+    expect(avatar.props.accessibilityRole).toBe("image");
+    expect(closeButton.props.accessibilityRole).toBe("button");
+    expect(
+      renderer.root.findByProps({ children: mockPlayer.contextLabel }).props.children,
+    ).toBe(mockPlayer.contextLabel);
     expect(scrollView.props.contentContainerStyle).toEqual([
       {},
       { testStyle: "listContentWide" },
