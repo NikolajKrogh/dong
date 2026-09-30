@@ -7,6 +7,7 @@ import { LeagueEndpoint } from "../../constants/leagues";
 import { ShellCard, ShellSection } from "../ui";
 
 interface LeagueSettingsProps {
+  showSectionTitle?: boolean;
   configuredLeagues: LeagueEndpoint[];
   onManageLeaguesPress: () => void;
   onAddLeaguesPress: () => void;
@@ -70,6 +71,7 @@ const SettingsRow: React.FC<{
 };
 
 const LeagueSettings: React.FC<LeagueSettingsProps> = ({
+  showSectionTitle = true,
   configuredLeagues,
   onManageLeaguesPress,
   onAddLeaguesPress,
@@ -79,7 +81,7 @@ const LeagueSettings: React.FC<LeagueSettingsProps> = ({
   const configuredLeagueCount = configuredLeagues.length;
 
   return (
-    <ShellSection title="League Configuration" marginBottom="$3">
+    <ShellSection title={showSectionTitle ? "League Configuration" : undefined} marginBottom="$3">
       <ShellCard compact>
         <SettingsRow
           label="Remove Leagues"

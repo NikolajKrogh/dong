@@ -1,14 +1,12 @@
-import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
-import { Text, XStack, YStack } from "tamagui";
+import { Text, YStack } from "tamagui";
 
 import { useColors } from "../../styles/theme";
 import { useAccountAuth } from "../../hooks/useAccountAuth";
 import { ShellActionButton, ShellCard } from "../ui";
 
 const ChangePasswordForm = () => {
-  const router = useRouter();
   const colors = useColors();
   const { changePassword } = useAccountAuth();
 
@@ -62,9 +60,6 @@ const ChangePasswordForm = () => {
     <ShellCard elevated>
       <YStack gap="$4">
         <YStack gap="$2">
-          <Text fontSize={22} fontWeight="700" color="$textPrimary">
-            Change password
-          </Text>
           <Text fontSize={15} color="$textSecondary">
             Choose a new password for your account.
           </Text>
@@ -120,21 +115,6 @@ const ChangePasswordForm = () => {
           onPress={() => void handleSubmit()}
         />
 
-        <XStack justifyContent="center">
-          <Text
-            fontSize={14}
-            color="$primary"
-            fontWeight="600"
-            pressStyle={{ opacity: 0.7 }}
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              }
-            }}
-          >
-            ← Back to settings
-          </Text>
-        </XStack>
       </YStack>
     </ShellCard>
   );

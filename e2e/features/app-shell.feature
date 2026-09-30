@@ -43,12 +43,14 @@ Feature: Application Shell Launch
     When the user navigates back to home
     Then the shell background should be visible
 
-  Scenario: Preferences screen shows all settings sections
+  Scenario: Preferences screen shows the Settings menu
     Given the user navigates to preferences
-    Then the "Appearance" section should be visible
-    And the "Sound & Notifications" section should be visible
-    And the "League Configuration" section should be visible
-    And the "View Onboarding" action should be visible
+    Then the "Preferences" section should be visible
+    And the "Appearance" action should be visible
+    And the "Sound & notifications" action should be visible
+    And the "Leagues" action should be visible
+    And the "History import" action should be visible
+    And the "View onboarding" action should be visible
 
   Scenario: Setup flow stays usable on a phone-sized viewport
     Given the browser viewport is phone-sized

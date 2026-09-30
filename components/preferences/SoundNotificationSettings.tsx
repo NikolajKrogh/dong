@@ -10,6 +10,7 @@ import { ShellCard, ShellSection } from "../ui";
  * @description Holds toggles for sound effects and common match notifications.
  */
 interface SoundNotificationSettingsProps {
+  showSectionTitle?: boolean;
   /** Whether sound is enabled. */
   soundEnabled: boolean;
   /** Setter for sound enabled state. */
@@ -27,6 +28,7 @@ interface SoundNotificationSettingsProps {
  * @returns {JSX.Element} Card element.
  */
 const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
+  showSectionTitle = true,
   soundEnabled,
   setSoundEnabled,
   commonMatchNotificationsEnabled,
@@ -38,7 +40,7 @@ const SoundNotificationSettings: React.FC<SoundNotificationSettingsProps> = ({
     [colors],
   );
   return (
-    <ShellSection title="Sound & Notifications" marginBottom="$3">
+    <ShellSection title={showSectionTitle ? "Sound & Notifications" : undefined} marginBottom="$3">
       <ShellCard compact>
         <View style={settingsStyles.preferenceRow}>
           <View style={settingsStyles.labelContainer}>

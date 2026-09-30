@@ -396,6 +396,18 @@ const openPreferences = async (page: Page, baseURL?: string | null) => {
   await waitForPreferencesScreen(page);
 };
 
+const openProfile = async (page: Page) => {
+  await page.getByRole("button", { name: "Profile & display name" }).click();
+  await expect(page.getByTestId("ProfileDisplayNameInput")).toBeVisible();
+};
+
+const returnToPreferences = async (page: Page) => {
+  await page.goto(new URL("/userPreferences", page.url()).toString(), {
+    waitUntil: "commit",
+  });
+  await waitForPreferencesScreen(page);
+};
+
 const getSwitchState = async (page: Page, testID: string) => {
   return page.getByTestId(testID).evaluate((element) => {
     const nestedSwitch =
@@ -470,6 +482,7 @@ Given(
 When(
   "the host updates the profile display name to {string}",
   async ({ page }, displayName: string) => {
+    await openProfile(page);
     await page.getByTestId("ProfileDisplayNameInput").fill(displayName);
   },
 );
@@ -480,6 +493,7 @@ When("the host saves the profile form", async ({ page }) => {
 });
 
 When("the host clears the profile display name", async ({ page }) => {
+  await openProfile(page);
   await page.getByTestId("ProfileDisplayNameInput").fill("");
 });
 
@@ -512,7 +526,6 @@ Then(
   "the saved profile should show display name {string}",
   async ({ page }, displayName: string) => {
     await page.reload({ waitUntil: "commit" });
-    await waitForPreferencesScreen(page);
     await expect(page.getByTestId("ProfileDisplayNameInput")).toHaveValue(
       displayName,
     );
@@ -547,16 +560,22 @@ Then(
 
     expect(expectedSettings).not.toBeNull();
 
+    await page.getByRole("button", { name: "Appearance" }).click();
     await expect
       .poll(() => getSwitchState(page, "ThemeSettingSwitch"))
       .toBe(expectedSettings?.theme === "dark");
+    await returnToPreferences(page);
+
+    await page.getByRole("button", { name: "Sound & notifications" }).click();
     await expect
       .poll(() => getSwitchState(page, "SoundSettingSwitch"))
       .toBe(expectedSettings?.soundEnabled ?? false);
     await expect
       .poll(() => getSwitchState(page, "CommonMatchNotificationsSwitch"))
       .toBe(expectedSettings?.commonMatchNotificationsEnabled ?? false);
+    await returnToPreferences(page);
 
+    await page.getByRole("button", { name: "Leagues" }).click();
     await expect(page.getByTestId("ManageLeaguesRow")).toContainText(
       `${expectedSettings?.configuredLeagues.length ?? 0} leagues`,
     );

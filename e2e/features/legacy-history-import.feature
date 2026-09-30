@@ -7,7 +7,8 @@ Feature: Legacy History Import
 
     Scenario: Import legacy history from Settings
         When the user navigates to preferences
-        Then the "History Import" section should be visible
+        And the user opens History import from Settings
+        Then the "History import" section should be visible
         And the "Import Local History" action should be visible
         When the user starts the legacy history import
         Then the claimant picker should be visible
@@ -17,7 +18,8 @@ Feature: Legacy History Import
 
     Scenario: Mixed registered and guest players preserve guest snapshots
         When the user navigates to preferences
-        Then the "History Import" section should be visible
+        And the user opens History import from Settings
+        Then the "History import" section should be visible
         When the user starts the legacy history import
         Then the claimant picker should be visible
         When the user selects the "Alex Example" claimant
@@ -26,7 +28,8 @@ Feature: Legacy History Import
 
     Scenario: Reopening the completed import stays disabled
         When the user navigates to preferences
-        Then the "History Import" section should be visible
+        And the user opens History import from Settings
+        Then the "History import" section should be visible
         When the user starts the legacy history import
         Then the claimant picker should be visible
         When the user selects the "Alex Example" claimant

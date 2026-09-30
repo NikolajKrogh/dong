@@ -1,266 +1,157 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- Jest mock factories load React Native after hoisting. */
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
 
-const mockUseWindowDimensions = jest.fn(() => ({
-  width: 390,
-  height: 844,
-  scale: 1,
-  fontScale: 1,
-}));
-
-jest.mock("react-native", () => {
-  const ReactNative = jest.requireActual("react-native");
-
-  return new Proxy(ReactNative, {
-    get(target, prop, receiver) {
-      if (prop === "useWindowDimensions") {
-        return () => mockUseWindowDimensions();
-      }
-
-      return Reflect.get(target, prop, receiver);
-    },
-  });
-});
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockSignOut = jest.fn();
+const mockUseAccountAuth = jest.fn();
+const mockStore = {
+  theme: "light",
+  configuredLeagues: [{ code: "EPL", name: "Premier League" }],
+};
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), canGoBack: () => true }),
+}));
+
+jest.mock("../../hooks/useAccountAuth", () => ({
+  useAccountAuth: () => mockUseAccountAuth(),
+  buildAccountAuthRoute: (route: string, returnTo: string) => `${route}?returnTo=${encodeURIComponent(returnTo)}`,
 }));
 
 jest.mock("../../store/store", () => ({
-  useGameStore: () => ({
-    soundEnabled: true,
-    setSoundEnabled: jest.fn(),
-    commonMatchNotificationsEnabled: false,
-    setCommonMatchNotificationsEnabled: jest.fn(),
-    configuredLeagues: [{ code: "EPL", name: "Premier League" }],
-    addLeague: jest.fn(),
-    removeLeague: jest.fn(),
-    resetLeaguesToDefaults: jest.fn(),
-    defaultSelectedLeagues: [],
-    setDefaultSelectedLeagues: jest.fn(),
-    theme: "light",
-    setTheme: jest.fn(),
-  }),
+  useGameStore: (selector: (state: typeof mockStore) => unknown) => selector(mockStore),
 }));
 
 jest.mock("../../styles/theme", () => ({
-  useColors: () => ({
-    primary: "#007AFF",
-    secondary: "#6C757D",
-    textMuted: "#888",
-    surface: "#ffffff",
-    background: "#f5f5f5",
-    backgroundLight: "#fafafa",
-    switchTrackOff: "#ccc",
-    switchTrackOn: "#34C759",
-    thumbOn: "#fff",
-    thumbOff: "#fff",
-    white: "#fff",
-  }),
+  useColors: () => ({ primary: "#007AFF", textLight: "#fff" }),
 }));
 
-jest.mock("../../styles/userPreferencesStyles", () => ({
-  createUserPreferencesStyles: () => ({
-    commonStyles: {
-      safeArea: {},
-      container: {},
-      contentContainer: {},
-      section: {},
-      sectionTitle: {},
-      card: {},
-    },
-    headerStyles: {
-      header: {},
-      backButton: {},
-      headerTitle: {},
-    },
-    settingsStyles: {
-      preferenceRow: {},
-      labelContainer: {},
-      prefIcon: {},
-      preferenceLabel: {},
-      onboardingButton: {},
-      onboardingButtonText: {},
-    },
-  }),
-}));
+jest.mock("tamagui", () => {
+  const ReactLocal = require("react");
+  const RN = require("react-native");
+  return {
+    Text: ({ children, ...props }: any) => ReactLocal.createElement(RN.Text, props, children),
+    XStack: ({ children, ...props }: any) => ReactLocal.createElement(RN.View, props, children),
+    YStack: ({ children, ...props }: any) => ReactLocal.createElement(RN.View, props, children),
+  };
+});
 
-jest.mock("react-native-safe-area-context", () => ({
-  SafeAreaView: ({ children }: any) => children,
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
+jest.mock("../../components/preferences/SettingsPage", () => ({ title, children }: any) => {
+  const ReactLocal = require("react");
+  const RN = require("react-native");
+  return ReactLocal.createElement(RN.View, null, ReactLocal.createElement(RN.Text, null, title), children);
+});
 
-jest.mock("@expo/vector-icons", () => ({
-  Ionicons: () => null,
-}));
+jest.mock("../../components/preferences/SettingsMenuRow", () => ({ label, onPress }: any) => {
+  const ReactLocal = require("react");
+  const RN = require("react-native");
+  return ReactLocal.createElement(RN.TouchableOpacity, { onPress, testID: `row-${label}` }, ReactLocal.createElement(RN.Text, null, label));
+});
 
 jest.mock("../../components/ui", () => ({
-  ShellScreen: ({ children, ...props }: any) => {
+  ShellSection: ({ title, children }: any) => {
+    const ReactLocal = require("react");
     const RN = require("react-native");
-    const R = require("react");
-    return R.createElement(
-      RN.View,
-      { testID: "ShellScreen", ...props },
-      children,
-    );
-  },
-  ShellSection: ({ children, title, ...props }: any) => {
-    const RN = require("react-native");
-    const R = require("react");
-    return R.createElement(
-      RN.View,
-      { testID: "ShellSection", ...props },
-      title ? R.createElement(RN.Text, null, title) : null,
-      children,
-    );
+    return ReactLocal.createElement(RN.View, null, ReactLocal.createElement(RN.Text, null, title), children);
   },
   ShellCard: ({ children, ...props }: any) => {
+    const ReactLocal = require("react");
     const RN = require("react-native");
-    const R = require("react");
-    return R.createElement(
-      RN.View,
-      { testID: "ShellCard", ...props },
-      children,
-    );
+    return ReactLocal.createElement(RN.View, props, children);
+  },
+  ShellActionButton: ({ label, onPress }: any) => {
+    const ReactLocal = require("react");
+    const RN = require("react-native");
+    return ReactLocal.createElement(RN.TouchableOpacity, { onPress, testID: `action-${label}` }, ReactLocal.createElement(RN.Text, null, label));
   },
 }));
 
-jest.mock("../../components/OnboardingScreen", () => () => null);
-
-jest.mock("../../components/preferences/AccountSection", () => {
+jest.mock("../../components/OnboardingScreen", () => () => {
+  const ReactLocal = require("react");
   const RN = require("react-native");
-  const R = require("react");
-
-  return () =>
-    R.createElement(
-      RN.View,
-      { testID: "AccountSection" },
-      R.createElement(RN.Text, null, "Account"),
-      R.createElement(
-        RN.Text,
-        null,
-        "Sign in to create and manage multiplayer rooms.",
-      ),
-    );
+  return ReactLocal.createElement(RN.Text, null, "Onboarding");
 });
 
-jest.mock("../../components/preferences/ProfileSection", () => {
-  const RN = require("react-native");
-  const R = require("react");
+function renderMenu() {
+  const Screen = require("../../app/userPreferences").default;
+  return actCreate(React.createElement(Screen));
+}
 
-  return () =>
-    R.createElement(
-      RN.View,
-      { testID: "ProfileSection" },
-      R.createElement(RN.Text, null, "Profile"),
-      R.createElement(RN.Text, null, "Edit your host identity."),
-    );
-});
+function labels(tree: TestRenderer.ReactTestRenderer): string[] {
+  const { Text } = require("react-native");
+  return tree.root.findAllByType(Text).flatMap((node: any) => node.props.children).filter((value: unknown) => typeof value === "string");
+}
 
-jest.mock("../../components/preferences/AddLeagueModal", () => () => null);
-jest.mock(
-  "../../components/preferences/LegacyHistoryImportSection",
-  () => () => {
-    const RN = require("react-native");
-    const R = require("react");
+function press(tree: TestRenderer.ReactTestRenderer, testID: string) {
+  TestRenderer.act(() => tree.root.findByProps({ testID }).props.onPress());
+}
 
-    return R.createElement(
-      RN.View,
-      { testID: "LegacyHistoryImportSection" },
-      R.createElement(RN.Text, null, "History Import"),
-      R.createElement(RN.Text, null, "Import Local History"),
-    );
-  },
-);
-jest.mock("../../components/preferences/ManageLeaguesModal", () => () => null);
-jest.mock(
-  "../../components/preferences/SelectDefaultLeaguesModal",
-  () => () => null,
-);
+function unmount(tree: TestRenderer.ReactTestRenderer) {
+  TestRenderer.act(() => tree.unmount());
+}
 
-describe("UserPreferences shell adoption", () => {
+describe("Settings menu", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseWindowDimensions.mockReturnValue({
-      width: 390,
-      height: 844,
-      scale: 1,
-      fontScale: 1,
-    });
+    mockStore.theme = "light";
+    mockUseAccountAuth.mockReturnValue({ account: { preferredDisplayName: "Captain" }, status: "ready", signOut: mockSignOut, sessionNotice: null });
   });
 
-  it("renders the account gate alongside public settings", () => {
-    const Screen = require("../../app/userPreferences").default;
+  it("shows a compact signed-in menu and routes each settings row", () => {
+    const tree = renderMenu();
+    const text = labels(tree);
+    expect(text).toContain("Profile & display name");
+    expect(text).toContain("Appearance");
+    expect(text).toContain("Sound & notifications");
+    expect(text).toContain("Leagues");
+    expect(text).toContain("History import");
+    expect(text).not.toContain("Dark Mode");
+    expect(text).not.toContain("Save display name");
 
-    const renderer = actCreate(React.createElement(Screen));
-
-    const { Text } = require("react-native");
-    const texts = renderer.root.findAllByType(Text);
-    const textContents = texts.flatMap((t: any) => t.props.children);
-
-    expect(textContents).toContain("Settings");
-    expect(textContents).toContain(
-      "Sign in to create and manage multiplayer rooms.",
-    );
-    expect(textContents).toContain("Profile");
-    expect(textContents).toContain("Appearance");
-    expect(textContents).toContain("Sound & Notifications");
-    expect(textContents).toContain("League Configuration");
-    expect(textContents).toContain("History Import");
-    expect(textContents).toContain("View Onboarding");
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
+    for (const [label, route] of [
+      ["Profile & display name", "/userPreferences/profile"],
+      ["Appearance", "/userPreferences/appearance"],
+      ["Sound & notifications", "/userPreferences/sound"],
+      ["Leagues", "/userPreferences/leagues"],
+      ["History import", "/userPreferences/history-import"],
+    ]) {
+      press(tree, `row-${label}`);
+      expect(mockPush).toHaveBeenLastCalledWith(route);
+    }
+    unmount(tree);
   });
 
-  it("keeps the shared shell unconstrained on phone-sized viewports", () => {
-    const Screen = require("../../app/userPreferences").default;
-
-    const renderer = actCreate(React.createElement(Screen));
-    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
-
-    expect(shell.props.centerContent).toBe(false);
-    expect(shell.props.contentMaxWidth).toBeUndefined();
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
+  it("keeps sign-out and onboarding available", () => {
+    const tree = renderMenu();
+    press(tree, "action-Sign out");
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    press(tree, "action-View onboarding");
+    expect(labels(tree)).toContain("Onboarding");
+    unmount(tree);
   });
 
-  it("centers the shared shell on desktop-wide viewports", () => {
-    mockUseWindowDimensions.mockReturnValue({
-      width: 1280,
-      height: 900,
-      scale: 1,
-      fontScale: 1,
-    });
-
-    const Screen = require("../../app/userPreferences").default;
-
-    const renderer = actCreate(React.createElement(Screen));
-    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
-
-    expect(shell.props.centerContent).toBe(true);
-    expect(shell.props.contentMaxWidth).toBe(960);
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
+  it("shows sign-in and session recovery without profile or sign-out", () => {
+    mockUseAccountAuth.mockReturnValue({ account: null, status: "signedOut", sessionNotice: "Your session ended.", signOut: mockSignOut });
+    const tree = renderMenu();
+    const text = labels(tree);
+    expect(text).toContain("Your session ended.");
+    expect(text).toContain("Sign in or create account");
+    expect(text).not.toContain("Profile & display name");
+    expect(text).not.toContain("Sign out");
+    press(tree, "action-Sign in or create account");
+    expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2FuserPreferences");
+    unmount(tree);
   });
 
-  it("renders SafeAreaView as root wrapper", () => {
-    const Screen = require("../../app/userPreferences").default;
-
-    const renderer = actCreate(React.createElement(Screen));
-
-    // SafeAreaView is mocked to pass children through, so the component renders
-    // without error — confirming it wraps in SafeAreaView
-    expect(renderer.toJSON()).toBeTruthy();
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
+  it("routes unfinished account setup back to Settings", () => {
+    mockUseAccountAuth.mockReturnValue({ account: { preferredDisplayName: null }, status: "needsDisplayName", sessionNotice: null, signOut: mockSignOut });
+    const tree = renderMenu();
+    expect(labels(tree)).not.toContain("Profile & display name");
+    press(tree, "action-Finish account setup");
+    expect(mockPush).toHaveBeenCalledWith("/auth/onboarding?returnTo=%2FuserPreferences");
+    unmount(tree);
   });
 });

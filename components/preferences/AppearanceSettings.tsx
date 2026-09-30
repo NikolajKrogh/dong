@@ -27,7 +27,7 @@ import { ShellCard, ShellSection } from "../ui";
  *
  * @returns {JSX.Element} The rendered appearance settings section.
  */
-const AppearanceSettings: React.FC = () => {
+const AppearanceSettings: React.FC<{ showSectionTitle?: boolean }> = ({ showSectionTitle = true }) => {
   const { theme, setTheme } = useGameStore();
   const colors = useColors();
   const { settingsStyles: styles } = React.useMemo(
@@ -43,7 +43,7 @@ const AppearanceSettings: React.FC = () => {
     setTheme(enabled ? "dark" : "light");
 
   return (
-    <ShellSection title="Appearance" marginBottom="$3">
+    <ShellSection title={showSectionTitle ? "Appearance" : undefined} marginBottom="$3">
       <ShellCard compact>
         <View style={[styles.preferenceRow, styles.preferenceRowLast]}>
           <View style={styles.labelContainer}>

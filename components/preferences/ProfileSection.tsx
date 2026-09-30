@@ -6,7 +6,7 @@ import { useColors } from "../../styles/theme";
 import { useAccountAuth } from "../../hooks/useAccountAuth";
 import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 
-const ProfileSection = () => {
+const ProfileSection = ({ showSectionTitle = true }: { showSectionTitle?: boolean }) => {
   const colors = useColors();
   const { account, saveDisplayName, status } = useAccountAuth();
   const [displayName, setDisplayName] = useState(
@@ -52,7 +52,7 @@ const ProfileSection = () => {
   };
 
   return (
-    <ShellSection title="Profile" marginBottom="$3">
+    <ShellSection title={showSectionTitle ? "Profile" : "Public profile"} marginBottom="$3">
       <ShellCard compact testID="ProfileSection">
         <YStack gap="$4">
           <YStack gap="$1">
