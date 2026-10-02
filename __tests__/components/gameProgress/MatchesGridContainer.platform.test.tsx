@@ -1,5 +1,5 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+
 import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -150,7 +150,7 @@ describe("MatchesGridContainer responsive layout", () => {
 
   it("keeps the compact single-column layout on phone-sized viewports", () => {
     const renderer = renderMatchesGridContainer();
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
     expect(list.props.numColumns).toBe(1);
     expect(list.props.contentContainerStyle).toEqual([
@@ -168,7 +168,7 @@ describe("MatchesGridContainer responsive layout", () => {
     });
 
     const renderer = renderMatchesGridContainer();
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
     expect(list.props.numColumns).toBe(3);
     expect(list.props.columnWrapperStyle).toEqual(mockStyles.gridRow);

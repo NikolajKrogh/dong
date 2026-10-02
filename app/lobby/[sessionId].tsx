@@ -243,9 +243,9 @@ const LobbyScreen = () => {
   };
   const assignmentMode: AssignmentMode =
     lobby.snapshot?.assignmentMode ?? "automatic";
-  const participants = lobby.snapshot
+  const participants = useMemo(() => lobby.snapshot
     ? roomSnapshotToActiveRoster(lobby.snapshot)
-    : [];
+    : [], [lobby.snapshot]);
   const assignments = useMemo(
     () => lobby.snapshot?.assignments ?? [],
     [lobby.snapshot?.assignments],
@@ -426,7 +426,7 @@ const LobbyScreen = () => {
   // The pre-start room, as the single-player setup wizard.
   //
   // Every viewer gets the same four steps in the same order — a member's steps
-  // are the host's, read-only, plus their own pick panel. Same length and same
+  // are the host&apos;s, read-only, plus their own pick panel. Same length and same
   // order matters mechanically, not just visually: SetupWizard's current step is
   // uncontrolled, so a steps array that changed shape between polls would
   // remount the wizard and drop the viewer back to step one every ~4 seconds.
@@ -911,7 +911,7 @@ const LobbyScreen = () => {
                 Everyone left
               </Text>
               <Text color="$colorMuted" fontSize={14}>
-                There's no one left to take over. Close the room?
+                There&apos;s no one left to take over. Close the room?
               </Text>
               <ShellActionButton
                 variant="danger"

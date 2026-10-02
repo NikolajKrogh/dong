@@ -27,9 +27,20 @@ jest.mock("../../utils/commandApiClient", () => ({
     () => "00000000-0000-4000-8000-000000000099",
   ),
 }));
+jest.mock("../../lib/supabase", () => ({
+getSupabaseClient: jest.fn(() => ({
+    channel: jest.fn(() => ({
+      on: jest.fn().mockReturnThis(),
+      subscribe: jest.fn().mockReturnThis(),
+      track: jest.fn().mockResolvedValue("ok"),
+      presenceState: jest.fn(() => ({})),
+    })),
+    removeChannel: jest.fn().mockResolvedValue("ok"),
+  }))
+}));
 jest.mock("../../utils/supabaseClient", () => ({
-  getGuestRoomRpcClient: jest.fn(),
-  getProviderScoreRefreshClient: jest.fn(() => ({
+getGuestRoomRpcClient: jest.fn(),
+getProviderScoreRefreshClient: jest.fn(() => ({
     refreshProviderScores: jest.fn().mockResolvedValue({
       sessionId: "session-1",
       requestId: "00000000-0000-4000-8000-000000000099",
@@ -39,21 +50,13 @@ jest.mock("../../utils/supabaseClient", () => ({
       warnings: [],
     }),
   })),
-  getRoomRpcClient: jest.fn(),
-  getSupabaseClient: jest.fn(() => ({
-    channel: jest.fn(() => ({
-      on: jest.fn().mockReturnThis(),
-      subscribe: jest.fn().mockReturnThis(),
-      track: jest.fn().mockResolvedValue("ok"),
-      presenceState: jest.fn(() => ({})),
-    })),
-    removeChannel: jest.fn().mockResolvedValue("ok"),
-  })),
-  mapGameplayError: jest.fn(() => null),
+getRoomRpcClient: jest.fn(),
+mapGameplayError: jest.fn(() => null)
 }));
 
 const mockVisibility = jest.mocked(useAppVisibility);
-const { getGuestRoomRpcClient, getRoomRpcClient, getSupabaseClient, mapGameplayError } = jest.requireMock(
+const { getSupabaseClient } = jest.requireMock("../../lib/supabase");
+const { getGuestRoomRpcClient, getRoomRpcClient, mapGameplayError } = jest.requireMock(
   "../../utils/supabaseClient",
 ) as { getGuestRoomRpcClient: jest.Mock; getRoomRpcClient: jest.Mock; getSupabaseClient: jest.Mock; mapGameplayError: jest.Mock };
 const { isExpiredGuestRoomError, readGuestRoomPendingLeave, readGuestRoomSessionGrant } = jest.requireMock(

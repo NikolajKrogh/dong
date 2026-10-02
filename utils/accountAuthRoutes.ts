@@ -1,14 +1,5 @@
 import * as Linking from "expo-linking";
 
-const normalizeOptionalAccountText = (value: string | null | undefined) => {
-  const trimmedValue = value?.trim() ?? "";
-
-  return trimmedValue.length > 0 ? trimmedValue : null;
-};
-
-export const normalizeAccountDisplayName = (value: string | null | undefined) =>
-  normalizeOptionalAccountText(value);
-
 export const normalizeAccountFlowReturnTo = (
   value: string | string[] | null | undefined,
 ): string | null => {

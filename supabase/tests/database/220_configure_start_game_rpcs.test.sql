@@ -22,11 +22,11 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','csg-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CSG Host One' FROM h1
-    UNION ALL SELECT id, 'CSG Host Two' FROM h2
-    UNION ALL SELECT id, 'CSG Host Three' FROM h3
-    UNION ALL SELECT id, 'CSG Member One' FROM m1
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CSG_Host_One' FROM h1
+    UNION ALL SELECT id, 'CSG_Host_Two' FROM h2
+    UNION ALL SELECT id, 'CSG_Host_Three' FROM h3
+    UNION ALL SELECT id, 'CSG_Member_One' FROM m1
     RETURNING id
 ),
 r1 AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'CSGR01' FROM h1 RETURNING id),

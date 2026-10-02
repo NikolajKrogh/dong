@@ -5,7 +5,7 @@ import type { SupportedPlatform } from "./types";
 export const isWebPlatform = Platform.OS === "web";
 export const canUseDOM =
   globalThis.window !== undefined && globalThis.document !== undefined;
-export const hasPageVisibilityAPI =
+const hasPageVisibilityAPI =
   canUseDOM && typeof document.visibilityState === "string";
 
 export const getRuntimePlatform = (): SupportedPlatform => {

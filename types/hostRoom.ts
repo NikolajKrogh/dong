@@ -4,5 +4,3 @@ export interface HostRoomCreateResponse {
   hostParticipantId: string;
   hostDisplayName: string;
 }
-
-export type HostRoomCreateStatus = "idle" | "creating" | "success" | "error";

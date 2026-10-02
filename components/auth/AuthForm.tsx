@@ -10,7 +10,7 @@ import {
   normalizeAccountFlowReturnTo,
   useAccountAuth as useAccountAuthState,
 } from "../../hooks/useAccountAuth";
-import { getSupabaseClient } from "../../utils/supabaseClient";
+import { getSupabaseClient } from "../../lib/supabase";
 import { ShellActionButton, ShellCard } from "../ui";
 
 type AuthMode = "signIn" | "signUp";
@@ -109,7 +109,7 @@ const AuthForm = ({ returnTo, confirmationCode }: AuthFormProps) => {
     if (status === "ready") {
       router.replace((normalizedReturnTo ?? "/") as Href);
     }
-    if (status === "needsDisplayName") {
+    if (status === "needsUsername") {
       router.replace(
         buildAccountAuthRoute("/auth/onboarding", normalizedReturnTo, {
           prefillName: displayName,
@@ -122,7 +122,7 @@ const AuthForm = ({ returnTo, confirmationCode }: AuthFormProps) => {
     if (
       !normalizedConfirmationCode ||
       hasEstablishedConfirmationSession ||
-      status === "needsDisplayName" ||
+      status === "needsUsername" ||
       status === "ready"
     ) {
       return;

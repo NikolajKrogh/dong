@@ -117,7 +117,7 @@ describe("PlayersList responsive layout", () => {
 
   it("keeps the single-column player list on phone-sized viewports", () => {
     const renderer = renderPlayersList();
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
     expect(list.props.numColumns).toBe(1);
     expect(list.props.contentContainerStyle).toEqual([
@@ -135,7 +135,7 @@ describe("PlayersList responsive layout", () => {
     });
 
     const renderer = renderPlayersList();
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
     expect(list.props.numColumns).toBe(2);
     expect(list.props.columnWrapperStyle).toEqual(mockStyles.playersListRow);
@@ -147,7 +147,7 @@ describe("PlayersList responsive layout", () => {
 
   it("disables drink handlers and animations when editing is unavailable", () => {
     const renderer = renderPlayersList(true);
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
     const card = actCreate(
       list.props.renderItem({
         item: { id: "p1", name: "Alice", drinksTaken: 1 },

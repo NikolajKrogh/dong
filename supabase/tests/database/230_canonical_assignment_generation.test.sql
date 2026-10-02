@@ -41,11 +41,11 @@ m3 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r1-m3@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R1 Host' FROM h
-    UNION ALL SELECT id, 'CAG R1 M1' FROM m1
-    UNION ALL SELECT id, 'CAG R1 M2' FROM m2
-    UNION ALL SELECT id, 'CAG R1 M3' FROM m3
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R1_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R1_M1' FROM m1
+    UNION ALL SELECT id, 'CAG_R1_M2' FROM m2
+    UNION ALL SELECT id, 'CAG_R1_M3' FROM m3
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR001' FROM h RETURNING id)
@@ -74,11 +74,11 @@ m3 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r2-m3@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R2 Host' FROM h
-    UNION ALL SELECT id, 'CAG R2 M1' FROM m1
-    UNION ALL SELECT id, 'CAG R2 M2' FROM m2
-    UNION ALL SELECT id, 'CAG R2 M3' FROM m3
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R2_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R2_M1' FROM m1
+    UNION ALL SELECT id, 'CAG_R2_M2' FROM m2
+    UNION ALL SELECT id, 'CAG_R2_M3' FROM m3
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR002' FROM h RETURNING id)
@@ -94,7 +94,7 @@ WITH h AS (
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r3-h@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
-acc AS (INSERT INTO public.accounts (id, preferred_display_name) SELECT id, 'CAG R3 Host' FROM h RETURNING id),
+acc AS (INSERT INTO public.accounts (id, username) SELECT id, 'CAG_R3_Host' FROM h RETURNING id),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR003' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM room) AS room;
 GRANT SELECT ON TABLE r3_ctx TO authenticated;
@@ -112,9 +112,9 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r4-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R4 Host' FROM h
-    UNION ALL SELECT id, 'CAG R4 M1' FROM m1
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R4_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R4_M1' FROM m1
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR004' FROM h RETURNING id)
@@ -139,10 +139,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r5-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R5 Host' FROM h
-    UNION ALL SELECT id, 'CAG R5 M1 (leaves)' FROM m1
-    UNION ALL SELECT id, 'CAG R5 M2 (stays)' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R5_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R5_M1_leaves' FROM m1
+    UNION ALL SELECT id, 'CAG_R5_M2_stays' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR005' FROM h RETURNING id)
@@ -175,12 +175,12 @@ m4 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r14-m4@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R14 Host' FROM h
-    UNION ALL SELECT id, 'CAG R14 M1' FROM m1
-    UNION ALL SELECT id, 'CAG R14 M2' FROM m2
-    UNION ALL SELECT id, 'CAG R14 M3' FROM m3
-    UNION ALL SELECT id, 'CAG R14 M4' FROM m4
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R14_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R14_M1' FROM m1
+    UNION ALL SELECT id, 'CAG_R14_M2' FROM m2
+    UNION ALL SELECT id, 'CAG_R14_M3' FROM m3
+    UNION ALL SELECT id, 'CAG_R14_M4' FROM m4
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR014' FROM h RETURNING id)
@@ -206,10 +206,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r15-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R15 Host' FROM h
-    UNION ALL SELECT id, 'CAG R15 M1' FROM m1
-    UNION ALL SELECT id, 'CAG R15 M2' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R15_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R15_M1' FROM m1
+    UNION ALL SELECT id, 'CAG_R15_M2' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR015' FROM h RETURNING id)
@@ -229,9 +229,9 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r16-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R16 Host' FROM h
-    UNION ALL SELECT id, 'CAG R16 M1' FROM m1
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R16_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R16_M1' FROM m1
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR016' FROM h RETURNING id)
@@ -261,11 +261,11 @@ m3 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-r17-m3@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'CAG R17 Host' FROM h
-    UNION ALL SELECT id, 'CAG R17 M1' FROM m1
-    UNION ALL SELECT id, 'CAG R17 M2' FROM m2
-    UNION ALL SELECT id, 'CAG R17 M3' FROM m3
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'CAG_R17_Host' FROM h
+    UNION ALL SELECT id, 'CAG_R17_M1' FROM m1
+    UNION ALL SELECT id, 'CAG_R17_M2' FROM m2
+    UNION ALL SELECT id, 'CAG_R17_M3' FROM m3
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'CAGR017' FROM h RETURNING id)
@@ -295,17 +295,17 @@ BEGIN
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-nd-h'||v_iter||'@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false)
     RETURNING id INTO v_host;
-    INSERT INTO public.accounts (id, preferred_display_name) VALUES (v_host, 'CAG ND Host ' || v_iter);
+    INSERT INTO public.accounts (id, username) VALUES (v_host, 'CAG_ND_Host' || v_iter);
 
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-nd-m1-'||v_iter||'@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false)
     RETURNING id INTO v_m1;
-    INSERT INTO public.accounts (id, preferred_display_name) VALUES (v_m1, 'CAG ND M1 ' || v_iter);
+    INSERT INTO public.accounts (id, username) VALUES (v_m1, 'CAG_ND_M1' || v_iter);
 
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','cag-nd-m2-'||v_iter||'@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false)
     RETURNING id INTO v_m2;
-    INSERT INTO public.accounts (id, preferred_display_name) VALUES (v_m2, 'CAG ND M2 ' || v_iter);
+    INSERT INTO public.accounts (id, username) VALUES (v_m2, 'CAG_ND_M2' || v_iter);
 
     INSERT INTO public.game_sessions (owner_account_id, join_code) VALUES (v_host, v_code) RETURNING id INTO v_room;
 

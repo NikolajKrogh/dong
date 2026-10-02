@@ -77,7 +77,7 @@ jest.mock("expo-router", () => ({
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
 
-jest.mock("../../hooks/useHistory", () => ({
+jest.mock("../../features/history", () => ({
   useHistory: () => ({ ...mockHistoryStore, ...mockCloudState, refresh: mockRefresh }),
 }));
 

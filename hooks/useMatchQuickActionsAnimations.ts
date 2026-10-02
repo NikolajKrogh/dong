@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { Match } from "../store/store";
 import { MatchWithScore } from "../types/matchScores";
@@ -22,14 +22,14 @@ export function useMatchQuickActionsAnimations({
   liveMatchData,
   isApiControlledMatch,
 }: UseMatchQuickActionsAnimationsParams) {
-  const closeButtonAnim = useRef(new Animated.Value(1)).current;
-  const goalValueAnimHome = useRef(new Animated.Value(1)).current;
-  const goalValueAnimAway = useRef(new Animated.Value(1)).current;
-  const modalContentAnim = useRef(new Animated.Value(0)).current;
-  const incrementAnimHome = useRef(new Animated.Value(1)).current;
-  const decrementAnimHome = useRef(new Animated.Value(1)).current;
-  const incrementAnimAway = useRef(new Animated.Value(1)).current;
-  const decrementAnimAway = useRef(new Animated.Value(1)).current;
+  const [closeButtonAnim] = useState(() => new Animated.Value(1));
+  const [goalValueAnimHome] = useState(() => new Animated.Value(1));
+  const [goalValueAnimAway] = useState(() => new Animated.Value(1));
+  const [modalContentAnim] = useState(() => new Animated.Value(0));
+  const [incrementAnimHome] = useState(() => new Animated.Value(1));
+  const [decrementAnimHome] = useState(() => new Animated.Value(1));
+  const [incrementAnimAway] = useState(() => new Animated.Value(1));
+  const [decrementAnimAway] = useState(() => new Animated.Value(1));
 
   const prevGoalsHomeRef = useRef(match?.homeGoals ?? 0);
   const prevGoalsAwayRef = useRef(match?.awayGoals ?? 0);

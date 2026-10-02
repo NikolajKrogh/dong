@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
@@ -22,7 +23,7 @@ const renderHookProbe = (leagueName: string, leagueCode?: string) => {
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  const renderer = actCreate(React.createElement(Probe));
 
   return { renderer, getLatest: () => latest };
 };
@@ -113,7 +114,7 @@ describe("useLeagueLogo", () => {
     });
   });
 
-  it("does not call the API when no leagueCode is provided, and leaves isLoading true (no completion path)", async () => {
+  it("finishes loading without calling the API when no leagueCode is provided", async () => {
     const fetchMock = jest.fn();
     (globalThis as { fetch: unknown }).fetch = fetchMock;
 
@@ -126,7 +127,7 @@ describe("useLeagueLogo", () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(getLatest()?.logoSource).toBeUndefined();
-    expect(getLatest()?.isLoading).toBe(true);
+    expect(getLatest()?.isLoading).toBe(false);
 
     TestRenderer.act(() => {
       renderer.unmount();

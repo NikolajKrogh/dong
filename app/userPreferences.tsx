@@ -19,7 +19,7 @@ export default function UserPreferencesScreen() {
   const configuredLeagues = useGameStore((state) => state.configuredLeagues);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const signedIn = status !== "signedOut" && status !== "loading";
-  const displayName = account?.preferredDisplayName?.trim();
+  const displayName = account?.username?.trim();
 
   if (showOnboarding) {
     return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
@@ -44,8 +44,8 @@ export default function UserPreferencesScreen() {
                   <TText color="$textMuted" fontSize={13}>Signed in</TText>
                 </YStack>
               </XStack>
-              {status === "ready" ? <SettingsMenuRow label="Profile & display name" icon="person-outline" last onPress={() => router.push("/userPreferences/profile")} /> : null}
-              {status === "needsDisplayName" ? (
+              {status === "ready" ? <SettingsMenuRow label="Profile & username" icon="person-outline" last onPress={() => router.push("/userPreferences/profile")} /> : null}
+              {status === "needsUsername" ? (
                 <ShellActionButton variant="surface" label="Finish account setup" onPress={() => router.push(buildAccountAuthRoute("/auth/onboarding", "/userPreferences") as never)} />
               ) : null}
             </YStack>
@@ -64,12 +64,6 @@ export default function UserPreferencesScreen() {
           <SettingsMenuRow label="Appearance" icon="moon-outline" value={theme === "dark" ? "Dark" : "Light"} onPress={() => router.push("/userPreferences/appearance")} />
           <SettingsMenuRow label="Sound & notifications" icon="volume-high-outline" onPress={() => router.push("/userPreferences/sound")} />
           <SettingsMenuRow label="Leagues" icon="football-outline" value={`${configuredLeagues.length} leagues`} last onPress={() => router.push("/userPreferences/leagues")} />
-        </ShellCard>
-      </ShellSection>
-
-      <ShellSection title="Data" marginBottom="$0">
-        <ShellCard compact>
-          <SettingsMenuRow label="History import" icon="cloud-upload-outline" last onPress={() => router.push("/userPreferences/history-import")} />
         </ShellCard>
       </ShellSection>
 

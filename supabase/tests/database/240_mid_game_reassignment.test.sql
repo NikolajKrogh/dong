@@ -17,10 +17,10 @@ INSERT INTO auth.users (
   ('00000000-0000-4000-8000-000000000102', 'authenticated', 'authenticated', 'reassign-member@test.local', now(), now(), now(), '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false),
   ('00000000-0000-4000-8000-000000000103', 'authenticated', 'authenticated', 'reassign-outsider@test.local', now(), now(), now(), '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false);
 
-INSERT INTO public.accounts (id, preferred_display_name) VALUES
-  ('00000000-0000-4000-8000-000000000101', 'Reassign Host'),
-  ('00000000-0000-4000-8000-000000000102', 'Reassign Member'),
-  ('00000000-0000-4000-8000-000000000103', 'Reassign Outsider');
+INSERT INTO public.accounts (id, username) VALUES
+  ('00000000-0000-4000-8000-000000000101', 'Reassign_Host'),
+  ('00000000-0000-4000-8000-000000000102', 'Reassign_Member'),
+  ('00000000-0000-4000-8000-000000000103', 'Reassign_Outsider');
 
 INSERT INTO public.game_sessions (id, owner_account_id, join_code, state, common_match_id)
 VALUES (

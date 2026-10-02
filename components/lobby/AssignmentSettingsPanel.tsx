@@ -153,5 +153,3 @@ export const AssignmentRequirementLine: React.FC<{ plan: AssignmentPlan }> = ({
     {plan.poolSize}.
   </Text>
 );
-
-export default AssignmentSettingsPanel;

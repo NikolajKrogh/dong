@@ -8,43 +8,40 @@ import React, {
 } from "react";
 
 import {
-  saveAccountDisplayName,
+  saveAccountUsername,
   type Account,
-} from "../utils/accountRepository";
+} from "../features/account";
 import { buildAccountAuthRedirectUrl } from "../utils/accountAuthRoutes";
-import {
-  getSupabaseClient,
-  getSupabasePublicConfig,
-  hasSupabasePublicConfig,
-} from "../utils/supabaseClient";
+import { getSupabaseClient, getSupabasePublicConfig, hasSupabasePublicConfig } from "../lib/supabase";
 import { useAccountSessionSync } from "./useAccountSessionSync";
 import { useAccountSettingsSync } from "./useAccountSettingsSync";
+import { getAccountScope, isCurrentAccountScope } from '../lib/queryClient';
 
-export type { Account, AccountSyncedSettings } from "../utils/accountRepository";
+;
 export {
   bootstrapAccountRow,
-  loadAccountSyncedSettings,
-  saveAccountDisplayName,
-  saveAccountSyncedSettings,
-} from "../utils/accountRepository";
+
+  saveAccountUsername,
+
+} from "../features/account";
 export {
-  buildAccountAuthRedirectUrl,
+
   buildAccountAuthRoute,
-  normalizeAccountDisplayName,
   normalizeAccountFlowReturnTo,
 } from "../utils/accountAuthRoutes";
+export { normalizeAccountUsername } from "../features/account";
 
 export type AccountAuthStatus =
   | "loading"
   | "signedOut"
-  | "needsDisplayName"
+  | "needsUsername"
   | "ready"
   | "recoveringPassword";
 
 export const SESSION_EXPIRED_MESSAGE =
   "Your session ended. Sign in again to keep managing your profile and synced settings.";
 
-export interface AccountAuthContextValue {
+interface AccountAuthContextValue {
   status: AccountAuthStatus;
   session: Session | null;
   sessionNotice: string | null;
@@ -58,7 +55,7 @@ export interface AccountAuthContextValue {
   ) => Promise<void>;
   verifySignupOtp: (email: string, token: string) => Promise<void>;
   signOut: () => Promise<void>;
-  saveDisplayName: (displayName: string) => Promise<void>;
+  saveUsername: (username: string) => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
   requestPasswordReset: (
     email: string,
@@ -215,20 +212,25 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
     clearAuthenticatedState();
   };
 
-  const saveDisplayName = async (displayName: string) => {
+  const saveUsername = async (username: string) => {
     const client = getSupabaseClient();
+    const scope = getAccountScope();
 
     if (!user) {
       throw new Error(
-        "Cannot save a display name without a signed-in account.",
+        "Cannot save a username without a signed-in account.",
       );
     }
 
-    const nextAccount = await saveAccountDisplayName(
+    const nextAccount = await saveAccountUsername(
       client,
       user.id,
-      displayName,
+      username,
     );
+
+    if (!isCurrentAccountScope(scope) || scope.accountId !== user.id) {
+      throw new Error('Account changed. Try again from your current profile.');
+    }
 
     setAccount(nextAccount);
     setStatus("ready");
@@ -332,7 +334,7 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
         signUp,
         verifySignupOtp,
         signOut,
-        saveDisplayName,
+        saveUsername,
         changePassword,
         requestPasswordReset,
         completePasswordRecovery,

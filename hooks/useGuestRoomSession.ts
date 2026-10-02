@@ -29,7 +29,7 @@ import {
 import { getGuestRoomRpcClient } from "../utils/supabaseClient";
 import { useGameStore } from "../store/store";
 import { confirmGuestRoomEnded, isGuestRoomEnded } from "../utils/guestRoomTermination";
-import { mapDepartureResult } from "../utils/historyRepository";
+import { mapDepartureResult } from "../features/history";
 
 export interface UseGuestRoomSessionResult {
   status: GuestRoomSessionStatus;

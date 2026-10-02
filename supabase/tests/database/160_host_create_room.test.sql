@@ -34,15 +34,15 @@ WITH host_auth AS (
     RETURNING id
 ),
 host_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Test Room Host'
+        'Test_Room_Host'
     FROM host_auth
     RETURNING id,
-        preferred_display_name
+        username
 )
 SELECT host_auth.id AS auth_id,
-    host_account.preferred_display_name
+    host_account.username
 FROM host_auth
 JOIN host_account ON host_account.id = host_auth.id;
 
@@ -105,7 +105,7 @@ SELECT is(
                     FROM create_room_first_result
                 )
         ),
-        'owner:registered:Test Room Host',
+        'owner:registered:Test_Room_Host',
         'host participant has session_role=owner, membership_type=registered, and correct display_name'
     );
 

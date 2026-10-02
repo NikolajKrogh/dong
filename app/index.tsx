@@ -22,7 +22,7 @@ import { GuestJoinModal } from "../components/guestJoin/GuestJoinModal";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { ShellActionButton, ShellScreen } from "../components/ui";
 import { useHomeRoomActions } from "../hooks/useHomeRoomActions";
-import { useHistory } from "../hooks/useHistory";
+import { useHistory } from "../features/history";
 import { useGameStore } from "../store/store";
 import { getTopDrinker, getTotalDrinks } from "../utils/homeStats";
 import createStyles from "../styles/indexStyles";
@@ -176,6 +176,7 @@ const HomeScreen = () => {
               <Image
                 source={require("../assets/icons/logo_png/dong_logo.png")}
                 style={styles.logo}
+                resizeMode="contain"
               />
             </View>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -126,14 +126,12 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
     () => createUserPreferencesStyles(colors),
     [colors]
   );
-  const [selectedLeagues, setSelectedLeagues] = useState<LeagueEndpoint[]>([]);
-
-  // Initialize selection from current defaults when opening
-  useEffect(() => {
-    if (visible) {
-      setSelectedLeagues(currentDefaultLeagues);
-    }
-  }, [visible, currentDefaultLeagues]);
+  const [selectedLeagues, setSelectedLeagues] = useState(currentDefaultLeagues);
+  const [previous, setPrevious] = useState({ visible, currentDefaultLeagues });
+  if (previous.visible !== visible || previous.currentDefaultLeagues !== currentDefaultLeagues) {
+    setPrevious({ visible, currentDefaultLeagues });
+    if (visible) setSelectedLeagues(currentDefaultLeagues);
+  }
 
   /** Toggle selection for a league. */
   const toggleLeagueSelection = (league: LeagueEndpoint) => {

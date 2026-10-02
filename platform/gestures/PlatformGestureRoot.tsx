@@ -18,5 +18,3 @@ export const PlatformGestureRoot: React.FC<PlatformGestureRootProps> = ({
     </View>
   );
 };
-
-export default PlatformGestureRoot;

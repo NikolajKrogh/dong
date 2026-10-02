@@ -1,9 +1,10 @@
+import type { GuestRoomSession } from "../../types/guestRoom";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
 
 const mockUseGuestRoomJoin = jest.fn(() => ({
-  session: null,
+  session: null as GuestRoomSession | null,
   error: null,
   isSubmitting: false,
   leaveRoom: jest.fn(),
@@ -17,7 +18,7 @@ const mockUseAccountAuth = jest.fn(() => ({
 const mockRefreshHistory = jest.fn();
 const mockPush = jest.fn();
 const mockUseHistory = jest.fn();
-jest.mock("../../hooks/useHistory", () => ({
+jest.mock("../../features/history", () => ({
   useHistory: () => mockUseHistory(),
 }));
 
@@ -398,6 +399,8 @@ describe("HomeScreen platform adoption", () => {
           sessionId: "session-1",
           joinCode: "ROOM42",
           state: "joinable",
+          assignmentMode: "automatic", picks: [],
+          assignmentPlan: { participantCount: 0, poolSize: 0, matchesPerPlayer: 0, sharedMatchesPerPair: 0, effectivePerPlayer: 0, requiredPoolSize: 0, relaxedFloor: 0, feasible: true, startable: false },
           commonMatchId: "match-1",
           participants: [],
           matches: [],

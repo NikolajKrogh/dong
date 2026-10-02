@@ -26,9 +26,9 @@ mb AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ho-mb@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id,'Host A' FROM ha UNION ALL SELECT id,'Member One' FROM m1 UNION ALL SELECT id,'Member Two' FROM m2
-    UNION ALL SELECT id,'Host B' FROM hb UNION ALL SELECT id,'Member B' FROM mb
+    INSERT INTO public.accounts (id, username)
+    SELECT id,'Host_A' FROM ha UNION ALL SELECT id,'Member_One' FROM m1 UNION ALL SELECT id,'Member_Two' FROM m2
+    UNION ALL SELECT id,'Host_B' FROM hb UNION ALL SELECT id,'Member_B' FROM mb
     RETURNING id
 ),
 ra AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'HOROOMA' FROM ha RETURNING id),

@@ -37,8 +37,8 @@ SELECT id, 'authenticated', 'authenticated', email, now(), now(), now(),
        '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false
 FROM signal_users;
 
-INSERT INTO public.accounts (id, preferred_display_name)
-SELECT id, display_name FROM signal_users;
+INSERT INTO public.accounts (id, username)
+SELECT id, replace(display_name, ' ', '_') FROM signal_users;
 
 CREATE TEMP TABLE signal_rooms (
   kind text PRIMARY KEY,

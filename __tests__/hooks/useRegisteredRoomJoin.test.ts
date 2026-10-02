@@ -29,7 +29,7 @@ const render = () => {
 };
 
 describe("useRegisteredRoomJoin", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); });
 
   it("returns the join response on success", async () => {
     const joinRoomAsRegistered = jest.fn(async () => ({

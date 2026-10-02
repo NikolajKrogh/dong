@@ -31,7 +31,7 @@ import SortHistoryModal, {
   SortDirection,
 } from "../components/history/SortHistoryModal";
 import { ShellActionButton, ShellScreen } from "../components/ui";
-import { useHistory } from "../hooks/useHistory";
+import { useHistory } from "../features/history";
 import { createHistoryStyles } from "../styles/historyStyles";
 import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";

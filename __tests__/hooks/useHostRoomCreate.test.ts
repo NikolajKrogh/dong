@@ -42,7 +42,7 @@ describe("useHostRoomCreate", () => {
     mockGetHostRoomRpcClient.mockReturnValue({ createRoomAsHost });
 
     const isCreatingStates: boolean[] = [];
-    let observedHook: UseHostRoomCreateResult | null = null;
+    let observedHook!: UseHostRoomCreateResult;
 
     const Probe = () => {
       observedHook = useHostRoomCreate();
@@ -86,7 +86,7 @@ describe("useHostRoomCreate", () => {
 
     mockGetHostRoomRpcClient.mockReturnValue({ createRoomAsHost });
 
-    let observedHook: UseHostRoomCreateResult | null = null;
+    let observedHook!: UseHostRoomCreateResult;
 
     const Probe = () => {
       observedHook = useHostRoomCreate();
@@ -122,7 +122,7 @@ describe("useHostRoomCreate", () => {
 
     mockGetHostRoomRpcClient.mockReturnValue({ createRoomAsHost });
 
-    let observedHook: UseHostRoomCreateResult | null = null;
+    let observedHook!: UseHostRoomCreateResult;
 
     const Probe = () => {
       observedHook = useHostRoomCreate();
@@ -162,7 +162,7 @@ describe("useHostRoomCreate", () => {
 
     mockGetHostRoomRpcClient.mockReturnValue({ createRoomAsHost });
 
-    let observedHook: UseHostRoomCreateResult | null = null;
+    let observedHook!: UseHostRoomCreateResult;
 
     const Probe = () => {
       observedHook = useHostRoomCreate();
@@ -198,7 +198,7 @@ describe("useHostRoomCreate", () => {
 
     mockGetHostRoomRpcClient.mockReturnValue({ createRoomAsHost });
 
-    let observedHook: UseHostRoomCreateResult | null = null;
+    let observedHook!: UseHostRoomCreateResult;
 
     const Probe = () => {
       observedHook = useHostRoomCreate();

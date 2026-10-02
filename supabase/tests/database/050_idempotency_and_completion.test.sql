@@ -33,9 +33,9 @@ CREATE TEMP TABLE phase5_event_context AS WITH host_auth AS (
     RETURNING id
 ),
 host_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Phase5 Host'
+        'Phase5_Host'
     FROM host_auth
     RETURNING id
 ),

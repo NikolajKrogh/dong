@@ -1,9 +1,9 @@
-import type { Page } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
 import {
-  LEGACY_HISTORY_IMPORT_AUTH_STORAGE_KEY,
+  MOCK_AUTH_AUTH_STORAGE_KEY,
   PERSISTED_STORE_KEY,
 } from "./browser-flow.helpers";
 
@@ -99,7 +99,7 @@ const CLOUD_SYNCED_SETTINGS = createSyncedSettings({
 
 type MockAccountRow = {
   id: string;
-  preferred_display_name: string | null;
+  username: string | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -134,7 +134,7 @@ const createMockAccountRow = (
   overrides: Partial<MockAccountRow> = {},
 ): MockAccountRow => ({
   id: HOST_PROFILE_USER_ID,
-  preferred_display_name: "Captain",
+  username: "Captain",
   created_at: FIXED_TIMESTAMP,
   updated_at: FIXED_TIMESTAMP,
   ...overrides,
@@ -212,11 +212,7 @@ const resetHostProfileScenario = () => {
 };
 
 const fulfillJson = async (
-  route: Parameters<Page["route"]>[1] extends (
-    route: infer RouteType,
-  ) => Promise<void>
-    ? RouteType
-    : never,
+  route: Route,
   status: number,
   body: unknown,
 ) => {
@@ -229,11 +225,7 @@ const fulfillJson = async (
 };
 
 const readJsonRequestBody = (
-  page: Parameters<Page["route"]>[1] extends (
-    route: infer RouteType,
-  ) => Promise<void>
-    ? RouteType
-    : never,
+  page: Route,
 ) => {
   const body = page.request().postDataJSON() as
     Record<string, unknown> | Record<string, unknown>[] | null;
@@ -264,6 +256,19 @@ const installHostProfileMocks = async (page: Page) => {
     await fulfillJson(route, 200, {});
   });
 
+  await page.route("**/rest/v1/rpc/set_account_username", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 200, headers: corsHeaders });
+      return;
+    }
+    const body = readJsonRequestBody(route);
+    activeHostProfileState.account = {
+      ...activeHostProfileState.account,
+      username: typeof body.requested_username === "string" ? body.requested_username : activeHostProfileState.account.username,
+      updated_at: new Date().toISOString(),
+    };
+    await fulfillJson(route, 200, activeHostProfileState.account);
+  });
   await page.route("**/rest/v1/accounts**", async (route) => {
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({ status: 200, headers: corsHeaders });
@@ -286,26 +291,6 @@ const installHostProfileMocks = async (page: Page) => {
       });
 
       await fulfillJson(route, 201, []);
-      return;
-    }
-
-    if (route.request().method() === "PATCH") {
-      const body = readJsonRequestBody(route);
-
-      activeHostProfileState.account = {
-        ...activeHostProfileState.account,
-        preferred_display_name:
-          typeof body.preferred_display_name === "string" ||
-          body.preferred_display_name === null
-            ? body.preferred_display_name
-            : activeHostProfileState.account.preferred_display_name,
-        updated_at:
-          typeof body.updated_at === "string"
-            ? body.updated_at
-            : new Date().toISOString(),
-      };
-
-      await fulfillJson(route, 200, activeHostProfileState.account);
       return;
     }
 
@@ -374,7 +359,7 @@ const seedSignedInHostState = async (
     {
       persistedStoreKey: PERSISTED_STORE_KEY,
       persistedState: buildPersistedStoreState(syncedSettings),
-      authStorageKey: LEGACY_HISTORY_IMPORT_AUTH_STORAGE_KEY,
+      authStorageKey: MOCK_AUTH_AUTH_STORAGE_KEY,
       authSession: buildHostAuthSession(activeHostProfileState),
     },
   );
@@ -397,7 +382,7 @@ const openPreferences = async (page: Page, baseURL?: string | null) => {
 };
 
 const openProfile = async (page: Page) => {
-  await page.getByRole("button", { name: "Profile & display name" }).click();
+  await page.getByRole("button", { name: "Profile & username" }).click();
   await expect(page.getByTestId("ProfileDisplayNameInput")).toBeVisible();
 };
 
@@ -480,7 +465,7 @@ Given(
 );
 
 When(
-  "the host updates the profile display name to {string}",
+  "the host updates the profile username to {string}",
   async ({ page }, displayName: string) => {
     await openProfile(page);
     await page.getByTestId("ProfileDisplayNameInput").fill(displayName);
@@ -488,11 +473,11 @@ When(
 );
 
 When("the host saves the profile form", async ({ page }) => {
-  await page.getByText("Save display name", { exact: true }).click();
+  await page.getByText("Save username", { exact: true }).click();
   await page.waitForLoadState("networkidle");
 });
 
-When("the host clears the profile display name", async ({ page }) => {
+When("the host clears the profile username", async ({ page }) => {
   await openProfile(page);
   await page.getByTestId("ProfileDisplayNameInput").fill("");
 });
@@ -523,7 +508,7 @@ When("the signed-in host session expires in preferences", async ({ page }) => {
 });
 
 Then(
-  "the saved profile should show display name {string}",
+  "the saved profile should show username {string}",
   async ({ page }, displayName: string) => {
     await page.reload({ waitUntil: "commit" });
     await expect(page.getByTestId("ProfileDisplayNameInput")).toHaveValue(

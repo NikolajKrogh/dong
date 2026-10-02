@@ -72,5 +72,3 @@ export const AssignmentModeSelector: React.FC<AssignmentModeSelectorProps> = ({
     </XStack>
   </YStack>
 );
-
-export default AssignmentModeSelector;

@@ -9,7 +9,7 @@ import {
   normalizeAccountFlowReturnTo,
   useAccountAuth,
 } from "../../hooks/useAccountAuth";
-import { getSupabaseClient } from "../../utils/supabaseClient";
+import { getSupabaseClient } from "../../lib/supabase";
 import { ShellActionButton, ShellCard } from "../ui";
 
 interface PasswordResetFormProps {

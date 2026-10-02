@@ -21,13 +21,18 @@ module.exports = defineConfig([
     ],
   },
   {
-    // eslint-config-expo (SDK 57) enables these React Compiler–readiness
-    // rules as errors. This codebase hasn't opted into the React Compiler
-    // (see .agents/skills/upgrading-expo housekeeping notes), so treat them
-    // as warnings like the rest of the pre-existing warning baseline instead
-    // of failing the build on patterns that are safe under the classic
-    // runtime (e.g. `useRef(...).current` lazy-init, PanResponder.create
-    // reading a ref synchronously).
+    // Metro resolves bundled assets through require(), including on native.
+    files: ["**/*.{ts,tsx}"],
+    rules: { "@typescript-eslint/no-require-imports": ["warn", { allow: ["\\.(png|jpg|jpeg|gif|webp|json|mp3|wav)$"] }] },
+  },
+  {
+    // Jest factories and post-mock imports must resolve modules at test runtime.
+    files: ["__tests__/**/*.{ts,tsx}", "jest.setup.ts"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
+    // Keep React Compiler readiness diagnostics visible. The lint command
+    // uses --max-warnings 0, so warnings fail the gate just like errors.
     rules: {
       "react-hooks/refs": "warn",
       "react-hooks/immutability": "warn",
@@ -36,15 +41,22 @@ module.exports = defineConfig([
     },
   },
   {
-    // These two files are in-flight on branch 153 (153-configure-start-game)
-    // as of the Phase 4 (ESLint 9 upgrade) branch cut and must not be edited
-    // by this phase (see specs/019-harden-codebase-foundations/plan.md
-    // Technical Context's in-flight file list) — a scoped rule disable
-    // stands in for the direct fix (unescaped quote/apostrophe in JSX text)
-    // until the owning feature branch merges and normal editing resumes.
-    files: ["app/index.tsx", "app/lobby/\\[sessionId\\].tsx"],
-    rules: {
-      "react/no-unescaped-entities": "off",
-    },
+    files: ["app/friends/**/*.tsx", "app/userPreferences/profile.tsx", "features/**/*.tsx"],
+    rules: { "no-restricted-imports": ["error", { patterns: [
+      { group: ["**/app/**"], message: "Features cannot depend on routes." },
+      { group: ["**/lib/supabase", "@supabase/supabase-js", "**/utils/supabaseClient"], message: "Screens use feature repositories/hooks, not raw database transport." },
+      { group: ["**/features/*/*", "@/features/*/*"], message: "Import another feature through its public index." }
+    ] }] }
   },
+  {
+    files: ["lib/**/*.{ts,tsx}"],
+    rules: { "no-restricted-imports": ["error", { patterns: [{ group: ["**/app/**", "**/features/**"], message: "Infrastructure cannot depend on features or routes." }] }] }
+  },
+  ...["account", "friends", "history"].map(feature => ({
+    files: [`features/${feature}/**/*.ts`],
+    rules: { "no-restricted-imports": ["error", { patterns: [
+      { group: ["**/app/**"], message: "Features cannot depend on routes." },
+      { group: ["account", "friends", "history"].filter(name => name !== feature).flatMap(name => [`../${name}/*`, `**/features/${name}/*`]), message: "Use the other feature's public index." }
+    ] }] }
+  })),
 ]);

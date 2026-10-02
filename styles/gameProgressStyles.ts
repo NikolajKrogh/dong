@@ -1415,6 +1415,3 @@ export function createGameProgressStyles(colors: Colors) {
 }
 
 // Dummy default export to satisfy Expo Router if this file is treated as a route
-export default function StyleModuleRoute() {
-  return null;
-}

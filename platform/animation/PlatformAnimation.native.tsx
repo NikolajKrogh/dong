@@ -55,5 +55,3 @@ export const PlatformAnimation: React.FC<PlatformAnimationProps> = ({
     />
   );
 };
-
-export default PlatformAnimation;

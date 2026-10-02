@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- Jest mock factories load React Native after hoisting. */
+
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";

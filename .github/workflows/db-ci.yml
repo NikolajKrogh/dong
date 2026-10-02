@@ -4,10 +4,16 @@ on:
   push:
     paths:
       - "supabase/**"
+      - "types/database*.ts"
+      - "scripts/*db*.mjs"
+      - "package*.json"
       - ".github/workflows/db-ci.yml"
   pull_request:
     paths:
       - "supabase/**"
+      - "types/database*.ts"
+      - "scripts/*db*.mjs"
+      - "package*.json"
       - ".github/workflows/db-ci.yml"
 
 permissions:
@@ -24,7 +30,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4.0.4
         with:
-          node-version: 20
+          node-version-file: package.json
           cache: npm
 
       - name: Install dependencies
@@ -32,6 +38,12 @@ jobs:
 
       - name: Start local Supabase stack
         run: npx supabase start
+
+      - name: Generated contract drift
+        run: npm run db:types:check
+
+      - name: Client typecheck
+        run: npm run typecheck
 
       - name: Run pgTAP suite
         run: npx supabase test db

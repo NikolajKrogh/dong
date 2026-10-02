@@ -15,7 +15,7 @@ export default function ProfileSettingsScreen() {
   const colors = useColors();
   const { account, deleteAccount, status } = useAccountAuth();
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const displayName = account?.preferredDisplayName?.trim();
+  const displayName = account?.username?.trim();
 
   useEffect(() => {
     if (status !== "loading" && status !== "ready") router.replace("/userPreferences");
@@ -59,6 +59,11 @@ export default function ProfileSettingsScreen() {
             </ShellCard>
           </ShellSection>
           <ProfileSection showSectionTitle={false} />
+          <ShellSection title="Friends">
+            <ShellCard compact>
+              <SettingsMenuRow label="Friends" icon="people-outline" last onPress={() => router.push('/friends' as never)} />
+            </ShellCard>
+          </ShellSection>
           <ShellSection title="Account actions">
             <ShellCard compact>
               <SettingsMenuRow label="Change password" icon="lock-closed-outline" onPress={() => router.push(buildAccountAuthRoute("/auth/change-password", "/userPreferences/profile") as never)} />

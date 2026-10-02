@@ -81,5 +81,3 @@ export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
     </ShellCard>
   );
 };
-
-export default HistoryStatsCard;

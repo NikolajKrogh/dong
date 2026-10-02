@@ -71,7 +71,7 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
     [colors]
   );
   // Keep animation for refresh indicator
-  const spinValue = React.useRef(new Animated.Value(0)).current;
+  const [spinValue] = React.useState(() => new Animated.Value(0));
 
   // Create rotation animation when refreshing state changes
   React.useEffect(() => {

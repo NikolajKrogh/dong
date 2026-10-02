@@ -1,5 +1,5 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+
 import { actCreate } from "../../../test-utils/render";
 
 jest.mock("tamagui", () => {
@@ -30,7 +30,7 @@ describe("ShellScreen primitive", () => {
       ),
     );
 
-    const views = renderer.root.findAllByType("View");
+    const views = renderer.root.findAll((node) => String(node.type) === "View");
 
     expect(views).toHaveLength(3);
     expect(views[0].props.padded).toBe(false);
@@ -50,7 +50,7 @@ describe("ShellScreen primitive", () => {
       ),
     );
 
-    const views = renderer.root.findAllByType("View");
+    const views = renderer.root.findAll((node) => String(node.type) === "View");
 
     expect(views).toHaveLength(3);
     expect(views[1].props.centered).toBe(false);

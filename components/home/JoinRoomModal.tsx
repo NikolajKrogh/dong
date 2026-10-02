@@ -212,5 +212,3 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = ({
     </Modal>
   );
 };
-
-export default JoinRoomModal;

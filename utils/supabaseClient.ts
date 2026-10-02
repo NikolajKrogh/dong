@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { Platform } from "react-native";
+import type { Database } from "../types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseClient } from "../lib/supabase";
 import { boundedGuestRetrySeconds, getGuestRoomErrorCode, GuestRoomAccessError } from "./guestRoom";
 
 import type {
@@ -30,22 +30,6 @@ import type {
   RoomSnapshot,
 } from "../types/room";
 import { GameplayRpcError, ReassignmentRpcError } from "../types/room";
-import type {
-  ImportLegacyHistoryRpcRequest,
-  ImportLegacyHistoryRpcResponse,
-} from "../types/legacyHistoryImport";
-
-export interface SupabasePublicConfig {
-  url: string;
-  apiKey: string;
-}
-
-export interface LegacyHistoryImportRpcClient {
-  importLegacyHistory(
-    request: ImportLegacyHistoryRpcRequest,
-  ): Promise<ImportLegacyHistoryRpcResponse>;
-}
-
 export interface GuestRoomRpcClient {
   joinRoomAsGuest(
     request: GuestRoomJoinRequest,
@@ -75,7 +59,7 @@ export interface GuestRoomRpcClient {
   }): Promise<GameplayCommandResult>;
 }
 
-export interface ProviderScoreRefreshResult {
+interface ProviderScoreRefreshResult {
   matchId: string;
   sourceMatchId: string;
   provider: "espn";
@@ -86,7 +70,7 @@ export interface ProviderScoreRefreshResult {
   replayed: boolean;
 }
 
-export interface ProviderScoreRefreshResponse {
+interface ProviderScoreRefreshResponse {
   sessionId: string;
   requestId: string;
   status: "updated" | "partial" | "not_due";
@@ -283,106 +267,13 @@ export interface HostRoomRpcClient {
   createRoomAsHost(): Promise<HostRoomCreateResponse>;
 }
 
-let cachedSupabaseClient: SupabaseClient | null = null;
-let cachedLegacyHistoryImportRpcClient: LegacyHistoryImportRpcClient | null =
-  null;
 let cachedGuestRoomRpcClient: GuestRoomRpcClient | null = null;
 let cachedHostRoomRpcClient: HostRoomRpcClient | null = null;
 let cachedRoomRpcClient: RoomRpcClient | null = null;
 let cachedProviderScoreRefreshClient: ProviderScoreRefreshClient | null = null;
 
-const readTrimmedEnvValue = (value: string | undefined) => {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmedValue = value.trim();
-
-  return trimmedValue.length > 0 ? trimmedValue : null;
-};
-
-const readSupabaseUrl = () => {
-  return readTrimmedEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL);
-};
-
-const readSupabaseApiKey = () => {
-  return (
-    readTrimmedEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
-    readTrimmedEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)
-  );
-};
-
-export const hasSupabasePublicConfig = () => {
-  return Boolean(readSupabaseUrl() && readSupabaseApiKey());
-};
-
-export const getSupabasePublicConfig = (): SupabasePublicConfig => {
-  const url = readSupabaseUrl();
-  const apiKey = readSupabaseApiKey();
-
-  if (!url || !apiKey) {
-    throw new Error(
-      "Missing Supabase public configuration. Set EXPO_PUBLIC_SUPABASE_URL and either EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY or EXPO_PUBLIC_SUPABASE_ANON_KEY, or run `npm run auth:env` to bootstrap .env.local from the linked Supabase project.",
-    );
-  }
-
-  return { url, apiKey };
-};
-
-export const createSupabaseClient = (
-  config: SupabasePublicConfig = getSupabasePublicConfig(),
-) => {
-  return createClient(config.url, config.apiKey, {
-    auth: {
-      autoRefreshToken: true,
-      detectSessionInUrl: Platform.OS === "web",
-      persistSession: true,
-      storage: AsyncStorage,
-    },
-  });
-};
-
-export const getSupabaseClient = () => {
-  cachedSupabaseClient ??= createSupabaseClient();
-
-  return cachedSupabaseClient;
-};
-
-export const createLegacyHistoryImportRpcClient = (
-  client: SupabaseClient = getSupabaseClient(),
-): LegacyHistoryImportRpcClient => {
-  return {
-    async importLegacyHistory(request) {
-      const { data, error } = await client
-        .rpc("import_legacy_history", {
-          claimed_local_participant_id: request.claimedLocalParticipantId,
-          sessions: request.sessions,
-        })
-        .overrideTypes<ImportLegacyHistoryRpcResponse, { merge: false }>();
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        throw new Error(
-          "Supabase import_legacy_history returned no response payload.",
-        );
-      }
-
-      return data;
-    },
-  };
-};
-
-export const getLegacyHistoryImportRpcClient = () => {
-  cachedLegacyHistoryImportRpcClient ??= createLegacyHistoryImportRpcClient();
-
-  return cachedLegacyHistoryImportRpcClient;
-};
-
 export const createGuestRoomRpcClient = (
-  client: SupabaseClient = getSupabaseClient(),
+  client: SupabaseClient<Database> = getSupabaseClient(),
 ): GuestRoomRpcClient => {
   const invoke = async (operation: string, args: Record<string, unknown>) => {
     const { data, error } = await client.functions.invoke("guest-room-access", {
@@ -521,7 +412,7 @@ export const createGuestRoomRpcClient = (
 };
 
 export const createProviderScoreRefreshClient = (
-  client: SupabaseClient = getSupabaseClient(),
+  client: SupabaseClient<Database> = getSupabaseClient(),
 ): ProviderScoreRefreshClient => ({
   async refreshProviderScores(sessionId, idempotencyKey) {
     const { data, error } = await client.functions.invoke(
@@ -552,8 +443,8 @@ export const getGuestRoomRpcClient = () => {
   return cachedGuestRoomRpcClient;
 };
 
-export const createHostRoomRpcClient = (
-  client: SupabaseClient = getSupabaseClient(),
+const createHostRoomRpcClient = (
+  client: SupabaseClient<Database> = getSupabaseClient(),
 ): HostRoomRpcClient => {
   return {
     async createRoomAsHost() {
@@ -565,7 +456,7 @@ export const createHostRoomRpcClient = (
         throw error;
       }
 
-      if (!data) {
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error(
           "Supabase create_room_as_host returned no response payload.",
         );
@@ -583,7 +474,7 @@ export const getHostRoomRpcClient = () => {
 };
 
 export const createRoomRpcClient = (
-  client: SupabaseClient = getSupabaseClient(),
+  client: SupabaseClient<Database> = getSupabaseClient(),
 ): RoomRpcClient => {
   return {
     async joinRoomAsRegistered(joinCode) {
@@ -595,7 +486,7 @@ export const createRoomRpcClient = (
         throw error;
       }
 
-      if (!data) {
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error(
           "Supabase join_room_as_registered returned no response payload.",
         );
@@ -613,7 +504,7 @@ export const createRoomRpcClient = (
         throw error;
       }
 
-      if (!data) {
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error(
           "Supabase get_room_snapshot returned no response payload.",
         );
@@ -631,6 +522,9 @@ export const createRoomRpcClient = (
         throw error;
       }
 
+      if (data && (typeof data !== "object" || Array.isArray(data) || "Error" in data)) {
+        throw new Error("Invalid active room response.");
+      }
       return data ?? null;
     },
 
@@ -643,6 +537,9 @@ export const createRoomRpcClient = (
         throw error;
       }
 
+      if (data && (typeof data !== "object" || Array.isArray(data) || "Error" in data)) {
+        throw new Error("Invalid member departure response.");
+      }
       return data ?? { sessionId, status: "left" };
     },
 
@@ -650,7 +547,7 @@ export const createRoomRpcClient = (
       const { data, error } = await client
         .rpc("leave_room_as_host", {
           session_id: sessionId,
-          successor_participant_id: successorParticipantId ?? null,
+          successor_participant_id: successorParticipantId ?? undefined,
         })
         .overrideTypes<HostLeaveResponse, { merge: false }>();
 
@@ -658,7 +555,7 @@ export const createRoomRpcClient = (
         throw error;
       }
 
-      if (!data) {
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error(
           "Supabase leave_room_as_host returned no response payload.",
         );
@@ -676,7 +573,7 @@ export const createRoomRpcClient = (
         throw error;
       }
 
-      if (!data) {
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error(
           "Supabase end_game_session returned no response payload.",
         );
@@ -699,7 +596,7 @@ export const createRoomRpcClient = (
         throw mapReassignmentError(error) ?? error;
       }
 
-      if (!data) {
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error(
           "Supabase reassign_participant_matches returned no response payload.",
         );
@@ -742,9 +639,6 @@ export const createRoomRpcClient = (
     },
 
     async addRoomMatch(sessionId, request) {
-      const functionName = request.sourceLeagueCode
-        ? "add_room_match_v2"
-        : "add_room_match";
       const args = {
         session_id: sessionId,
         source_provider: request.sourceProvider,
@@ -756,13 +650,15 @@ export const createRoomRpcClient = (
           ? { source_league_code: request.sourceLeagueCode }
           : {}),
       };
-      const { data, error } = await client.rpc(functionName, args);
+      const { data, error } = await (request.sourceLeagueCode
+        ? client.rpc("add_room_match_v2", { ...args, source_league_code: request.sourceLeagueCode })
+        : client.rpc("add_room_match", args));
 
       if (error) {
         throw error;
       }
 
-      if (!data) {
+      if (typeof data !== "string" || !data) {
         throw new Error("Supabase add_room_match returned no response payload.");
       }
 
@@ -774,7 +670,7 @@ export const createRoomRpcClient = (
       // names, so the request objects travel verbatim.
       const { data, error } = await client.rpc("add_room_matches", {
         session_id: sessionId,
-        matches: requests,
+        matches: requests.map((request) => ({ ...request })),
       });
 
       if (error) {

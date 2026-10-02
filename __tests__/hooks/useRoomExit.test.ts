@@ -65,7 +65,7 @@ const render = () => {
 };
 
 describe("useRoomExit", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); });
 
   it("leaves directly as a member", async () => {
     const leaveRoomAsMember = jest.fn(async () => ({

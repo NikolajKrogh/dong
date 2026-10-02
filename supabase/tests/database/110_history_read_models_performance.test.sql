@@ -41,14 +41,14 @@ VALUES (
         FALSE,
         FALSE
     );
-INSERT INTO public.accounts (id, preferred_display_name)
+INSERT INTO public.accounts (id, username)
 VALUES (
         '14000000-0000-0000-0000-000000000001',
-        'Perf Alpha'
+        'Perf_Alpha'
     ),
     (
         '14000000-0000-0000-0000-000000000002',
-        'Perf Bravo'
+        'Perf_Bravo'
     );
 INSERT INTO public.game_sessions (
         id,

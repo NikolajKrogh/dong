@@ -99,10 +99,10 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
 
     /** Trigger consumed value scale animation. */
     const handleValueAnimation = () => {
-      valueScale.value = withSequence(
+      valueScale.set(withSequence(
         withTiming(1.2, { duration: 150 }),
         withTiming(1, { duration: 150 }),
-      );
+      ));
     };
 
     // Update progress animation when percentComplete changes
@@ -117,10 +117,10 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
         ((prevOwedRef.current > 0 && owed === 0) || // Was owing, now completed
           (prevOwedRef.current === 0 && owed > 0)) // Was completed, now owing
       ) {
-        badgeScale.value = withSequence(
+        badgeScale.set(withSequence(
           withTiming(1.2, { duration: 200 }),
           withTiming(1, { duration: 200 }),
-        );
+        ));
       }
       prevOwedRef.current = owed; // Update the ref for the next comparison
     }, [owed, badgeScale]);

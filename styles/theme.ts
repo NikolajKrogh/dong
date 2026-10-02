@@ -1,7 +1,7 @@
 import { colors as base } from "./palette";
 import { useGameStore } from "../store/store";
 
-export type ThemeName = "light" | "dark";
+
 
 // Light palette is the existing palette
 export const lightColors = base;
@@ -47,6 +47,3 @@ export const getCurrentColors = () => {
 };
 
 // Dummy default export to satisfy Expo Router if this file is treated as a route
-export default function StyleThemeRoute() {
-  return null;
-}

@@ -10,13 +10,13 @@ export const CAPABILITY_IDS = [
 ] as const;
 export type CapabilityId = (typeof CAPABILITY_IDS)[number];
 
-export type CapabilityBehaviorClass = "full" | "degraded" | "noOp";
-export type CapabilityFallbackType =
+type CapabilityBehaviorClass = "full" | "degraded" | "noOp";
+type CapabilityFallbackType =
   | "alternateUI"
   | "reducedAnimation"
   | "noOpWithSignal"
   | "primaryControlOnly";
-export type CapabilityUserVisibility = "silent" | "implicit" | "explicit";
+type CapabilityUserVisibility = "silent" | "implicit" | "explicit";
 
 export interface CapabilityImplementation {
   capability: CapabilityId;
@@ -212,15 +212,8 @@ export interface VisibilitySnapshot {
   capturedAt: number;
 }
 
-export type DateInputMode = "date" | "time";
 
-export interface DateInputValue {
-  mode: DateInputMode;
-  displayValue: string;
-  isoValue: string;
-  isEmptyAllowed: boolean;
-  validationRule: string;
-}
+
 
 export type AnimationKind = "splash" | "loading";
 

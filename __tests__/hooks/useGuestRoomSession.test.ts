@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -225,7 +226,7 @@ describe("useGuestRoomSession", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -248,7 +249,7 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(mockReadLegacyGrant).toHaveBeenCalledTimes(1);
     expect(getGuestRoomSnapshot).toHaveBeenCalledWith(legacyGrant.guestToken);
@@ -266,7 +267,7 @@ describe("useGuestRoomSession", () => {
     });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
     expect(observedHook?.session).toBeNull();
@@ -287,7 +288,7 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest, getGuestRoomSnapshot });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(joinRoomAsGuest).toHaveBeenCalledWith({ joinCode: "ROOM42", guestName: "Casey", guestToken: "retry-token" });
     expect(getGuestRoomSnapshot).not.toHaveBeenCalled();
@@ -318,7 +319,7 @@ describe("useGuestRoomSession", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -359,7 +360,7 @@ describe("useGuestRoomSession", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await Promise.resolve();
@@ -399,7 +400,7 @@ describe("useGuestRoomSession", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -437,7 +438,7 @@ describe("useGuestRoomSession", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -475,7 +476,7 @@ describe("useGuestRoomSession", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -514,7 +515,7 @@ describe("useGuestRoomSession", () => {
     });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => {
       await expect(observedHook.leaveRoom()).resolves.toBe(true);
@@ -570,7 +571,7 @@ describe("useGuestRoomSession", () => {
     });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => { await expect(observedHook?.leaveRoom()).resolves.toBe(false); });
     expect(mockSavePendingLeave).toHaveBeenCalledWith(persistedGrant);
@@ -600,7 +601,7 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, rotateGuestRoomGrant });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => { await observedHook?.refreshRoom(); });
     expect(mockSavePendingRotation).toHaveBeenCalledWith(grant, "d".repeat(64), "00000000-0000-4000-8000-000000000001");
@@ -628,7 +629,7 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, rotateGuestRoomGrant });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => { await observedHook?.refreshRoom(); });
     expect(mockSavePendingRotation).toHaveBeenCalled();
@@ -689,7 +690,7 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, rotateGuestRoomGrant });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(rotateGuestRoomGrant).toHaveBeenCalledWith(grant.guestToken, "d".repeat(64), "00000000-0000-4000-8000-000000000001");
     expect(getGuestRoomSnapshot).toHaveBeenCalledWith("d".repeat(64));
@@ -707,7 +708,7 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, leaveRoomAsGuest });
     let observedHook!: UseGuestRoomSessionResult;
     const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(leaveRoomAsGuest).toHaveBeenCalledWith(grant.guestToken);
     expect(getGuestRoomSnapshot).not.toHaveBeenCalled();
@@ -735,7 +736,7 @@ describe("useGuestRoomSession", () => {
       observed.current = useGuestRoomSession();
       return null;
     };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -796,7 +797,7 @@ describe("useGuestRoomSession", () => {
       observed.current = useGuestRoomSession();
       return null;
     };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -844,7 +845,7 @@ describe("useGuestRoomSession", () => {
       observed.current = useGuestRoomSession();
       return null;
     };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();

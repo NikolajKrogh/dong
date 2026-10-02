@@ -9,7 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
@@ -36,13 +36,13 @@ import static org.mockito.Mockito.when;
         "supabase.jwks-url=https://example.invalid/.well-known/jwks.json",
         "supabase.url=http://localhost:9"
 })
-@Import(JwksTestSupport.TestJwksConfig.class)
+@Import({JwksTestSupport.TestJwksConfig.class, com.dong.commandapi.testsupport.TestCommandConfig.class})
 class PerformanceSmokeTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
-    @MockBean
+    @MockitoBean
     private SupabaseRestClient supabaseRestClient;
 
     private HttpEntity<String> body(boolean auth) {
@@ -60,13 +60,13 @@ class PerformanceSmokeTest {
         // GET avoids HttpURLConnection streaming-mode limitation when reading 401
         // responses.
         long start = System.nanoTime();
-        restTemplate.exchange("/v1/rooms/r/commands/echo", HttpMethod.GET, null, String.class);
+        restTemplate.exchange("/v1/rooms/r/commands/test-command", HttpMethod.GET, null, String.class);
         return (System.nanoTime() - start) / 1_000_000;
     }
 
     private long timeMillis(boolean auth) {
         long start = System.nanoTime();
-        restTemplate.exchange("/v1/rooms/r/commands/echo", HttpMethod.POST, body(auth), String.class);
+        restTemplate.exchange("/v1/rooms/r/commands/test-command", HttpMethod.POST, body(auth), String.class);
         return (System.nanoTime() - start) / 1_000_000;
     }
 

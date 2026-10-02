@@ -10,7 +10,7 @@ import { ROOM_ERROR } from "../types/room";
 import { getRoomRpcClient } from "../utils/supabaseClient";
 import { roomSnapshotToActiveRoster } from "../utils/roomSnapshot";
 
-export type RoomExitResult = HostLeaveResponse | MemberLeaveResponse;
+type RoomExitResult = HostLeaveResponse | MemberLeaveResponse;
 
 export interface UseRoomExitResult {
   isExiting: boolean;

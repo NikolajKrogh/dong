@@ -35,6 +35,7 @@ export const useMyActiveRoom = (enabled: boolean): UseMyActiveRoomResult => {
   }, [enabled]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
     void refresh();
   }, [refresh]);
 

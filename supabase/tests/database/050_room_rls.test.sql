@@ -119,30 +119,30 @@ participant_two_auth AS (
     RETURNING id
 ),
 host_one_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Room Host One'
+        'Room_Host_One'
     FROM host_one_auth
     RETURNING id
 ),
 participant_one_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Room Participant One'
+        'Room_Participant_One'
     FROM participant_one_auth
     RETURNING id
 ),
 host_two_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Room Host Two'
+        'Room_Host_Two'
     FROM host_two_auth
     RETURNING id
 ),
 participant_two_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Room Participant Two'
+        'Room_Participant_Two'
     FROM participant_two_auth
     RETURNING id
 ),

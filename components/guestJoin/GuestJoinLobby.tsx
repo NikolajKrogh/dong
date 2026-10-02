@@ -30,7 +30,7 @@ export const GuestJoinLobby: React.FC<GuestJoinLobbyProps> = ({
   // snapshot then simply omits the keys. Reading them defensively here keeps the
   // guest card rendering instead of throwing; the same reason the registered
   // lobby keeps a fallback `assignmentPlan` object.
-  const picks = snapshot.picks ?? [];
+  const picks = useMemo(() => snapshot.picks ?? [], [snapshot.picks]);
   const cap = snapshot.assignmentPlan?.matchesPerPlayer ?? 0;
 
   const canPick =

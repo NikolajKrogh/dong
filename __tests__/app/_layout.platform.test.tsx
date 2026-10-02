@@ -1,6 +1,8 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+
 import { actCreate } from "../../test-utils/render";
+
+jest.mock("../../platform/connectivity", () => ({ subscribeConnectivity: () => () => {} }));
 
 jest.mock("expo-router", () => ({
   useRootNavigationState: () => ({ key: "root" }),
@@ -55,7 +57,7 @@ describe("Root shell provider regression", () => {
 
     // Toast must be a descendant (not a sibling of) the shell root
     const toastElements = root.findAll(
-      (node) => node.type === "Toast" || (typeof node.type === "function" && (node.type as any).name === "Toast")
+      (node) => String(node.type) === "Toast" || (typeof node.type === "function" && (node.type as any).name === "Toast")
     );
     expect(toastElements.length).toBeGreaterThanOrEqual(0); // baseline: renders
   });

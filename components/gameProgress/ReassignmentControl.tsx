@@ -112,7 +112,7 @@ export function ReassignmentControl({
         open={open}
         position={sheetPosition}
         onPositionChange={setSheetPosition}
-        animation="quick"
+        transition="quick"
         onOpenChange={(nextOpen: boolean) => {
           if (!disabled || !nextOpen) setOpen(nextOpen);
         }}

@@ -1,7 +1,7 @@
 export const DEFAULT_ESPN_BASE_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer";
 
-export const DEFAULT_SUPPORTED_LEAGUES = [
+const DEFAULT_SUPPORTED_LEAGUES = [
   "eng.1", "eng.2", "eng.3", "eng.4", "eng.league_cup", "eng.fa",
   "esp.1", "esp.2", "esp.copa_del_rey", "ger.1", "ger.2",
   "ger.dfb_pokal", "ita.1", "ita.2", "ita.coppa_italia", "fra.1",
@@ -80,7 +80,7 @@ export interface ScoreboardResult {
   failureReason?: "timeout" | "network_error" | "http_error" | "invalid_json";
 }
 
-export const UUID_V4_PATTERN =
+const UUID_V4_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export const isUuidV4 = (value: unknown): value is string =>

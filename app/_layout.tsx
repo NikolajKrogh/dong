@@ -6,6 +6,9 @@ import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
 import { AccountAuthProvider } from "../hooks/useAccountAuth";
 import { useGuestRoomEndedNavigation } from "../hooks/useGuestRoomEndedNavigation";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from '../lib/queryClient';
+import QueryLifecycle from '../lib/QueryLifecycle';
 
 const toastConfig = {
   // Setup Game toasts
@@ -24,6 +27,8 @@ const toastConfig = {
 export default function Layout() {
   useGuestRoomEndedNavigation();
   return (
+    <QueryClientProvider client={queryClient}>
+    <QueryLifecycle />
     <AccountAuthProvider>
       <TamaguiAppProvider>
         <PlatformGestureRoot style={{ flex: 1 }}>
@@ -41,5 +46,6 @@ export default function Layout() {
         </PlatformGestureRoot>
       </TamaguiAppProvider>
     </AccountAuthProvider>
+    </QueryClientProvider>
   );
 }

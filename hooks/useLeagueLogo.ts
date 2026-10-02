@@ -38,16 +38,12 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
   );
   const [isLoading, setIsLoading] = useState(true);
 
+  const localLogo = LEAGUE_LOGOS[leagueName];
+
   useEffect(() => {
     let isMounted = true;
 
-    // First try local logo (immediate)
-    const localLogo = LEAGUE_LOGOS[leagueName];
-    if (localLogo) {
-      setLogoSource(localLogo);
-      setIsLoading(false);
-      return;
-    }
+    if (LEAGUE_LOGOS[leagueName]) return;
 
     /** Begin async resolution flow (cache -> API). */
     const loadLogo = async () => {
@@ -58,6 +54,7 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
       if (!foundInCache && leagueCode) {
         await fetchLogoFromAPI();
       }
+      if (isMounted) setIsLoading(false);
     };
 
     /** Try cached logo from storage. */
@@ -134,5 +131,5 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
     };
   }, [leagueName, leagueCode]);
 
-  return { logoSource, isLoading };
+  return { logoSource: localLogo ?? logoSource, isLoading: localLogo ? false : isLoading };
 }

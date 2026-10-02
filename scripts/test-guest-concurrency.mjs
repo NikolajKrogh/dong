@@ -173,8 +173,8 @@ const createGuestFixture = async (onFixtureCreated) => {
         now(), now(), now(), '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false)
       RETURNING id
     ), account AS (
-      INSERT INTO public.accounts (id, preferred_display_name)
-      SELECT id, 'Concurrency Probe Host' FROM host RETURNING id
+      INSERT INTO public.accounts (id, username)
+      SELECT id, 'Probe' || left(replace(id::text, '-', ''), 20) FROM host RETURNING id
     ), room AS (
       INSERT INTO public.game_sessions (owner_account_id, join_code)
       SELECT id, ${sqlLiteral(joinCode)} FROM account RETURNING id

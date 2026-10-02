@@ -12,8 +12,9 @@ INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, up
 SELECT id, 'authenticated', 'authenticated', id::text || '@leave165.test', now(), now(), now(),
   '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false
 FROM leave_ctx, LATERAL (VALUES (host), (member)) ids(id);
-INSERT INTO public.accounts (id, preferred_display_name)
-SELECT id, id::text FROM leave_ctx, LATERAL (VALUES (host), (member)) ids(id);
+INSERT INTO public.accounts (id, username)
+SELECT id, 'Leave' || left(replace(id::text, '-', ''), 20)
+FROM leave_ctx, LATERAL (VALUES (host), (member)) ids(id);
 INSERT INTO public.game_sessions (id, owner_account_id, join_code, state, started_at)
 SELECT room, host, 'LEFT165', 'in_progress', now() - interval '1 hour' FROM leave_ctx;
 INSERT INTO public.participants (id, session_id, account_id, display_name,

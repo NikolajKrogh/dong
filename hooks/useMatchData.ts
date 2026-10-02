@@ -26,7 +26,7 @@ const GENERIC_MATCH_DISCOVERY_ERROR_MESSAGE =
  * `requestedAt` pins discovery to today, which silently returns nothing at all
  * during an off-season gap.
  */
-export const buildRequestedAt = (
+const buildRequestedAt = (
   selectedDate?: string,
 ): string | undefined => {
   if (!selectedDate || !DATE_ONLY_REGEX.test(selectedDate)) {
@@ -212,6 +212,7 @@ export function useMatchData(selectedDate?: string) {
 
   /** Trigger fetch on mount or when dependencies change. */
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
     fetchData();
   }, [fetchData]);
 

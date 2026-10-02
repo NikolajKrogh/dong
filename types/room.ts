@@ -4,7 +4,7 @@ export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
  * value but is not yet actionable — #185 implements it. */
 export type AssignmentMode = "automatic" | "host_assigned" | "player_picked";
 
-export type RoomMembershipType = "registered" | "guest";
+type RoomMembershipType = "registered" | "guest";
 
 export type RoomSessionRole = "owner" | "member";
 
@@ -29,7 +29,7 @@ export interface RoomMatchSummary {
   awayScore: number;
 }
 
-export interface RoomAssignmentSummary {
+interface RoomAssignmentSummary {
   participantId: string;
   matchId: string;
 }
@@ -43,7 +43,7 @@ export interface RoomAssignmentSummary {
  * The lobby derives every participant's progress from this array rather than
  * from a server-computed field (specs/022-player-picked-mode research.md R7).
  */
-export interface RoomPickSummary {
+interface RoomPickSummary {
   participantId: string;
   matchId: string;
 }
@@ -121,8 +121,8 @@ export interface EndGameSessionResponse {
   sessionId: string;
 }
 
-export type ActiveGameMode = "solo" | "multiplayer";
-export type ActiveGameAccessKind = "registered" | "guest";
+type ActiveGameMode = "solo" | "multiplayer";
+type ActiveGameAccessKind = "registered" | "guest";
 
 export interface ActiveGameContext {
   mode: ActiveGameMode;

@@ -12,10 +12,12 @@ export default function SettingsPage({
   title,
   children,
   onBack,
+  refreshControl,
 }: {
   title: string;
   children: React.ReactNode;
   onBack?: () => void;
+  refreshControl?: React.ComponentProps<typeof ScrollView>["refreshControl"];
 }) {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -36,6 +38,7 @@ export default function SettingsPage({
           testID="UserPreferencesContent"
           style={{ flex: 1, backgroundColor: colors.backgroundLight, ...(Platform.OS === "web" ? { fontFamily: "system-ui" } : {}) }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 32, gap: 12 }}
+          refreshControl={refreshControl}
           keyboardShouldPersistTaps="handled"
         >
           {children}

@@ -8,7 +8,7 @@ WITH host AS (
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','close-host@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
-acc AS (INSERT INTO public.accounts (id, preferred_display_name) SELECT id,'Close Host' FROM host RETURNING id),
+acc AS (INSERT INTO public.accounts (id, username) SELECT id,'Close_Host' FROM host RETURNING id),
 s AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'CLOSE1' FROM host RETURNING id),
 g AS (INSERT INTO public.participants (session_id, account_id, display_name, membership_type, session_role, current_drink_total, guest_rejoin_token_hash)
       SELECT (SELECT id FROM s), NULL, 'Only Guest', 'guest'::public.participant_membership_type, 'member'::public.participant_session_role, 0, encode(extensions.digest('close-guest-token','sha256'),'hex') RETURNING id)

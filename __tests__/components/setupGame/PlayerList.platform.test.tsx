@@ -1,3 +1,4 @@
+import type { PlayerSuggestion } from "../../../hooks/usePlayerSuggestions";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
@@ -14,7 +15,7 @@ class MockAnimatedValue {
 }
 
 const mockUsePlayerSuggestions = jest.fn(() => ({
-  playerSuggestions: [],
+  playerSuggestions: [] as PlayerSuggestion[],
   hasHistory: false,
 }));
 
@@ -87,7 +88,7 @@ jest.mock("expo-linear-gradient", () => ({
 
 jest.mock("../../../hooks/usePlayerSuggestions", () => ({
   usePlayerSuggestions: (searchQuery: string) =>
-    mockUsePlayerSuggestions(searchQuery),
+    mockUsePlayerSuggestions(),
 }));
 
 jest.mock("../../../components/setupGame/PlayerSuggestionDropdown", () => {
@@ -152,7 +153,7 @@ describe("PlayerList responsive layout", () => {
 
   it("keeps the players list in one column on phone-sized viewports", () => {
     const renderer = renderPlayerList();
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
     expect(list.props.numColumns).toBe(1);
     expect(list.props.columnWrapperStyle).toBeUndefined();
@@ -167,7 +168,7 @@ describe("PlayerList responsive layout", () => {
     });
 
     const renderer = renderPlayerList();
-    const list = renderer.root.findByType("FlatList");
+    const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
     expect(list.props.numColumns).toBe(2);
     expect(list.props.columnWrapperStyle).toEqual(
@@ -190,7 +191,7 @@ describe("PlayerList responsive layout", () => {
     });
 
     const renderer = renderPlayerList();
-    const input = renderer.root.findByType("TextInput");
+    const input = renderer.root.find((node) => String(node.type) === "TextInput");
     const dropdown = () =>
       renderer.root.findByProps({ testID: "PlayerSuggestionDropdown" });
 

@@ -24,6 +24,13 @@ class CommandDispatcherTest {
     private final IdempotencyService idempotency = mock(IdempotencyService.class);
     private final AuthenticatedHost host = new AuthenticatedHost("host-1", "authenticated", "raw-jwt");
 
+    private CommandHandler testHandler() {
+        CommandHandler handler = mock(CommandHandler.class);
+        when(handler.commandType()).thenReturn("test-command");
+        when(handler.handle(any())).thenReturn(CommandResult.accepted());
+        return handler;
+    }
+
     private CommandContext ctx(String type) {
         return new CommandContext("room-1", type, "key", host, null);
     }
@@ -32,11 +39,11 @@ class CommandDispatcherTest {
     void knownTypeIsDispatchedToHandlerAndCompleted() {
         UUID key = UUID.randomUUID();
         when(idempotency.validate("key")).thenReturn(key);
-        when(idempotency.reserve(key, EchoCommandHandler.TYPE, "room-1", host))
+        when(idempotency.reserve(key, "test-command", "room-1", host))
                 .thenReturn(new IdempotencyDecision.Proceed());
-        CommandDispatcher dispatcher = new CommandDispatcher(List.of(new EchoCommandHandler()), idempotency);
+        CommandDispatcher dispatcher = new CommandDispatcher(List.of(testHandler()), idempotency);
 
-        CommandDispatcher.DispatchResult result = dispatcher.dispatch(ctx(EchoCommandHandler.TYPE));
+        CommandDispatcher.DispatchResult result = dispatcher.dispatch(ctx("test-command"));
 
         assertThat(result.idempotencyKey()).isEqualTo(key);
         assertThat(result.result().status()).isEqualTo(CommandResult.Status.ACCEPTED);
@@ -46,7 +53,7 @@ class CommandDispatcherTest {
     @Test
     void unknownTypeThrowsUnknownCommandWithoutTouchingIdempotencyStore() {
         when(idempotency.validate("key")).thenReturn(UUID.randomUUID());
-        CommandDispatcher dispatcher = new CommandDispatcher(List.of(new EchoCommandHandler()), idempotency);
+        CommandDispatcher dispatcher = new CommandDispatcher(List.of(testHandler()), idempotency);
 
         assertThatThrownBy(() -> dispatcher.dispatch(ctx("does-not-exist")))
                 .isInstanceOf(ApiException.class)
@@ -59,9 +66,9 @@ class CommandDispatcherTest {
     @Test
     void idempotencyFailurePropagates() {
         when(idempotency.validate("key")).thenThrow(new ApiException(ErrorCode.INVALID_UUID));
-        CommandDispatcher dispatcher = new CommandDispatcher(List.of(new EchoCommandHandler()), idempotency);
+        CommandDispatcher dispatcher = new CommandDispatcher(List.of(testHandler()), idempotency);
 
-        assertThatThrownBy(() -> dispatcher.dispatch(ctx(EchoCommandHandler.TYPE)))
+        assertThatThrownBy(() -> dispatcher.dispatch(ctx("test-command")))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).errorCode())
                 .isEqualTo(ErrorCode.INVALID_UUID);
@@ -72,14 +79,14 @@ class CommandDispatcherTest {
         UUID key = UUID.randomUUID();
         CommandResult cached = new CommandResult(CommandResult.Status.ACCEPTED, Map.of("replayed", true));
         when(idempotency.validate("key")).thenReturn(key);
-        when(idempotency.reserve(key, EchoCommandHandler.TYPE, "room-1", host))
+        when(idempotency.reserve(key, "test-command", "room-1", host))
                 .thenReturn(new IdempotencyDecision.Replay(cached));
 
         CommandHandler handler = mock(CommandHandler.class);
-        when(handler.commandType()).thenReturn(EchoCommandHandler.TYPE);
+        when(handler.commandType()).thenReturn("test-command");
         CommandDispatcher dispatcher = new CommandDispatcher(List.of(handler), idempotency);
 
-        CommandDispatcher.DispatchResult result = dispatcher.dispatch(ctx(EchoCommandHandler.TYPE));
+        CommandDispatcher.DispatchResult result = dispatcher.dispatch(ctx("test-command"));
 
         assertThat(result.result()).isSameAs(cached);
         verify(handler, never()).handle(any());

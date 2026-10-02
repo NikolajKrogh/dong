@@ -5,8 +5,9 @@ import { serializeSyncedPreferenceState, useGameStore } from "../store/store";
 import {
   buildSyncedPreferenceSignature,
   saveAccountSyncedSettings,
-} from "../utils/accountRepository";
-import { getSupabaseClient } from "../utils/supabaseClient";
+} from "../features/account";
+import { getSupabaseClient } from "../lib/supabase";
+import { getAccountScope, isCurrentAccountScope } from '../lib/queryClient';
 
 interface UseAccountSettingsSyncParams {
   isConfigured: boolean;
@@ -46,11 +47,13 @@ export const useAccountSettingsSync = ({
 
       const previousPreferenceSignature =
         lastSyncedPreferenceSignatureRef.current;
+      const scope = getAccountScope();
 
       lastSyncedPreferenceSignatureRef.current = nextPreferenceSignature;
 
       void saveAccountSyncedSettings(client, user.id, nextPreferences).catch(
         (error) => {
+          if (!isCurrentAccountScope(scope)) return;
           lastSyncedPreferenceSignatureRef.current =
             previousPreferenceSignature;
           console.error(error);

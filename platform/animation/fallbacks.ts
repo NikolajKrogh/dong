@@ -30,7 +30,7 @@ const animationOutcomes: Record<
   },
 };
 
-export const ANIMATION_FALLBACKS: Record<
+const ANIMATION_FALLBACKS: Record<
   AnimationKind,
   Record<SupportedPlatform, AnimationFallbackConfig>
 > = {
@@ -82,7 +82,7 @@ export const ANIMATION_FALLBACKS: Record<
   },
 };
 
-export const ANIMATION_IMPLEMENTATIONS: CapabilityImplementation[] = [
+const ANIMATION_IMPLEMENTATIONS: CapabilityImplementation[] = [
   {
     capability: "animation",
     platform: "ios",
@@ -111,7 +111,7 @@ export const ANIMATION_IMPLEMENTATIONS: CapabilityImplementation[] = [
   },
 ];
 
-export const ANIMATION_CAPABILITY_FALLBACKS: CapabilityFallback[] = [
+const ANIMATION_CAPABILITY_FALLBACKS: CapabilityFallback[] = [
   {
     capability: "animation",
     platform: "web",

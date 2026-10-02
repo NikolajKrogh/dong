@@ -22,15 +22,16 @@ const UsernameOnboardingForm = ({
 }: UsernameOnboardingFormProps) => {
   const router = useRouter();
   const colors = useColors();
-  const { account, saveDisplayName, status } = useAccountAuth();
+  const { account, saveUsername, status } = useAccountAuth();
   const normalizedReturnTo = normalizeAccountFlowReturnTo(returnTo);
-  const [displayName, setDisplayName] = useState(
-    account?.preferredDisplayName ?? prefillName ?? "",
+  const [username, setUsername] = useState(
+    account?.username ?? prefillName ?? "",
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const inputRef = useRef<TextInput>(null);
+  const submitting = useRef(false);
 
   const inputStyles = StyleSheet.create({
     input: {
@@ -56,22 +57,28 @@ const UsernameOnboardingForm = ({
     }
   }, [normalizedReturnTo, router, status]);
 
-  useEffect(() => {
-    setDisplayName(account?.preferredDisplayName ?? "");
-  }, [account?.preferredDisplayName]);
+  const initialUsername = account?.username ?? prefillName ?? "";
+  const [previousUsername, setPreviousUsername] = useState(initialUsername);
+  if (previousUsername !== initialUsername) {
+    setPreviousUsername(initialUsername);
+    setUsername(initialUsername);
+  }
 
   const handleSubmit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     setErrorMessage(null);
     setIsSubmitting(true);
 
     try {
-      await saveDisplayName(displayName);
+      await saveUsername(username);
       router.replace((normalizedReturnTo ?? "/") as never);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to save the name.",
       );
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -81,7 +88,7 @@ const UsernameOnboardingForm = ({
       <YStack gap="$4">
         <YStack gap="$2">
           <Text fontSize={22} fontWeight="700" color="$textPrimary">
-            Choose your display name
+            Choose your username
           </Text>
           <Text fontSize={15} color="$textSecondary">
             This name is stored on your account and shown whenever you create or
@@ -91,18 +98,18 @@ const UsernameOnboardingForm = ({
 
         <YStack gap="$1.5">
           <Text fontSize={13} fontWeight="600" color="$textMuted">
-            Display name
+            Username
           </Text>
           <TextInput
             ref={inputRef}
-            autoCapitalize="words"
+            autoCapitalize="none"
             autoCorrect={false}
             placeholder="Your name"
             placeholderTextColor={colors.textMuted}
             returnKeyType="done"
             style={inputStyles.input}
-            value={displayName}
-            onChangeText={setDisplayName}
+            value={username}
+            onChangeText={setUsername}
             onSubmitEditing={() => void handleSubmit()}
           />
         </YStack>
@@ -113,12 +120,12 @@ const UsernameOnboardingForm = ({
 
         <ShellActionButton
           disabled={isSubmitting}
-          label={isSubmitting ? "Saving…" : "Save display name"}
+          label={isSubmitting ? "Saving…" : "Save username"}
           onPress={() => void handleSubmit()}
         />
 
         <Text fontSize={13} color="$textMuted" textAlign="center">
-          Duplicate display names are allowed.
+          Use 3–30 letters, numbers, or underscores. Your username is unique.
         </Text>
       </YStack>
     </ShellCard>

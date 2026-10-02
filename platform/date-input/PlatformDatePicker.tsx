@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   Pressable,
@@ -59,6 +59,7 @@ const styles = StyleSheet.create({
 
 const loadNativeDatePicker = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load only the selected platform library; a missing optional native module has a safe fallback.
     return require("react-native-date-picker")
       .default as React.ComponentType<any>;
   } catch {
@@ -68,12 +69,16 @@ const loadNativeDatePicker = () => {
 
 const loadWebDatePicker = () => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Load the web picker only on web; native uses a separate module.
     return require("react-native-ui-datepicker")
       .default as React.ComponentType<any>;
   } catch {
     return null;
   }
 };
+
+const NativeDatePicker = isWebPlatform ? null : loadNativeDatePicker();
+const WebDatePicker = isWebPlatform ? loadWebDatePicker() : null;
 
 export const PlatformDatePicker: React.FC<PlatformDatePickerProps> = ({
   open,
@@ -88,15 +93,14 @@ export const PlatformDatePicker: React.FC<PlatformDatePickerProps> = ({
   const colors = useColors();
   const [draftDate, setDraftDate] = useState(date);
 
-  useEffect(() => {
-    if (open) {
-      setDraftDate(date);
-    }
-  }, [date, open]);
+  const [previous, setPrevious] = useState({ date, open });
+  if (previous.date !== date || previous.open !== open) {
+    setPrevious({ date, open });
+    if (open) setDraftDate(date);
+  }
 
   if (!isWebPlatform) {
-    const NativeDatePicker = loadNativeDatePicker();
-    if (!NativeDatePicker) {
+      if (!NativeDatePicker) {
       return null;
     }
 
@@ -115,7 +119,6 @@ export const PlatformDatePicker: React.FC<PlatformDatePickerProps> = ({
     );
   }
 
-  const WebDatePicker = loadWebDatePicker();
   if (!open || !WebDatePicker) {
     return null;
   }
@@ -173,5 +176,3 @@ export const PlatformDatePicker: React.FC<PlatformDatePickerProps> = ({
     </Modal>
   );
 };
-
-export default PlatformDatePicker;

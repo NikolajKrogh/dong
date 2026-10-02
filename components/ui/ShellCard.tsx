@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { GetProps, YStack, styled } from "tamagui";
 
 const ShellCardFrame = styled(YStack, {
@@ -9,16 +10,18 @@ const ShellCardFrame = styled(YStack, {
   minWidth: 0,
   borderWidth: 1,
   borderColor: "$borderColor",
-  shadowColor: "$borderColor",
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.1,
-  shadowRadius: 2,
+  ...(Platform.OS === "web" ? { boxShadow: "0px 1px 2px rgba(0,0,0,0.1)" } : {
+    shadowColor: "$borderColor",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  }),
   elevation: 2,
 
   variants: {
     elevated: {
       true: {
-        shadowOpacity: 0.2,
+        ...(Platform.OS === "web" ? { boxShadow: "0px 1px 2px rgba(0,0,0,0.2)" } : { shadowOpacity: 0.2 }),
         elevation: 3,
       },
     },

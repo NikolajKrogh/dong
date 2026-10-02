@@ -19,20 +19,15 @@ import {
   readGuestRoomSessionGrant,
 } from "../utils/guestRoom";
 import { confirmGuestRoomEnded, isGuestRoomEnded } from "../utils/guestRoomTermination";
-import {
-  getGuestRoomRpcClient,
-  getProviderScoreRefreshClient,
-  getRoomRpcClient,
-  getSupabaseClient,
-  mapGameplayError,
-} from "../utils/supabaseClient";
+import { getSupabaseClient } from "../lib/supabase";
+import { getGuestRoomRpcClient, getProviderScoreRefreshClient, getRoomRpcClient, mapGameplayError } from "../utils/supabaseClient";
 import { generateIdempotencyKey } from "../utils/commandApiClient";
 import {
   roomSnapshotToGameState,
   type CompatibleRoomSnapshot,
 } from "../utils/roomSnapshot";
 
-export const ACTIVE_GAME_POLL_INTERVAL_MS = 4000;
+const ACTIVE_GAME_POLL_INTERVAL_MS = 4000;
 
 export type ActiveGameSyncStatus =
   | "idle"
@@ -57,7 +52,7 @@ export interface PendingGameplayMutation {
 
 type GameplayCommand = () => Promise<GameplayCommandResult>;
 
-export const getSequence = (snapshot: CompatibleRoomSnapshot | null) =>
+const getSequence = (snapshot: CompatibleRoomSnapshot | null) =>
   snapshot?.lastEventSequence ?? 0;
 
 export const canApplySnapshot = (
@@ -160,6 +155,19 @@ export const useActiveGameRoomSync = () => {
   const lastProviderRefreshAtRef = useRef(0);
   const completionInFlightRef = useRef(false);
 
+  const identity = `${context.mode}:${context.accessKind}:${context.participantId}:${context.sessionId}:${accessLost}`;
+  const [previousIdentity, setPreviousIdentity] = useState(identity);
+  if (previousIdentity !== identity) {
+    setPreviousIdentity(identity);
+    setPendingMutations([]);
+    if (context.mode === "multiplayer" || !accessLost) {
+      setSnapshot(null);
+      setStatus(context.mode === "multiplayer" ? "hydrating" : "idle");
+      setError(null);
+    }
+    if (context.mode === "multiplayer" && accessLost) setAccessLost(false);
+  }
+
   useEffect(() => {
     contextRef.current = context;
   }, [context]);
@@ -172,18 +180,7 @@ export const useActiveGameRoomSync = () => {
     completionInFlightRef.current = false;
     pendingRef.current = [];
     commandsRef.current.clear();
-    setPendingMutations([]);
-    if (context.mode === "multiplayer") {
-      snapshotRef.current = null;
-      setSnapshot(null);
-      setStatus("hydrating");
-      setError(null);
-    } else if (!accessLost) {
-      snapshotRef.current = null;
-      setSnapshot(null);
-      setStatus("idle");
-      setError(null);
-    }
+    if (context.mode === "multiplayer" || !accessLost) snapshotRef.current = null;
   }, [
     accessLost,
     context.accessKind,
@@ -715,11 +712,6 @@ export const useActiveGameRoomSync = () => {
     [isEditable, isHost, refresh],
   );
 
-  useEffect(() => {
-    if (context.mode === "multiplayer" && accessLost) {
-      setAccessLost(false);
-    }
-  }, [accessLost, context.mode, context.sessionId]);
 
   useEffect(() => {
     if (
@@ -763,10 +755,8 @@ export const useActiveGameRoomSync = () => {
   ]);
 
   useEffect(() => {
-    if (!isMultiplayer) {
-      setStatus("idle");
-      return;
-    }
+    if (!isMultiplayer) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
     void refresh();
     const interval = setInterval(() => {
       if (isInteractive) void refresh();
@@ -782,6 +772,7 @@ export const useActiveGameRoomSync = () => {
 
   useEffect(() => {
     if (isMultiplayer && isInteractive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
       void refresh();
     }
   }, [

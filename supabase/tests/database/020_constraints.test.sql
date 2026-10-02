@@ -2,7 +2,7 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(30);
+SELECT plan(27);
 SELECT ok(
         EXISTS (
             SELECT 1
@@ -21,25 +21,6 @@ SELECT ok(
                 AND confrelid = 'auth.users'::regclass
         ),
         'accounts.id references auth.users(id)'
-    );
-SELECT ok(
-        EXISTS (
-            SELECT 1
-            FROM pg_constraint
-            WHERE conrelid = 'public.profiles'::regclass
-                AND contype = 'p'
-        ),
-        'profiles has a primary key'
-    );
-SELECT ok(
-        EXISTS (
-            SELECT 1
-            FROM pg_constraint
-            WHERE conrelid = 'public.profiles'::regclass
-                AND contype = 'f'
-                AND confrelid = 'public.accounts'::regclass
-        ),
-        'profiles.account_id references accounts(id)'
     );
 SELECT ok(
         EXISTS (
@@ -277,23 +258,23 @@ registered_auth AS (
     RETURNING id
 ),
 host_one_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Phase45 Host One'
+        'Phase45_Host_One'
     FROM host_one_auth
     RETURNING id
 ),
 host_two_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Phase45 Host Two'
+        'Phase45_Host_Two'
     FROM host_two_auth
     RETURNING id
 ),
 registered_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Phase45 Registered'
+        'Phase45_Registered'
     FROM registered_auth
     RETURNING id
 ),
@@ -431,14 +412,6 @@ CREATE TEMP TABLE phase45_constraint_results (
     name text PRIMARY KEY,
     passed boolean NOT NULL
 );
-INSERT INTO public.profiles (account_id, display_name)
-VALUES (
-        (
-            SELECT registered_account_id
-            FROM phase45_constraint_context
-        ),
-        'Registered Profile'
-    );
 INSERT INTO public.settings (account_id, settings_data)
 VALUES (
         (
@@ -465,24 +438,6 @@ VALUES (
         'accepted',
         now()
     );
-DO $$ BEGIN BEGIN
-INSERT INTO public.profiles (account_id, display_name)
-VALUES (
-        (
-            SELECT registered_account_id
-            FROM phase45_constraint_context
-        ),
-        'Duplicate Profile'
-    );
-INSERT INTO phase45_constraint_results
-VALUES ('duplicate_profile_rejected', FALSE);
-EXCEPTION
-WHEN unique_violation THEN
-INSERT INTO phase45_constraint_results
-VALUES ('duplicate_profile_rejected', TRUE);
-END;
-END;
-$$;
 DO $$ BEGIN BEGIN
 INSERT INTO public.settings (account_id, settings_data)
 VALUES (
@@ -814,14 +769,6 @@ SELECT ok(
             WHERE name = 'duplicate_registered_participant'
         ),
         'duplicate registered participant is rejected'
-    );
-SELECT ok(
-        (
-            SELECT passed
-            FROM phase45_constraint_results
-            WHERE name = 'duplicate_profile_rejected'
-        ),
-        'duplicate profile rows for the same account are rejected'
     );
 SELECT ok(
         (
