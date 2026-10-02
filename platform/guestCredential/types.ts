@@ -47,7 +47,7 @@ export type GuestCredentialRecord =
 
 export const GUEST_CREDENTIAL_STORAGE_KEY = "dong.guest-credential.v1";
 
-export const isGuestCredentialRecord = (value: unknown): value is GuestCredentialRecord => {
+const isGuestCredentialRecord = (value: unknown): value is GuestCredentialRecord => {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   const has = (key: string) => typeof record[key] === "string" && (record[key] as string).length > 0;

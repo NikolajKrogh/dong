@@ -69,17 +69,16 @@ describe("formatMatchTime", () => {
 
     it("returns the raw string when formatting throws", () => {
       const logSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-      const toLocaleTimeString = Date.prototype.toLocaleTimeString;
-      Date.prototype.toLocaleTimeString = () => {
+      const timeSpy = jest.spyOn(Date.prototype, "toLocaleTimeString").mockImplementation(() => {
         throw new Error("boom");
-      };
+      });
 
       try {
         expect(formatMatchTime("2026-08-22T11:30:00.000Z")).toBe(
           "2026-08-22T11:30:00.000Z",
         );
       } finally {
-        Date.prototype.toLocaleTimeString = toLocaleTimeString;
+        timeSpy.mockRestore();
         logSpy.mockRestore();
       }
     });

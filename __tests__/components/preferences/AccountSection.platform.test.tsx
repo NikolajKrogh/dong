@@ -4,10 +4,10 @@ import { actCreate } from "../../../test-utils/render";
 
 import AccountSection from "../../../components/preferences/AccountSection";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+import { useAccountAuth } from "../../../hooks/useAccountAuth";
 
 const TestSubject = (props: Record<string, unknown> = {}) =>
   React.createElement(TamaguiTestProvider, null, React.createElement(AccountSection, props));
-import { useAccountAuth } from "../../../hooks/useAccountAuth";
 
 const mockPush = jest.fn();
 
@@ -113,7 +113,7 @@ describe("AccountSection", () => {
       changePassword: jest.fn(),
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
-      saveDisplayName: jest.fn(),
+      saveUsername: jest.fn(),
       saveProfile: jest.fn(),
       session: null,
       sessionNotice: null,
@@ -147,11 +147,11 @@ describe("AccountSection", () => {
 
   it("routes account setup back to the account flow when display name is missing", () => {
     mockUseAccountAuth.mockReturnValue({
-      account: { preferredDisplayName: null },
+      account: { username: null },
       changePassword: jest.fn(),
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
-      saveDisplayName: jest.fn(),
+      saveUsername: jest.fn(),
       saveProfile: jest.fn(),
       session: { user: { id: "host-1" } },
       sessionNotice: null,
@@ -159,7 +159,7 @@ describe("AccountSection", () => {
       signOut: jest.fn(),
       signUp: jest.fn(),
       verifySignupOtp: jest.fn(),
-      status: "needsDisplayName",
+      status: "needsUsername",
       user: { id: "host-1" },
     } as never);
 
@@ -182,11 +182,11 @@ describe("AccountSection", () => {
     const signOut = jest.fn();
 
     mockUseAccountAuth.mockReturnValue({
-      account: { preferredDisplayName: "Captain" },
+      account: { username: "Captain" },
       changePassword: jest.fn(),
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
-      saveDisplayName: jest.fn(),
+      saveUsername: jest.fn(),
       saveProfile: jest.fn(),
       session: { user: { id: "host-1" } },
       sessionNotice: null,
@@ -217,7 +217,7 @@ describe("AccountSection", () => {
       changePassword: jest.fn(),
       deleteAccount: jest.fn(),
       requestPasswordReset: jest.fn(),
-      saveDisplayName: jest.fn(),
+      saveUsername: jest.fn(),
       saveProfile: jest.fn(),
       session: null,
       sessionNotice:

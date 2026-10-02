@@ -308,6 +308,7 @@ export const useHomeRoomActions = () => {
     if (guestRoomStatus === "ended" || (guestRoomSession && guestRoomSession.grant.sessionId === endedGuestSessionId)) {
       hydratedGuestGameplaySessionIdRef.current = null;
       seenGuestPreStartRef.current = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
       setGuestJoinCode("");
       setGuestName("");
       setIsGuestJoinModalVisible(false);
@@ -406,5 +407,3 @@ export const useHomeRoomActions = () => {
     handleLeaveGuestJoin,
   };
 };
-
-export default useHomeRoomActions;

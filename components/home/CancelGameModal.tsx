@@ -49,5 +49,3 @@ export const CancelGameModal: React.FC<CancelGameModalProps> = ({
     </Modal>
   );
 };
-
-export default CancelGameModal;

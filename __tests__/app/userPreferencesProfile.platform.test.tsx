@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- Jest mock factories load React Native after hoisting. */
+
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { Alert } from "react-native";
@@ -74,7 +74,7 @@ function textOf(tree: TestRenderer.ReactTestRenderer): string[] {
 describe("Profile settings route", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseAccountAuth.mockReturnValue({ account: { preferredDisplayName: "Captain" }, status: "ready", deleteAccount: mockDeleteAccount });
+    mockUseAccountAuth.mockReturnValue({ account: { username: "Captain" }, status: "ready", deleteAccount: mockDeleteAccount });
   });
 
   it("shows profile editing and returns password changes to Profile", () => {
@@ -109,7 +109,7 @@ describe("Profile settings route", () => {
   });
 
   it("keeps unfinished account setup out of Profile", () => {
-    mockUseAccountAuth.mockReturnValue({ account: { preferredDisplayName: null }, status: "needsDisplayName", deleteAccount: mockDeleteAccount });
+    mockUseAccountAuth.mockReturnValue({ account: { username: null }, status: "needsUsername", deleteAccount: mockDeleteAccount });
     const tree = renderProfile();
     expect(mockReplace).toHaveBeenCalledWith("/userPreferences");
     expect(textOf(tree)).not.toContain("Display name form");

@@ -232,7 +232,7 @@ describe("SetupWizard responsive layout", () => {
     const navigation = renderer.root.findByProps({
       testID: "SetupWizardNavigation",
     });
-    const contentScroll = renderer.root.findByType("ScrollView");
+    const contentScroll = renderer.root.find((node) => String(node.type) === "ScrollView");
 
     expect(root.props.style).toEqual(
       expect.arrayContaining([mockStyles.wizardContainer]),
@@ -264,7 +264,7 @@ describe("SetupWizard responsive layout", () => {
       testID: "SetupWizardNavigation",
     });
     const stepLabels = renderer.root.findAll(
-      (node) => node.type === "Text" && node.props.children === "Players",
+      (node) => String(node.type) === "Text" && node.props.children === "Players",
     );
 
     expect(root.props.style).toEqual(

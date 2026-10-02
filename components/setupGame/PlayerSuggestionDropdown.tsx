@@ -85,7 +85,8 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
   const getHighlightedText = (text: string, highlight: string) => {
     if (!highlight.trim()) return <Text>{text}</Text>;
 
-    const parts = text.split(new RegExp(`(${highlight})`, "gi"));
+    const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const parts = text.split(new RegExp(`(${escapedHighlight})`, "gi"));
     const lowerText = text.toLowerCase();
     let nextSearchStart = 0;
 

@@ -3,7 +3,7 @@
 This is a polyglot monorepo containing three distinct subsystems:
 
 - **Expo/React Native client** (TypeScript, root) — the DONG mobile/web app
-- **`command-api/`** — Java 17 / Spring Boot 3.3 proxy service (own Maven build)
+- **`command-api/`** — Java 17 / Spring Boot 3.5.3 proxy service (own Maven build)
 - **`supabase/`** — PostgreSQL migrations and pgTAP database tests (Supabase CLI)
 - **`python/`** — utility scripts (`crop_icons.py`), not part of the app runtime
 
@@ -129,6 +129,7 @@ reconnects — reverse tunnels do not persist across USB re-attach.
 ## Architecture Notes
 
 - **State**: Zustand + AsyncStorage is canonical on-device. Supabase Postgres backs multiplayer/synced state. No other persistence layer.
+- **Cloud queries**: TanStack Query owns account-scoped Friends/History server data in memory; auth changes cancel/remove private caches and fence delayed callbacks. See [development workflow](docs/development-workflow.md) for boundaries, generated contracts and migration tooling.
 - **Auth**: Supabase Auth. Signed-in = host. Guests join via room code and are session-scoped identities.
 - **Match discovery**: client calls `GET /v1/matches` on the Java proxy (not ESPN directly). The proxy applies a configurable in-memory TTL cache (default `PT5M`).
 - **Tamagui**: design system foundation. New UI work should use Tamagui components and move toward the palette defined in `styles/`.
@@ -137,5 +138,5 @@ reconnects — reverse tunnels do not persist across USB re-attach.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/026-in-game-leave-history/plan.md
+at specs/027-friendships-unique-usernames/plan.md
 <!-- SPECKIT END -->

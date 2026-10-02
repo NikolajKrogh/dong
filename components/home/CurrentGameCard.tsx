@@ -60,5 +60,3 @@ export const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
     </ShellCard>
   );
 };
-
-export default CurrentGameCard;

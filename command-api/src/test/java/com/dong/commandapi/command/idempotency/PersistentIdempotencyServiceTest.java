@@ -52,7 +52,7 @@ class PersistentIdempotencyServiceTest {
     @SafeVarargs
     private final void stubReserveOutcome(Map<String, Object> first, Map<String, Object>... rest) {
         when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
-                .thenReturn(first, rest);
+                .thenReturn(first, (Object[]) rest);
     }
 
     @Test

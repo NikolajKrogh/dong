@@ -53,7 +53,7 @@ export interface ESPNEvent {
  * ESPN competition wrapper.
  * @description Contains competitors, status and detail records for a given event instance.
  */
-export interface ESPNCompetition {
+interface ESPNCompetition {
   id?: string;
   status?: {
     type?: {
@@ -96,7 +96,7 @@ export interface ESPNCompetitionDetail {
  * ESPN statistic entry.
  * @description Single stat name/value pair sometimes with display formatting.
  */
-export interface ESPNStatistic {
+interface ESPNStatistic {
   name?: string;
   displayValue?: string;
   value?: number;

@@ -201,5 +201,3 @@ export const useMatchListFilters = ({
     addCustomAwayTeam: (value: string) => addCustomTeam(value, "away"),
   };
 };
-
-export default useMatchListFilters;

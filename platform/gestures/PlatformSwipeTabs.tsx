@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, PanResponder, View } from "react-native";
 
 import { supportsGestureEnhancement } from "./fallbacks";
@@ -43,9 +43,7 @@ export const PlatformSwipeTabs: React.FC<PlatformSwipeTabsProps> = ({
   refreshControl,
 }) => {
   const pages = useMemo(() => React.Children.toArray(children), [children]);
-  const translateX = useRef(
-    new Animated.Value(-activeIndex * pageWidth),
-  ).current;
+  const [translateX] = useState(() => new Animated.Value(-activeIndex * pageWidth));
   const currentIndexRef = useRef(activeIndex);
   const startXRef = useRef(-activeIndex * pageWidth);
   const canSwipe = supportsGestureEnhancement("tabSwipe");
@@ -65,6 +63,7 @@ export const PlatformSwipeTabs: React.FC<PlatformSwipeTabsProps> = ({
       return null;
     }
 
+    // eslint-disable-next-line react-hooks/refs -- PanResponder registers callbacks here; refs are read only when a gesture fires.
     return PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
         return (
@@ -149,5 +148,3 @@ export const PlatformSwipeTabs: React.FC<PlatformSwipeTabsProps> = ({
     </View>
   );
 };
-
-export default PlatformSwipeTabs;

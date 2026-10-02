@@ -17,10 +17,10 @@ outsider AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','snap-outsider@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id,'Snap Host' FROM host
-    UNION ALL SELECT id,'Snap Member' FROM member
-    UNION ALL SELECT id,'Snap Outsider' FROM outsider
+    INSERT INTO public.accounts (id, username)
+    SELECT id,'Snap_Host' FROM host
+    UNION ALL SELECT id,'Snap_Member' FROM member
+    UNION ALL SELECT id,'Snap_Outsider' FROM outsider
     RETURNING id
 ),
 s AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'SNAP01' FROM host RETURNING id),

@@ -2,6 +2,11 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+import PlayerStatsList from "../../../components/history/PlayerStatsList";
+import OverallStats from "../../../components/history/OverallStats";
+import { GameSession, PlayerStat } from "../../../components/history/historyTypes";
+
 const mockDimensions = jest.fn(() => ({ width: 390, height: 844, scale: 1, fontScale: 1 }));
 jest.mock("react-native", () => new Proxy({
   View: "View", TextInput: "TextInput", Pressable: "Pressable", ScrollView: "ScrollView",
@@ -24,11 +29,6 @@ jest.mock("../../../components/history/PlayerDetailsModal", () => (props: unknow
   require("react").createElement("PlayerDetailsModal", props as any));
 jest.mock("../../../components/history/PlayerComparisonModal", () => (props: unknown) =>
   require("react").createElement("PlayerComparisonModal", props as any));
-
-import { TamaguiTestProvider } from "../../../test-utils/tamagui";
-import PlayerStatsList from "../../../components/history/PlayerStatsList";
-import OverallStats from "../../../components/history/OverallStats";
-import { GameSession, PlayerStat } from "../../../components/history/historyTypes";
 
 const render = (element: React.ReactElement) => actCreate(<TamaguiTestProvider>{element}</TamaguiTestProvider>);
 

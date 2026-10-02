@@ -1,4 +1,4 @@
-import type { DateInputValue } from "../types";
+
 
 const padNumber = (value: number): string => String(value).padStart(2, "0");
 
@@ -77,48 +77,4 @@ export const parseTimeIsoValue = (
   const nextValue = new Date(fallback);
   nextValue.setHours(hours, minutes, 0, 0);
   return nextValue;
-};
-
-export const createDateInputValue = (
-  date: Date,
-  options: { isEmptyAllowed?: boolean; locale?: string } = {},
-): DateInputValue => ({
-  mode: "date",
-  displayValue: date.toLocaleDateString(options.locale ?? "en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }),
-  isoValue: formatDateIsoValue(date),
-  isEmptyAllowed: options.isEmptyAllowed ?? false,
-  validationRule: "yyyy-mm-dd",
-});
-
-export const createTimeInputValue = (
-  date: Date,
-  options: { isEmptyAllowed?: boolean; locale?: string } = {},
-): DateInputValue => ({
-  mode: "time",
-  displayValue: date.toLocaleTimeString(options.locale ?? "en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }),
-  isoValue: formatTimeIsoValue(date),
-  isEmptyAllowed: options.isEmptyAllowed ?? false,
-  validationRule: "HH:MM",
-});
-
-export const normalizeDateInputValue = (
-  value: string | null | undefined,
-  fallback = new Date(),
-): DateInputValue => {
-  return createDateInputValue(parseDateIsoValue(value, fallback));
-};
-
-export const normalizeTimeInputValue = (
-  value: string | null | undefined,
-  fallback = new Date(),
-): DateInputValue => {
-  return createTimeInputValue(parseTimeIsoValue(value, fallback));
 };

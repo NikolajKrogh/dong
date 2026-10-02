@@ -12,7 +12,7 @@ import {
   createDocumentVisibilitySnapshot,
 } from "./normalizeVisibility";
 
-export const getCurrentVisibilitySnapshot = (): VisibilitySnapshot => {
+const getCurrentVisibilitySnapshot = (): VisibilitySnapshot => {
   if (isWebPlatform && canUseDOM) {
     return createDocumentVisibilitySnapshot(getDocumentVisibilityState());
   }

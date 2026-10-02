@@ -16,9 +16,9 @@ export type GuestRoomSessionStatus =
 export type GuestRoomSessionState =
   "joinable" | "in_progress" | "completed" | "closed";
 
-export type GuestRoomMembershipType = "registered" | "guest";
+type GuestRoomMembershipType = "registered" | "guest";
 
-export type GuestRoomParticipantRole = "owner" | "member";
+type GuestRoomParticipantRole = "owner" | "member";
 
 export type GuestRoomErrorCode =
   | "room_not_found"
@@ -44,7 +44,7 @@ export interface GuestRoomParticipantSummary {
   leftAt?: string | null;
 }
 
-export interface GuestRoomMatchSummary {
+interface GuestRoomMatchSummary {
   id: string;
   sourceProvider: string | null;
   sourceMatchId: string | null;
@@ -56,13 +56,13 @@ export interface GuestRoomMatchSummary {
   awayScore: number | null;
 }
 
-export interface GuestRoomAssignmentSummary {
+interface GuestRoomAssignmentSummary {
   participantId: string;
   matchId: string;
 }
 
 /** One participant's pre-start pick in player-picked mode (FR-038, FR-042). */
-export interface GuestRoomPickSummary {
+interface GuestRoomPickSummary {
   participantId: string;
   matchId: string;
 }
@@ -140,14 +140,3 @@ export type GuestRoomLeaveResponse =
 export type GuestRoomRotationResponse =
   | { ok: true; participantId: string; grantExpiresAt: string; replayed: boolean }
   | { ok: false; code: "guest_access_lost" | "room_unavailable" | "rate_limited" | "invalid_request" };
-
-export interface GuestRoomRotationRequest {
-  oldToken: string;
-  newToken: string;
-  operationId: string;
-}
-
-export interface GuestRoomRpcError {
-  code: GuestRoomErrorCode;
-  message: string;
-}

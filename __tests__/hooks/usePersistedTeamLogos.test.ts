@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -42,7 +43,7 @@ const renderProbe = () => {
     return null;
   };
 
-  return TestRenderer.create(React.createElement(Probe));
+  return actCreate(React.createElement(Probe));
 };
 
 describe("usePersistedTeamLogos", () => {

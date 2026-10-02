@@ -12,7 +12,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpEntity;
@@ -36,13 +36,13 @@ import com.dong.commandapi.testsupport.JwksTestSupport;
         "supabase.jwks-url=https://example.invalid/.well-known/jwks.json",
         "supabase.url=http://localhost:9"
 })
-@Import(JwksTestSupport.TestJwksConfig.class)
+@Import({JwksTestSupport.TestJwksConfig.class, com.dong.commandapi.testsupport.TestCommandConfig.class})
 class CommandControllerTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
 
-    @MockBean
+    @MockitoBean
     private SupabaseRestClient supabaseRestClient;
 
     private String validJwt() {
@@ -71,10 +71,10 @@ class CommandControllerTest {
         when(supabaseRestClient.rpc(anyString(), any(), anyString(), any()))
                 .thenReturn(Map.of("outcome", "reserved"));
 
-        ResponseEntity<String> res = post("echo", UUID.randomUUID().toString(), true);
+        ResponseEntity<String> res = post("test-command", UUID.randomUUID().toString(), true);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(res.getBody()).contains("\"commandType\":\"echo\"");
+        assertThat(res.getBody()).contains("\"commandType\":\"test-command\"");
         assertThat(res.getBody()).contains("\"roomId\":\"room-test\"");
         assertThat(res.getBody()).contains("\"status\":\"ACCEPTED\"");
         assertThat(res.getBody()).contains("\"timestamp\"");
@@ -82,7 +82,7 @@ class CommandControllerTest {
 
     @Test
     void missingIdempotencyKeyIsRejected() {
-        ResponseEntity<String> res = post("echo", null, true);
+        ResponseEntity<String> res = post("test-command", null, true);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         assertThat(res.getBody()).contains("MISSING_IDEMPOTENCY_KEY");
@@ -90,7 +90,7 @@ class CommandControllerTest {
 
     @Test
     void nonUuidIdempotencyKeyIsRejected() {
-        ResponseEntity<String> res = post("echo", "not-a-uuid", true);
+        ResponseEntity<String> res = post("test-command", "not-a-uuid", true);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         assertThat(res.getBody()).contains("INVALID_UUID");
@@ -109,7 +109,7 @@ class CommandControllerTest {
         // GET avoids HttpURLConnection streaming-mode limitation when reading a 401
         // response.
         ResponseEntity<String> res = restTemplate.exchange(
-                "/v1/rooms/room-test/commands/echo", HttpMethod.GET, null, String.class);
+                "/v1/rooms/room-test/commands/test-command", HttpMethod.GET, null, String.class);
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(res.getBody()).contains("UNAUTHORIZED");

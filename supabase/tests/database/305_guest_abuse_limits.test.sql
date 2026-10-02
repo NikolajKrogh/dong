@@ -21,8 +21,8 @@ WITH host AS (
     '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false)
   RETURNING id
 ), account AS (
-  INSERT INTO public.accounts (id, preferred_display_name)
-  SELECT id, 'Abuse Host' FROM host RETURNING id
+  INSERT INTO public.accounts (id, username)
+  SELECT id, 'Abuse_Host' FROM host RETURNING id
 ), room_a AS (
   INSERT INTO public.game_sessions (owner_account_id, join_code)
   SELECT id, 'LIMIT1' FROM account RETURNING id

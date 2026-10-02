@@ -67,7 +67,7 @@ VALUES (
         FALSE,
         FALSE
     );
-INSERT INTO public.accounts (id, preferred_display_name)
+INSERT INTO public.accounts (id, username)
 VALUES (
         '12000000-0000-0000-0000-000000000001',
         'Alpha'

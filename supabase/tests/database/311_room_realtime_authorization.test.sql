@@ -29,10 +29,10 @@ WITH host AS (
     '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false)
   RETURNING id
 ), accounts AS (
-  INSERT INTO public.accounts (id, preferred_display_name)
-  SELECT id, 'Realtime Host' FROM host
-  UNION ALL SELECT id, 'Realtime Member' FROM member
-  UNION ALL SELECT id, 'Realtime Outsider' FROM outsider
+  INSERT INTO public.accounts (id, username)
+  SELECT id, 'Realtime_Host' FROM host
+  UNION ALL SELECT id, 'Realtime_Member' FROM member
+  UNION ALL SELECT id, 'Realtime_Outsider' FROM outsider
   RETURNING id
 ), active_room AS (
   INSERT INTO public.game_sessions (owner_account_id, join_code, state)

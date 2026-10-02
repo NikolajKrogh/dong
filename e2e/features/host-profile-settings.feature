@@ -3,17 +3,17 @@ Feature: Host Profile and Synced Settings
     Scenario: Signed-in host updates the display name from preferences
         Given the host profile settings flow is available
         And a signed-in host profile is restored in preferences
-        When the host updates the profile display name to "Captain Updated"
+        When the host updates the profile username to "Captain_Updated"
         And the host saves the profile form
-        Then the saved profile should show display name "Captain Updated"
+        Then the saved profile should show username "Captain_Updated"
 
     Scenario: Invalid profile values show a clear validation message
         Given the host profile settings flow is available
         And a signed-in host profile is restored in preferences
-        When the host clears the profile display name
+        When the host clears the profile username
         And the host saves the profile form
-        Then the profile validation message should say "Account display name cannot be blank."
-        And the saved profile should show display name "Captain"
+        Then the profile validation message should say "Username cannot be blank."
+        And the saved profile should show username "Captain"
 
     Scenario: First sync seeds supported settings from local values
         Given the host profile settings flow is available

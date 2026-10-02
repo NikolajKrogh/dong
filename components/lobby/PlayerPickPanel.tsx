@@ -159,5 +159,3 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
     </YStack>
   );
 };
-
-export default PlayerPickPanel;

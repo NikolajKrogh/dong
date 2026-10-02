@@ -20,7 +20,7 @@ WITH u AS (
         '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, false, false)
     RETURNING id
 ),
-a AS (INSERT INTO public.accounts (id, preferred_display_name) SELECT id, 'Lifecycle Host' FROM u RETURNING id),
+a AS (INSERT INTO public.accounts (id, username) SELECT id, 'Lifecycle_Host' FROM u RETURNING id),
 s AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'LIFE01' FROM a RETURNING id)
 SELECT (SELECT id FROM a) AS account_id, (SELECT id FROM s) AS session_id;
 

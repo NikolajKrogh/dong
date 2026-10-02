@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page, type Locator } from "@playwright/test";
 
 const PERSISTED_STORE_KEY = "dong-storage";
 const HOME_READY_MARKERS = [
@@ -9,7 +9,7 @@ const HOME_READY_MARKERS = [
 ];
 
 const dismissOnboardingIfPresent = async (
-  page: Parameters<typeof test>[0]["page"],
+  page: Page,
 ) => {
   const skipButton = page.getByText("Skip");
 
@@ -18,7 +18,7 @@ const dismissOnboardingIfPresent = async (
   }
 };
 
-const waitForHomeReady = async (page: Parameters<typeof test>[0]["page"]) => {
+const waitForHomeReady = async (page: Page) => {
   await page.waitForLoadState("networkidle");
   await dismissOnboardingIfPresent(page);
 
@@ -31,7 +31,7 @@ const waitForHomeReady = async (page: Parameters<typeof test>[0]["page"]) => {
 };
 
 const seedPersistedHomeState = async (
-  page: Parameters<typeof test>[0]["page"],
+  page: Page,
   state: Record<string, unknown>,
 ) => {
   await page.goto("/");
@@ -52,8 +52,8 @@ const seedPersistedHomeState = async (
 };
 
 const expectHorizontallyCentered = async (
-  page: Parameters<typeof test>[0]["page"],
-  locator: Parameters<Parameters<typeof expect>[0]["boundingBox"]>[0],
+  page: Page,
+  locator: Locator,
   tolerance = 32,
 ) => {
   const viewport = page.viewportSize();

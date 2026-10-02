@@ -54,18 +54,18 @@ VALUES (
         FALSE,
         FALSE
     );
-INSERT INTO public.accounts (id, preferred_display_name)
+INSERT INTO public.accounts (id, username)
 VALUES (
         '11000000-0000-0000-0000-000000000001',
-        'Lifetime Host'
+        'Lifetime_Host'
     ),
     (
         '11000000-0000-0000-0000-000000000002',
-        'Lifetime Friend'
+        'Lifetime_Friend'
     ),
     (
         '11000000-0000-0000-0000-000000000003',
-        'Unused Player'
+        'Unused_Player'
     );
 INSERT INTO public.game_sessions (
         id,

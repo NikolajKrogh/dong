@@ -47,10 +47,10 @@ SELECT is(
             FROM information_schema.columns
             WHERE table_schema = 'public'
                 AND table_name = 'accounts'
-                AND column_name = 'preferred_display_name'
+                AND column_name = 'username'
         ),
         'text',
-        'accounts.preferred_display_name is text'
+        'accounts.username is text'
     );
 SELECT is(
         (
@@ -75,27 +75,15 @@ SELECT is(
         'accounts.updated_at is timestamptz'
     );
 SELECT ok(
-        to_regclass('public.profiles') IS NOT NULL,
-        'profiles table exists'
+        to_regclass('public.profiles') IS NULL,
+        'retired profiles table is absent'
     );
 SELECT is(
-        (
-            SELECT string_agg(
-                    column_name || ':' || (
-                        CASE
-                            WHEN data_type = 'USER-DEFINED' THEN udt_name
-                            ELSE data_type
-                        END
-                    ) || ':' || is_nullable,
-                    ','
-                    ORDER BY ordinal_position
-                )
-            FROM information_schema.columns
-            WHERE table_schema = 'public'
-                AND table_name = 'profiles'
-        ),
-        'account_id:uuid:NO,display_name:text:NO,avatar_url:text:YES,bio:text:YES,created_at:timestamp with time zone:NO,updated_at:timestamp with time zone:NO',
-        'profiles columns, types, and nullability match expectations'
+        (SELECT data_type FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = 'accounts'
+            AND column_name = 'username_key'),
+        'text',
+        'accounts has a derived username key'
     );
 SELECT ok(
         to_regclass('public.settings') IS NOT NULL,

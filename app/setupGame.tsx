@@ -11,7 +11,7 @@ import {
   SetupWizard,
 } from "../components";
 import { ShellScreen } from "../components/ui";
-import { Match, Player, useGameStore } from "../store/store";
+import { Player, useGameStore } from "../store/store";
 import { createRandomAssignments } from "../utils/setupGameAssignments";
 import { isWideLayout } from "../styles/responsive";
 import createSetupGameStyles from "../styles/setupGameStyles";

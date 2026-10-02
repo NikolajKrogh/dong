@@ -86,5 +86,3 @@ export const HostAllocationGrid: React.FC<HostAllocationGridProps> = ({
     })}
   </YStack>
 );
-
-export default HostAllocationGrid;

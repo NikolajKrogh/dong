@@ -64,5 +64,3 @@ export const formatMatchTime = (startTime?: string): string | null => {
     return startTime;
   }
 };
-
-export default formatMatchTime;

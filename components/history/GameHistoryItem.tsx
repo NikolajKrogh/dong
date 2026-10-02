@@ -6,7 +6,7 @@ import {
   View,
 } from "react-native";
 import type { TextStyle, ViewStyle } from "react-native";
-import { AppIcon, type AppIconName } from "../AppIcon";
+import AppIcon, { type AppIconName } from "../AppIcon";
 import { GameSession } from "./historyTypes";
 import { useColors } from "../../styles/theme";
 import {

@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/no-unresolved -- Deno resolves npm: specifiers in the Edge runtime.
 import { withSupabase } from "npm:@supabase/server@1.5.2";
+import type { Database } from "../../../types/database.types.ts";
 
 import {
   buildFetchTargets,
@@ -62,7 +63,7 @@ const rpcStatus = (message: string): number => {
   return 503;
 };
 
-const authenticatedHandler = withSupabase(
+const authenticatedHandler = withSupabase<Database>(
   { auth: "user", cors: false, errors: { detailed: false } },
   async (request, context) => {
     const origin = request.headers.get("Origin");
@@ -202,7 +203,7 @@ const authenticatedHandler = withSupabase(
           session_id: sessionId,
           actor_account_id: actorId,
           request_id: requestId,
-          observations,
+          observations: observations.map((observation) => ({ ...observation })),
         },
       );
     if (acceptedError) {

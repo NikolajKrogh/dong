@@ -33,9 +33,9 @@ CREATE TEMP TABLE guest_room_join_context AS WITH host_auth AS (
     RETURNING id
 ),
 host_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Guest Room Host'
+        'Guest_Room_Host'
     FROM host_auth
     RETURNING id
 ),

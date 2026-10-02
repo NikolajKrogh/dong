@@ -55,9 +55,11 @@ const useGameProgressController = () => {
     commonMatchNotificationsEnabled,
   } = useGameStore();
 
-  if (activeGameContext.sessionId) {
-    lastActiveSessionIdRef.current = activeGameContext.sessionId;
-  }
+  useEffect(() => {
+    if (activeGameContext.sessionId) {
+      lastActiveSessionIdRef.current = activeGameContext.sessionId;
+    }
+  }, [activeGameContext.sessionId]);
 
   useEffect(() => {
     const isTerminal = activeGame.status === "ended"

@@ -95,7 +95,7 @@ const ICON_MAP: Record<AppIconName, IoniconName> = {
 
 export type { AppIconName };
 
-export const AppIcon: React.FC<AppIconProps> = ({
+const AppIcon: React.FC<AppIconProps> = ({
   name,
   size,
   color,

@@ -17,8 +17,8 @@ h3 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','exp-h3@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id,'Exp H1' FROM h1 UNION ALL SELECT id,'Exp H2' FROM h2 UNION ALL SELECT id,'Exp H3' FROM h3 RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id,'Exp_H1' FROM h1 UNION ALL SELECT id,'Exp_H2' FROM h2 UNION ALL SELECT id,'Exp_H3' FROM h3 RETURNING id
 ),
 ra AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'EXPIRA' FROM h1 RETURNING id),
 rb AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'EXPIRB' FROM h2 RETURNING id),

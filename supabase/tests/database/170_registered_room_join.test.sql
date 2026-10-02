@@ -26,12 +26,12 @@ j2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','rj-joiner2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'Host One' FROM host1
-    UNION ALL SELECT id, 'Host Two' FROM host2
-    UNION ALL SELECT id, 'Host Three' FROM host3
-    UNION ALL SELECT id, 'Joiner One' FROM j1
-    UNION ALL SELECT id, 'Joiner Two' FROM j2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'Host_One' FROM host1
+    UNION ALL SELECT id, 'Host_Two' FROM host2
+    UNION ALL SELECT id, 'Host_Three' FROM host3
+    UNION ALL SELECT id, 'Joiner_One' FROM j1
+    UNION ALL SELECT id, 'Joiner_Two' FROM j2
     RETURNING id
 ),
 r1 AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'ROOMR1' FROM host1 RETURNING id),

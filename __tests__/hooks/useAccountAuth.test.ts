@@ -1,3 +1,5 @@
+import { actCreate } from "../../test-utils/render";
+import type { Session } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -7,19 +9,15 @@ import {
   AccountAuthProvider,
   SESSION_EXPIRED_MESSAGE,
   bootstrapAccountRow,
-  normalizeAccountDisplayName,
-  saveAccountDisplayName,
+  normalizeAccountUsername,
+  saveAccountUsername,
   useAccountAuth,
 } from "../../hooks/useAccountAuth";
 import {
   getCurrentSyncedPreferenceState,
   useGameStore,
 } from "../../store/store";
-import {
-  getSupabaseClient,
-  getSupabasePublicConfig,
-  hasSupabasePublicConfig,
-} from "../../utils/supabaseClient";
+import { getSupabaseClient, getSupabasePublicConfig, hasSupabasePublicConfig } from "../../lib/supabase";
 
 const DEFAULT_SELECTED_LEAGUES = [
   { name: "Premier League", code: "eng.1", category: "Europe" },
@@ -38,7 +36,7 @@ jest.mock("expo-linking", () => ({
   createURL: jest.fn((path: string) => `myapp://${path.replace(/^\//, "")}`),
 }));
 
-jest.mock("../../utils/supabaseClient", () => ({
+jest.mock("../../lib/supabase", () => ({
   getSupabaseClient: jest.fn(),
   getSupabasePublicConfig: jest.fn(),
   hasSupabasePublicConfig: jest.fn(),
@@ -61,7 +59,7 @@ const createAccountsTableMock = (
     insert: jest.fn((values: Record<string, unknown>) => {
       accountRow = {
         id: values.id,
-        preferred_display_name: null,
+        username: null,
         created_at: "2026-05-10T00:00:00.000Z",
         updated_at: "2026-05-10T00:00:00.000Z",
       };
@@ -71,11 +69,11 @@ const createAccountsTableMock = (
     update: jest.fn((values: Record<string, unknown>) => {
       accountRow = {
         id: accountRow?.id ?? values.id,
-        preferred_display_name:
-          typeof values.preferred_display_name === "string" ||
-          values.preferred_display_name === null
-            ? values.preferred_display_name
-            : (accountRow?.preferred_display_name ?? null),
+        username:
+          typeof values.username === "string" ||
+          values.username === null
+            ? values.username
+            : (accountRow?.username ?? null),
         created_at: accountRow?.created_at ?? "2026-05-10T00:00:00.000Z",
         updated_at:
           typeof values.updated_at === "string" || values.updated_at === null
@@ -149,6 +147,10 @@ const createSupabaseClientMock = (
 
   return {
     auth,
+    rpc: jest.fn((_name: string, args: { requested_username: string }) => {
+      accounts.accountsTable.update({ username: args.requested_username });
+      return accounts.accountsTable;
+    }),
     from: jest.fn((table: string) =>
       table === "settings" ? settingsTable : accounts.accountsTable,
     ),
@@ -169,9 +171,36 @@ describe("account auth foundation", () => {
     useGameStore.setState(DEFAULT_SYNCED_PREFERENCES);
   });
 
+  it.each(["failed", "signedOut", "signedOutAndBack"])("keeps confirmed identity when a delayed username save is %s", async (outcome) => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+    const row = { id: "owner", username: "Captain", created_at: null, updated_at: null };
+    const client = createSupabaseClientMock(row);
+    const session = { user: { id: "owner" }, access_token: "token" } as Session;
+    client.auth.getSession.mockResolvedValue({ data: { session }, error: null } as never);
+    client.auth.getUser.mockResolvedValue({ data: { user: session.user }, error: null } as never);
+    mockGetSupabaseClient.mockReturnValue(client as unknown as ReturnType<typeof getSupabaseClient>);
+    let auth!: ReturnType<typeof useAccountAuth>;
+    const Probe = () => { auth = useAccountAuth(); return null; };
+    let tree!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { tree = TestRenderer.create(React.createElement(AccountAuthProvider, null, React.createElement(Probe))); });
+    let complete!: (value: { data: Record<string, unknown> | null; error: { message: string } | null }) => void;
+    client.rpc.mockImplementationOnce(() => client.accounts.accountsTable);
+    client.accounts.accountsTable.single.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }) as never);
+    let pending!: Promise<unknown>;
+    TestRenderer.act(() => { pending = auth.saveUsername("Captain_New").catch(error => error); });
+    if (outcome !== "failed") await TestRenderer.act(async () => { client.emitAuthStateChange("SIGNED_OUT", null); });
+    if (outcome === "signedOutAndBack") await TestRenderer.act(async () => { client.emitAuthStateChange("SIGNED_IN", session); });
+    await TestRenderer.act(async () => {
+      complete(outcome === "failed" ? { data: null, error: { message: "username_unavailable" } } : { data: { ...row, username: "Captain_New" }, error: null });
+      expect(await pending).toBeInstanceOf(Error);
+    });
+    expect(auth.account?.username ?? null).toBe(outcome === "signedOut" ? null : "Captain");
+    TestRenderer.act(() => tree.unmount());
+  });
+
   it("normalizes account display names", () => {
-    expect(normalizeAccountDisplayName("  Captain  ")).toBe("Captain");
-    expect(normalizeAccountDisplayName("   ")).toBeNull();
+    expect(normalizeAccountUsername("  Captain  ")).toBe("Captain");
+    expect(normalizeAccountUsername("   ")).toBeNull();
   });
 
   it("bootstraps a missing account row for the signed-in user", async () => {
@@ -188,7 +217,7 @@ describe("account auth foundation", () => {
     });
     expect(account).toMatchObject({
       id: "host-1",
-      preferredDisplayName: null,
+      username: null,
     });
   });
 
@@ -196,12 +225,12 @@ describe("account auth foundation", () => {
     const client = createSupabaseClientMock();
 
     await expect(
-      saveAccountDisplayName(
+      saveAccountUsername(
         client as unknown as ReturnType<typeof getSupabaseClient>,
         "host-1",
         "   ",
       ),
-    ).rejects.toThrow("Account display name cannot be blank.");
+    ).rejects.toThrow("Username cannot be blank.");
   });
 
   it("restores the saved display name from the account row", async () => {
@@ -209,7 +238,7 @@ describe("account auth foundation", () => {
 
     const client = createSupabaseClientMock({
       id: "host-restore",
-      preferred_display_name: "Restored Captain",
+      username: "Restored Captain",
       created_at: "2026-05-10T00:00:00.000Z",
       updated_at: "2026-05-10T00:00:00.000Z",
     });
@@ -246,7 +275,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -259,7 +288,7 @@ describe("account auth foundation", () => {
     });
 
     expect(observedAccount).toMatchObject({
-      preferredDisplayName: "Restored Captain",
+      username: "Restored Captain",
     });
   });
 
@@ -268,7 +297,7 @@ describe("account auth foundation", () => {
 
     const client = createSupabaseClientMock({
       id: "host-profile",
-      preferred_display_name: "Captain",
+      username: "Captain",
       created_at: "2026-05-10T00:00:00.000Z",
       updated_at: "2026-05-10T00:00:00.000Z",
     });
@@ -299,16 +328,16 @@ describe("account auth foundation", () => {
     );
 
     let observedAccount: ReturnType<typeof useAccountAuth>["account"] = null;
-    let saveDisplayName: ((displayName: string) => Promise<void>) | null = null;
+    let saveUsername: ((displayName: string) => Promise<void>) | null = null;
 
     const Probe = () => {
       const auth = useAccountAuth();
       observedAccount = auth.account;
-      saveDisplayName = auth.saveDisplayName;
+      saveUsername = auth.saveUsername;
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -321,21 +350,21 @@ describe("account auth foundation", () => {
     });
 
     await TestRenderer.act(async () => {
-      await saveDisplayName?.("Captain Updated");
+      await saveUsername?.("Captain Updated");
     });
 
     expect(observedAccount).toMatchObject({
-      preferredDisplayName: "Captain Updated",
+      username: "Captain Updated",
     });
 
     await expect(
       TestRenderer.act(async () => {
-        await saveDisplayName?.("   ");
+        await saveUsername?.("   ");
       }),
-    ).rejects.toThrow("Account display name cannot be blank.");
+    ).rejects.toThrow("Username cannot be blank.");
 
     expect(observedAccount).toMatchObject({
-      preferredDisplayName: "Captain Updated",
+      username: "Captain Updated",
     });
   });
 
@@ -345,8 +374,7 @@ describe("account auth foundation", () => {
     const client = createSupabaseClientMock(
       {
         id: "host-settings-restore",
-        preferred_display_name: "Captain",
-        username: "captain-owner",
+        username: "Captain",
         created_at: "2026-05-10T00:00:00.000Z",
         updated_at: "2026-05-10T00:00:00.000Z",
       },
@@ -393,7 +421,7 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -435,8 +463,7 @@ describe("account auth foundation", () => {
 
     const client = createSupabaseClientMock({
       id: "host-settings-seed",
-      preferred_display_name: "Captain",
-      username: "captain-owner",
+      username: "Captain",
       created_at: "2026-05-10T00:00:00.000Z",
       updated_at: "2026-05-10T00:00:00.000Z",
     });
@@ -466,7 +493,7 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -500,8 +527,7 @@ describe("account auth foundation", () => {
     const client = createSupabaseClientMock(
       {
         id: "host-settings-save",
-        preferred_display_name: "Captain",
-        username: "captain-owner",
+        username: "Captain",
         created_at: "2026-05-10T00:00:00.000Z",
         updated_at: "2026-05-10T00:00:00.000Z",
       },
@@ -538,7 +564,7 @@ describe("account auth foundation", () => {
       client as unknown as ReturnType<typeof getSupabaseClient>,
     );
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -568,8 +594,7 @@ describe("account auth foundation", () => {
     const client = createSupabaseClientMock(
       {
         id: "host-signout",
-        preferred_display_name: "Captain",
-        username: "captain-owner",
+        username: "Captain",
         created_at: "2026-05-10T00:00:00.000Z",
         updated_at: "2026-05-10T00:00:00.000Z",
       },
@@ -626,7 +651,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -656,8 +681,7 @@ describe("account auth foundation", () => {
     const client = createSupabaseClientMock(
       {
         id: "host-expired",
-        preferred_display_name: "Captain",
-        username: "captain-owner",
+        username: "Captain",
         created_at: "2026-05-10T00:00:00.000Z",
         updated_at: "2026-05-10T00:00:00.000Z",
       },
@@ -704,7 +728,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -762,7 +786,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -785,10 +809,10 @@ describe("account auth foundation", () => {
         emailRedirectTo: "myapp://auth?returnTo=%2FsetupGame",
       },
     });
-    expect(observedStatus).toBe("needsDisplayName");
+    expect(observedStatus).toBe("needsUsername");
     expect(client.accounts.getCurrentAccount()).toMatchObject({
       id: "host-2",
-      preferred_display_name: null,
+      username: null,
     });
   });
 
@@ -841,7 +865,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -914,7 +938,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,
@@ -991,7 +1015,7 @@ describe("account auth foundation", () => {
       return null;
     };
 
-    TestRenderer.create(
+    actCreate(
       React.createElement(
         AccountAuthProvider,
         null,

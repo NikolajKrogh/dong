@@ -1,5 +1,5 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+
 import { actCreate } from "../../../test-utils/render";
 
 import { GuestJoinForm } from "../../../components/guestJoin/GuestJoinForm";

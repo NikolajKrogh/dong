@@ -60,7 +60,7 @@ export interface Match {
  * @description Mapping of player IDs to arrays of match IDs they're assigned to.
  * @typedef {Object.<string,string[]>} PlayerAssignments
  */
-export type PlayerAssignments = { [playerId: string]: string[] };
+type PlayerAssignments = { [playerId: string]: string[] };
 
 /**
  * GameSession

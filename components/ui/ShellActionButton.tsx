@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { GetProps, Text, XStack, styled } from "tamagui";
 
 const ShellActionButtonFrame = styled(XStack, {
@@ -70,7 +71,7 @@ const ShellActionButtonFrame = styled(XStack, {
     disabled: {
       true: {
         opacity: 0.5,
-        pointerEvents: "none",
+        style: { pointerEvents: "none" },
       },
     },
   } as const,
@@ -105,10 +106,20 @@ export function ShellActionButton({
   icon,
   onPress,
   variant,
+  accessibilityLabel,
+  accessibilityState,
   ...props
 }: ShellActionButtonProps) {
+  const accessibilityProps = Platform.OS === "web" ? {
+    "aria-label": accessibilityLabel,
+    "aria-disabled": accessibilityState?.disabled ?? props.disabled,
+    "aria-expanded": accessibilityState?.expanded,
+    "aria-selected": accessibilityState?.selected,
+    "aria-checked": accessibilityState?.checked,
+    "aria-busy": accessibilityState?.busy,
+  } : { accessibilityLabel, accessibilityState };
   return (
-    <ShellActionButtonFrame variant={variant} onPress={onPress} {...props}>
+    <ShellActionButtonFrame variant={variant} onPress={onPress} {...props} {...accessibilityProps}>
       {icon}
       {label ? (
         <ShellActionButtonLabel surfaceText={variant === "surface"}>

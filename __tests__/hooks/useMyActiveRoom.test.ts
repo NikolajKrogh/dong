@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -38,11 +39,11 @@ const renderMyActiveRoom = async (
     observed = useMyActiveRoom(enabled);
     return null;
   };
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  const renderer = actCreate(React.createElement(Probe));
   await TestRenderer.act(async () => {
     await flush();
   });
-  return { result: () => observed, unmount: () => renderer.unmount() };
+  return { result: () => observed, unmount: () => TestRenderer.act(() => renderer.unmount()) };
 };
 
 describe("useMyActiveRoom", () => {
@@ -136,7 +137,7 @@ describe("useMyActiveRoom", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe, props));
+    const renderer = actCreate(React.createElement(Probe, props));
     await TestRenderer.act(async () => {
       await flush();
     });

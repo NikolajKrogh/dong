@@ -101,5 +101,3 @@ export const StartGameWarnings: React.FC<StartGameWarningsProps> = ({
     ) : null}
   </>
 );
-
-export default StartGameWarnings;

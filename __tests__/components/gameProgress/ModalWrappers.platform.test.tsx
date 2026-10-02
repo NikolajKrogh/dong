@@ -49,10 +49,10 @@ describe("game screen modals", () => {
         <MatchQuickActionsModal
           isVisible={false}
           onClose={jest.fn()}
-          selectedMatchId={null}
+          selectedMatchId=""
           matches={[]}
           players={[]}
-          commonMatchId={null}
+          commonMatchId=""
           playerAssignments={{}}
           handleGoalIncrement={jest.fn()}
           handleGoalDecrement={jest.fn()}

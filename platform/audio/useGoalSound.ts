@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { VisibilityState } from "../types";
 import { createSoundController } from "./createSoundController";
@@ -14,6 +14,7 @@ interface UseGoalSoundOptions {
 
 const getExpoAudioModule = (): AudioModuleLike | null => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Resolve the optional native audio module lazily so unsupported runtimes retain the silent fallback.
     const expoAudio = require("expo-audio");
 
     return {
@@ -33,7 +34,7 @@ export const useGoalSound = ({
   onError,
 }: UseGoalSoundOptions) => {
   const [isSoundPlaying, setIsSoundPlaying] = useState(false);
-  const controllerRef = useRef(
+  const [controller] = useState(() =>
     createSoundController({
       audioModule: audioModule ?? getExpoAudioModule(),
       onError,
@@ -42,31 +43,29 @@ export const useGoalSound = ({
   );
 
   useEffect(() => {
-    const controller = controllerRef.current;
-
     return () => {
       void controller.dispose();
     };
-  }, []);
+  }, [controller]);
 
   useEffect(() => {
     if (!enabled || visibilityState !== "active") {
-      void controllerRef.current.stop();
+      void controller.stop();
     }
-  }, [enabled, visibilityState]);
+  }, [controller, enabled, visibilityState]);
 
   const playGoalSound = useCallback(() => {
-    return controllerRef.current.play({
+    return controller.play({
       enabled,
-      isPlaying: controllerRef.current.getIsPlaying(),
+      isPlaying: controller.getIsPlaying(),
       visibilityState,
       request,
     });
-  }, [enabled, request, visibilityState]);
+  }, [controller, enabled, request, visibilityState]);
 
   const stopGoalSound = useCallback(() => {
-    return controllerRef.current.stop();
-  }, []);
+    return controller.stop();
+  }, [controller]);
 
   return {
     isSoundPlaying,

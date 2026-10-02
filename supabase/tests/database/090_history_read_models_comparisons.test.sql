@@ -54,18 +54,18 @@ VALUES (
         FALSE,
         FALSE
     );
-INSERT INTO public.accounts (id, preferred_display_name)
+INSERT INTO public.accounts (id, username)
 VALUES (
         '13000000-0000-0000-0000-000000000001',
-        'Compare Alpha'
+        'Compare_Alpha'
     ),
     (
         '13000000-0000-0000-0000-000000000002',
-        'Compare Bravo'
+        'Compare_Bravo'
     ),
     (
         '13000000-0000-0000-0000-000000000003',
-        'Compare Charlie'
+        'Compare_Charlie'
     );
 INSERT INTO public.game_sessions (
         id,
@@ -257,7 +257,7 @@ SELECT set_config(
 SELECT is(
         (
             SELECT (
-                    player1_name = 'Compare Alpha'
+                    player1_name = 'Compare_Alpha'
                     AND player2_name = 'Compare Bravo'
                 )::text
             FROM public.compare_registered_players(

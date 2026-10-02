@@ -13,7 +13,8 @@ import {
   generateIdempotencyKey,
   getStartGameApiClient,
 } from "../utils/commandApiClient";
-import { getRoomRpcClient, getSupabaseClient } from "../utils/supabaseClient";
+import { getSupabaseClient } from "../lib/supabase";
+import { getRoomRpcClient } from "../utils/supabaseClient";
 
 export interface UseRoomConfigureResult {
   isBusy: boolean;

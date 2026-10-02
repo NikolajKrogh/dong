@@ -242,5 +242,3 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
     />
   );
 };
-
-export default SelectableMatchList;

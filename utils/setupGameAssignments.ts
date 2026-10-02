@@ -336,5 +336,3 @@ export const createRandomAssignments = (
 
   return assignments;
 };
-
-export default createRandomAssignments;

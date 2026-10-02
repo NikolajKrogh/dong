@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   FlatList,
   Modal,
@@ -85,13 +85,10 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   /** Flag controlling visibility of the away team modal. */
   const [showAwayDropdown, setShowAwayDropdown] = useState(false);
 
-  /** Filtered home team options derived from search term. */
-  const [filteredHomeOptions, setFilteredHomeOptions] =
-    useState(homeTeamOptions);
-
-  /** Filtered away team options derived from search term. */
-  const [filteredAwayOptions, setFilteredAwayOptions] =
-    useState(awayTeamOptions);
+  const filteredHomeOptions = homeTeamOptions.filter(item =>
+    item.value.toLowerCase().includes(homeSearchTerm.toLowerCase()));
+  const filteredAwayOptions = awayTeamOptions.filter(item =>
+    item.value.toLowerCase().includes(awaySearchTerm.toLowerCase()));
 
   /**
    * Whether the add button is disabled.
@@ -99,35 +96,6 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    */
   const isAddButtonDisabled = !homeTeam || !awayTeam;
 
-  /**
-   * Filters the home team list when the search term changes.
-   * @description Updates filteredHomeOptions with matches or resets to full list when cleared.
-   */
-  useEffect(() => {
-    if (homeSearchTerm) {
-      const filtered = homeTeamOptions.filter((item) =>
-        item.value.toLowerCase().includes(homeSearchTerm.toLowerCase()),
-      );
-      setFilteredHomeOptions(filtered);
-    } else {
-      setFilteredHomeOptions(homeTeamOptions);
-    }
-  }, [homeSearchTerm, homeTeamOptions]);
-
-  /**
-   * Filters the away team list when the search term changes.
-   * @description Updates filteredAwayOptions with matches or resets to full list when cleared.
-   */
-  useEffect(() => {
-    if (awaySearchTerm) {
-      const filtered = awayTeamOptions.filter((item) =>
-        item.value.toLowerCase().includes(awaySearchTerm.toLowerCase()),
-      );
-      setFilteredAwayOptions(filtered);
-    } else {
-      setFilteredAwayOptions(awayTeamOptions);
-    }
-  }, [awaySearchTerm, awayTeamOptions]);
 
   /**
    * Selects a home team and resets related UI state.

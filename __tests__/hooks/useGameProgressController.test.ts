@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import Toast from "react-native-toast-message";
@@ -49,7 +50,7 @@ const renderControllerProbe = () => {
     return null;
   };
 
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  const renderer = actCreate(React.createElement(Probe));
 
   return { renderer, getLatest: () => latest as Controller };
 };

@@ -45,12 +45,12 @@ jest.mock("expo-router", () => ({
   }),
 }));
 
-jest.mock("../../../utils/supabaseClient", () => ({
-  getSupabaseClient: jest.fn(() => ({
+jest.mock("../../../lib/supabase", () => ({
+getSupabaseClient: jest.fn(() => ({
     auth: {
       exchangeCodeForSession: mockExchangeCodeForSession,
     },
-  })),
+  }))
 }));
 
 jest.mock("../../../components/ui", () => ({
@@ -111,7 +111,7 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       account: null,
       changePassword: jest.fn(),
       deleteAccount: jest.fn(),
-      saveDisplayName: jest.fn(),
+      saveUsername: jest.fn(),
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),

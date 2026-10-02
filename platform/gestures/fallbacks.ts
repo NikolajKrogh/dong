@@ -22,7 +22,7 @@ const gestureOutcomes: Record<GestureKind, string> = {
   tabSwipe: "Players can still switch between tabs with visible tab buttons.",
 };
 
-export const GESTURE_FALLBACKS: Record<
+const GESTURE_FALLBACKS: Record<
   GestureKind,
   Record<SupportedPlatform, GestureFallbackConfig>
 > = {
@@ -115,7 +115,7 @@ export const GESTURE_FALLBACKS: Record<
   },
 };
 
-export const GESTURE_IMPLEMENTATIONS: CapabilityImplementation[] = [
+const GESTURE_IMPLEMENTATIONS: CapabilityImplementation[] = [
   {
     capability: "gesture",
     platform: "ios",
@@ -143,7 +143,7 @@ export const GESTURE_IMPLEMENTATIONS: CapabilityImplementation[] = [
   },
 ];
 
-export const GESTURE_CAPABILITY_FALLBACKS: CapabilityFallback[] = [
+const GESTURE_CAPABILITY_FALLBACKS: CapabilityFallback[] = [
   {
     capability: "gesture",
     platform: "web",

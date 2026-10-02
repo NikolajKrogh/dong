@@ -13,8 +13,8 @@ WITH host AS (
     '{"provider":"email"}'::jsonb, '{}'::jsonb, false, false)
   RETURNING id
 ), account AS (
-  INSERT INTO public.accounts (id, preferred_display_name)
-  SELECT id, 'Shared Caller Host' FROM host RETURNING id
+  INSERT INTO public.accounts (id, username)
+  SELECT id, 'Shared_Caller_Host' FROM host RETURNING id
 ), room AS (
   INSERT INTO public.game_sessions (owner_account_id, join_code)
   SELECT id, 'EIGHT2' FROM account RETURNING id

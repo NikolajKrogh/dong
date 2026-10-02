@@ -42,5 +42,3 @@ export const PlatformAnimation: React.FC<PlatformAnimationProps> = ({
     </View>
   );
 };
-
-export default PlatformAnimation;

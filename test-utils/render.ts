@@ -1,6 +1,15 @@
 import type { ReactElement } from "react";
 import TestRenderer from "react-test-renderer";
 
+const mounted = new Set<TestRenderer.ReactTestRenderer>();
+
+afterEach(async () => {
+  await TestRenderer.act(async () => {
+    for (const renderer of mounted) renderer.unmount();
+    mounted.clear();
+  });
+});
+
 /**
  * React 19's react-test-renderer defers the initial commit until it runs
  * inside act() — a bare TestRenderer.create() leaves `.root` inaccessible
@@ -13,5 +22,6 @@ export const actCreate = (
   TestRenderer.act(() => {
     renderer = TestRenderer.create(element);
   });
+  mounted.add(renderer);
   return renderer;
 };

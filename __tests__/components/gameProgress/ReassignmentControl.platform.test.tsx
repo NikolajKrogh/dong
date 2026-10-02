@@ -176,7 +176,7 @@ describe("ReassignmentControl", () => {
 
     expect(mockSheetProps.snapPoints).toEqual([80]);
     expect(mockSheetProps.snapPointsMode).toBe("percent");
-    expect(mockSheetProps.animation).toBe("quick");
+    expect(mockSheetProps.transition).toBe("quick");
 
     const openButton = renderer.root.findByProps({ testID: "ReassignMatchesButton" });
     TestRenderer.act(() => openButton.props.onPress());

@@ -33,9 +33,9 @@ CREATE TEMP TABLE host_session_context AS WITH inserted_auth_user AS (
     RETURNING id
 ),
 inserted_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id, username)
     SELECT id,
-        'Host Phase 3'
+        'Host_Phase_3'
     FROM inserted_auth_user
     RETURNING id
 ),

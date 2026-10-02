@@ -21,7 +21,7 @@ WITH h AS (
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r1-h@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
-acc AS (INSERT INTO public.accounts (id, preferred_display_name) SELECT id, 'HAM R1 Host' FROM h RETURNING id),
+acc AS (INSERT INTO public.accounts (id, username) SELECT id, 'HAM_R1_Host' FROM h RETURNING id),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR001' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM room) AS room;
 GRANT SELECT ON TABLE r1_ctx TO authenticated;
@@ -40,9 +40,9 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r2-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R2 Host' FROM h
-    UNION ALL SELECT id, 'HAM R2 M1' FROM m1
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R2_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R2_M1' FROM m1
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR002' FROM h RETURNING id)
@@ -73,11 +73,11 @@ m3 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r3-m3@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R3 Host' FROM h
-    UNION ALL SELECT id, 'HAM R3 M1' FROM m1
-    UNION ALL SELECT id, 'HAM R3 M2' FROM m2
-    UNION ALL SELECT id, 'HAM R3 M3' FROM m3
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R3_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R3_M1' FROM m1
+    UNION ALL SELECT id, 'HAM_R3_M2' FROM m2
+    UNION ALL SELECT id, 'HAM_R3_M3' FROM m3
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR003' FROM h RETURNING id)
@@ -104,10 +104,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r5-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R5 Host' FROM h
-    UNION ALL SELECT id, 'HAM R5 M1' FROM m1
-    UNION ALL SELECT id, 'HAM R5 M2' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R5_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R5_M1' FROM m1
+    UNION ALL SELECT id, 'HAM_R5_M2' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR005' FROM h RETURNING id)
@@ -133,10 +133,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r6-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R6 Host' FROM h
-    UNION ALL SELECT id, 'HAM R6 M1' FROM m1
-    UNION ALL SELECT id, 'HAM R6 M2' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R6_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R6_M1' FROM m1
+    UNION ALL SELECT id, 'HAM_R6_M2' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR006' FROM h RETURNING id)
@@ -165,10 +165,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r7-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R7 Host' FROM h
-    UNION ALL SELECT id, 'HAM R7 M1' FROM m1
-    UNION ALL SELECT id, 'HAM R7 M2' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R7_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R7_M1' FROM m1
+    UNION ALL SELECT id, 'HAM_R7_M2' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR007' FROM h RETURNING id)
@@ -193,10 +193,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r8-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R8 Host' FROM h
-    UNION ALL SELECT id, 'HAM R8 M1' FROM m1
-    UNION ALL SELECT id, 'HAM R8 M2' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R8_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R8_M1' FROM m1
+    UNION ALL SELECT id, 'HAM_R8_M2' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR008' FROM h RETURNING id)
@@ -217,9 +217,9 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r9-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R9 Host' FROM h
-    UNION ALL SELECT id, 'HAM R9 M1' FROM m1
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R9_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R9_M1' FROM m1
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR009' FROM h RETURNING id)
@@ -245,10 +245,10 @@ m2 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','ham-r11-m2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'HAM R11 Host' FROM h
-    UNION ALL SELECT id, 'HAM R11 M1 (leaves)' FROM m1
-    UNION ALL SELECT id, 'HAM R11 M2 (stays)' FROM m2
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'HAM_R11_Host' FROM h
+    UNION ALL SELECT id, 'HAM_R11_M1_leaves' FROM m1
+    UNION ALL SELECT id, 'HAM_R11_M2_stays' FROM m2
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'HAMR011' FROM h RETURNING id)

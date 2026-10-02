@@ -55,5 +55,3 @@ export const PlatformGestureView: React.FC<PlatformGestureViewProps> = ({
     </View>
   );
 };
-
-export default PlatformGestureView;

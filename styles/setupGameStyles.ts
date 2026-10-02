@@ -71,7 +71,7 @@ const makeBaseModalView = (
   elevation: 5,
 });
 
-export const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
+const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     safeArea: {
       ...makeBaseContainer(),

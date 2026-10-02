@@ -6,11 +6,11 @@ import type {
   VisibilityState,
 } from "./types";
 
-export const isInteractiveVisibility = (state: VisibilityState): boolean => {
+const isInteractiveVisibility = (state: VisibilityState): boolean => {
   return state === "active";
 };
 
-export const normalizeAppState = (
+const normalizeAppState = (
   state: AppStateStatus | null | undefined,
 ): VisibilityState => {
   switch (state) {
@@ -23,13 +23,13 @@ export const normalizeAppState = (
   }
 };
 
-export const normalizeDocumentVisibility = (
+const normalizeDocumentVisibility = (
   state: string | null | undefined,
 ): VisibilityState => {
   return state === "visible" ? "active" : "hidden";
 };
 
-export const createVisibilitySnapshot = (
+const createVisibilitySnapshot = (
   state: VisibilityState,
   source: VisibilitySource,
   capturedAt = Date.now(),

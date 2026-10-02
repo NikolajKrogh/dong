@@ -48,7 +48,7 @@ public class CommandController {
     })
     public ResponseEntity<CommandResponse> submit(
             @Parameter(description = "Target room id") @PathVariable String roomId,
-            @Parameter(description = "Command type (e.g. 'echo')") @PathVariable String commandType,
+            @Parameter(description = "Command type (e.g. 'start-game')") @PathVariable String commandType,
             @Parameter(description = "UUID v4 idempotency key")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @RequestBody(required = false) CommandRequest request,

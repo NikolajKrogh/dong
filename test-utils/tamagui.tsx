@@ -10,7 +10,7 @@ export function TamaguiTestProvider({
   children,
   theme = "light",
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   theme?: "light" | "dark";
 }) {
   return (

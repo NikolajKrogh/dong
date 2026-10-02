@@ -3,7 +3,7 @@ import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getCurrentColors } from "../../styles/theme";
 
-export const RandomMatchesToast = {
+const RandomMatchesToast = {
   themedSuccess: (props: { text1?: string; text2?: string }) => {
     const colors = getCurrentColors();
     return (

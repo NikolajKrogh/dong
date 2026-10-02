@@ -44,5 +44,3 @@ export const RoomIdentityPanel: React.FC<RoomIdentityPanelProps> = ({
     <ParticipantList participants={participants} pickProgress={pickProgress} />
   </>
 );
-
-export default RoomIdentityPanel;

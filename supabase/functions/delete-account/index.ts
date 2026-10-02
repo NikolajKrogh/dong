@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
     const { data: ownedSessions } = await supabaseAdmin
       .from("game_sessions")
       .select("id")
-      .eq("owner_account_id", userId);
+      .eq("owner_account_id", userId).throwOnError();
 
     const ownedSessionIds = (ownedSessions ?? []).map(
       (s: { id: string }) => s.id,
@@ -69,23 +69,23 @@ Deno.serve(async (req: Request) => {
       await supabaseAdmin
         .from("assignments")
         .delete()
-        .in("session_id", ownedSessionIds);
+        .in("session_id", ownedSessionIds).throwOnError();
       await supabaseAdmin
         .from("gameplay_events")
         .delete()
-        .in("session_id", ownedSessionIds);
+        .in("session_id", ownedSessionIds).throwOnError();
       await supabaseAdmin
         .from("participants")
         .delete()
-        .in("session_id", ownedSessionIds);
+        .in("session_id", ownedSessionIds).throwOnError();
       await supabaseAdmin
         .from("matches")
         .delete()
-        .in("session_id", ownedSessionIds);
+        .in("session_id", ownedSessionIds).throwOnError();
       await supabaseAdmin
         .from("game_sessions")
         .delete()
-        .eq("owner_account_id", userId);
+        .eq("owner_account_id", userId).throwOnError();
     }
 
     // Convert any remaining participant rows (member role in other users' sessions) to
@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
     const { data: memberParticipants } = await supabaseAdmin
       .from("participants")
       .select("id")
-      .eq("account_id", userId);
+      .eq("account_id", userId).throwOnError();
 
     for (const participant of memberParticipants ?? []) {
       await supabaseAdmin
@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
           session_role: "member",
           guest_rejoin_token_hash: crypto.randomUUID(),
         })
-        .eq("id", participant.id);
+        .eq("id", participant.id).throwOnError();
     }
 
     await supabaseAdmin
@@ -113,10 +113,10 @@ Deno.serve(async (req: Request) => {
       .delete()
       .or(
         `requester_account_id.eq.${userId},addressee_account_id.eq.${userId}`,
-      );
+      ).throwOnError();
 
-    // Deleting the accounts row cascades to profiles, settings, and legacy import state.
-    await supabaseAdmin.from("accounts").delete().eq("id", userId);
+    // Deleting the accounts row cascades to settings, social blocks, and durable social receipts.
+    await supabaseAdmin.from("accounts").delete().eq("id", userId).throwOnError();
 
     const { error: deleteUserError } =
       await supabaseAdmin.auth.admin.deleteUser(userId);

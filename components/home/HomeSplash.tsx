@@ -40,7 +40,7 @@ export const HomeSplash: React.FC<HomeSplashProps> = ({
   useEffect(() => {
     const splashFallbackTimer = setTimeout(completeSplash, 4500);
 
-    opacity.value = withDelay(
+    opacity.set(withDelay(
       3000,
       withTiming(
         0,
@@ -54,7 +54,7 @@ export const HomeSplash: React.FC<HomeSplashProps> = ({
           }
         },
       ),
-    );
+    ));
 
     return () => {
       clearTimeout(splashFallbackTimer);
@@ -83,5 +83,3 @@ export const HomeSplash: React.FC<HomeSplashProps> = ({
     </Animated.View>
   );
 };
-
-export default HomeSplash;

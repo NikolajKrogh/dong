@@ -41,14 +41,14 @@ VALUES (
         FALSE,
         FALSE
     );
-INSERT INTO public.accounts (id, preferred_display_name)
+INSERT INTO public.accounts (id, username)
 VALUES (
         '10000000-0000-0000-0000-000000000001',
-        'History Host'
+        'History_Host'
     ),
     (
         '10000000-0000-0000-0000-000000000002',
-        'History Friend'
+        'History_Friend'
     );
 INSERT INTO public.game_sessions (
         id,

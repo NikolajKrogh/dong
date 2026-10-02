@@ -1,0 +1,5 @@
+{
+  "ignore": {
+    "files": [".tamagui/**", ".features-gen/**", "command-api/target/**"]
+  }
+}

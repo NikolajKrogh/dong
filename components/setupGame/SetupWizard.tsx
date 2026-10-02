@@ -31,7 +31,7 @@ export interface WizardStep {
 }
 
 /** A button in the wizard's bottom navigation bar. */
-export interface WizardAction {
+interface WizardAction {
   label: string;
   icon: AppIconName;
   /** Defaults to "trailing" — Back/Home lead with their icon, Next/Start trail. */

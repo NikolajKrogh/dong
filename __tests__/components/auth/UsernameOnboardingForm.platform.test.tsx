@@ -1,5 +1,5 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+
 import { actCreate } from "../../../test-utils/render";
 
 import UsernameOnboardingForm from "../../../components/auth/UsernameOnboardingForm";
@@ -53,8 +53,8 @@ jest.mock("../../../hooks/useAccountAuth", () => {
   return {
     ...actual,
     useAccountAuth: () => ({
-      account: { preferredDisplayName: null },
-      saveDisplayName: jest.fn(),
+      account: { username: null },
+      saveUsername: jest.fn(),
       saveProfile: jest.fn(),
       signIn: jest.fn(),
       signOut: jest.fn(),
@@ -62,7 +62,7 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       requestPasswordReset: jest.fn(),
       session: { user: { id: "host-1" } },
       sessionNotice: null,
-      status: "needsDisplayName",
+      status: "needsUsername",
       user: { id: "host-1" },
     }),
   };
@@ -92,7 +92,7 @@ jest.mock("../../../components/ui", () => ({
 }));
 
 describe("UsernameOnboardingForm", () => {
-  it("renders the required display-name onboarding form", () => {
+  it("renders the required username onboarding form", () => {
     const tree = actCreate(
       React.createElement(TestSubject),
     );
@@ -101,8 +101,8 @@ describe("UsernameOnboardingForm", () => {
     const textNodes = tree.root.findAllByType(Text);
     const textContents = textNodes.flatMap((node: any) => node.props.children);
 
-    expect(textContents).toContain("Choose your display name");
-    expect(textContents).toContain("Save display name");
+    expect(textContents).toContain("Choose your username");
+    expect(textContents).toContain("Save username");
 
     tree.unmount();
   });

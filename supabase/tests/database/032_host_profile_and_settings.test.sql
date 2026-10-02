@@ -3,23 +3,23 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT plan(8);
 SELECT ok(
-        NOT EXISTS (
+        EXISTS (
             SELECT 1
             FROM information_schema.columns
             WHERE table_schema = 'public'
                 AND table_name = 'accounts'
                 AND column_name = 'username'
         ),
-        'accounts does not expose a username column'
+        'accounts exposes the canonical username column'
     );
 SELECT ok(
-        NOT EXISTS (
+        EXISTS (
             SELECT 1
             FROM pg_constraint
             WHERE conrelid = 'public.accounts'::regclass
-                AND conname = 'chk_accounts_username_nonempty'
+                AND conname = 'accounts_username_key_unique'
         ),
-        'accounts no longer enforces username validation'
+        'accounts enforces unique username keys'
     );
 CREATE TEMP TABLE host_profile_settings_context AS WITH owner_auth AS (
     INSERT INTO auth.users (
@@ -132,41 +132,24 @@ SELECT set_config(
         true
     );
 WITH inserted_owner_account AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
+    INSERT INTO public.accounts (id)
     VALUES (
             (
                 SELECT owner_account_id
                 FROM host_profile_settings_context
-            ),
-            'Host Profile Owner'
+            )
         )
-    RETURNING preferred_display_name
+    RETURNING id
 )
 SELECT is(
-        (
-            SELECT preferred_display_name
-            FROM inserted_owner_account
-        ),
-        'Host Profile Owner',
-        'owner can insert their display name'
+        (SELECT count(*)::integer FROM inserted_owner_account),
+        1,
+        'owner bootstraps an account without bypassing the username command'
     );
-WITH updated_owner_account AS (
-    UPDATE public.accounts
-    SET preferred_display_name = 'Host Profile Owner Updated',
-        updated_at = now()
-    WHERE id = (
-            SELECT owner_account_id
-            FROM host_profile_settings_context
-        )
-    RETURNING preferred_display_name
-)
 SELECT is(
-        (
-            SELECT preferred_display_name
-            FROM updated_owner_account
-        ),
-        'Host Profile Owner Updated',
-        'owner can update their display name'
+        (SELECT username FROM public.set_account_username('Host_Profile_Owner')),
+        'Host_Profile_Owner',
+        'owner claims a username through the command'
     );
 SELECT set_config(
         'request.jwt.claim.sub',
@@ -184,14 +167,14 @@ WITH bootstrapped_account AS (
                 FROM host_profile_settings_context
             )
         )
-    RETURNING preferred_display_name
+    RETURNING username
 )
 SELECT ok(
         (
-            SELECT preferred_display_name IS NULL
+            SELECT username IS NULL
             FROM bootstrapped_account
         ),
-        'bootstrap inserts can omit preferred_display_name'
+        'bootstrap inserts can omit username'
     );
 SELECT set_config(
         'request.jwt.claim.sub',

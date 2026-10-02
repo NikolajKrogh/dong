@@ -87,7 +87,7 @@ const SignedInAccountContent = ({
       </YStack>
     </XStack>
 
-    {status === "needsDisplayName" ? (
+    {status === "needsUsername" ? (
       <ShellActionButton
         variant="surface"
         label="Finish account setup"
@@ -125,7 +125,7 @@ const AccountSection = () => {
     useAccountAuth();
   const returnTo = normalizeAccountFlowReturnTo(pathname);
 
-  const displayName = account?.preferredDisplayName?.trim() || null;
+  const displayName = account?.username?.trim() || null;
   const avatarLetter = displayName ? displayName[0].toUpperCase() : "?";
 
   const handleDeleteWithConfirm = () => {

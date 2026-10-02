@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-require-imports -- Jest mock factories load React Native after hoisting. */
+
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
@@ -97,26 +97,26 @@ describe("Settings menu", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockStore.theme = "light";
-    mockUseAccountAuth.mockReturnValue({ account: { preferredDisplayName: "Captain" }, status: "ready", signOut: mockSignOut, sessionNotice: null });
+    mockUseAccountAuth.mockReturnValue({ account: { username: "Captain" }, status: "ready", signOut: mockSignOut, sessionNotice: null });
   });
 
   it("shows a compact signed-in menu and routes each settings row", () => {
     const tree = renderMenu();
     const text = labels(tree);
-    expect(text).toContain("Profile & display name");
+    expect(text).toContain("Profile & username");
     expect(text).toContain("Appearance");
     expect(text).toContain("Sound & notifications");
     expect(text).toContain("Leagues");
-    expect(text).toContain("History import");
+    expect(text).not.toContain("History import");
     expect(text).not.toContain("Dark Mode");
-    expect(text).not.toContain("Save display name");
+    expect(text).not.toContain("Save username");
 
     for (const [label, route] of [
-      ["Profile & display name", "/userPreferences/profile"],
+      ["Profile & username", "/userPreferences/profile"],
       ["Appearance", "/userPreferences/appearance"],
       ["Sound & notifications", "/userPreferences/sound"],
       ["Leagues", "/userPreferences/leagues"],
-      ["History import", "/userPreferences/history-import"],
+
     ]) {
       press(tree, `row-${label}`);
       expect(mockPush).toHaveBeenLastCalledWith(route);
@@ -139,7 +139,7 @@ describe("Settings menu", () => {
     const text = labels(tree);
     expect(text).toContain("Your session ended.");
     expect(text).toContain("Sign in or create account");
-    expect(text).not.toContain("Profile & display name");
+    expect(text).not.toContain("Profile & username");
     expect(text).not.toContain("Sign out");
     press(tree, "action-Sign in or create account");
     expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2FuserPreferences");
@@ -147,9 +147,9 @@ describe("Settings menu", () => {
   });
 
   it("routes unfinished account setup back to Settings", () => {
-    mockUseAccountAuth.mockReturnValue({ account: { preferredDisplayName: null }, status: "needsDisplayName", sessionNotice: null, signOut: mockSignOut });
+    mockUseAccountAuth.mockReturnValue({ account: { username: null }, status: "needsUsername", sessionNotice: null, signOut: mockSignOut });
     const tree = renderMenu();
-    expect(labels(tree)).not.toContain("Profile & display name");
+    expect(labels(tree)).not.toContain("Profile & username");
     press(tree, "action-Finish account setup");
     expect(mockPush).toHaveBeenCalledWith("/auth/onboarding?returnTo=%2FuserPreferences");
     unmount(tree);

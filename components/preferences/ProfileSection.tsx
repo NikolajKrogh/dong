@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useRef, useState } from "react";
 import { StyleSheet, TextInput } from "react-native";
 import { Text, YStack } from "tamagui";
 
@@ -8,12 +8,13 @@ import { ShellActionButton, ShellCard, ShellSection } from "../ui";
 
 const ProfileSection = ({ showSectionTitle = true }: { showSectionTitle?: boolean }) => {
   const colors = useColors();
-  const { account, saveDisplayName, status } = useAccountAuth();
-  const [displayName, setDisplayName] = useState(
-    account?.preferredDisplayName ?? "",
+  const { account, saveUsername, status } = useAccountAuth();
+  const [username, setUsername] = useState(
+    account?.username ?? "",
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitting = useRef(false);
 
   const inputStyles = StyleSheet.create({
     input: {
@@ -28,25 +29,31 @@ const ProfileSection = ({ showSectionTitle = true }: { showSectionTitle?: boolea
     },
   });
 
-  useEffect(() => {
-    setDisplayName(account?.preferredDisplayName ?? "");
-  }, [account?.preferredDisplayName]);
+  const initialUsername = account?.username ?? "";
+  const [previousUsername, setPreviousUsername] = useState(initialUsername);
+  if (previousUsername !== initialUsername) {
+    setPreviousUsername(initialUsername);
+    setUsername(initialUsername);
+  }
 
   if (!account || status === "loading" || status === "signedOut") {
     return null;
   }
 
   const handleSave = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     setErrorMessage(null);
     setIsSubmitting(true);
 
     try {
-      await saveDisplayName(displayName);
+      await saveUsername(username);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to save the profile.",
       );
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   };
@@ -66,7 +73,7 @@ const ProfileSection = ({ showSectionTitle = true }: { showSectionTitle?: boolea
               Host identity
             </Text>
             <Text fontSize={18} fontWeight="700" color="$textPrimary">
-              Display name
+              Username
             </Text>
             <Text fontSize={14} color="$textSecondary">
               This is the name other players see in rooms and invites.
@@ -75,18 +82,18 @@ const ProfileSection = ({ showSectionTitle = true }: { showSectionTitle?: boolea
 
           <YStack gap="$1.5">
             <Text fontSize={13} fontWeight="600" color="$textMuted">
-              Display name
+              Username
             </Text>
             <TextInput
-              autoCapitalize="words"
+              autoCapitalize="none"
               autoCorrect={false}
-              placeholder="Enter your display name"
+              placeholder="Enter your username"
               placeholderTextColor={colors.textMuted}
               returnKeyType="done"
               style={inputStyles.input}
               testID="ProfileDisplayNameInput"
-              value={displayName}
-              onChangeText={setDisplayName}
+              value={username}
+              onChangeText={setUsername}
               onSubmitEditing={() => {
                 void handleSave();
               }}
@@ -105,14 +112,14 @@ const ProfileSection = ({ showSectionTitle = true }: { showSectionTitle?: boolea
 
           <ShellActionButton
             disabled={isSubmitting}
-            label={isSubmitting ? "Saving…" : "Save display name"}
+            label={isSubmitting ? "Saving…" : "Save username"}
             onPress={() => {
               void handleSave();
             }}
           />
 
           <Text fontSize={13} color="$textMuted" textAlign="center">
-            Duplicate display names are allowed.
+            Use 3–30 letters, numbers, or underscores. Your username is unique.
           </Text>
         </YStack>
       </ShellCard>

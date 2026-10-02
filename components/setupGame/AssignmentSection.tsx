@@ -92,22 +92,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     return initialState;
   });
 
-  /**
-   * Effect to update the collapsed state of players when the players prop changes.
-   * Ensures new players are initially collapsed.
-   *
-   * @effect
-   * @dependencyArray {players} Re-runs when players array changes
-   */
-  React.useEffect(() => {
-    setCollapsedPlayers((prev) => {
-      const updated = { ...prev };
-      players.forEach((player) => {
-        updated[player.id] ??= true;
-      });
-      return updated;
-    });
-  }, [players]);
 
   /**
    * Toggles the visibility of the manual assignment info modal.
@@ -149,7 +133,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   const togglePlayerCollapse = (playerId: string) => {
     setCollapsedPlayers((prev) => ({
       ...prev,
-      [playerId]: !prev[playerId],
+      [playerId]: !(prev[playerId] ?? true),
     }));
   };
 
@@ -364,7 +348,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
                 // This flow counts progress against the POOL, not a per-player
                 // cap — the pick surfaces pass their cap here instead.
                 totalCount={nonCommonMatches.length}
-                collapsed={Boolean(collapsedPlayers[player.id])}
+                collapsed={collapsedPlayers[player.id] ?? true}
                 onToggleCollapsed={() => togglePlayerCollapse(player.id)}
               >
                 {renderMatches(player)}

@@ -1,8 +1,8 @@
-export interface CommandApiConfig {
+interface CommandApiConfig {
   baseUrl: string;
 }
 
-export interface CommandApiErrorResponse {
+interface CommandApiErrorResponse {
   error?: string;
   message?: string;
   timestamp?: string;
@@ -13,12 +13,12 @@ export interface MatchDiscoveryRequest {
   requestedAt?: string | null;
 }
 
-export interface NormalizedMatchScore {
+interface NormalizedMatchScore {
   home: number;
   away: number;
 }
 
-export type NormalizedMatchStatus =
+type NormalizedMatchStatus =
   | "scheduled"
   | "live"
   | "final"
@@ -56,11 +56,9 @@ const readCommandApiBaseUrl = () => {
   return readTrimmedEnvValue(process.env.EXPO_PUBLIC_COMMAND_API_URL);
 };
 
-export const hasCommandApiConfig = () => {
-  return Boolean(readCommandApiBaseUrl());
-};
 
-export const getCommandApiConfig = (): CommandApiConfig => {
+
+const getCommandApiConfig = (): CommandApiConfig => {
   const baseUrl = readCommandApiBaseUrl();
 
   if (!baseUrl) {
@@ -72,7 +70,7 @@ export const getCommandApiConfig = (): CommandApiConfig => {
   return { baseUrl };
 };
 
-export const buildMatchDiscoveryUrl = (
+const buildMatchDiscoveryUrl = (
   config: CommandApiConfig,
   request: MatchDiscoveryRequest,
 ) => {
@@ -115,7 +113,7 @@ const readErrorMessage = async (response: Response) => {
 
 const MATCH_DISCOVERY_TIMEOUT_MS = 10_000;
 
-export const createMatchDiscoveryApiClient = (
+const createMatchDiscoveryApiClient = (
   fetchFn: typeof fetch = fetch,
   config: CommandApiConfig = getCommandApiConfig(),
 ): MatchDiscoveryApiClient => {
@@ -162,7 +160,7 @@ export const getMatchDiscoveryApiClient = () => {
   return cachedMatchDiscoveryApiClient;
 };
 
-export interface StartGameCommandResponse {
+interface StartGameCommandResponse {
   commandType: string;
   roomId: string;
   idempotencyKey: string;
@@ -202,7 +200,7 @@ export const generateIdempotencyKey = (): string => {
 
 const START_GAME_TIMEOUT_MS = 10_000;
 
-export const createStartGameApiClient = (
+const createStartGameApiClient = (
   fetchFn: typeof fetch = fetch,
   config: CommandApiConfig = getCommandApiConfig(),
 ): StartGameApiClient => {

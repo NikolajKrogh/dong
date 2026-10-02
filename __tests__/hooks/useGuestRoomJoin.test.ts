@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -176,7 +177,7 @@ describe("useGuestRoomJoin", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -235,7 +236,7 @@ describe("useGuestRoomJoin", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -279,7 +280,7 @@ describe("useGuestRoomJoin", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest, getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot() });
     let observedHook!: UseGuestRoomJoinResult;
     const Probe = () => { observedHook = useGuestRoomJoin(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => { await observedHook?.submitGuestJoin("ROOM42", "Casey"); });
     expect(joinRoomAsGuest).not.toHaveBeenCalled();
@@ -294,7 +295,7 @@ describe("useGuestRoomJoin", () => {
     setGuestRoomRpcClient({ joinRoomAsGuest, getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot() });
     let observedHook!: UseGuestRoomJoinResult;
     const Probe = () => { observedHook = useGuestRoomJoin(); return null; };
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => { await observedHook?.submitGuestJoin("ROOM42", "Casey"); });
     expect(joinRoomAsGuest).not.toHaveBeenCalled();
@@ -316,7 +317,7 @@ describe("useGuestRoomJoin", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -352,7 +353,7 @@ describe("useGuestRoomJoin", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -395,7 +396,7 @@ describe("useGuestRoomJoin", () => {
       return null;
     };
 
-    const renderer = TestRenderer.create(React.createElement(Probe));
+    const renderer = actCreate(React.createElement(Probe));
 
     await TestRenderer.act(async () => {
       await flushEffects();

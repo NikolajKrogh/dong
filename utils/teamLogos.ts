@@ -117,40 +117,14 @@ export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
  * If the logo is not found in the memory cache, this function returns `null`.
  * Any errors encountered during the retrieval process are logged to the console.
  */
-export const getCachedLeagueLogo = (leagueName: string): string | null => {
-  try {
-    // Check if we have the logo in memory cache first
-    const key = leagueName;
-    const inMemoryCache = leagueLogoCache[key];
-    if (inMemoryCache) {
-      return inMemoryCache;
-    }
 
-    // Otherwise we'll return null and let the AsyncStorage check happen in the hook
-    return null;
-  } catch (error) {
-    console.error(`Error getting cached logo for ${leagueName}:`, error);
-    return null;
-  }
-};
 
 /**
  * Get a cached league logo by name
  * @param leagueName The name of the league
  * @returns Promise resolving to the logo URI or null if not found
  */
-export const getLeagueLogo = async (
-  leagueName: string
-): Promise<string | null> => {
-  try {
-    if (!AsyncStorageRef) return null;
-    const key = `league_logo_${leagueName}`;
-    return await AsyncStorageRef.getItem(key);
-  } catch (error) {
-    console.error(`Error getting cached logo for ${leagueName}:`, error);
-    return null;
-  }
-};
+
 
 /**
  * Get a cached team logo by name from AsyncStorage
@@ -172,7 +146,7 @@ export const getTeamLogo = async (teamName: string): Promise<string | null> => {
  * Official team logos.
  * @description Keyed by canonical team name; values are static require() image assets.
  */
-export const TEAM_LOGOS: { [key: string]: any } = {
+const TEAM_LOGOS: { [key: string]: any } = {
   // Bundesliga
   "1. FC Heidenheim 1846": require("../assets/images/teams/bundesliga/heidenheim.png"),
   "1. FC Union Berlin": require("../assets/images/teams/bundesliga/union-berlin.png"),

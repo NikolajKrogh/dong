@@ -36,10 +36,10 @@ out1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p1-out@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'PP P1 Host' FROM h
-    UNION ALL SELECT id, 'PP P1 M1' FROM m1
-    UNION ALL SELECT id, 'PP P1 Outsider' FROM out1
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'PP_P1_Host' FROM h
+    UNION ALL SELECT id, 'PP_P1_M1' FROM m1
+    UNION ALL SELECT id, 'PP_P1_Outsider' FROM out1
     RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0001' FROM h RETURNING id)
@@ -63,7 +63,7 @@ WITH h2 AS (
     INSERT INTO auth.users (id, aud, role, email, email_confirmed_at, created_at, updated_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous)
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p1-h2@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
-acc2 AS (INSERT INTO public.accounts (id, preferred_display_name) SELECT id, 'PP P1 Host2' FROM h2 RETURNING id),
+acc2 AS (INSERT INTO public.accounts (id, username) SELECT id, 'PP_P1_Host2' FROM h2 RETURNING id),
 r2 AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0002' FROM h2 RETURNING id),
 m2 AS (
     INSERT INTO public.matches (session_id, source_provider, home_team_name, away_team_name)
@@ -86,8 +86,8 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p2-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'PP P2 Host' FROM h UNION ALL SELECT id, 'PP P2 M1' FROM m1 RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'PP_P2_Host' FROM h UNION ALL SELECT id, 'PP_P2_M1' FROM m1 RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0003' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
@@ -115,8 +115,8 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p3-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'PP P3 Host' FROM h UNION ALL SELECT id, 'PP P3 M1' FROM m1 RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'PP_P3_Host' FROM h UNION ALL SELECT id, 'PP_P3_M1' FROM m1 RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0004' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
@@ -144,8 +144,8 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p4-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'PP P4 Host' FROM h UNION ALL SELECT id, 'PP P4 M1' FROM m1 RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'PP_P4_Host' FROM h UNION ALL SELECT id, 'PP_P4_M1' FROM m1 RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0005' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
@@ -173,8 +173,8 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p5-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'PP P5 Host' FROM h UNION ALL SELECT id, 'PP P5 M1' FROM m1 RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'PP_P5_Host' FROM h UNION ALL SELECT id, 'PP_P5_M1' FROM m1 RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0006' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;
@@ -203,8 +203,8 @@ m1 AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','pp-p6-m1@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'PP P6 Host' FROM h UNION ALL SELECT id, 'PP P6 M1' FROM m1 RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'PP_P6_Host' FROM h UNION ALL SELECT id, 'PP_P6_M1' FROM m1 RETURNING id
 ),
 room AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id, 'PPR0007' FROM h RETURNING id)
 SELECT (SELECT id FROM h) AS host, (SELECT id FROM m1) AS m1, (SELECT id FROM room) AS room;

@@ -80,5 +80,3 @@ export const MatchSelectionCard: React.FC<MatchSelectionCardProps> = ({
     </View>
   );
 };
-
-export default MatchSelectionCard;

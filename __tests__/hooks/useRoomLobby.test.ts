@@ -1,3 +1,4 @@
+import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -63,15 +64,15 @@ const renderLobby = async (
     observed = useRoomLobby(sessionId, participantId);
     return null;
   };
-  const renderer = TestRenderer.create(React.createElement(Probe));
+  const renderer = actCreate(React.createElement(Probe));
   await TestRenderer.act(async () => {
     await flush();
   });
-  return { result: () => observed, unmount: () => renderer.unmount() };
+  return { result: () => observed, unmount: () => TestRenderer.act(() => renderer.unmount()) };
 };
 
 describe("useRoomLobby", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); });
 
   it("exposes the roster and the join code to the host", async () => {
     mockGetRoomRpcClient.mockReturnValue({

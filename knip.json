@@ -1,0 +1,40 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "types/database.types.ts",
+    "app/**/*.{ts,tsx}",
+    "**/*.config.{ts,js,cjs}",
+    "scripts/*.{mjs,cjs,js}",
+    "e2e/steps/*.ts",
+    "e2e/fixtures.ts",
+    "platform/**/*.{native,web,android,ios}.{ts,tsx}",
+    "supabase/functions/*/index.ts"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "features/**/*.{ts,tsx}",
+    "hooks/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "platform/**/*.{ts,tsx}",
+    "store/**/*.{ts,tsx}",
+    "styles/**/*.{ts,tsx}",
+    "utils/**/*.{ts,tsx}",
+    "types/**/*.ts",
+    "scripts/*.{mjs,cjs,js}",
+    "e2e/**/*.ts",
+    "__tests__/**/*.{ts,tsx}",
+    "supabase/functions/**/*.ts",
+    "*.{ts,js,cjs}"
+  ],
+  "ignoreBinaries": [
+    "adb"
+  ],
+  "ignoreDependencies": [
+    "expo-updates",
+    "npm"
+  ],
+  "ignore": [
+    ".tamagui/**"
+  ]
+}

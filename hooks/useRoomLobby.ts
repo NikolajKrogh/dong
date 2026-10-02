@@ -76,6 +76,7 @@ export const useRoomLobby = (
     if (!sessionId) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
     void refresh();
     const interval = setInterval(() => {
       void refresh();

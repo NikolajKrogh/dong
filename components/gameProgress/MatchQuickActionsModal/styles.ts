@@ -4,10 +4,10 @@ import { useColors } from "../../../styles/theme";
 /** Style creator for the MatchQuickActionsModal and its sub-components. */
 export const createStyles = (
   colors: ReturnType<typeof useColors>,
-  modalWidth: number,
-  screenHeight: number,
-  isWideLayout: boolean,
-  playerColumnCount: number,
+  modalWidth = 0,
+  screenHeight = 0,
+  isWideLayout = false,
+  playerColumnCount = 1,
 ) =>
   StyleSheet.create({
     overlayTouchable: {

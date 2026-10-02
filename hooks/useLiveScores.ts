@@ -7,8 +7,8 @@ import { processApiMatch } from "../utils/espnParsing";
 
 // Re-exported for backward compatibility; new code should import from
 // types/matchScores and utils/espnParsing directly.
-export type { MatchWithScore, GoalScorer, MatchStatistics } from "../types/matchScores";
-export { extractMatchId, parseStatistics, processApiMatch } from "../utils/espnParsing";
+export type { MatchWithScore,   } from "../types/matchScores";
+;
 
 /**
  * Polls the ESPN API for live score updates.

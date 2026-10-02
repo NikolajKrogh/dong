@@ -140,7 +140,7 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
-**Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach.
+**Tests are required by constitution V**: Include unit tests for new features, pgTAP for database changes, and a primary Playwright BDD journey for substantial UI changes. Record explicit user exceptions in feature artifacts; do not silently treat an unexecuted gate as passed.
 
 ### Checklist Format (REQUIRED)
 

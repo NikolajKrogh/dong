@@ -13,8 +13,8 @@ member AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','lv-member@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id,'LV Host' FROM host UNION ALL SELECT id,'LV Member' FROM member RETURNING id
+    INSERT INTO public.accounts (id, username)
+    SELECT id,'LV_Host' FROM host UNION ALL SELECT id,'LV_Member' FROM member RETURNING id
 ),
 s AS (INSERT INTO public.game_sessions (owner_account_id, join_code) SELECT id,'LEAVE1' FROM host RETURNING id),
 m AS (INSERT INTO public.participants (session_id, account_id, display_name, membership_type, session_role, current_drink_total)

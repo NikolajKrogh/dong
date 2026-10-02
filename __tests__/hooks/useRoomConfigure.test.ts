@@ -8,11 +8,15 @@ import {
 } from "../../hooks/useRoomConfigure";
 import type { RoomSnapshot } from "../../types/room";
 import { generateIdempotencyKey, getStartGameApiClient } from "../../utils/commandApiClient";
-import { getRoomRpcClient, getSupabaseClient } from "../../utils/supabaseClient";
+import { getSupabaseClient } from "../../lib/supabase";
+import { getRoomRpcClient } from "../../utils/supabaseClient";
 
+jest.mock("../../lib/supabase", () => ({
+  getSupabaseClient: jest.fn(),
+}));
 jest.mock("../../utils/supabaseClient", () => ({
   getRoomRpcClient: jest.fn(),
-  getSupabaseClient: jest.fn(),
+
 }));
 
 jest.mock("../../utils/commandApiClient", () => ({
@@ -100,7 +104,7 @@ const render = (snapshot: RoomSnapshot | null, onMutated?: () => void) => {
 };
 
 describe("useRoomConfigure", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => { jest.clearAllMocks(); });
 
   it("adds a match and triggers onMutated", async () => {
     const addRoomMatch = jest.fn(async () => "match-3");

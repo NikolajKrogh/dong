@@ -35,10 +35,10 @@ o AS (
     VALUES (gen_random_uuid(),'authenticated','authenticated','erg-o@test.local',now(),now(),now(),'{"provider":"email"}'::jsonb,'{}'::jsonb,false,false) RETURNING id
 ),
 acc AS (
-    INSERT INTO public.accounts (id, preferred_display_name)
-    SELECT id, 'ERG Host' FROM h
-    UNION ALL SELECT id, 'ERG Member' FROM m
-    UNION ALL SELECT id, 'ERG Outsider' FROM o
+    INSERT INTO public.accounts (id, username)
+    SELECT id, 'ERG_Host' FROM h
+    UNION ALL SELECT id, 'ERG_Member' FROM m
+    UNION ALL SELECT id, 'ERG_Outsider' FROM o
     RETURNING id
 ),
 r1 AS (

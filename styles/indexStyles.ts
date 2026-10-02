@@ -310,7 +310,6 @@ export default function createStyles(colors: Colors) {
     logo: {
       width: 512,
       height: 120,
-      resizeMode: "contain",
       marginBottom: 8,
     } as ImageStyle,
     titleWithIcon: {

@@ -1,4 +1,4 @@
-export type GameProgressTab = "matches" | "players";
+type GameProgressTab = "matches" | "players";
 
 export interface GameProgressUiState {
   activeTab: GameProgressTab;

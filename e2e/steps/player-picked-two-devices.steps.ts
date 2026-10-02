@@ -119,7 +119,7 @@ When("the second member releases their pick", async () => {
 
 Then(
   `the second member's own pick progress reads {string}`,
-  async ({}, expected: string) => {
+  async (_fixtures, expected: string) => {
     await expect(
       secondDevice().getByTestId("lobby-player-pick-panel-count"),
     ).toHaveText(expected, { timeout: PROPAGATION_TIMEOUT_MS });
@@ -144,7 +144,7 @@ Then(
 
 Then(
   `the second member's device shows the host at {string}`,
-  async ({}, expected: string) => {
+  async (_fixtures, expected: string) => {
     const page = secondDevice();
     await page.getByTestId("SetupWizardStep-room").click();
     const progress = page.getByTestId(
