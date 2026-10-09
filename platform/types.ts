@@ -12,10 +12,7 @@ export type CapabilityId = (typeof CAPABILITY_IDS)[number];
 
 type CapabilityBehaviorClass = "full" | "degraded" | "noOp";
 type CapabilityFallbackType =
-  | "alternateUI"
-  | "reducedAnimation"
-  | "noOpWithSignal"
-  | "primaryControlOnly";
+  "alternateUI" | "reducedAnimation" | "noOpWithSignal" | "primaryControlOnly";
 type CapabilityUserVisibility = "silent" | "implicit" | "explicit";
 
 export interface CapabilityImplementation {
@@ -121,47 +118,36 @@ export const CORE_CAPABILITY_DESCRIPTORS: Record<
     capability: "dateInput",
     consumerFacingName: CAPABILITY_NAMES.dateInput,
     supportedPlatforms: [...SUPPORTED_PLATFORMS],
-    fallbackPlatforms: ["web"],
+    fallbackPlatforms: [],
     outcomeGuarantee: CAPABILITY_OUTCOME_GUARANTEES.dateInput,
     implementations: [
       {
         capability: "dateInput",
         platform: "ios",
-        driver: "react-native-date-picker",
+        driver: "react-native-paper-dates",
         entryPoint: "platform/date-input/PlatformDatePicker",
         behaviorClass: "full",
-        notes: "Preserves the current native modal picker interaction.",
+        notes: "Uses themed Paper date and time dialogs on all platforms.",
       },
       {
         capability: "dateInput",
         platform: "android",
-        driver: "react-native-date-picker",
+        driver: "react-native-paper-dates",
         entryPoint: "platform/date-input/PlatformDatePicker",
         behaviorClass: "full",
-        notes: "Preserves the current native modal picker interaction.",
+        notes: "Uses themed Paper date and time dialogs on all platforms.",
       },
       {
         capability: "dateInput",
         platform: "web",
-        driver: "react-native-ui-datepicker",
+        driver: "react-native-paper-dates",
         entryPoint: "platform/date-input/PlatformDatePicker",
-        behaviorClass: "degraded",
+        behaviorClass: "full",
         notes:
-          "Uses a supported web picker while keeping the same outward value contract.",
+          "Uses the same themed Paper dialogs and value contract as native.",
       },
     ],
-    fallbacks: [
-      {
-        capability: "dateInput",
-        platform: "web",
-        trigger:
-          "Web uses a supported picker surface instead of the native modal date picker.",
-        fallbackType: "alternateUI",
-        preservedOutcome:
-          "Players can still choose stable date and time values that drive the same filtering logic.",
-        userVisibility: "implicit",
-      },
-    ],
+    fallbacks: [],
   },
   visibility: {
     capability: "visibility",
@@ -211,9 +197,6 @@ export interface VisibilitySnapshot {
   isInteractive: boolean;
   capturedAt: number;
 }
-
-
-
 
 export type AnimationKind = "splash" | "loading";
 

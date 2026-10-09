@@ -115,6 +115,8 @@ function DateFilterControl({
       <Text style={styles.sectionTitle}>Date Filter</Text>
       <TouchableOpacity
         style={[styles.filterInput, localDateFilterActive && styles.activeInput]}
+        accessibilityRole="button"
+        accessibilityLabel="Match date"
         onPress={() => setIsDatePickerOpen(true)}
         activeOpacity={0.7}
       >
@@ -188,6 +190,8 @@ function TimeRangeFilterControl({
       <View style={styles.timeInputRow}>
         <TouchableOpacity
           style={[styles.timeInput, localTimeFilterActive && styles.activeInput]}
+          accessibilityRole="button"
+          accessibilityLabel="Start time"
           onPress={() => setIsStartTimePickerOpen(true)}
           activeOpacity={0.7}
         >
@@ -208,6 +212,8 @@ function TimeRangeFilterControl({
 
         <TouchableOpacity
           style={[styles.timeInput, localTimeFilterActive && styles.activeInput]}
+          accessibilityRole="button"
+          accessibilityLabel="End time"
           onPress={() => setIsEndTimePickerOpen(true)}
           activeOpacity={0.7}
         >
