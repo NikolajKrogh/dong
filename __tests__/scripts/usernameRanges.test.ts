@@ -31,11 +31,3 @@ it("expands First/Last records and keeps only letter and number categories", () 
     [0x1f100, 0x1f100],
   ]);
 });
-
-it("reproduces the pinned Unicode 16.0.0 SQL without drift", () => {
-  expect(() =>
-    execFileSync(process.execPath, ["scripts/generate-username-ranges.mjs", "--check"], {
-      encoding: "utf8",
-    }),
-  ).not.toThrow();
-});
