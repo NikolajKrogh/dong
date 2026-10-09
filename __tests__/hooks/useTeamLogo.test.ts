@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { ImageSourcePropType } from "react-native";
 import TestRenderer from "react-test-renderer";
@@ -13,9 +14,11 @@ jest.mock("../../utils/teamLogos", () => ({
 
 const mockGetHardcodedTeamLogoOnly = jest.mocked(getHardcodedTeamLogoOnly);
 const mockGetTeamLogo = jest.mocked(getTeamLogo);
+let queryClient: QueryClient;
 
 const DEFAULT_LOGO = require("../../assets/images/teams/default.png");
 const HARDCODED_LOGO = { testUri: "hardcoded-arsenal" } as ImageSourcePropType;
+const flushQuery = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 const renderHookProbe = (teamName: string) => {
   const observedSources: ImageSourcePropType[] = [];
@@ -29,7 +32,13 @@ const renderHookProbe = (teamName: string) => {
 
   let renderer!: TestRenderer.ReactTestRenderer;
   TestRenderer.act(() => {
-    renderer = TestRenderer.create(React.createElement(Probe));
+    renderer = TestRenderer.create(
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(Probe),
+      ),
+    );
   });
 
   return { renderer, observedSources, getLatest: () => latest };
@@ -38,6 +47,9 @@ const renderHookProbe = (teamName: string) => {
 describe("useTeamLogo", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: 0 } },
+    });
   });
 
   it("returns the default logo immediately for an empty team name", () => {
@@ -89,8 +101,7 @@ describe("useTeamLogo", () => {
     expect(getLatest()).toBe(DEFAULT_LOGO);
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(getLatest()).toEqual({ uri: "https://example.com/logo.png" });
@@ -107,8 +118,7 @@ describe("useTeamLogo", () => {
     const { renderer, getLatest } = renderHookProbe("Unmapped United");
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(getLatest()).toBe(DEFAULT_LOGO);
@@ -128,8 +138,7 @@ describe("useTeamLogo", () => {
     const { renderer, getLatest } = renderHookProbe("Unmapped United");
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(getLatest()).toBe(DEFAULT_LOGO);
@@ -157,19 +166,30 @@ describe("useTeamLogo", () => {
 
     let renderer!: TestRenderer.ReactTestRenderer;
     TestRenderer.act(() => {
-      renderer = TestRenderer.create(React.createElement(Probe));
+      renderer = TestRenderer.create(
+        React.createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          React.createElement(Probe),
+        ),
+      );
     });
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(latest).toBe(DEFAULT_LOGO);
 
     teamName = "Chelsea FC";
     await TestRenderer.act(async () => {
-      renderer.update(React.createElement(Probe));
+      renderer.update(
+        React.createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          React.createElement(Probe),
+        ),
+      );
     });
 
     expect(latest).toBe(HARDCODED_LOGO);

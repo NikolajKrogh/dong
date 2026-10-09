@@ -51,6 +51,287 @@ interface MatchFilterProps {
   isLoading?: boolean;
 }
 
+interface ExpandedMatchFilterProps {
+  selectedDate: string;
+  startTime: string;
+  endTime: string;
+  isDatePickerOpen: boolean;
+  isStartTimePickerOpen: boolean;
+  isEndTimePickerOpen: boolean;
+  setSelectedDate: (date: string) => void;
+  setStartTime: (time: string) => void;
+  setEndTime: (time: string) => void;
+  setIsDatePickerOpen: (open: boolean) => void;
+  setIsStartTimePickerOpen: (open: boolean) => void;
+  setIsEndTimePickerOpen: (open: boolean) => void;
+  isTimeFilterActive: boolean;
+  isDateFilterActive: boolean;
+  filteredMatches: MatchData[];
+  isLoading: boolean;
+  handleAddAllFilteredMatches: () => void;
+}
+
+type MatchFilterStyles = ReturnType<typeof createSetupGameStyles>;
+type MatchFilterColors = ReturnType<typeof useColors>;
+
+interface DateFilterControlProps {
+  selectedDate: string;
+  isDatePickerOpen: boolean;
+  setSelectedDate: (date: string) => void;
+  setIsDatePickerOpen: (open: boolean) => void;
+  isDateFilterActive: boolean;
+  isLoading: boolean;
+  colors: MatchFilterColors;
+  styles: MatchFilterStyles;
+}
+
+function DateFilterControl({
+  selectedDate,
+  isDatePickerOpen,
+  setSelectedDate,
+  setIsDatePickerOpen,
+  isDateFilterActive,
+  isLoading,
+  colors,
+  styles,
+}: DateFilterControlProps) {
+  const localDateFilterActive = isDateFilterActive || selectedDate.length > 0;
+  const selectedDateValue = parseDateIsoValue(selectedDate, new Date());
+  const formattedDate = selectedDate
+    ? selectedDateValue.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Select Date";
+
+  const confirmDate = (date: Date) => {
+    setIsDatePickerOpen(false);
+    setSelectedDate(formatDateIsoValue(date));
+  };
+
+  return (
+    <View style={styles.filterSection}>
+      <Text style={styles.sectionTitle}>Date Filter</Text>
+      <TouchableOpacity
+        style={[styles.filterInput, localDateFilterActive && styles.activeInput]}
+        onPress={() => setIsDatePickerOpen(true)}
+        activeOpacity={0.7}
+      >
+        <AppIcon
+          name="calendar-outline"
+          size={18}
+          color={localDateFilterActive ? colors.primaryFocus : colors.textMuted}
+          style={styles.inputIcon}
+        />
+        <Text
+          style={[styles.inputText, localDateFilterActive && styles.activeInputText]}
+        >
+          {formattedDate}
+          {isLoading && " (Loading...)"}
+        </Text>
+      </TouchableOpacity>
+      <PlatformDatePicker
+        open={isDatePickerOpen}
+        date={selectedDateValue}
+        onConfirm={confirmDate}
+        onCancel={() => setIsDatePickerOpen(false)}
+      />
+    </View>
+  );
+}
+
+interface TimeRangeFilterControlProps {
+  startTime: string;
+  endTime: string;
+  isStartTimePickerOpen: boolean;
+  isEndTimePickerOpen: boolean;
+  setStartTime: (time: string) => void;
+  setEndTime: (time: string) => void;
+  setIsStartTimePickerOpen: (open: boolean) => void;
+  setIsEndTimePickerOpen: (open: boolean) => void;
+  isTimeFilterActive: boolean;
+  colors: MatchFilterColors;
+  styles: MatchFilterStyles;
+}
+
+function TimeRangeFilterControl({
+  startTime,
+  endTime,
+  isStartTimePickerOpen,
+  isEndTimePickerOpen,
+  setStartTime,
+  setEndTime,
+  setIsStartTimePickerOpen,
+  setIsEndTimePickerOpen,
+  isTimeFilterActive,
+  colors,
+  styles,
+}: TimeRangeFilterControlProps) {
+  const localTimeFilterActive =
+    isTimeFilterActive || (startTime.length > 0 && endTime.length > 0);
+  const startTimeValue = parseTimeIsoValue(startTime, new Date());
+  const endTimeValue = parseTimeIsoValue(endTime, new Date());
+
+  const confirmStartTime = (date: Date) => {
+    setIsStartTimePickerOpen(false);
+    setStartTime(date.toTimeString().slice(0, 5));
+  };
+  const confirmEndTime = (date: Date) => {
+    setIsEndTimePickerOpen(false);
+    setEndTime(date.toTimeString().slice(0, 5));
+  };
+
+  return (
+    <View style={styles.filterSection}>
+      <Text style={styles.sectionTitle}>Time Range</Text>
+      <View style={styles.timeInputRow}>
+        <TouchableOpacity
+          style={[styles.timeInput, localTimeFilterActive && styles.activeInput]}
+          onPress={() => setIsStartTimePickerOpen(true)}
+          activeOpacity={0.7}
+        >
+          <AppIcon
+            name="time-outline"
+            size={18}
+            color={localTimeFilterActive ? colors.primaryFocus : colors.textMuted}
+            style={styles.inputIcon}
+          />
+          <Text
+            style={[styles.inputText, localTimeFilterActive && styles.activeInputText]}
+          >
+            {startTime || "Start"}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.timeSeparator}>to</Text>
+
+        <TouchableOpacity
+          style={[styles.timeInput, localTimeFilterActive && styles.activeInput]}
+          onPress={() => setIsEndTimePickerOpen(true)}
+          activeOpacity={0.7}
+        >
+          <AppIcon
+            name="time-outline"
+            size={18}
+            color={localTimeFilterActive ? colors.primaryFocus : colors.textMuted}
+            style={styles.inputIcon}
+          />
+          <Text
+            style={[styles.inputText, localTimeFilterActive && styles.activeInputText]}
+          >
+            {endTime || "End"}
+          </Text>
+        </TouchableOpacity>
+
+        <PlatformTimePicker
+          open={isStartTimePickerOpen}
+          date={startTimeValue}
+          onConfirm={confirmStartTime}
+          onCancel={() => setIsStartTimePickerOpen(false)}
+        />
+        <PlatformTimePicker
+          open={isEndTimePickerOpen}
+          date={endTimeValue}
+          onConfirm={confirmEndTime}
+          onCancel={() => setIsEndTimePickerOpen(false)}
+        />
+      </View>
+    </View>
+  );
+}
+
+interface MatchResultsSummaryProps {
+  filteredMatchCount: number;
+  handleAddAllFilteredMatches: () => void;
+  colors: MatchFilterColors;
+  styles: MatchFilterStyles;
+}
+
+function MatchResultsSummary({
+  filteredMatchCount,
+  handleAddAllFilteredMatches,
+  colors,
+  styles,
+}: MatchResultsSummaryProps) {
+  return (
+    <View style={styles.resultsSummary}>
+      <View style={styles.matchCountContainer}>
+        <AppIcon name="football-outline" size={16} color={colors.primaryFocus} />
+        <Text style={styles.matchCount}>
+          {filteredMatchCount} matches found
+        </Text>
+      </View>
+      <TouchableOpacity
+        testID="SetupAddAllFilteredMatchesButton"
+        style={styles.filterActionButton}
+        onPress={handleAddAllFilteredMatches}
+        activeOpacity={0.7}
+      >
+        <AppIcon name="add-circle" size={16} color={colors.white} />
+        <Text style={styles.filterActionButtonText}>Add Matches</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const ExpandedMatchFilter = ({
+  selectedDate,
+  startTime,
+  endTime,
+  isDatePickerOpen,
+  isStartTimePickerOpen,
+  isEndTimePickerOpen,
+  setSelectedDate,
+  setStartTime,
+  setEndTime,
+  setIsDatePickerOpen,
+  setIsStartTimePickerOpen,
+  setIsEndTimePickerOpen,
+  isTimeFilterActive,
+  isDateFilterActive,
+  filteredMatches,
+  isLoading,
+  handleAddAllFilteredMatches,
+}: ExpandedMatchFilterProps) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+
+  return (
+    <View style={styles.expandedContent}>
+      <DateFilterControl
+        selectedDate={selectedDate}
+        isDatePickerOpen={isDatePickerOpen}
+        setSelectedDate={setSelectedDate}
+        setIsDatePickerOpen={setIsDatePickerOpen}
+        isDateFilterActive={isDateFilterActive}
+        isLoading={isLoading}
+        colors={colors}
+        styles={styles}
+      />
+      <TimeRangeFilterControl
+        startTime={startTime}
+        endTime={endTime}
+        isStartTimePickerOpen={isStartTimePickerOpen}
+        isEndTimePickerOpen={isEndTimePickerOpen}
+        setStartTime={setStartTime}
+        setEndTime={setEndTime}
+        setIsStartTimePickerOpen={setIsStartTimePickerOpen}
+        setIsEndTimePickerOpen={setIsEndTimePickerOpen}
+        isTimeFilterActive={isTimeFilterActive}
+        colors={colors}
+        styles={styles}
+      />
+      <MatchResultsSummary
+        filteredMatchCount={filteredMatches.length}
+        handleAddAllFilteredMatches={handleAddAllFilteredMatches}
+        colors={colors}
+        styles={styles}
+      />
+    </View>
+  );
+};
+
 /**
  * Match filter.
  * @description Date + optional time range filtering UI with collapse animation and bulk add action.
@@ -99,8 +380,6 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
         year: "numeric",
       })
     : "Select Date";
-  const startTimeValue = parseTimeIsoValue(startTime, new Date());
-  const endTimeValue = parseTimeIsoValue(endTime, new Date());
 
   return (
     <View style={styles.filterCard}>
@@ -160,159 +439,25 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
       </TouchableOpacity>
 
       {showTimeFilter && (
-        <View style={styles.expandedContent}>
-          <View style={styles.filterSection}>
-            <Text style={styles.sectionTitle}>Date Filter</Text>
-            <TouchableOpacity
-              style={[
-                styles.filterInput,
-                localDateFilterActive && styles.activeInput,
-              ]}
-              onPress={() => setIsDatePickerOpen(true)}
-              activeOpacity={0.7}
-            >
-              <AppIcon
-                name="calendar-outline"
-                size={18}
-                color={
-                  localDateFilterActive ? colors.primaryFocus : colors.textMuted
-                }
-                style={styles.inputIcon}
-              />
-              <Text
-                style={[
-                  styles.inputText,
-                  localDateFilterActive && styles.activeInputText,
-                ]}
-              >
-                {formattedDate}
-                {isLoading && " (Loading...)"}
-              </Text>
-            </TouchableOpacity>
-            <PlatformDatePicker
-              open={isDatePickerOpen}
-              date={selectedDateValue}
-              onConfirm={(date) => {
-                setIsDatePickerOpen(false);
-                setSelectedDate(formatDateIsoValue(date));
-              }}
-              onCancel={() => setIsDatePickerOpen(false)}
-            />
-          </View>
-
-          <View style={styles.filterSection}>
-            <Text style={styles.sectionTitle}>Time Range</Text>
-            <View style={styles.timeInputRow}>
-              <TouchableOpacity
-                style={[
-                  styles.timeInput,
-                  localTimeFilterActive && styles.activeInput,
-                ]}
-                onPress={() => setIsStartTimePickerOpen(true)}
-                activeOpacity={0.7}
-              >
-                <AppIcon
-                  name="time-outline"
-                  size={18}
-                  color={
-                    localTimeFilterActive
-                      ? colors.primaryFocus
-                      : colors.textMuted
-                  }
-                  style={styles.inputIcon}
-                />
-                <Text
-                  style={[
-                    styles.inputText,
-                    localTimeFilterActive && styles.activeInputText,
-                  ]}
-                >
-                  {startTime || "Start"}
-                </Text>
-              </TouchableOpacity>
-
-              <Text style={styles.timeSeparator}>to</Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.timeInput,
-                  localTimeFilterActive && styles.activeInput,
-                ]}
-                onPress={() => setIsEndTimePickerOpen(true)}
-                activeOpacity={0.7}
-              >
-                <AppIcon
-                  name="time-outline"
-                  size={18}
-                  color={
-                    localTimeFilterActive
-                      ? colors.primaryFocus
-                      : colors.textMuted
-                  }
-                  style={styles.inputIcon}
-                />
-                <Text
-                  style={[
-                    styles.inputText,
-                    localTimeFilterActive && styles.activeInputText,
-                  ]}
-                >
-                  {endTime || "End"}
-                </Text>
-              </TouchableOpacity>
-
-              <PlatformTimePicker
-                open={isStartTimePickerOpen}
-                date={startTimeValue}
-                onConfirm={(date) => {
-                  setIsStartTimePickerOpen(false);
-                  setStartTime(date.toTimeString().slice(0, 5));
-                }}
-                onCancel={() => setIsStartTimePickerOpen(false)}
-              />
-
-              <PlatformTimePicker
-                open={isEndTimePickerOpen}
-                date={endTimeValue}
-                onConfirm={(date) => {
-                  setIsEndTimePickerOpen(false);
-                  setEndTime(date.toTimeString().slice(0, 5));
-                }}
-                onCancel={() => setIsEndTimePickerOpen(false)}
-              />
-            </View>
-          </View>
-
-          <View style={styles.resultsSummary}>
-            <View style={styles.matchCountContainer}>
-              <AppIcon
-                name="football-outline"
-                size={16}
-                color={colors.primaryFocus}
-              />
-              <Text style={styles.matchCount}>
-                {filteredMatches.length} matches found
-              </Text>
-            </View>
-
-            {/*
-              Deliberately always enabled. The guard that matters lives in
-              MatchList.handleAddAllFilteredMatches, which reports when the current
-              filters match no fixtures — this button used to carry a
-              `disabled={!isAnyFilterActive}` that could never fire, because the
-              date seeds to today and the picker cannot write an empty value.
-            */}
-            <TouchableOpacity
-              testID="SetupAddAllFilteredMatchesButton"
-              style={styles.filterActionButton}
-              onPress={handleAddAllFilteredMatches}
-              activeOpacity={0.7}
-            >
-              <AppIcon name="add-circle" size={16} color={colors.white} />
-              <Text style={styles.filterActionButtonText}>Add Matches</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ExpandedMatchFilter
+          selectedDate={selectedDate}
+          startTime={startTime}
+          endTime={endTime}
+          isDatePickerOpen={isDatePickerOpen}
+          isStartTimePickerOpen={isStartTimePickerOpen}
+          isEndTimePickerOpen={isEndTimePickerOpen}
+          setSelectedDate={setSelectedDate}
+          setStartTime={setStartTime}
+          setEndTime={setEndTime}
+          setIsDatePickerOpen={setIsDatePickerOpen}
+          setIsStartTimePickerOpen={setIsStartTimePickerOpen}
+          setIsEndTimePickerOpen={setIsEndTimePickerOpen}
+          isTimeFilterActive={isTimeFilterActive}
+          isDateFilterActive={isDateFilterActive}
+          filteredMatches={filteredMatches}
+          isLoading={isLoading}
+          handleAddAllFilteredMatches={handleAddAllFilteredMatches}
+        />
       )}
     </View>
   );

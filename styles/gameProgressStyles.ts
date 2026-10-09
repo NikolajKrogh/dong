@@ -1,11 +1,6 @@
-import {
-  Dimensions,
-  ImageStyle,
-  StyleSheet,
-  TextStyle,
-  ViewStyle,
-} from "react-native";
+import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import type { darkColors as Dark, lightColors as Light } from "./theme";
+import { androidElevationFallback, hexWithAlpha } from "./shadows";
 type Colors = typeof Light | typeof Dark;
 
 export function createGameProgressStyles(colors: Colors) {
@@ -18,11 +13,8 @@ export function createGameProgressStyles(colors: Colors) {
   const baseCard: ViewStyle = {
     backgroundColor: colors.surface,
     borderRadius: 8,
-    elevation: 2,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    boxShadow: `0px 1px 1.5px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+    ...androidElevationFallback(2),
   };
 
   const baseButton: ViewStyle = {
@@ -53,22 +45,16 @@ export function createGameProgressStyles(colors: Colors) {
     borderRadius: 20,
     padding: 35,
     alignItems: "center",
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+    ...androidElevationFallback(5),
   };
 
   const baseCounterButton: ViewStyle = {
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 2,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
+    boxShadow: `0px 1px 1px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+    ...androidElevationFallback(2),
   };
 
   const baseBadge: ViewStyle = {
@@ -348,7 +334,7 @@ export function createGameProgressStyles(colors: Colors) {
       ...baseCard,
       borderRadius: 10,
       overflow: "hidden",
-      shadowOpacity: 0.08,
+      boxShadow: `0px 1px 1.5px ${hexWithAlpha(colors.textPrimary, 0.08)}`,
       position: "relative",
     },
     matchItem: {
@@ -361,8 +347,7 @@ export function createGameProgressStyles(colors: Colors) {
       ...baseCard,
       marginBottom: 12,
       padding: 12,
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      boxShadow: `0px 1px 4px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
@@ -374,8 +359,8 @@ export function createGameProgressStyles(colors: Colors) {
       padding: 10,
       borderWidth: 1,
       borderColor: colors.borderLight,
-      shadowOpacity: 0.1,
-      elevation: 1,
+      boxShadow: `0px 1px 1.5px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(1),
       position: "relative",
     },
 
@@ -1003,7 +988,8 @@ export function createGameProgressStyles(colors: Colors) {
       ...baseButton,
       borderRadius: 20,
       padding: 10,
-      elevation: 2,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(2),
       marginHorizontal: 5,
     },
     counterButton: {
@@ -1047,11 +1033,8 @@ export function createGameProgressStyles(colors: Colors) {
       width: 50,
       height: 50,
       borderRadius: 25,
-      elevation: 3,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(3),
     },
     actionButton: {
       backgroundColor: colors.primary,
@@ -1336,7 +1319,6 @@ export function createGameProgressStyles(colors: Colors) {
       overflow: "hidden",
     },
     tabPage: {
-      width: Dimensions.get("window").width,
       flex: 1,
     },
     tabBarContainer: {
@@ -1355,11 +1337,8 @@ export function createGameProgressStyles(colors: Colors) {
       borderWidth: 1,
       borderColor: colors.borderLight,
       padding: 6,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
+      boxShadow: `0px 1px 4px ${hexWithAlpha(colors.textPrimary, 0.08)}`,
+      ...androidElevationFallback(2),
     },
     tabBarWide: {
       // `stretch`, not `center`. Centering here sets the cross-axis size to the

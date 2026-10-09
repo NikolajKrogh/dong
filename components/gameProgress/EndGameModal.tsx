@@ -6,8 +6,10 @@ import {
   Modal,
   StyleSheet,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 import { useColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 
 /**
  * Props for the EndGameModal component.
@@ -126,14 +128,8 @@ const createStyles = (
       borderRadius: 20,
       padding: 20,
       alignItems: "center",
-      shadowColor: colors.black,
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.black, 0.25)}`,
+      ...androidElevationFallback(5),
       maxHeight: Math.min(screenHeight * 0.7, 420),
     },
     modalTitle: {
@@ -156,7 +152,8 @@ const createStyles = (
     button: {
       borderRadius: 20,
       padding: 10,
-      elevation: 2,
+      boxShadow: Platform.OS === "android" ? `0px 2px 4px ${hexWithAlpha(colors.black, 0.2)}` : undefined,
+      ...androidElevationFallback(2),
       marginHorizontal: isWideLayout ? 5 : 0,
       marginTop: isWideLayout ? 0 : 8,
       minWidth: 120,

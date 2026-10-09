@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.gameplay_events (
     payload jsonb NOT NULL,
     created_at timestamptz DEFAULT now()
 );
+ALTER TABLE public.gameplay_events ENABLE ROW LEVEL SECURITY;
 -- Uniqueness per session
 CREATE UNIQUE INDEX IF NOT EXISTS ux_gameplay_events_session_sequence ON public.gameplay_events (session_id, sequence_number);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_gameplay_events_session_idempotency ON public.gameplay_events (session_id, idempotency_key);

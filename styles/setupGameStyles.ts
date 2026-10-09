@@ -1,5 +1,6 @@
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import type { useColors } from "./theme";
+import { androidElevationFallback, hexWithAlpha } from "./shadows";
 
 // --- Base Styles ---
 const makeBaseContainer = (): ViewStyle => ({
@@ -11,11 +12,8 @@ const makeBaseCard = (colors: ReturnType<typeof useColors>): ViewStyle => ({
   borderRadius: 8,
   borderWidth: 1,
   borderColor: colors.border,
-  shadowColor: colors.textPrimary, // Using a dark color for shadow
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.15,
-  shadowRadius: 2,
-  elevation: 2,
+  boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.15)}`,
+  ...androidElevationFallback(2),
 });
 
 const makeBaseInput = (colors: ReturnType<typeof useColors>): TextStyle => ({
@@ -64,11 +62,8 @@ const makeBaseModalView = (
   borderRadius: 20,
   padding: 25, // Increased default padding
   alignItems: "center",
-  shadowColor: colors.textPrimary,
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 4,
-  elevation: 5,
+  boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+  ...androidElevationFallback(5),
 });
 
 const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
@@ -212,11 +207,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       padding: 16,
       marginHorizontal: 8,
       marginBottom: 16,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.15,
-      shadowRadius: 3,
-      elevation: 3,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.textPrimary, 0.15)}`,
+      ...androidElevationFallback(3),
     },
     matchCounterContainer: {
       flexDirection: "row",
@@ -343,7 +335,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderRadius: 20, // Softer radius for modal buttons
       paddingVertical: 10, // Adjusted padding
       paddingHorizontal: 20,
-      elevation: 2,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(2),
       marginHorizontal: 5,
     },
     buttonConfirm: {
@@ -375,11 +368,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.danger, // Or a more specific color like colors.accentPink
       justifyContent: "center",
       alignItems: "center",
-      elevation: 2,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 1,
+      boxShadow: `0px 1px 1px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
     },
     tinyButtonText: {
       color: colors.textLight,
@@ -602,11 +592,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: 4,
-      elevation: 5, // Android shadow
-      shadowColor: colors.textPrimary, // iOS shadow
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(5),
     },
     suggestionItem: {
       padding: 12,
@@ -638,11 +625,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderRadius: 4,
       borderWidth: 1,
       borderColor: colors.border,
-      elevation: 5,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(5),
       maxHeight: 300, // Limit height
       zIndex: 9999, // Highest zIndex
     },
@@ -804,11 +788,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       width: "100%",
       maxHeight: "80%",
       padding: 10,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
-      elevation: 5,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(5),
     },
     modalHeader: {
       flexDirection: "row",
@@ -1119,16 +1100,13 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       justifyContent: "center",
       alignItems: "center",
       marginLeft: 8,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 3,
-      elevation: 4,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.primary, 0.3)}`,
+      ...androidElevationFallback(4),
     },
     matchAddButtonDisabled: {
       backgroundColor: colors.textDisabled,
-      shadowOpacity: 0,
-      elevation: 0,
+      boxShadow: "none",
+      ...androidElevationFallback(0),
     },
     matchEmptyListContainer: {
       alignItems: "center",
@@ -1225,8 +1203,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginBottom: 12,
       borderRadius: 12, // Softer radius
       overflow: "hidden",
-      shadowOpacity: 0.1, // Softer shadow
-      elevation: 3, // Slightly more elevation
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(3),
     },
     filterCardHeader: {
       padding: 16,
@@ -1479,16 +1457,13 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       paddingVertical: 0, // Override base
       paddingHorizontal: 0,
       marginLeft: 10,
-      shadowColor: colors.primary, // Shadow with button color
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 5,
-      elevation: 3,
+      boxShadow: `0px 4px 5px ${hexWithAlpha(colors.primary, 0.3)}`,
+      ...androidElevationFallback(3),
     },
     playerAddButtonDisabled: {
       backgroundColor: colors.textDisabled,
-      elevation: 0, // Flatten disabled button
-      shadowOpacity: 0,
+      boxShadow: "none",
+      ...androidElevationFallback(0),
     },
     playerItemContainer: {
       ...makeBaseCard(colors), // Apply base card style
@@ -1499,8 +1474,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderRadius: 12, // Softer radius
       marginBottom: 10,
       borderWidth: 0, // Override baseCard border if not needed
-      shadowOpacity: 0.05, // Very subtle shadow
-      elevation: 2, // Keep consistent elevation
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.05)}`,
+      ...androidElevationFallback(2),
       overflow: "hidden", // For rounded corners with content
     },
     playerItemWide: {
@@ -1558,11 +1533,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginBottom: 10,
       backgroundColor: colors.danger, // Use semantic danger color
       alignSelf: "center",
-      shadowColor: colors.danger,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-      elevation: 2,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.danger, 0.2)}`,
+      ...androidElevationFallback(2),
     },
     playerClearAllButtonText: {
       ...makeBaseButtonText(colors),
@@ -1712,11 +1684,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(3),
       overflow: "hidden",
       position: "relative",
       marginHorizontal: 4,
@@ -1760,11 +1729,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.surface,
       justifyContent: "center",
       alignItems: "center",
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
       borderWidth: 1,
       borderColor: colors.borderLighter,
     },
@@ -1817,11 +1783,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       paddingVertical: 5,
       paddingHorizontal: 30,
       transform: [{ rotate: "45deg" }],
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 2,
-      elevation: 3,
+      boxShadow: `0px 2px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(3),
     },
     selectedRibbonText: {
       color: colors.textLight,
@@ -1833,11 +1796,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     selectedMatchCard: {
       borderWidth: 2,
       borderColor: colors.primary,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
-      elevation: 5,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.primary, 0.3)}`,
+      ...androidElevationFallback(5),
     },
 
     selectionCheckmark: {
@@ -1857,22 +1817,16 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginBottom: 6,
       marginRight: 6,
       overflow: "hidden",
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(2),
     },
 
     selectedCompactMatchItem: {
       borderWidth: 2,
       borderColor: colors.primary,
       backgroundColor: colors.primaryLighter,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-      elevation: 4,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.primary, 0.2)}`,
+      ...androidElevationFallback(4),
     },
 
     compactMatchContent: {
@@ -2008,11 +1962,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.surface,
       borderRadius: 16,
       marginTop: 4,
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.2,
-      shadowRadius: 12,
-      elevation: 10,
+      boxShadow: `0px 6px 12px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(10),
       overflow: "hidden",
     },
     playerSuggestionsDropdownAndroid: {
@@ -2021,8 +1972,9 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       left: 0,
       right: 0,
       width: "100%",
+      boxShadow: `0px 12px 16px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(20),
       zIndex: 20,
-      elevation: 20,
     },
     playerSuggestionsList: {
       paddingBottom: 4,

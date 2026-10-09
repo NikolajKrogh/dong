@@ -1,9 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from "react";
 
 import { useAppVisibility } from "../platform";
 import { useGameStore, type Match, type Player } from "../store/store";
 import type { GuestRoomSessionGrant } from "../types/guestRoom";
 import type {
+  ActiveGameContext,
   GameplayCommandResult,
   GameplayCommandType,
   ReassignParticipantMatchesResponse,
@@ -116,6 +126,798 @@ const applyStoreState = (
 const isStableGameplayError = (error: unknown) =>
   error instanceof GameplayRpcErrorClass;
 
+const subscribeToRoomChanges = (
+  sessionId: string,
+  participantId: string,
+  refresh: () => unknown,
+) => {
+  const client = getSupabaseClient();
+  const channel = client.channel(`room:${sessionId}`, {
+    config: { private: true, presence: { key: participantId } },
+  });
+  let active = true;
+  let previousPresence = "";
+  channel.on("broadcast", { event: "room_changed" }, () => {
+    if (!active) return;
+    void refresh();
+  });
+  channel.on("presence", { event: "sync" }, () => {
+    if (!active) return;
+    const currentPresence = Object.keys(channel.presenceState()).sort().join("|");
+    if (currentPresence === previousPresence) return;
+    previousPresence = currentPresence;
+    if (currentPresence) void refresh();
+  });
+  channel.subscribe((state) => {
+    if (active && state === "SUBSCRIBED") void channel.track({});
+  });
+
+  return () => {
+    active = false;
+    void client.removeChannel(channel);
+  };
+};
+
+type StateSetter<T> = Dispatch<SetStateAction<T>>;
+
+interface SyncIdentityStateParams {
+  identity: string;
+  previousIdentity: string;
+  context: Pick<ActiveGameContext, "mode">;
+  accessLost: boolean;
+  setPreviousIdentity: StateSetter<string>;
+  setPendingMutations: StateSetter<PendingGameplayMutation[]>;
+  setSnapshot: StateSetter<CompatibleRoomSnapshot | null>;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  setAccessLost: StateSetter<boolean>;
+}
+
+const syncIdentityStateDuringRender = ({
+  identity,
+  previousIdentity,
+  context,
+  accessLost,
+  setPreviousIdentity,
+  setPendingMutations,
+  setSnapshot,
+  setStatus,
+  setError,
+  setAccessLost,
+}: SyncIdentityStateParams) => {
+  if (previousIdentity === identity) return;
+  setPreviousIdentity(identity);
+  setPendingMutations([]);
+  if (context.mode === "multiplayer" || !accessLost) {
+    setSnapshot(null);
+    setStatus(context.mode === "multiplayer" ? "hydrating" : "idle");
+    setError(null);
+  }
+  if (context.mode === "multiplayer" && accessLost) setAccessLost(false);
+};
+
+interface ResetRoomRuntimeParams {
+  generationRef: MutableRefObject<number>;
+  refreshInFlightRef: MutableRefObject<number | null>;
+  guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>;
+  lastProviderRefreshAtRef: MutableRefObject<number>;
+  completionInFlightRef: MutableRefObject<boolean>;
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
+  context: Pick<ActiveGameContext, "mode">;
+  accessLost: boolean;
+}
+
+const resetRoomRuntimeForIdentity = ({
+  generationRef,
+  refreshInFlightRef,
+  guestGrantRef,
+  lastProviderRefreshAtRef,
+  completionInFlightRef,
+  pendingRef,
+  commandsRef,
+  snapshotRef,
+  context,
+  accessLost,
+}: ResetRoomRuntimeParams) => {
+  generationRef.current += 1;
+  refreshInFlightRef.current = null;
+  guestGrantRef.current = null;
+  lastProviderRefreshAtRef.current = 0;
+  completionInFlightRef.current = false;
+  pendingRef.current = [];
+  commandsRef.current.clear();
+  if (context.mode === "multiplayer" || !accessLost) snapshotRef.current = null;
+};
+
+interface UpdatePendingStateParams {
+  next: PendingGameplayMutation[];
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
+  setPendingMutations: StateSetter<PendingGameplayMutation[]>;
+  setters: {
+    setPlayers: (players: Player[]) => void;
+    setMatches: (matches: Match[]) => void;
+    setCommonMatchId: (id: string | null) => void;
+    setPlayerAssignments: (assignments: Record<string, string[]>) => void;
+  };
+}
+
+const updatePendingGameplayState = ({
+  next,
+  pendingRef,
+  snapshotRef,
+  setPendingMutations,
+  setters,
+}: UpdatePendingStateParams) => {
+  pendingRef.current = next;
+  setPendingMutations(next);
+  if (snapshotRef.current) {
+    applyStoreState(snapshotRef.current, next, setters);
+  }
+};
+
+interface ApplyActiveGameSnapshotParams {
+  nextSnapshot: CompatibleRoomSnapshot;
+  expectedGeneration: number;
+  expectedSessionId: string | null;
+  contextRef: MutableRefObject<ActiveGameContext>;
+  generationRef: MutableRefObject<number>;
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
+  setSnapshot: StateSetter<CompatibleRoomSnapshot | null>;
+  setPendingMutations: StateSetter<PendingGameplayMutation[]>;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  setActiveGameContext: (context: Partial<ActiveGameContext>) => void;
+  setPlayers: (players: Player[]) => void;
+  setMatches: (matches: Match[]) => void;
+  setCommonMatchId: (id: string | null) => void;
+  setPlayerAssignments: (assignments: Record<string, string[]>) => void;
+}
+
+const applyActiveGameSnapshot = ({
+  nextSnapshot,
+  expectedGeneration,
+  expectedSessionId,
+  contextRef,
+  generationRef,
+  pendingRef,
+  commandsRef,
+  snapshotRef,
+  setSnapshot,
+  setPendingMutations,
+  setStatus,
+  setError,
+  setActiveGameContext,
+  setPlayers,
+  setMatches,
+  setCommonMatchId,
+  setPlayerAssignments,
+}: ApplyActiveGameSnapshotParams) => {
+  const currentContext = contextRef.current;
+  if (
+    generationRef.current !== expectedGeneration ||
+    currentContext.mode !== "multiplayer" ||
+    !expectedSessionId ||
+    currentContext.sessionId !== expectedSessionId ||
+    (currentContext.accessKind === "guest" && isGuestRoomEnded(expectedSessionId)) ||
+    nextSnapshot.sessionId !== expectedSessionId
+  ) {
+    return false;
+  }
+  const incomingSequence = getSequence(nextSnapshot);
+  if (!canApplySnapshot(currentContext.lastAppliedSequence, nextSnapshot)) {
+    return false;
+  }
+
+  snapshotRef.current = nextSnapshot;
+  setSnapshot(nextSnapshot);
+  applyStoreState(nextSnapshot, pendingRef.current, {
+    setPlayers,
+    setMatches,
+    setCommonMatchId,
+    setPlayerAssignments,
+  });
+  setActiveGameContext({
+    mode: "multiplayer",
+    sessionId: nextSnapshot.sessionId,
+    lastAppliedSequence: incomingSequence,
+  });
+  const hasEnded =
+    nextSnapshot.state === "completed" || nextSnapshot.state === "closed";
+  setStatus(hasEnded ? "ended" : "ready");
+  if (hasEnded) {
+    pendingRef.current = [];
+    commandsRef.current.clear();
+    setPendingMutations([]);
+  }
+  setError(null);
+  return true;
+};
+
+interface RefreshActiveGameRoomParams {
+  contextRef: MutableRefObject<ActiveGameContext>;
+  generationRef: MutableRefObject<number>;
+  refreshInFlightRef: MutableRefObject<number | null>;
+  guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>;
+  lastProviderRefreshAtRef: MutableRefObject<number>;
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  setPendingMutations: StateSetter<PendingGameplayMutation[]>;
+  setAccessLost: StateSetter<boolean>;
+  clearActiveGameContext: () => void;
+  applySnapshot: (
+    nextSnapshot: CompatibleRoomSnapshot,
+    expectedGeneration: number,
+    expectedSessionId: string,
+  ) => boolean;
+}
+
+/** Loads the latest room snapshot and applies access-loss and guest-end policy. */
+const refreshActiveGameRoom = async ({
+  contextRef,
+  generationRef,
+  refreshInFlightRef,
+  guestGrantRef,
+  lastProviderRefreshAtRef,
+  pendingRef,
+  commandsRef,
+  snapshotRef,
+  setStatus,
+  setError,
+  setPendingMutations,
+  setAccessLost,
+  clearActiveGameContext,
+  applySnapshot,
+}: RefreshActiveGameRoomParams) => {
+  const currentContext = contextRef.current;
+  if (currentContext.mode !== "multiplayer" || !currentContext.sessionId) {
+    return null;
+  }
+
+  const generation = generationRef.current;
+  const sessionId = currentContext.sessionId;
+  if (currentContext.accessKind === "guest" && isGuestRoomEnded(sessionId)) {
+    return null;
+  }
+  if (refreshInFlightRef.current === generation) return snapshotRef.current;
+
+  refreshInFlightRef.current = generation;
+  setStatus((current) => (current === "ready" ? "refreshing" : "hydrating"));
+  try {
+    let nextSnapshot: CompatibleRoomSnapshot;
+    if (currentContext.accessKind === "guest") {
+      const pendingLeave = await readGuestRoomPendingLeave();
+      if (generationRef.current !== generation) return null;
+      if (pendingLeave?.sessionId === sessionId) {
+        setStatus("offline");
+        setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
+        return snapshotRef.current;
+      }
+      guestGrantRef.current ??= await readGuestRoomSessionGrant();
+      if (generationRef.current !== generation) return null;
+      const grant = guestGrantRef.current;
+      if (!grant || grant.sessionId !== currentContext.sessionId) {
+        throw new GameplayRpcErrorClass(
+          "guest_token_expired",
+          "Your guest room session has expired.",
+        );
+      }
+      nextSnapshot = await getGuestRoomRpcClient().getGuestRoomSnapshot(
+        grant.guestToken,
+      );
+    } else {
+      const now = Date.now();
+      if (now - lastProviderRefreshAtRef.current >= 60_000) {
+        lastProviderRefreshAtRef.current = now;
+        try {
+          await getProviderScoreRefreshClient().refreshProviderScores(
+            sessionId,
+            generateIdempotencyKey(),
+          );
+        } catch (providerError) {
+          // A provider outage must not hide the last accepted room snapshot;
+          // the next scheduled pass will retry the refresh.
+          console.warn("Provider score refresh unavailable", providerError);
+        }
+      }
+      if (generationRef.current !== generation) return null;
+      nextSnapshot = await getRoomRpcClient().getRoomSnapshot(sessionId);
+    }
+
+    if (currentContext.accessKind === "guest") {
+      const pendingLeave = await readGuestRoomPendingLeave();
+      if (generationRef.current !== generation) return null;
+      if (pendingLeave?.sessionId === sessionId) {
+        setStatus("offline");
+        setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
+        return snapshotRef.current;
+      }
+    }
+    applySnapshot(nextSnapshot, generation, sessionId);
+    return nextSnapshot;
+  } catch (refreshError) {
+    if (generationRef.current !== generation) return null;
+    if (
+      currentContext.accessKind === "guest" &&
+      getGuestRoomErrorCode(refreshError) === "room_ended"
+    ) {
+      generationRef.current += 1;
+      pendingRef.current = [];
+      commandsRef.current.clear();
+      setPendingMutations([]);
+      try {
+        await confirmGuestRoomEnded(sessionId);
+      } catch {
+        setError("Secure guest storage could not be cleared.");
+      }
+      return null;
+    }
+
+    const mapped =
+      refreshError instanceof GameplayRpcErrorClass
+        ? refreshError
+        : mapGameplayError(refreshError);
+    if (
+      currentContext.accessKind === "guest" &&
+      isExpiredGuestRoomError(refreshError)
+    ) {
+      try {
+        const pendingLeave = await readGuestRoomPendingLeave();
+        if (pendingLeave?.sessionId === sessionId) {
+          setStatus("offline");
+          setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
+          return null;
+        }
+      } catch {
+        // If protected storage is unavailable, keep the regular access-loss path.
+      }
+    }
+
+    const accessWasLost =
+      (currentContext.accessKind === "guest" &&
+        isExpiredGuestRoomError(refreshError)) ||
+      Boolean(
+        mapped &&
+          [
+            "not_authenticated",
+            "not_room_participant",
+            "participant_inactive",
+            "room_not_found",
+            "guest_token_expired",
+            "forbidden",
+          ].includes(mapped.code),
+      );
+    if (accessWasLost) {
+      setStatus("access_lost");
+      setAccessLost(true);
+      pendingRef.current = [];
+      commandsRef.current.clear();
+      setPendingMutations([]);
+      clearActiveGameContext();
+    } else {
+      setStatus("offline");
+    }
+    setError(
+      mapped?.message ??
+        (refreshError instanceof Error
+          ? refreshError.message
+          : "Unable to refresh the shared game."),
+    );
+    return null;
+  } finally {
+    if (refreshInFlightRef.current === generation) {
+      refreshInFlightRef.current = null;
+    }
+  }
+};
+
+interface ApplyGameplayCommandResultParams {
+  mutation: PendingGameplayMutation;
+  result: GameplayCommandResult;
+  snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  setSnapshot: StateSetter<CompatibleRoomSnapshot | null>;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  setActiveGameContext: (context: Partial<ActiveGameContext>) => void;
+  updatePending: (next: PendingGameplayMutation[]) => void;
+}
+
+const applyGameplayCommandResult = ({
+  mutation,
+  result,
+  snapshotRef,
+  pendingRef,
+  setSnapshot,
+  setStatus,
+  setError,
+  setActiveGameContext,
+  updatePending,
+}: ApplyGameplayCommandResultParams) => {
+  const currentSnapshot = snapshotRef.current;
+  if (!currentSnapshot) return;
+
+  const resultSequence = result.sequenceNumber ?? 0;
+  let nextSnapshot = currentSnapshot;
+  if (resultSequence >= getSequence(currentSnapshot)) {
+    if (mutation.kind === "manual_score") {
+      const matchId = String(result.matchId ?? mutation.matchId ?? "");
+      nextSnapshot = {
+        ...currentSnapshot,
+        lastEventSequence: resultSequence,
+        matches: currentSnapshot.matches.map((match) =>
+          match.id === matchId
+            ? {
+                ...match,
+                homeScore: Number(result.homeScore ?? match.homeScore ?? 0),
+                awayScore: Number(result.awayScore ?? match.awayScore ?? 0),
+              }
+            : match,
+        ),
+      };
+    } else if (mutation.kind === "drink") {
+      const participantId = String(
+        result.participantId ?? mutation.participantId ?? "",
+      );
+      nextSnapshot = {
+        ...currentSnapshot,
+        lastEventSequence: resultSequence,
+        participants: currentSnapshot.participants.map((participant) =>
+          participant.id === participantId
+            ? {
+                ...participant,
+                currentDrinkTotal: Number(
+                  result.currentDrinkTotal ?? participant.currentDrinkTotal,
+                ),
+              }
+            : participant,
+        ),
+      };
+    }
+    snapshotRef.current = nextSnapshot;
+    setSnapshot(nextSnapshot);
+    setActiveGameContext({ lastAppliedSequence: resultSequence });
+  }
+
+  // A successful explicit retry resolves the offline/uncertain banner; the
+  // canonical result is now known even if the next poll is pending.
+  setStatus("ready");
+  setError(null);
+  updatePending(
+    pendingRef.current.filter((candidate) => candidate.id !== mutation.id),
+  );
+};
+
+interface RunGameplayMutationParams {
+  mutation: PendingGameplayMutation;
+  command: GameplayCommand;
+  status: ActiveGameSyncStatus;
+  isInteractive: boolean;
+  contextRef: MutableRefObject<ActiveGameContext>;
+  generationRef: MutableRefObject<number>;
+  snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  updatePending: (next: PendingGameplayMutation[]) => void;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  applyCommandResult: (
+    mutation: PendingGameplayMutation,
+    result: GameplayCommandResult,
+  ) => void;
+}
+
+const runGameplayMutation = async ({
+  mutation,
+  command,
+  status,
+  isInteractive,
+  contextRef,
+  generationRef,
+  snapshotRef,
+  pendingRef,
+  commandsRef,
+  updatePending,
+  setStatus,
+  setError,
+  applyCommandResult,
+}: RunGameplayMutationParams) => {
+  const currentContext = contextRef.current;
+  const retryingUncertainMutation =
+    mutation.status === "uncertain" &&
+    pendingRef.current.some((candidate) => candidate.id === mutation.id);
+  if (
+    currentContext.mode !== "multiplayer" ||
+    (status !== "ready" && !retryingUncertainMutation) ||
+    snapshotRef.current?.state !== "in_progress" ||
+    !isInteractive
+  ) {
+    throw new GameplayRpcErrorClass(
+      "service_unavailable",
+      "Reconnect and refresh before changing the shared game.",
+    );
+  }
+
+  commandsRef.current.set(mutation.id, command);
+  const generation = generationRef.current;
+  updatePending(
+    pendingRef.current.some((candidate) => candidate.id === mutation.id)
+      ? pendingRef.current.map((candidate) =>
+          candidate.id === mutation.id ? mutation : candidate,
+        )
+      : [...pendingRef.current, mutation],
+  );
+
+  try {
+    const result = await command();
+    if (
+      generationRef.current !== generation ||
+      (currentContext.accessKind === "guest" &&
+        isGuestRoomEnded(currentContext.sessionId))
+    ) {
+      return result;
+    }
+    applyCommandResult(mutation, result);
+    commandsRef.current.delete(mutation.id);
+    return result;
+  } catch (mutationError) {
+    if (
+      generationRef.current !== generation ||
+      (currentContext.accessKind === "guest" &&
+        isGuestRoomEnded(currentContext.sessionId))
+    ) {
+      throw mutationError;
+    }
+    if (isStableGameplayError(mutationError)) {
+      commandsRef.current.delete(mutation.id);
+      updatePending(
+        pendingRef.current.filter((candidate) => candidate.id !== mutation.id),
+      );
+    } else {
+      updatePending(
+        pendingRef.current.map((candidate) =>
+          candidate.id === mutation.id
+            ? { ...candidate, status: "uncertain" }
+            : candidate,
+        ),
+      );
+      setStatus("offline");
+    }
+    setError(
+      mutationError instanceof Error
+        ? mutationError.message
+        : "The shared game could not accept that action.",
+    );
+    throw mutationError;
+  }
+};
+
+type GameplayCommandInput =
+  | {
+      id: string;
+      kind: "manual_score";
+      matchId: string;
+      team: "home" | "away";
+      deltaGoals: -1 | 1;
+    }
+  | {
+      id: string;
+      kind: "drink";
+      participantId: string;
+      deltaHalfDrinks: -1 | 1;
+    };
+
+const createGameplayCommand = (
+  input: GameplayCommandInput,
+  contextRef: MutableRefObject<ActiveGameContext>,
+  guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>,
+): GameplayCommand =>
+  async () => {
+    const currentContext = contextRef.current;
+    if (currentContext.accessKind === "guest") {
+      const grant = guestGrantRef.current ?? (await readGuestRoomSessionGrant());
+      if (!grant) {
+        throw new GameplayRpcErrorClass(
+          "guest_token_expired",
+          "Your guest room session has expired.",
+        );
+      }
+      guestGrantRef.current = grant;
+      if (input.kind === "manual_score") {
+        return getGuestRoomRpcClient().changeManualScoreAsGuest({
+          guestToken: grant.guestToken,
+          matchId: input.matchId,
+          team: input.team,
+          deltaGoals: input.deltaGoals,
+          idempotencyKey: input.id,
+        });
+      }
+      return getGuestRoomRpcClient().changeParticipantDrinkAsGuest({
+        guestToken: grant.guestToken,
+        participantId: input.participantId,
+        deltaHalfDrinks: input.deltaHalfDrinks,
+        idempotencyKey: input.id,
+      });
+    }
+
+    if (!currentContext.sessionId) {
+      throw new GameplayRpcErrorClass(
+        "room_not_found",
+        "The room no longer exists.",
+      );
+    }
+    if (input.kind === "manual_score") {
+      return getRoomRpcClient().changeManualScore({
+        sessionId: currentContext.sessionId,
+        matchId: input.matchId,
+        team: input.team,
+        deltaGoals: input.deltaGoals,
+        idempotencyKey: input.id,
+      });
+    }
+    return getRoomRpcClient().changeParticipantDrink({
+      sessionId: currentContext.sessionId,
+      participantId: input.participantId,
+      deltaHalfDrinks: input.deltaHalfDrinks,
+      idempotencyKey: input.id,
+    });
+  };
+
+interface RetryGameplayMutationParams {
+  id: string;
+  pendingRef: MutableRefObject<PendingGameplayMutation[]>;
+  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  updatePending: (next: PendingGameplayMutation[]) => void;
+  runMutation: (
+    mutation: PendingGameplayMutation,
+    command: GameplayCommand,
+  ) => Promise<GameplayCommandResult>;
+}
+
+const retryGameplayMutation = async ({
+  id,
+  pendingRef,
+  commandsRef,
+  updatePending,
+  runMutation,
+}: RetryGameplayMutationParams) => {
+  const mutation = pendingRef.current.find((candidate) => candidate.id === id);
+  const command = commandsRef.current.get(id);
+  if (!mutation || !command) return null;
+  updatePending(
+    pendingRef.current.map((candidate) =>
+      candidate.id === id ? { ...candidate, status: "pending" } : candidate,
+    ),
+  );
+  return runMutation(mutation, command);
+};
+
+interface CompleteSharedGameParams {
+  contextRef: MutableRefObject<ActiveGameContext>;
+  completionInFlightRef: MutableRefObject<boolean>;
+  isHost: boolean;
+  isEditable: boolean;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  refresh: () => Promise<CompatibleRoomSnapshot | null>;
+}
+
+const completeSharedGame = async ({
+  contextRef,
+  completionInFlightRef,
+  isHost,
+  isEditable,
+  setStatus,
+  setError,
+  refresh,
+}: CompleteSharedGameParams) => {
+  const currentContext = contextRef.current;
+  if (completionInFlightRef.current) {
+    throw new GameplayRpcErrorClass(
+      "invalid_room_state",
+      "Game completion is already in progress.",
+    );
+  }
+  if (!currentContext.sessionId || currentContext.accessKind === "guest") {
+    throw new GameplayRpcErrorClass(
+      "not_host",
+      "Only the current host can end the shared game.",
+    );
+  }
+  if (!isHost || !isEditable) {
+    throw new GameplayRpcErrorClass(
+      "not_host",
+      "Only the current host can end the shared game.",
+    );
+  }
+
+  completionInFlightRef.current = true;
+  setStatus("refreshing");
+  try {
+    const result = await getRoomRpcClient().endGameSession(
+      currentContext.sessionId,
+    );
+    await refresh();
+    return result;
+  } catch (completionError) {
+    setStatus("error");
+    setError(
+      completionError instanceof Error
+        ? completionError.message
+        : "The shared game could not be completed.",
+    );
+    throw completionError;
+  } finally {
+    completionInFlightRef.current = false;
+  }
+};
+
+interface ReassignRoomMatchesParams {
+  contextRef: MutableRefObject<ActiveGameContext>;
+  isHost: boolean;
+  isEditable: boolean;
+  setStatus: StateSetter<ActiveGameSyncStatus>;
+  setError: StateSetter<string | null>;
+  refresh: () => Promise<CompatibleRoomSnapshot | null>;
+  participantId: string;
+  matchIds: string[];
+}
+
+const reassignRoomMatches = async ({
+  contextRef,
+  isHost,
+  isEditable,
+  setStatus,
+  setError,
+  refresh,
+  participantId,
+  matchIds,
+}: ReassignRoomMatchesParams): Promise<ReassignParticipantMatchesResponse> => {
+  const currentContext = contextRef.current;
+  if (
+    currentContext.mode !== "multiplayer" ||
+    currentContext.accessKind !== "registered" ||
+    !currentContext.sessionId ||
+    !isHost ||
+    !isEditable
+  ) {
+    const rejection = new ReassignmentRpcError(
+      "not_host",
+      "Only the current host can change assignments.",
+    );
+    setStatus("error");
+    setError(rejection.message);
+    throw rejection;
+  }
+
+  setStatus("refreshing");
+  try {
+    const response = await getRoomRpcClient().reassignParticipantMatches({
+      sessionId: currentContext.sessionId,
+      participantId,
+      matchIds,
+      idempotencyKey: generateIdempotencyKey(),
+    });
+    await refresh();
+    return response;
+  } catch (reassignmentError) {
+    setStatus("error");
+    setError(
+      reassignmentError instanceof Error
+        ? reassignmentError.message
+        : "The shared assignments could not be changed.",
+    );
+    throw reassignmentError;
+  }
+};
+
 export const useActiveGameRoomSync = () => {
   const context = useGameStore((state) => state.activeGameContext);
   const setPlayers = useGameStore((state) => state.setPlayers);
@@ -157,30 +959,36 @@ export const useActiveGameRoomSync = () => {
 
   const identity = `${context.mode}:${context.accessKind}:${context.participantId}:${context.sessionId}:${accessLost}`;
   const [previousIdentity, setPreviousIdentity] = useState(identity);
-  if (previousIdentity !== identity) {
-    setPreviousIdentity(identity);
-    setPendingMutations([]);
-    if (context.mode === "multiplayer" || !accessLost) {
-      setSnapshot(null);
-      setStatus(context.mode === "multiplayer" ? "hydrating" : "idle");
-      setError(null);
-    }
-    if (context.mode === "multiplayer" && accessLost) setAccessLost(false);
-  }
+  syncIdentityStateDuringRender({
+    identity,
+    previousIdentity,
+    context,
+    accessLost,
+    setPreviousIdentity,
+    setPendingMutations,
+    setSnapshot,
+    setStatus,
+    setError,
+    setAccessLost,
+  });
 
   useEffect(() => {
     contextRef.current = context;
   }, [context]);
 
   useEffect(() => {
-    generationRef.current += 1;
-    refreshInFlightRef.current = null;
-    guestGrantRef.current = null;
-    lastProviderRefreshAtRef.current = 0;
-    completionInFlightRef.current = false;
-    pendingRef.current = [];
-    commandsRef.current.clear();
-    if (context.mode === "multiplayer" || !accessLost) snapshotRef.current = null;
+    resetRoomRuntimeForIdentity({
+      generationRef,
+      refreshInFlightRef,
+      guestGrantRef,
+      lastProviderRefreshAtRef,
+      completionInFlightRef,
+      pendingRef,
+      commandsRef,
+      snapshotRef,
+      context: { mode: context.mode },
+      accessLost,
+    });
   }, [
     accessLost,
     context.accessKind,
@@ -194,50 +1002,26 @@ export const useActiveGameRoomSync = () => {
       nextSnapshot: CompatibleRoomSnapshot,
       expectedGeneration = generationRef.current,
       expectedSessionId = contextRef.current.sessionId,
-    ) => {
-      const currentContext = contextRef.current;
-      if (
-        generationRef.current !== expectedGeneration ||
-        currentContext.mode !== "multiplayer" ||
-        !expectedSessionId ||
-        currentContext.sessionId !== expectedSessionId ||
-        (currentContext.accessKind === "guest" && isGuestRoomEnded(expectedSessionId)) ||
-        nextSnapshot.sessionId !== expectedSessionId
-      ) {
-        return false;
-      }
-      const incomingSequence = getSequence(nextSnapshot);
-      const currentSequence = currentContext.lastAppliedSequence;
-      if (!canApplySnapshot(currentSequence, nextSnapshot)) {
-        return false;
-      }
-
-      snapshotRef.current = nextSnapshot;
-      setSnapshot(nextSnapshot);
-      applyStoreState(nextSnapshot, pendingRef.current, {
+    ) =>
+      applyActiveGameSnapshot({
+        nextSnapshot,
+        expectedGeneration,
+        expectedSessionId,
+        contextRef,
+        generationRef,
+        pendingRef,
+        commandsRef,
+        snapshotRef,
+        setSnapshot,
+        setPendingMutations,
+        setStatus,
+        setError,
+        setActiveGameContext,
         setPlayers,
         setMatches,
         setCommonMatchId,
         setPlayerAssignments,
-      });
-      setActiveGameContext({
-        mode: "multiplayer",
-        sessionId: nextSnapshot.sessionId,
-        lastAppliedSequence: incomingSequence,
-      });
-      setStatus(
-        nextSnapshot.state === "completed" || nextSnapshot.state === "closed"
-          ? "ended"
-          : "ready",
-      );
-      if (nextSnapshot.state === "completed" || nextSnapshot.state === "closed") {
-        pendingRef.current = [];
-        commandsRef.current.clear();
-        setPendingMutations([]);
-      }
-      setError(null);
-      return true;
-    },
+      }),
     [
       setActiveGameContext,
       setCommonMatchId,
@@ -247,155 +1031,41 @@ export const useActiveGameRoomSync = () => {
     ],
   );
 
-  const refresh = useCallback(async () => {
-    const currentContext = contextRef.current;
-    if (currentContext.mode !== "multiplayer" || !currentContext.sessionId) {
-      return null;
-    }
-    const generation = generationRef.current;
-    const sessionId = currentContext.sessionId;
-    if (currentContext.accessKind === "guest" && isGuestRoomEnded(sessionId)) return null;
-    if (refreshInFlightRef.current === generation) {
-      return snapshotRef.current;
-    }
-
-    refreshInFlightRef.current = generation;
-    setStatus((current) => (current === "ready" ? "refreshing" : "hydrating"));
-    try {
-      let nextSnapshot: CompatibleRoomSnapshot;
-      if (currentContext.accessKind === "guest") {
-        const pendingLeave = await readGuestRoomPendingLeave();
-        if (generationRef.current !== generation) return null;
-        if (pendingLeave?.sessionId === sessionId) {
-          setStatus("offline");
-          setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
-          return snapshotRef.current;
-        }
-        guestGrantRef.current ??= await readGuestRoomSessionGrant();
-        if (generationRef.current !== generation) return null;
-        const grant = guestGrantRef.current;
-        if (!grant || grant.sessionId !== currentContext.sessionId) {
-          throw new GameplayRpcErrorClass(
-            "guest_token_expired",
-            "Your guest room session has expired.",
-          );
-        }
-        nextSnapshot = await getGuestRoomRpcClient().getGuestRoomSnapshot(
-          grant.guestToken,
-        );
-      } else {
-        const now = Date.now();
-        if (
-          now - lastProviderRefreshAtRef.current >= 60_000
-        ) {
-          lastProviderRefreshAtRef.current = now;
-          try {
-            await getProviderScoreRefreshClient().refreshProviderScores(
-              sessionId,
-              generateIdempotencyKey(),
-            );
-          } catch (providerError) {
-            // A provider outage must not hide the last accepted room snapshot;
-            // the next scheduled pass will retry the refresh.
-            console.warn("Provider score refresh unavailable", providerError);
-          }
-        }
-        if (generationRef.current !== generation) return null;
-        nextSnapshot = await getRoomRpcClient().getRoomSnapshot(
-          sessionId,
-        );
-      }
-      if (currentContext.accessKind === "guest") {
-        const pendingLeave = await readGuestRoomPendingLeave();
-        if (generationRef.current !== generation) return null;
-        if (pendingLeave?.sessionId === sessionId) {
-          setStatus("offline");
-          setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
-          return snapshotRef.current;
-        }
-      }
-      applySnapshot(nextSnapshot, generation, sessionId);
-      return nextSnapshot;
-    } catch (refreshError) {
-      if (generationRef.current !== generation) return null;
-      if (currentContext.accessKind === "guest" && getGuestRoomErrorCode(refreshError) === "room_ended") {
-        generationRef.current += 1;
-        pendingRef.current = [];
-        commandsRef.current.clear();
-        setPendingMutations([]);
-        try {
-          await confirmGuestRoomEnded(sessionId);
-        } catch {
-          setError("Secure guest storage could not be cleared.");
-        }
-        return null;
-      }
-      const mapped = refreshError instanceof GameplayRpcErrorClass
-        ? refreshError
-        : mapGameplayError(refreshError);
-      if (
-        currentContext.accessKind === "guest" &&
-        isExpiredGuestRoomError(refreshError)
-      ) {
-        try {
-          const pendingLeave = await readGuestRoomPendingLeave();
-          if (pendingLeave?.sessionId === sessionId) {
-            setStatus("offline");
-            setError("Your guest departure is awaiting confirmation. Gameplay is paused.");
-            return null;
-          }
-        } catch {
-          // If protected storage is unavailable, keep the regular access-loss path.
-        }
-      }
-      if (
-        (currentContext.accessKind === "guest" && isExpiredGuestRoomError(refreshError))
-        || (mapped && [
-          "not_authenticated",
-          "not_room_participant",
-          "participant_inactive",
-          "room_not_found",
-          "guest_token_expired",
-          "forbidden",
-        ].includes(mapped.code))
-      ) {
-        setStatus("access_lost");
-        setAccessLost(true);
-        pendingRef.current = [];
-        commandsRef.current.clear();
-        setPendingMutations([]);
-        clearActiveGameContext();
-      } else {
-        setStatus("offline");
-      }
-      setError(
-        mapped?.message ??
-          (refreshError instanceof Error
-            ? refreshError.message
-            : "Unable to refresh the shared game.")
-      );
-      return null;
-    } finally {
-      if (refreshInFlightRef.current === generation) {
-        refreshInFlightRef.current = null;
-      }
-    }
-  }, [applySnapshot, clearActiveGameContext]);
+  const refresh = useCallback(
+    () =>
+      refreshActiveGameRoom({
+        contextRef,
+        generationRef,
+        refreshInFlightRef,
+        guestGrantRef,
+        lastProviderRefreshAtRef,
+        pendingRef,
+        commandsRef,
+        snapshotRef,
+        setStatus,
+        setError,
+        setPendingMutations,
+        setAccessLost,
+        clearActiveGameContext,
+        applySnapshot,
+      }),
+    [applySnapshot, clearActiveGameContext],
+  );
 
   const updatePending = useCallback(
-    (next: PendingGameplayMutation[]) => {
-      pendingRef.current = next;
-      setPendingMutations(next);
-      const currentSnapshot = snapshotRef.current;
-      if (currentSnapshot) {
-        applyStoreState(currentSnapshot, next, {
+    (next: PendingGameplayMutation[]) =>
+      updatePendingGameplayState({
+        next,
+        pendingRef,
+        snapshotRef,
+        setPendingMutations,
+        setters: {
           setPlayers,
           setMatches,
           setCommonMatchId,
           setPlayerAssignments,
-        });
-      }
-    },
+        },
+      }),
     [setCommonMatchId, setMatches, setPlayerAssignments, setPlayers],
   );
 
@@ -403,126 +1073,38 @@ export const useActiveGameRoomSync = () => {
     (
       mutation: PendingGameplayMutation,
       result: GameplayCommandResult,
-    ) => {
-      const currentSnapshot = snapshotRef.current;
-      if (!currentSnapshot) {
-        return;
-      }
-
-      const resultSequence = result.sequenceNumber ?? 0;
-      const currentSequence = getSequence(currentSnapshot);
-      let nextSnapshot = currentSnapshot;
-
-      if (resultSequence >= currentSequence) {
-        if (mutation.kind === "manual_score") {
-          const matchId = String(result.matchId ?? mutation.matchId ?? "");
-          nextSnapshot = {
-            ...currentSnapshot,
-            lastEventSequence: resultSequence,
-            matches: currentSnapshot.matches.map((match) =>
-              match.id === matchId
-                ? {
-                    ...match,
-                    homeScore: Number(result.homeScore ?? match.homeScore ?? 0),
-                    awayScore: Number(result.awayScore ?? match.awayScore ?? 0),
-                  }
-                : match,
-            ),
-          };
-        } else if (mutation.kind === "drink") {
-          const participantId = String(
-            result.participantId ?? mutation.participantId ?? "",
-          );
-          nextSnapshot = {
-            ...currentSnapshot,
-            lastEventSequence: resultSequence,
-            participants: currentSnapshot.participants.map((participant) =>
-              participant.id === participantId
-                ? {
-                    ...participant,
-                    currentDrinkTotal: Number(
-                      result.currentDrinkTotal ?? participant.currentDrinkTotal,
-                    ),
-                  }
-                : participant,
-            ),
-          };
-        }
-        snapshotRef.current = nextSnapshot;
-        setSnapshot(nextSnapshot);
-        setActiveGameContext({ lastAppliedSequence: resultSequence });
-      }
-
-      // A successful explicit retry resolves the offline/uncertain banner;
-      // the canonical result is now known even if the next poll is pending.
-      setStatus("ready");
-      setError(null);
-
-      updatePending(
-        pendingRef.current.filter((candidate) => candidate.id !== mutation.id),
-      );
-    },
+    ) =>
+      applyGameplayCommandResult({
+        mutation,
+        result,
+        snapshotRef,
+        pendingRef,
+        setSnapshot,
+        setStatus,
+        setError,
+        setActiveGameContext,
+        updatePending,
+      }),
     [setActiveGameContext, updatePending],
   );
 
   const runMutation = useCallback(
-    async (mutation: PendingGameplayMutation, command: GameplayCommand) => {
-      const currentContext = contextRef.current;
-      const retryingUncertainMutation =
-        mutation.status === "uncertain" &&
-        pendingRef.current.some((candidate) => candidate.id === mutation.id);
-      if (
-        currentContext.mode !== "multiplayer" ||
-        (status !== "ready" && !retryingUncertainMutation) ||
-        snapshotRef.current?.state !== "in_progress" ||
-        !isInteractive
-      ) {
-        throw new GameplayRpcErrorClass(
-          "service_unavailable",
-          "Reconnect and refresh before changing the shared game.",
-        );
-      }
-
-      commandsRef.current.set(mutation.id, command);
-      const generation = generationRef.current;
-      updatePending(
-        pendingRef.current.some((candidate) => candidate.id === mutation.id)
-          ? pendingRef.current.map((candidate) =>
-              candidate.id === mutation.id ? mutation : candidate,
-            )
-          : [...pendingRef.current, mutation],
-      );
-      try {
-        const result = await command();
-        if (generationRef.current !== generation || (currentContext.accessKind === "guest" && isGuestRoomEnded(currentContext.sessionId))) return result;
-        applyCommandResult(mutation, result);
-        commandsRef.current.delete(mutation.id);
-        return result;
-      } catch (mutationError) {
-        if (generationRef.current !== generation || (currentContext.accessKind === "guest" && isGuestRoomEnded(currentContext.sessionId))) throw mutationError;
-        if (isStableGameplayError(mutationError)) {
-          commandsRef.current.delete(mutation.id);
-          updatePending(
-            pendingRef.current.filter((candidate) => candidate.id !== mutation.id),
-          );
-        } else {
-          updatePending(
-            pendingRef.current.map((candidate) =>
-              candidate.id === mutation.id
-                ? { ...candidate, status: "uncertain" }
-                : candidate,
-            ),
-          );
-          setStatus("offline");
-        }
-        setError(
-          mutationError instanceof Error
-            ? mutationError.message
-            : "The shared game could not accept that action.",
-        );
-        throw mutationError;
-      }
-    },
+    (mutation: PendingGameplayMutation, command: GameplayCommand) =>
+      runGameplayMutation({
+        mutation,
+        command,
+        status,
+        isInteractive,
+        contextRef,
+        generationRef,
+        snapshotRef,
+        pendingRef,
+        commandsRef,
+        updatePending,
+        setStatus,
+        setError,
+        applyCommandResult,
+      }),
     [applyCommandResult, isInteractive, status, updatePending],
   );
 
@@ -537,29 +1119,17 @@ export const useActiveGameRoomSync = () => {
         deltaGoals,
         status: "pending",
       };
-      const command = async () => {
-        const currentContext = contextRef.current;
-        if (currentContext.accessKind === "guest") {
-          const grant = guestGrantRef.current ?? (await readGuestRoomSessionGrant());
-          if (!grant) throw new GameplayRpcErrorClass("guest_token_expired", "Your guest room session has expired.");
-          guestGrantRef.current = grant;
-          return getGuestRoomRpcClient().changeManualScoreAsGuest({
-            guestToken: grant.guestToken,
-            matchId,
-            team,
-            deltaGoals,
-            idempotencyKey: id,
-          });
-        }
-        if (!currentContext.sessionId) throw new GameplayRpcErrorClass("room_not_found", "The room no longer exists.");
-        return getRoomRpcClient().changeManualScore({
-          sessionId: currentContext.sessionId,
+      const command = createGameplayCommand(
+        {
+          id,
+          kind: "manual_score",
           matchId,
           team,
           deltaGoals,
-          idempotencyKey: id,
-        });
-      };
+        },
+        contextRef,
+        guestGrantRef,
+      );
       return runMutation(mutation, command);
     },
     [runMutation],
@@ -575,46 +1145,30 @@ export const useActiveGameRoomSync = () => {
         deltaHalfDrinks,
         status: "pending",
       };
-      const command = async () => {
-        const currentContext = contextRef.current;
-        if (currentContext.accessKind === "guest") {
-          const grant = guestGrantRef.current ?? (await readGuestRoomSessionGrant());
-          if (!grant) throw new GameplayRpcErrorClass("guest_token_expired", "Your guest room session has expired.");
-          guestGrantRef.current = grant;
-          return getGuestRoomRpcClient().changeParticipantDrinkAsGuest({
-            guestToken: grant.guestToken,
-            participantId,
-            deltaHalfDrinks,
-            idempotencyKey: id,
-          });
-        }
-        if (!currentContext.sessionId) throw new GameplayRpcErrorClass("room_not_found", "The room no longer exists.");
-        return getRoomRpcClient().changeParticipantDrink({
-          sessionId: currentContext.sessionId,
+      const command = createGameplayCommand(
+        {
+          id,
+          kind: "drink",
           participantId,
           deltaHalfDrinks,
-          idempotencyKey: id,
-        });
-      };
+        },
+        contextRef,
+        guestGrantRef,
+      );
       return runMutation(mutation, command);
     },
     [runMutation],
   );
 
   const retryMutation = useCallback(
-    async (id: string) => {
-      const mutation = pendingRef.current.find((candidate) => candidate.id === id);
-      const command = commandsRef.current.get(id);
-      if (!mutation || !command) {
-        return null;
-      }
-      updatePending(
-        pendingRef.current.map((candidate) =>
-          candidate.id === id ? { ...candidate, status: "pending" } : candidate,
-        ),
-      );
-      return runMutation(mutation, command);
-    },
+    (id: string) =>
+      retryGameplayMutation({
+        id,
+        pendingRef,
+        commandsRef,
+        updatePending,
+        runMutation,
+      }),
     [runMutation, updatePending],
   );
 
@@ -634,81 +1188,35 @@ export const useActiveGameRoomSync = () => {
     (status === "ready" || status === "refreshing") &&
     snapshot?.state === "in_progress";
 
-  const completeGame = useCallback(async () => {
-    const currentContext = contextRef.current;
-    if (completionInFlightRef.current) {
-      throw new GameplayRpcErrorClass(
-        "invalid_room_state",
-        "Game completion is already in progress.",
-      );
-    }
-    if (!currentContext.sessionId || currentContext.accessKind === "guest") {
-      throw new GameplayRpcErrorClass("not_host", "Only the current host can end the shared game.");
-    }
-    if (!isHost || !isEditable) {
-      throw new GameplayRpcErrorClass("not_host", "Only the current host can end the shared game.");
-    }
-    completionInFlightRef.current = true;
-    setStatus("refreshing");
-    try {
-      const result = await getRoomRpcClient().endGameSession(currentContext.sessionId);
-      await refresh();
-      return result;
-    } catch (completionError) {
-      setStatus("error");
-      setError(
-        completionError instanceof Error
-          ? completionError.message
-          : "The shared game could not be completed.",
-      );
-      throw completionError;
-    } finally {
-      completionInFlightRef.current = false;
-    }
-  }, [isEditable, isHost, refresh]);
+  const completeGame = useCallback(
+    () =>
+      completeSharedGame({
+        contextRef,
+        completionInFlightRef,
+        isHost,
+        isEditable,
+        setStatus,
+        setError,
+        refresh,
+      }),
+    [isEditable, isHost, refresh],
+  );
 
   const reassignParticipantMatches = useCallback(
-    async (
+    (
       participantId: string,
       matchIds: string[],
-    ): Promise<ReassignParticipantMatchesResponse> => {
-      const currentContext = contextRef.current;
-      if (
-        currentContext.mode !== "multiplayer" ||
-        currentContext.accessKind !== "registered" ||
-        !currentContext.sessionId ||
-        !isHost ||
-        !isEditable
-      ) {
-        const rejection = new ReassignmentRpcError(
-          "not_host",
-          "Only the current host can change assignments.",
-        );
-        setStatus("error");
-        setError(rejection.message);
-        throw rejection;
-      }
-
-      setStatus("refreshing");
-      try {
-        const response = await getRoomRpcClient().reassignParticipantMatches({
-          sessionId: currentContext.sessionId,
-          participantId,
-          matchIds,
-          idempotencyKey: generateIdempotencyKey(),
-        });
-        await refresh();
-        return response;
-      } catch (reassignmentError) {
-        setStatus("error");
-        setError(
-          reassignmentError instanceof Error
-            ? reassignmentError.message
-            : "The shared assignments could not be changed.",
-        );
-        throw reassignmentError;
-      }
-    },
+    ): Promise<ReassignParticipantMatchesResponse> =>
+      reassignRoomMatches({
+        contextRef,
+        isHost,
+        isEditable,
+        setStatus,
+        setError,
+        refresh,
+        participantId,
+        matchIds,
+      }),
     [isEditable, isHost, refresh],
   );
 
@@ -724,27 +1232,11 @@ export const useActiveGameRoomSync = () => {
       return;
     }
 
-    const client = getSupabaseClient();
-    const channel = client.channel(`room:${context.sessionId}`, {
-      config: { private: true, presence: { key: context.participantId } },
-    });
-    let previousPresence = "";
-    channel.on("broadcast", { event: "room_changed" }, () => {
-      void refresh();
-    });
-    channel.on("presence", { event: "sync" }, () => {
-      const currentPresence = Object.keys(channel.presenceState()).sort().join("|");
-      if (currentPresence === previousPresence) return;
-      previousPresence = currentPresence;
-      if (currentPresence) void refresh();
-    });
-    channel.subscribe((state) => {
-      if (state === "SUBSCRIBED") void channel.track({});
-    });
-
-    return () => {
-      void client.removeChannel(channel);
-    };
+    return subscribeToRoomChanges(
+      context.sessionId,
+      context.participantId,
+      refresh,
+    );
   }, [
     context.accessKind,
     context.participantId,
@@ -756,7 +1248,6 @@ export const useActiveGameRoomSync = () => {
 
   useEffect(() => {
     if (!isMultiplayer) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
     void refresh();
     const interval = setInterval(() => {
       if (isInteractive) void refresh();
@@ -772,7 +1263,6 @@ export const useActiveGameRoomSync = () => {
 
   useEffect(() => {
     if (isMultiplayer && isInteractive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
       void refresh();
     }
   }, [

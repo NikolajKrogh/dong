@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.participants (
     guest_rejoin_token_hash text NULL,
     created_at timestamptz DEFAULT now()
 );
+ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
 -- uniqueness constraints and check constraints
 ALTER TABLE public.participants
 ADD CONSTRAINT chk_participants_drink_total_nonnegative CHECK (current_drink_total >= 0),

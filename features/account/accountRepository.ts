@@ -8,8 +8,6 @@ import {
 } from "../../store/store";
 import { normalizeAccountUsername } from "./username";
 
-const ACCOUNT_SELECT_COLUMNS =
-  "id, username, created_at, updated_at";
 const SETTINGS_SELECT_COLUMNS =
   "account_id, settings_data, created_at, updated_at";
 
@@ -55,36 +53,16 @@ export const bootstrapAccountRow = async (
   client: SupabaseClient<Database>,
   userId: string,
 ) => {
-  const { data: existingAccount, error: fetchError } = await client
-    .from("accounts")
-    .select(ACCOUNT_SELECT_COLUMNS)
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (fetchError) {
-    throw fetchError;
-  }
-
-  if (existingAccount) {
-    return mapAccountRow(existingAccount);
-  }
-
-  const { error: insertError } = await client.from("accounts").insert({
-    id: userId,
-  });
-
-  if (insertError && insertError.code !== "23505") {
-    throw insertError;
-  }
-
-  const { data: bootstrappedAccount, error: refetchError } = await client
-    .from("accounts")
-    .select(ACCOUNT_SELECT_COLUMNS)
-    .eq("id", userId)
+  const { data: bootstrappedAccount, error } = await client
+    .rpc("bootstrap_account")
     .single();
 
-  if (refetchError || !bootstrappedAccount) {
-    throw refetchError ?? new Error("Unable to bootstrap the account.");
+  if (error || !bootstrappedAccount) {
+    throw error ?? new Error("Unable to bootstrap the account.");
+  }
+
+  if (bootstrappedAccount.id !== userId) {
+    throw new Error("Account changed. Sign in again.");
   }
 
   return mapAccountRow(bootstrappedAccount);

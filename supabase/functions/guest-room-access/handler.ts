@@ -60,8 +60,9 @@ export function createGuestIngress(config: { url: string; serviceKey: string; pu
         typeof operation !== 'string' || !Object.hasOwn(operations, operation) ||
         !args || typeof args !== 'object' || Array.isArray(args)) return failure('invalid_request', 400);
     const allowed = operations[operation];
+    const allowedKeys = new Set(allowed);
     const keys = Object.keys(args);
-    if (keys.length !== allowed.length || keys.some(key => !allowed.includes(key))) return failure('invalid_request', 400);
+    if (keys.length !== allowed.length || keys.some(key => !allowedKeys.has(key))) return failure('invalid_request', 400);
     try {
       // Never spread inbound headers. This is an allowlisted bearer-operation
       // dispatcher, not an arbitrary service-role proxy.

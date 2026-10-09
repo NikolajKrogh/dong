@@ -7,6 +7,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SortModalProps } from "./types";
 import { useColors } from "../../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../../styles/shadows";
 
 /**
  * SortModal component
@@ -39,11 +40,8 @@ const SortModal: React.FC<SortModalProps> = ({
           backgroundColor: colors.surface,
           borderRadius: 10,
           padding: 16,
-          elevation: 5,
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
+          boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.black, 0.25)}`,
+          ...androidElevationFallback(5),
         },
         modalTitle: {
           fontSize: 18,

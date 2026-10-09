@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { useColors } from "../../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../../styles/shadows";
 
 /** Style creator for the MatchQuickActionsModal and its sub-components. */
 export const createStyles = (
@@ -31,11 +32,8 @@ export const createStyles = (
       backgroundColor: colors.surface,
       borderRadius: 16,
       overflow: "hidden",
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
-      elevation: 5,
+      boxShadow: `0px 2px 6px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(5),
       zIndex: 1001,
       maxHeight: Math.min(screenHeight * 0.84, isWideLayout ? 760 : 680),
     },
@@ -194,11 +192,8 @@ export const createStyles = (
       borderRadius: 22,
       justifyContent: "center",
       alignItems: "center",
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 2,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     blueButton: {
       backgroundColor: colors.primary,

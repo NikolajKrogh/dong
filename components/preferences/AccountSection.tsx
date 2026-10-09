@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from "expo-router";
 import React from "react";
 import { Alert } from "react-native";
-import { Text, XStack, YStack, styled } from "tamagui";
+import { Text, XStack, YStack } from "tamagui";
 
 import {
   buildAccountAuthRoute,
@@ -9,16 +9,7 @@ import {
   useAccountAuth,
 } from "../../hooks/useAccountAuth";
 import { ShellActionButton, ShellCard, ShellSection } from "../ui";
-
-const AvatarCircle = styled(YStack, {
-  width: 44,
-  height: 44,
-  borderRadius: 22,
-  backgroundColor: "$primary",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-});
+import AccountAvatar from "./AccountAvatar";
 
 const SignedOutAccountContent = ({
   onSignIn,
@@ -65,11 +56,7 @@ const SignedInAccountContent = ({
 }) => (
   <>
     <XStack gap="$3" alignItems="center">
-      <AvatarCircle>
-        <Text color="$textLight" fontSize={18} fontWeight="700">
-          {avatarLetter}
-        </Text>
-      </AvatarCircle>
+      <AccountAvatar letter={avatarLetter} />
       <YStack gap="$0.5" flex={1}>
         {displayName ? (
           <Text

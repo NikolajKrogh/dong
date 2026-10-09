@@ -60,21 +60,27 @@ interface AddLeagueModalProps {
  * @param props Item props.
  * @returns {JSX.Element} Rendered league row.
  */
-const LeagueItem = ({
-  league,
-  isSelected,
-  onPress,
-}: {
+interface LeagueItemProps {
   league: LeagueEndpoint;
   isSelected: boolean;
-  onPress: () => void;
-}) => {
+  onToggleLeague: (league: LeagueEndpoint) => void;
+}
+
+const LeagueItem = React.memo(function LeagueItem({
+  league,
+  isSelected,
+  onToggleLeague,
+}: LeagueItemProps) {
   const colors = useColors();
   const { addLeagueModalStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
     [colors]
   );
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const handlePress = React.useCallback(
+    () => onToggleLeague(league),
+    [league, onToggleLeague],
+  );
 
   return (
     <TouchableOpacity
@@ -82,7 +88,7 @@ const LeagueItem = ({
         addLeagueModalStyles.availableLeagueItem,
         isSelected && addLeagueModalStyles.selectedLeagueItem,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
       {/* Logo section */}
@@ -137,7 +143,7 @@ const LeagueItem = ({
       />
     </TouchableOpacity>
   );
-};
+});
 
 /**
  * Add leagues modal.
@@ -167,11 +173,11 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
    * Close handler.
    * @description Resets search and category then triggers onClose.
    */
-  const handleClose = () => {
+  const handleClose = React.useCallback(() => {
     setSearchQuery("");
     setSelectedCategory("Europe");
     onClose();
-  };
+  }, [onClose, setSearchQuery]);
 
   // Filter leagues by search query and already configured leagues
   const filteredLeagues = AVAILABLE_LEAGUES.filter(
@@ -186,6 +192,20 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
   const leaguesToDisplay = searchQuery
     ? filteredLeagues
     : filteredLeagues.filter((league) => league.category === selectedCategory);
+  const selectedLeagueCodes = React.useMemo(
+    () => new Set(selectedLeagues.map((league) => league.code)),
+    [selectedLeagues],
+  );
+  const renderLeagueItem = React.useCallback(
+    ({ item }: { item: LeagueEndpoint }) => (
+      <LeagueItem
+        league={item}
+        isSelected={selectedLeagueCodes.has(item.code)}
+        onToggleLeague={toggleLeagueSelection}
+      />
+    ),
+    [selectedLeagueCodes, toggleLeagueSelection],
+  );
 
   return (
     <Modal
@@ -356,18 +376,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                   manageLeaguesModalStyles.leagueListContent
                 }
                 showsVerticalScrollIndicator={false}
-                renderItem={({ item }) => {
-                  const isSelected = selectedLeagues.some(
-                    (l) => l.code === item.code
-                  );
-                  return (
-                    <LeagueItem
-                      league={item}
-                      isSelected={isSelected}
-                      onPress={() => toggleLeagueSelection(item)}
-                    />
-                  );
-                }}
+                renderItem={renderLeagueItem}
               />
             ) : (
               <View style={manageLeaguesModalStyles.emptyState}>

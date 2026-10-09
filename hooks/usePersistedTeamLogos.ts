@@ -27,14 +27,11 @@ export const usePersistedTeamLogos = () => {
       const teamNamesList = Array.from(teamNames);
 
       // Load logos from AsyncStorage for each team, but only if they don't have hardcoded assets
-      for (const teamName of teamNamesList) {
+      await Promise.all(teamNamesList.map(async (teamName) => {
         try {
           // Check if this team already has a hardcoded logo
           const hardcodedLogo = getHardcodedTeamLogoOnly(teamName);
-          if (hardcodedLogo) {
-            // Skip loading from AsyncStorage if we have a hardcoded logo
-            continue;
-          }
+          if (hardcodedLogo) return;
 
           // Only load from AsyncStorage if no hardcoded logo exists
           const logoUrl = await getTeamLogo(teamName);
@@ -45,7 +42,7 @@ export const usePersistedTeamLogos = () => {
         } catch (error) {
           console.error(`Error loading persisted logo for ${teamName}:`, error);
         }
-      }
+      }));
     };
 
     loadPersistedLogos();

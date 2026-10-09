@@ -55,6 +55,171 @@ const createStyles = (isWideLayout: boolean) =>
     },
   });
 
+const getModalCopy = (
+  status: GuestJoinModalProps["status"],
+  session: GuestRoomSession | null,
+) => {
+  const title =
+    status === "pending_leave"
+      ? "Departure pending"
+      : status === "renewing"
+        ? "Renewing guest access"
+        : status === "left"
+          ? "Guest room left"
+          : session
+            ? "Guest Room Active"
+            : "Join as a guest";
+  const subtitle = session
+    ? `Connected as ${session.grant.displayName}`
+    : status === "pending_leave"
+      ? "Room actions are paused until departure is confirmed."
+      : status === "renewing"
+        ? "Room actions are paused until renewal is confirmed."
+        : status === "left"
+          ? "Your departure was confirmed and guest access was revoked."
+          : "Enter a room to play";
+
+  return { title, subtitle };
+};
+
+type GuestJoinModalBodyProps = Pick<
+  GuestJoinModalProps,
+  | "status"
+  | "session"
+  | "error"
+  | "isSubmitting"
+  | "guestName"
+  | "joinCode"
+  | "onLeaveRoom"
+  | "onSetPicks"
+  | "isPickBusy"
+  | "onGuestNameChange"
+  | "onJoinCodeChange"
+  | "onSubmit"
+>;
+
+const PendingGuestRoomPanel = ({
+  status,
+  error,
+  onLeaveRoom,
+}: Pick<GuestJoinModalBodyProps, "status" | "error" | "onLeaveRoom">) => (
+  <YStack gap="$3">
+    <Text color="$colorMuted" fontSize={14} lineHeight={20}>
+      {status === "pending_leave"
+        ? "We have not confirmed that your guest access was revoked. We will retry when connected."
+        : "Your guest identity is being renewed. We will retry safely with the same request."}
+    </Text>
+    {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
+    {status === "pending_leave" ? (
+      <ShellActionButton
+        label="Retry departure"
+        onPress={() => { void onLeaveRoom(); }}
+        variant="surface"
+      />
+    ) : null}
+  </YStack>
+);
+
+const ActiveGuestRoomPanel = ({
+  session,
+  error,
+  onLeaveRoom,
+  onSetPicks,
+  isPickBusy,
+}: Pick<GuestJoinModalBodyProps, "session" | "error" | "onLeaveRoom" | "onSetPicks" | "isPickBusy"> & {
+  session: GuestRoomSession;
+}) => {
+  const theme = useTheme();
+  return (
+    <YStack gap="$5">
+      <GuestJoinLobby
+        session={session}
+        onSetPicks={onSetPicks}
+        isBusy={isPickBusy}
+      />
+      {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
+      <ShellActionButton
+        icon={
+          <AppIcon
+            color={theme.color.val}
+            name="close-circle-outline"
+            size={18}
+          />
+        }
+        label="Leave Guest Room"
+        onPress={() => { void onLeaveRoom(); }}
+        variant="surface"
+      />
+    </YStack>
+  );
+};
+
+const JoinGuestRoomPanel = ({
+  status,
+  guestName,
+  joinCode,
+  error,
+  isSubmitting,
+  onGuestNameChange,
+  onJoinCodeChange,
+  onSubmit,
+}: Pick<
+  GuestJoinModalBodyProps,
+  | "status"
+  | "guestName"
+  | "joinCode"
+  | "error"
+  | "isSubmitting"
+  | "onGuestNameChange"
+  | "onJoinCodeChange"
+  | "onSubmit"
+>) => (
+  <YStack gap="$3">
+    {status === "left" ? (
+      <Text color="$colorMuted" fontSize={13} lineHeight={18}>
+        You can join again only if the host is still accepting guests. Otherwise, ask for a new invitation.
+      </Text>
+    ) : null}
+    <GuestJoinForm
+      error={error}
+      guestName={guestName}
+      isSubmitting={isSubmitting}
+      joinCode={joinCode}
+      onGuestNameChange={onGuestNameChange}
+      onJoinCodeChange={onJoinCodeChange}
+      onSubmit={onSubmit}
+      retryMessage={error
+        ? "Check your invitation or try again. If access was lost, ask the host for a fresh invitation."
+        : null}
+      submitLabel={error ? "Retry Join" : "Join Room"}
+    />
+  </YStack>
+);
+
+const GuestJoinModalBody = (props: GuestJoinModalBodyProps) => {
+  if (props.status === "pending_leave" || props.status === "renewing") {
+    return (
+      <PendingGuestRoomPanel
+        status={props.status}
+        error={props.error}
+        onLeaveRoom={props.onLeaveRoom}
+      />
+    );
+  }
+  if (props.session) {
+    return (
+      <ActiveGuestRoomPanel
+        session={props.session}
+        error={props.error}
+        onLeaveRoom={props.onLeaveRoom}
+        onSetPicks={props.onSetPicks}
+        isPickBusy={props.isPickBusy}
+      />
+    );
+  }
+  return <JoinGuestRoomPanel {...props} />;
+};
+
 export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
   visible,
   joinCode,
@@ -75,20 +240,7 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
   const { width } = useWindowDimensions();
   const isWideLayout = width >= 1024;
   const styles = useMemo(() => createStyles(isWideLayout), [isWideLayout]);
-  const submitLabel = error ? "Retry Join" : "Join Room";
-  const retryMessage = error
-    ? "Check your invitation or try again. If access was lost, ask the host for a fresh invitation."
-    : null;
-  const title = status === "pending_leave" ? "Departure pending"
-    : status === "renewing" ? "Renewing guest access"
-    : status === "left" ? "Guest room left"
-    : session ? "Guest Room Active" : "Join as a guest";
-  const subtitle = session
-    ? `Connected as ${session.grant.displayName}`
-    : status === "pending_leave" ? "Room actions are paused until departure is confirmed."
-    : status === "renewing" ? "Room actions are paused until renewal is confirmed."
-    : status === "left" ? "Your departure was confirmed and guest access was revoked."
-    : "Enter a room to play";
+  const { title, subtitle } = getModalCopy(status, session);
   const headerIconColor = session ? theme.success.val : theme.primary.val;
   const headerBackground = session
     ? theme.successLight.val
@@ -169,61 +321,20 @@ export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
                   </Pressable>
                 </XStack>
 
-                {status === "pending_leave" || status === "renewing" ? (
-                  <YStack gap="$3">
-                    <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-                      {status === "pending_leave"
-                        ? "We have not confirmed that your guest access was revoked. We will retry when connected."
-                        : "Your guest identity is being renewed. We will retry safely with the same request."}
-                    </Text>
-                    {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
-                    {status === "pending_leave" ? (
-                      <ShellActionButton label="Retry departure" onPress={() => { void onLeaveRoom(); }} variant="surface" />
-                    ) : null}
-                  </YStack>
-                ) : session ? (
-                  <YStack gap="$5">
-                    <GuestJoinLobby
-                      session={session}
-                      onSetPicks={onSetPicks}
-                      isBusy={isPickBusy}
-                    />
-                    {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
-                    <ShellActionButton
-                      icon={
-                        <AppIcon
-                          color={theme.color.val}
-                          name="close-circle-outline"
-                          size={18}
-                        />
-                      }
-                      label="Leave Guest Room"
-                      onPress={() => {
-                        void onLeaveRoom();
-                      }}
-                      variant="surface"
-                    />
-                  </YStack>
-                ) : (
-                  <YStack gap="$3">
-                  {status === "left" ? (
-                    <Text color="$colorMuted" fontSize={13} lineHeight={18}>
-                      You can join again only if the host is still accepting guests. Otherwise, ask for a new invitation.
-                    </Text>
-                  ) : null}
-                  <GuestJoinForm
-                    error={error}
-                    guestName={guestName}
-                    isSubmitting={isSubmitting}
-                    joinCode={joinCode}
-                    onGuestNameChange={onGuestNameChange}
-                    onJoinCodeChange={onJoinCodeChange}
-                    onSubmit={onSubmit}
-                    retryMessage={retryMessage}
-                    submitLabel={submitLabel}
-                  />
-                  </YStack>
-                )}
+                <GuestJoinModalBody
+                  status={status}
+                  session={session}
+                  error={error}
+                  isSubmitting={isSubmitting}
+                  guestName={guestName}
+                  joinCode={joinCode}
+                  onLeaveRoom={onLeaveRoom}
+                  onSetPicks={onSetPicks}
+                  isPickBusy={isPickBusy}
+                  onGuestNameChange={onGuestNameChange}
+                  onJoinCodeChange={onJoinCodeChange}
+                  onSubmit={onSubmit}
+                />
               </ShellCard>
             </Pressable>
           </ScrollView>

@@ -45,6 +45,12 @@ jest.mock("../../components/preferences/SettingsPage", () => ({ title, children 
   return ReactLocal.createElement(RN.View, null, ReactLocal.createElement(RN.Text, null, title), children);
 });
 
+jest.mock("../../components/preferences/AccountAvatar", () => ({ letter }: { letter: string }) => {
+  const ReactLocal = require("react");
+  const RN = require("react-native");
+  return ReactLocal.createElement(RN.Text, null, letter);
+});
+
 jest.mock("../../components/preferences/SettingsMenuRow", () => ({ label, onPress }: any) => {
   const ReactLocal = require("react");
   const RN = require("react-native");

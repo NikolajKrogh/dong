@@ -94,6 +94,7 @@ const createAccountsTableMock = (
 const createSupabaseClientMock = (
   initialAccount: Record<string, unknown> | null = null,
   initialSettings: Record<string, unknown> | null = null,
+  bootstrapUserId = "host-1",
 ) => {
   const accounts = createAccountsTableMock(initialAccount);
   let settingsRow = initialSettings;
@@ -147,8 +148,15 @@ const createSupabaseClientMock = (
 
   return {
     auth,
-    rpc: jest.fn((_name: string, args: { requested_username: string }) => {
-      accounts.accountsTable.update({ username: args.requested_username });
+    rpc: jest.fn((name: string, args?: Record<string, unknown>) => {
+      if (name === "bootstrap_account") {
+        if (!accounts.getCurrentAccount()) {
+          accounts.accountsTable.insert({ id: bootstrapUserId });
+        }
+      } else {
+        accounts.accountsTable.update({ username: args?.requested_username });
+      }
+
       return accounts.accountsTable;
     }),
     from: jest.fn((table: string) =>
@@ -204,17 +212,14 @@ describe("account auth foundation", () => {
   });
 
   it("bootstraps a missing account row for the signed-in user", async () => {
-    const client = createSupabaseClientMock();
+    const client = createSupabaseClientMock(null, null, "host-1");
 
     const account = await bootstrapAccountRow(
       client as unknown as ReturnType<typeof getSupabaseClient>,
       "host-1",
     );
 
-    expect(client.from).toHaveBeenCalledWith("accounts");
-    expect(client.accounts.accountsTable.insert).toHaveBeenCalledWith({
-      id: "host-1",
-    });
+    expect(client.rpc).toHaveBeenCalledWith("bootstrap_account");
     expect(account).toMatchObject({
       id: "host-1",
       username: null,
@@ -752,7 +757,7 @@ describe("account auth foundation", () => {
   it("boots a newly signed-up account into display-name onboarding", async () => {
     mockHasSupabasePublicConfig.mockReturnValue(true);
 
-    const client = createSupabaseClientMock();
+    const client = createSupabaseClientMock(null, null, "host-2");
     (
       client.auth.signUp as unknown as {
         mockResolvedValue: (value: unknown) => void;
@@ -819,7 +824,7 @@ describe("account auth foundation", () => {
   it("updates the password and signs the recovery session out", async () => {
     mockHasSupabasePublicConfig.mockReturnValue(true);
 
-    const client = createSupabaseClientMock();
+    const client = createSupabaseClientMock(null, null, "host-3");
     (
       client.auth.getSession as unknown as {
         mockResolvedValue: (value: unknown) => void;
@@ -895,7 +900,7 @@ describe("account auth foundation", () => {
       apiKey: "test-anon-key",
     });
 
-    const client = createSupabaseClientMock();
+    const client = createSupabaseClientMock(null, null, "host-5");
     (
       client.auth.getSession as unknown as {
         mockResolvedValue: (value: unknown) => void;
@@ -973,7 +978,7 @@ describe("account auth foundation", () => {
       apiKey: "test-anon-key",
     });
 
-    const client = createSupabaseClientMock();
+    const client = createSupabaseClientMock(null, null, "host-6");
     (
       client.auth.getSession as unknown as {
         mockResolvedValue: (value: unknown) => void;

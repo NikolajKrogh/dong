@@ -1,5 +1,6 @@
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import type { darkColors as Dark, lightColors as Light } from "./theme";
+import { androidElevationFallback, hexWithAlpha } from "./shadows";
 type Colors = typeof Light | typeof Dark;
 // --- Color Palette ---
 
@@ -24,11 +25,8 @@ export default function createStyles(colors: Colors) {
     borderRadius: 8,
     padding: 20,
     marginHorizontal: 16,
-    elevation: 2,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    boxShadow: `0px 1px 1.5px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+    ...androidElevationFallback(2),
   };
   const baseTitle: TextStyle = {
     fontSize: 20,
@@ -41,14 +39,8 @@ export default function createStyles(colors: Colors) {
     borderRadius: 20,
     padding: 35,
     alignItems: "center",
-    shadowColor: colors.textPrimary,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+    ...androidElevationFallback(5),
   };
 
   return StyleSheet.create({
@@ -129,11 +121,8 @@ export default function createStyles(colors: Colors) {
       borderRadius: 12,
       marginHorizontal: 16,
       marginTop: 16,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(3),
     },
     historyButtonContent: {
       flexDirection: "row",
@@ -160,11 +149,8 @@ export default function createStyles(colors: Colors) {
       marginBottom: 8,
       borderWidth: 1,
       borderColor: colors.borderLight,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.08)}`,
+      ...androidElevationFallback(2),
     },
     subtleHistoryButtonText: {
       color: colors.primary,
@@ -189,8 +175,7 @@ export default function createStyles(colors: Colors) {
       padding: 16,
       marginTop: 24,
       marginBottom: 16,
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
     },
     statsHeader: {
       flexDirection: "row",
@@ -298,10 +283,7 @@ export default function createStyles(colors: Colors) {
       padding: 12,
       borderRadius: 30,
       backgroundColor: colors.primary,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.3)}`,
       zIndex: 10,
     },
     userPreferencesButtonHover: {

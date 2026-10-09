@@ -4,6 +4,12 @@ export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
  * value but is not yet actionable — #185 implements it. */
 export type AssignmentMode = "automatic" | "host_assigned" | "player_picked";
 
+export const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
+  automatic: "Automatic",
+  host_assigned: "Host-assigned",
+  player_picked: "Player-picked",
+};
+
 type RoomMembershipType = "registered" | "guest";
 
 export type RoomSessionRole = "owner" | "member";

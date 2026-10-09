@@ -46,7 +46,7 @@ interface LeagueCardProps {
  * @description Shows league logo (or placeholder), name and a remove action. Includes loading state for logo fetch.
  * @param props Component props.
  */
-const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
+const LeagueCard = React.memo(function LeagueCard({ league, removeLeague }: LeagueCardProps) {
   const colors = useColors();
   const { manageLeaguesModalStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
@@ -54,6 +54,10 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
   );
   // Pass both league name AND code
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const handleRemove = React.useCallback(
+    () => removeLeague(league.code),
+    [league.code, removeLeague],
+  );
 
   return (
     <View style={manageLeaguesModalStyles.leagueCard}>
@@ -92,14 +96,39 @@ const LeagueCard: React.FC<LeagueCardProps> = ({ league, removeLeague }) => {
       </View>
 
       <TouchableOpacity
-        onPress={() => removeLeague(league.code)}
+        onPress={handleRemove}
         style={manageLeaguesModalStyles.removeButton}
       >
         <Ionicons name="close-circle" size={22} color={colors.danger} />
       </TouchableOpacity>
     </View>
   );
-};
+});
+
+interface AnimatedLeagueRowProps {
+  league: LeagueEndpoint;
+  animValue: Animated.Value;
+  removeLeague: (code: string) => void;
+}
+
+const AnimatedLeagueRow = React.memo(function AnimatedLeagueRow({
+  league,
+  animValue,
+  removeLeague,
+}: AnimatedLeagueRowProps) {
+  const animatedStyle = React.useMemo(
+    () => ({ opacity: animValue, transform: [{ scale: animValue }] }),
+    [animValue],
+  );
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <LeagueCard league={league} removeLeague={removeLeague} />
+    </Animated.View>
+  );
+});
+
+const leagueKeyExtractor = (league: LeagueEndpoint) => league.code;
 
 /**
  * Modal for managing configured leagues.
@@ -137,7 +166,7 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
     }
   }, [configuredLeagues]);
 
-  const handleRemoveLeagueWithAnimation = (leagueCode: string) => {
+  const handleRemoveLeagueWithAnimation = React.useCallback((leagueCode: string) => {
     const anim = fadeAnims.current[leagueCode];
     if (anim) {
       Animated.timing(anim, {
@@ -153,7 +182,32 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
       // Fallback if animation value not found (should not happen)
       removeLeague(leagueCode);
     }
-  };
+  }, [removeLeague]);
+
+  const renderLeague = React.useCallback(({ item }: { item: LeagueEndpoint }) => {
+    // Ensure animation value exists, initialize if new to the list.
+    if (!fadeAnims.current[item.code]) {
+      fadeAnims.current[item.code] = new Animated.Value(1);
+    }
+
+    return (
+      <AnimatedLeagueRow
+        league={item}
+        animValue={fadeAnims.current[item.code]}
+        removeLeague={handleRemoveLeagueWithAnimation}
+      />
+    );
+  }, [handleRemoveLeagueWithAnimation]);
+  const handleOpenResetConfirm = React.useCallback(() => {
+    setShowResetConfirm(true);
+  }, []);
+  const handleCloseResetConfirm = React.useCallback(() => {
+    setShowResetConfirm(false);
+  }, []);
+  const handleConfirmReset = React.useCallback(() => {
+    resetLeaguesToDefaults();
+    setShowResetConfirm(false);
+  }, [resetLeaguesToDefaults]);
 
   return (
     <Modal
@@ -174,7 +228,7 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
             Manage Leagues
           </Text>
           <TouchableOpacity
-            onPress={() => setShowResetConfirm(true)}
+            onPress={handleOpenResetConfirm}
             style={manageLeaguesModalStyles.resetButton}
           >
             <Ionicons name="refresh-outline" size={22} color={colors.danger} />
@@ -192,28 +246,8 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
           {configuredLeagues.length > 0 ? (
             <FlatList
               data={configuredLeagues}
-              keyExtractor={(item) => item.code}
-              renderItem={({ item }) => {
-                // Ensure animation value exists, initialize if new to the list.
-                if (!fadeAnims.current[item.code]) {
-                  fadeAnims.current[item.code] = new Animated.Value(1);
-                }
-                const animValue = fadeAnims.current[item.code];
-
-                return (
-                  <Animated.View
-                    style={{
-                      opacity: animValue,
-                      transform: [{ scale: animValue }], // Apply scale for shrink effect
-                    }}
-                  >
-                    <LeagueCard
-                      league={item}
-                      removeLeague={handleRemoveLeagueWithAnimation} // Pass the animated remove function
-                    />
-                  </Animated.View>
-                );
-              }}
+              keyExtractor={leagueKeyExtractor}
+              renderItem={renderLeague}
               contentContainerStyle={manageLeaguesModalStyles.leagueListContent}
               showsVerticalScrollIndicator={false}
             />
@@ -247,7 +281,7 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
               </Text>
               <View style={manageLeaguesModalStyles.confirmActions}>
                 <TouchableOpacity
-                  onPress={() => setShowResetConfirm(false)}
+                  onPress={handleCloseResetConfirm}
                   style={manageLeaguesModalStyles.confirmCancelBtn}
                 >
                   <Text style={manageLeaguesModalStyles.confirmCancelText}>
@@ -255,10 +289,7 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => {
-                    resetLeaguesToDefaults();
-                    setShowResetConfirm(false);
-                  }}
+                  onPress={handleConfirmReset}
                   style={manageLeaguesModalStyles.confirmResetBtn}
                 >
                   <Text style={manageLeaguesModalStyles.confirmResetText}>

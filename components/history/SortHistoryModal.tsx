@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 
 /** Valid fields that can be used for sorting history items */
 export type HistorySortField =
@@ -73,11 +74,8 @@ const SortHistoryModal: React.FC<SortHistoryModalProps> = ({
           backgroundColor: colors.surface,
           borderRadius: 10,
           padding: 16,
-          elevation: 5,
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
+          boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.black, 0.25)}`,
+          ...androidElevationFallback(5),
         },
         modalTitle: {
           fontSize: 18,

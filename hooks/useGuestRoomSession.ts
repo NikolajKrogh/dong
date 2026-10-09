@@ -92,9 +92,15 @@ const confirmPendingRotation = async (record: NonNullable<Awaited<ReturnType<typ
     if (outcome.code === "guest_access_lost" || outcome.code === "room_unavailable") {
       // Rotation cannot grant access to an ended room; the snapshot endpoint can
       // still identify why this exact grant was revoked without returning data.
-      for (const guestToken of [record.replacementToken, record.token]) {
-        try { await buildSessionFromGrant({ ...grantFromPendingRotation(record), guestToken }); }
-        catch (error) { if (getGuestRoomErrorCode(error) === "room_ended") throw error; }
+      try {
+        await buildSessionFromGrant({ ...grantFromPendingRotation(record), guestToken: record.replacementToken });
+      } catch (error) {
+        if (getGuestRoomErrorCode(error) === "room_ended") throw error;
+      }
+      try {
+        await buildSessionFromGrant({ ...grantFromPendingRotation(record), guestToken: record.token });
+      } catch (error) {
+        if (getGuestRoomErrorCode(error) === "room_ended") throw error;
       }
     }
     throw new Error(outcome.code);
@@ -167,10 +173,12 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       try {
         // The legacy AsyncStorage bearer is erased before the first network wait.
         const legacyGrant = await readAndRemoveLegacyGuestRoomSessionGrant();
-        const pendingRotation = await readGuestRoomPendingRotation();
-        const pendingLeave = await readGuestRoomPendingLeave();
-        const pendingJoin = await readGuestRoomPendingJoin();
-        const persistedGrant = await readGuestRoomSessionGrant();
+        const [pendingRotation, pendingLeave, pendingJoin, persistedGrant] = await Promise.all([
+          readGuestRoomPendingRotation(),
+          readGuestRoomPendingLeave(),
+          readGuestRoomPendingJoin(),
+          readGuestRoomSessionGrant(),
+        ]);
         if (!isMounted) return;
         if (!pendingRotation && !pendingLeave && !pendingJoin && !persistedGrant && !legacyGrant) return;
 

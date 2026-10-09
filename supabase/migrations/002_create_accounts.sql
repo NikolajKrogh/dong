@@ -6,3 +6,4 @@ CREATE TABLE IF NOT EXISTS public.accounts (
     created_at timestamptz DEFAULT now(),
     updated_at timestamptz DEFAULT now()
 );
+ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;

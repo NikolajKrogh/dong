@@ -7,14 +7,8 @@ import React from "react";
 import { Text, XStack, YStack } from "tamagui";
 
 import type { AssignmentMode } from "../../types/room";
+import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
 import { ShellActionButton } from "../ui";
-
-/** Display names, shared with the member's read-only mode line. */
-export const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
-  automatic: "Automatic",
-  host_assigned: "Host-assigned",
-  player_picked: "Player-picked",
-};
 
 /** Kebab-case suffixes for the mode selector's testIDs. */
 const MODE_TEST_IDS: Record<AssignmentMode, string> = {

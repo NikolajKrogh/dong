@@ -96,8 +96,9 @@ Deno.serve(async (req: Request) => {
       .select("id")
       .eq("account_id", userId).throwOnError();
 
-    for (const participant of memberParticipants ?? []) {
-      await supabaseAdmin
+    const anonymizeBatch = async (participants: { id: string }[]): Promise<void> => {
+      const results = await Promise.allSettled(participants.slice(0, 20).map((participant) =>
+        supabaseAdmin
         .from("participants")
         .update({
           account_id: null,
@@ -105,8 +106,13 @@ Deno.serve(async (req: Request) => {
           session_role: "member",
           guest_rejoin_token_hash: crypto.randomUUID(),
         })
-        .eq("id", participant.id).throwOnError();
-    }
+          .eq("id", participant.id).throwOnError(),
+      ));
+      const failure = results.find((result) => result.status === "rejected");
+      if (failure?.status === "rejected") throw failure.reason;
+      if (participants.length > 20) await anonymizeBatch(participants.slice(20));
+    };
+    await anonymizeBatch(memberParticipants ?? []);
 
     await supabaseAdmin
       .from("friendships")

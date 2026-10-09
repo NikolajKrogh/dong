@@ -5,6 +5,7 @@ import {
   ImageStyle,
 } from "react-native";
 import type { lightColors as Light, darkColors as Dark } from "./theme";
+import { androidElevationFallback, hexWithAlpha } from "./shadows";
 type Colors = typeof Light | typeof Dark;
 
 interface HistoryLayoutOptions {
@@ -17,11 +18,8 @@ const makeBaseCard = (colors: Colors): ViewStyle => ({
   backgroundColor: colors.surface,
   borderRadius: 12,
   marginBottom: 16,
-  shadowColor: colors.black,
-  shadowOffset: { width: 0, height: 1 },
-  shadowOpacity: 0.1,
-  shadowRadius: 3,
-  elevation: 2,
+  boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+  ...androidElevationFallback(2),
 });
 
 const makeBaseText = (colors: Colors): TextStyle => ({
@@ -114,11 +112,8 @@ export function createHistoryStyles(
       marginHorizontal: 16,
       marginVertical: 12,
       borderRadius: 12,
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     tabsContainerWide: {
       maxWidth: 1120,
@@ -207,7 +202,8 @@ export function createHistoryStyles(
       padding: 16,
       position: "relative",
       overflow: "hidden",
-      elevation: 3, // Slightly more prominent
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(3),
     },
     topPlayerCard: {
       // Highlight for top player
@@ -222,14 +218,16 @@ export function createHistoryStyles(
       alignItems: "center",
       padding: 12,
       marginBottom: 8,
-      elevation: 1, // Less prominent
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(1),
     },
     modalMatchCard: {
       // Card for match in modal
       ...baseCard,
       padding: 16,
       marginBottom: 12,
-      elevation: 1,
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(1),
       position: "relative",
     },
     matchRow: {
@@ -247,9 +245,8 @@ export function createHistoryStyles(
       marginHorizontal: 16,
       marginVertical: 12,
       padding: 16,
-      shadowOpacity: 0.2,
-      shadowRadius: 4,
-      elevation: 4,
+      boxShadow: `0px 1px 4px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(4),
     },
 
     // --- Stat Display Styles ---
@@ -267,7 +264,8 @@ export function createHistoryStyles(
       width: "48%",
       padding: 16,
       alignItems: "center",
-      elevation: 2,
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     statItemWithIcon: {
       // Stat item with icon (OverallStats)
@@ -276,7 +274,8 @@ export function createHistoryStyles(
       padding: 12,
       flexDirection: "row",
       alignItems: "center",
-      elevation: 2,
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     statIconContainer: {
       // Circle background for icon
@@ -308,7 +307,8 @@ export function createHistoryStyles(
       width: "48%",
       padding: 12,
       alignItems: "center",
-      elevation: 1,
+      boxShadow: `0px 1px 3px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(1),
     },
     playerStatDetails: {
       // Row container for player metrics (PlayerStatsList, Modal)
@@ -669,11 +669,8 @@ export function createHistoryStyles(
       justifyContent: "center", // Center content vertically
       alignItems: "center", // Center content horizontally
       zIndex: 10,
-      elevation: 3, // Add shadow for Android
-      shadowColor: colors.black, // Add shadow for iOS
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.2,
-      shadowRadius: 1.5,
+      boxShadow: `0px 1px 1.5px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(3),
     } as ViewStyle,
     goldBadge: { backgroundColor: colors.gold },
     silverBadge: { backgroundColor: colors.silver },
@@ -709,11 +706,8 @@ export function createHistoryStyles(
       borderRadius: 20,
       width: Math.min(screenWidth - 32, screenWidth * 0.92),
       maxHeight: "90%",
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 5,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.black, 0.25)}`,
+      ...androidElevationFallback(5),
       overflow: "hidden",
     } as ViewStyle,
     modalViewWide: {
@@ -986,11 +980,8 @@ export function createHistoryStyles(
       backgroundColor: colors.surface,
       borderRadius: 12,
       padding: 16,
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.black, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     comparisonSectionTitle: {
       ...textTitle,
@@ -1092,11 +1083,8 @@ export function createHistoryStyles(
       backgroundColor: colors.surface,
       borderRadius: 12,
       overflow: "hidden",
-      elevation: 5,
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 3.84,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.black, 0.25)}`,
+      ...androidElevationFallback(5),
     },
     tooltipContent: {
       padding: 16,

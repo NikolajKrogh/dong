@@ -41,6 +41,168 @@ interface SelectableMatchListProps {
   testIDPrefix?: string;
 }
 
+interface SelectableMatchRowProps {
+  match: SelectableMatch;
+  index: number;
+  selected: boolean;
+  disabled: boolean;
+  testID?: string;
+  compact: boolean;
+  onToggleMatch: (matchId: string) => void;
+}
+
+const disabledMatchStyle = { opacity: 0.4 };
+const gradientStart = { x: 0, y: 0 };
+const gradientEnd = { x: 0, y: 1 };
+
+const SelectableMatchRow = React.memo(function SelectableMatchRow({
+  match,
+  index,
+  selected,
+  disabled,
+  testID,
+  compact,
+  onToggleMatch,
+}: SelectableMatchRowProps) {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const handlePress = React.useCallback(
+    () => onToggleMatch(match.id),
+    [match.id, onToggleMatch],
+  );
+  const accessibilityState = React.useMemo(
+    () => ({ selected, disabled }),
+    [disabled, selected],
+  );
+  const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
+  const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
+  const buttonStyle = React.useMemo(
+    () => compact
+      ? [
+          styles.compactMatchItem,
+          selected && styles.selectedCompactMatchItem,
+          disabled && disabledMatchStyle,
+        ]
+      : [
+          styles.matchCard,
+          selected && styles.selectedMatchCard,
+          styles.matchListItem,
+          disabled && disabledMatchStyle,
+        ],
+    [compact, disabled, selected, styles],
+  );
+  const gradientColors = React.useMemo(
+    () => [colors.primaryLighter, colors.surface] as const,
+    [colors.primaryLighter, colors.surface],
+  );
+  const kickoff = React.useMemo(
+    () => compact ? null : formatMatchTime(match.startTime),
+    [compact, match.startTime],
+  );
+
+  if (compact) {
+    return (
+      <TouchableOpacity
+        testID={testID}
+        accessibilityState={accessibilityState}
+        disabled={disabled}
+        style={buttonStyle}
+        onPress={handlePress}
+      >
+        <View style={styles.compactMatchNumberBadge}>
+          <Text style={styles.compactMatchNumberText}>{index + 1}</Text>
+        </View>
+        <View style={styles.compactTeamsContainer}>
+          {homeTeamLogo ? (
+            <Image source={homeTeamLogo} style={styles.compactTeamLogo} resizeMode="contain" />
+          ) : (
+            <View style={styles.compactTeamPlaceholder}>
+              <Text style={styles.compactTeamPlaceholderText}>{match.homeTeam.charAt(0)}</Text>
+            </View>
+          )}
+          <Text style={styles.compactVsText}>vs</Text>
+          {awayTeamLogo ? (
+            <Image source={awayTeamLogo} style={styles.compactTeamLogo} resizeMode="contain" />
+          ) : (
+            <View style={styles.compactTeamPlaceholder}>
+              <Text style={styles.compactTeamPlaceholderText}>{match.awayTeam.charAt(0)}</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      testID={testID}
+      accessibilityState={accessibilityState}
+      disabled={disabled}
+      style={buttonStyle}
+      onPress={handlePress}
+    >
+      <View style={styles.matchNumberBadge}>
+        <Text style={styles.matchNumberText}>{index + 1}</Text>
+      </View>
+      <LinearGradient
+        colors={gradientColors}
+        start={gradientStart}
+        end={gradientEnd}
+        style={styles.matchCardGradient}
+      >
+        <View style={styles.matchTeamsContainer}>
+          <View style={styles.matchTeamColumn}>
+            <View style={styles.logoContainer}>
+              {homeTeamLogo ? (
+                <Image source={homeTeamLogo} style={styles.teamLogo} />
+              ) : (
+                <View style={styles.teamLogoPlaceholder}>
+                  <Text style={styles.teamLogoPlaceholderText}>{match.homeTeam.charAt(0)}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+              {match.homeTeam}
+            </Text>
+          </View>
+          <View style={styles.vsDividerHorizontal}>
+            <Text style={styles.vsText}>VS</Text>
+          </View>
+          <View style={styles.matchTeamColumn}>
+            <View style={styles.logoContainer}>
+              {awayTeamLogo ? (
+                <Image source={awayTeamLogo} style={styles.teamLogo} />
+              ) : (
+                <View style={styles.teamLogoPlaceholder}>
+                  <Text style={styles.teamLogoPlaceholderText}>{match.awayTeam.charAt(0)}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+              {match.awayTeam}
+            </Text>
+          </View>
+        </View>
+        {kickoff ? (
+          <View style={styles.matchTimeHeader}>
+            <AppIcon name="time-outline" size={16} color={colors.primary} />
+            <Text style={styles.matchTimeText}>{kickoff}</Text>
+          </View>
+        ) : null}
+        <View style={styles.selectionCheckmark}>
+          <Ionicons
+            name={selected ? "checkmark-circle" : "ellipse-outline"}
+            size={24}
+            color={selected ? colors.primary : colors.border}
+          />
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+});
+
+const matchKeyExtractor = (match: SelectableMatch) => match.id;
+
 /**
  * A tappable list of matches, in grid or list form.
  *
@@ -59,175 +221,44 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
-
-  const isSelected = (matchId: string) => selectedMatchIds.includes(matchId);
-  const isDisabled = (matchId: string) =>
-    (disabledMatchIds ?? []).includes(matchId);
-  const testIDFor = (matchId: string) =>
-    testIDPrefix ? `${testIDPrefix}-${matchId}` : undefined;
-
-  const renderCompactMatchItem = (match: SelectableMatch, index: number) => {
-    const selected = isSelected(match.id);
-    const disabled = isDisabled(match.id);
-    const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
-    const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
-
-    return (
-      <TouchableOpacity
-        testID={testIDFor(match.id)}
-        accessibilityState={{ selected, disabled }}
-        disabled={disabled}
-        style={[
-          styles.compactMatchItem,
-          selected && styles.selectedCompactMatchItem,
-          disabled && { opacity: 0.4 },
-        ]}
-        onPress={() => onToggleMatch(match.id)}
-      >
-        <View style={styles.compactMatchNumberBadge}>
-          <Text style={styles.compactMatchNumberText}>{index + 1}</Text>
-        </View>
-        <View style={styles.compactTeamsContainer}>
-          {homeTeamLogo ? (
-            <Image
-              source={homeTeamLogo}
-              style={styles.compactTeamLogo}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.compactTeamPlaceholder}>
-              <Text style={styles.compactTeamPlaceholderText}>
-                {match.homeTeam.charAt(0)}
-              </Text>
-            </View>
-          )}
-          <Text style={styles.compactVsText}>vs</Text>
-          {awayTeamLogo ? (
-            <Image
-              source={awayTeamLogo}
-              style={styles.compactTeamLogo}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.compactTeamPlaceholder}>
-              <Text style={styles.compactTeamPlaceholderText}>
-                {match.awayTeam.charAt(0)}
-              </Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderMatchItem = (match: SelectableMatch, index: number) => {
-    const selected = isSelected(match.id);
-    const disabled = isDisabled(match.id);
-    const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
-    const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
-    const kickoff = formatMatchTime(match.startTime);
-
-    return (
-      <TouchableOpacity
-        testID={testIDFor(match.id)}
-        accessibilityState={{ selected, disabled }}
-        disabled={disabled}
-        style={[
-          styles.matchCard,
-          selected && styles.selectedMatchCard,
-          styles.matchListItem,
-          disabled && { opacity: 0.4 },
-        ]}
-        onPress={() => onToggleMatch(match.id)}
-      >
-        <View style={styles.matchNumberBadge}>
-          <Text style={styles.matchNumberText}>{index + 1}</Text>
-        </View>
-        <LinearGradient
-          colors={[colors.primaryLighter, colors.surface]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.matchCardGradient}
-        >
-          <View style={styles.matchTeamsContainer}>
-            <View style={styles.matchTeamColumn}>
-              <View style={styles.logoContainer}>
-                {homeTeamLogo ? (
-                  <Image source={homeTeamLogo} style={styles.teamLogo} />
-                ) : (
-                  <View style={styles.teamLogoPlaceholder}>
-                    <Text style={styles.teamLogoPlaceholderText}>
-                      {match.homeTeam.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={styles.teamName}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {match.homeTeam}
-              </Text>
-            </View>
-            <View style={styles.vsDividerHorizontal}>
-              <Text style={styles.vsText}>VS</Text>
-            </View>
-            <View style={styles.matchTeamColumn}>
-              <View style={styles.logoContainer}>
-                {awayTeamLogo ? (
-                  <Image source={awayTeamLogo} style={styles.teamLogo} />
-                ) : (
-                  <View style={styles.teamLogoPlaceholder}>
-                    <Text style={styles.teamLogoPlaceholderText}>
-                      {match.awayTeam.charAt(0)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-              <Text
-                style={styles.teamName}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-              >
-                {match.awayTeam}
-              </Text>
-            </View>
-          </View>
-          {/*
-            Kickoff footer, matching what the wizard's own match card showed
-            before both surfaces converged on this renderer. Formatted through the
-            shared helper rather than inline, because `startTime` is a local
-            "HH:MM" on the single-player path and a full ISO instant on a room's —
-            see utils/matchTime.ts. Rendered only when the helper yields
-            something, so a hand-typed fixture shows no empty row.
-          */}
-          {kickoff ? (
-            <View style={styles.matchTimeHeader}>
-              <AppIcon name="time-outline" size={16} color={colors.primary} />
-              <Text style={styles.matchTimeText}>{kickoff}</Text>
-            </View>
-          ) : null}
-          <View style={styles.selectionCheckmark}>
-            <Ionicons
-              name={selected ? "checkmark-circle" : "ellipse-outline"}
-              size={24}
-              color={selected ? colors.primary : colors.border}
-            />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    );
-  };
+  const selectedMatchSet = React.useMemo(() => new Set(selectedMatchIds), [selectedMatchIds]);
+  const disabledMatchSet = React.useMemo(
+    () => new Set(disabledMatchIds ?? []),
+    [disabledMatchIds],
+  );
+  const getTestID = React.useCallback(
+    (matchId: string) => testIDPrefix ? `${testIDPrefix}-${matchId}` : undefined,
+    [testIDPrefix],
+  );
+  const renderCompactMatchItem = React.useCallback((match: SelectableMatch, index: number) => (
+    <View key={match.id} style={styles.gridItem}>
+      <SelectableMatchRow
+        match={match}
+        index={index}
+        selected={selectedMatchSet.has(match.id)}
+        disabled={disabledMatchSet.has(match.id)}
+        testID={getTestID(match.id)}
+        compact
+        onToggleMatch={onToggleMatch}
+      />
+    </View>
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem]);
+  const renderMatch = React.useCallback(({ item, index }: { item: SelectableMatch; index: number }) => (
+    <SelectableMatchRow
+      match={item}
+      index={index}
+      selected={selectedMatchSet.has(item.id)}
+      disabled={disabledMatchSet.has(item.id)}
+      testID={getTestID(item.id)}
+      compact={false}
+      onToggleMatch={onToggleMatch}
+    />
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet]);
 
   if (useGridLayout) {
     return (
       <View style={styles.gridContainer}>
-        {matches.map((match, index) => (
-          <View key={match.id} style={styles.gridItem}>
-            {renderCompactMatchItem(match, index)}
-          </View>
-        ))}
+        {matches.map(renderCompactMatchItem)}
       </View>
     );
   }
@@ -235,9 +266,9 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
   return (
     <FlatList
       data={matches}
-      keyExtractor={(item) => item.id}
+      keyExtractor={matchKeyExtractor}
       numColumns={1}
-      renderItem={({ item, index }) => renderMatchItem(item, index)}
+      renderItem={renderMatch}
       scrollEnabled={false}
     />
   );

@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Sheet } from "tamagui";
 import {
+  FlatList,
+  type ListRenderItemInfo,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +21,9 @@ import { ShellActionButton } from "../ui";
 import { roomSnapshotToActiveRoster } from "../../utils/roomSnapshot";
 
 type ActiveRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
+type SelectableMatch = ActiveRoomSnapshot["matches"][number];
+
+const matchKeyExtractor = (match: SelectableMatch) => match.id;
 
 interface ReassignmentControlProps {
   snapshot: ActiveRoomSnapshot;
@@ -48,7 +53,7 @@ export function ReassignmentControl({
   );
   const [selectedMatchIds, setSelectedMatchIds] = useState<string[]>([]);
 
-  const chooseParticipant = (id: string) => {
+  const chooseParticipant = useCallback((id: string) => {
     if (disabled || pending) return;
     setParticipantId(id);
     setSelectedMatchIds(
@@ -60,15 +65,15 @@ export function ReassignmentControl({
         )
         .map((assignment) => assignment.matchId),
     );
-  };
+  }, [disabled, pending, setSelectedMatchIds, snapshot.assignments, snapshot.commonMatchId]);
 
-  const openEditor = () => {
+  const openEditor = useCallback(() => {
     if (disabled || pending || snapshot.state !== "in_progress") return;
     const firstParticipant = activeParticipants[0]?.id ?? "";
     chooseParticipant(firstParticipant);
     setSheetPosition(0);
     setOpen(true);
-  };
+  }, [activeParticipants, chooseParticipant, disabled, pending, snapshot.state]);
 
   const currentAssignments = snapshot.assignments
     .filter(
@@ -78,18 +83,54 @@ export function ReassignmentControl({
     )
     .map((assignment) => assignment.matchId);
   const requiredCount = currentAssignments.length;
-  const selectableMatches = snapshot.matches.filter(
-    (match) => match.id !== snapshot.commonMatchId,
+  const selectableMatches = useMemo(
+    () => snapshot.matches.filter((match) => match.id !== snapshot.commonMatchId),
+    [snapshot.commonMatchId, snapshot.matches],
+  );
+  const selectedMatchIdSet = useMemo(
+    () => new Set(selectedMatchIds),
+    [selectedMatchIds],
   );
 
-  const toggleMatch = (matchId: string) => {
+  const toggleMatch = useCallback((matchId: string) => {
     if (disabled || pending) return;
     setSelectedMatchIds((current) =>
       current.includes(matchId)
         ? current.filter((id) => id !== matchId)
         : [...current, matchId],
     );
-  };
+  }, [disabled, pending, setSelectedMatchIds]);
+
+  const renderSelectableMatch = useCallback(
+    ({ item: match }: ListRenderItemInfo<SelectableMatch>) => {
+      const selected = selectedMatchIdSet.has(match.id);
+      const selectionDisabled =
+        !selected && selectedMatchIds.length >= requiredCount;
+
+      return (
+        <TouchableOpacity
+          testID={`ReassignmentMatch-${match.id}`}
+          style={[styles.match, selected && styles.matchSelected]}
+          disabled={disabled || pending || selectionDisabled}
+          onPress={() => toggleMatch(match.id)}
+        >
+          <Text style={styles.matchText}>
+            {selected ? "✓ " : ""}
+            {match.homeTeamName} · {match.awayTeamName}
+          </Text>
+        </TouchableOpacity>
+      );
+    },
+    [
+      disabled,
+      pending,
+      requiredCount,
+      selectedMatchIdSet,
+      selectedMatchIds.length,
+      styles,
+      toggleMatch,
+    ],
+  );
 
   const submit = async () => {
     if (disabled || pending || selectedMatchIds.length !== requiredCount) return;
@@ -158,27 +199,13 @@ export function ReassignmentControl({
             </Text>
             <Text style={styles.locked}>Common Match locked</Text>
           </View>
-          <ScrollView style={styles.matchList}>
-            {selectableMatches.map((match) => {
-              const selected = selectedMatchIds.includes(match.id);
-              const selectionDisabled =
-                !selected && selectedMatchIds.length >= requiredCount;
-              return (
-                <TouchableOpacity
-                  key={match.id}
-                  testID={`ReassignmentMatch-${match.id}`}
-                  style={[styles.match, selected && styles.matchSelected]}
-                  disabled={disabled || pending || selectionDisabled}
-                  onPress={() => toggleMatch(match.id)}
-                >
-                  <Text style={styles.matchText}>
-                    {selected ? "✓ " : ""}
-                    {match.homeTeamName} · {match.awayTeamName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+          <FlatList
+            style={styles.matchList}
+            data={selectableMatches}
+            keyExtractor={matchKeyExtractor}
+            renderItem={renderSelectableMatch}
+            extraData={selectedMatchIds}
+          />
 
           <View style={styles.actions}>
             <TouchableOpacity

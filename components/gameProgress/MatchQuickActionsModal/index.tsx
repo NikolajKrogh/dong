@@ -28,153 +28,218 @@ import { MatchQuickActionsModalProps } from "./types";
 
 const useThemed = () => useColors();
 
-/** Quick actions & stats modal for selected match (scores, scorers, assignments, stats). */
-const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
-  isVisible,
-  onClose,
-  selectedMatchId,
-  matches,
-  players,
-  commonMatchId,
-  playerAssignments,
-  liveMatches,
-  handleGoalIncrement,
-  handleGoalDecrement,
-  disabled = false,
-}) => {
-  const colors = useThemed();
-  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
-  const isWideLayout = screenWidth >= 1024;
-  let playerColumnCount = 1;
+type ScoreControlValues = Omit<
+  React.ComponentProps<typeof ScoreControls>,
+  "styles"
+>;
+type GoalScorerValues = Omit<
+  React.ComponentProps<typeof GoalScorersSection>,
+  "styles"
+>;
+type PlayerValues = Omit<
+  React.ComponentProps<typeof PlayersSection>,
+  "styles"
+>;
+type LiveMatch = NonNullable<MatchQuickActionsModalProps["liveMatches"]>[number];
+type TrackedMatch = MatchQuickActionsModalProps["matches"][number];
 
-  if (isWideLayout) {
-    playerColumnCount = 3;
-  } else if (screenWidth >= 720) {
-    playerColumnCount = 2;
+interface MatchTabContentProps {
+  activeTab: string;
+  scoreControls: ScoreControlValues;
+  isApiControlledMatch: boolean;
+  goalScorers: GoalScorerValues;
+  players: PlayerValues;
+  statistics: {
+    homeStats: NonNullable<LiveMatch["homeTeamStatistics"]>;
+    awayStats: NonNullable<LiveMatch["awayTeamStatistics"]>;
+  } | null;
+  styles: ReturnType<typeof createStyles>;
+}
+
+const MatchTabContent = ({
+  activeTab,
+  scoreControls,
+  isApiControlledMatch,
+  goalScorers,
+  players,
+  statistics,
+  styles,
+}: MatchTabContentProps) => {
+  if (activeTab === "overview") {
+    return (
+      <>
+        <ScoreControls {...scoreControls} styles={styles} />
+        {isApiControlledMatch ? (
+          <GoalScorersSection {...goalScorers} styles={styles} />
+        ) : null}
+        <View style={styles.divider} />
+        <PlayersSection {...players} styles={styles} />
+      </>
+    );
   }
 
-  const modalWidth = Math.min(screenWidth - 32, isWideLayout ? 960 : 420);
-  const styles = useMemo(
-    () =>
-      createStyles(
-        colors,
-        modalWidth,
-        screenHeight,
-        isWideLayout,
-        playerColumnCount,
-      ),
-    [colors, isWideLayout, modalWidth, playerColumnCount, screenHeight],
+  if (activeTab === "statistics" && statistics) {
+    return <StatisticsSection {...statistics} styles={styles} />;
+  }
+
+  return null;
+};
+
+const getPlayerColumnCount = (screenWidth: number) => {
+  if (screenWidth >= 1024) return 3;
+  if (screenWidth >= 720) return 2;
+  return 1;
+};
+
+const findSelectedMatch = (
+  matches: TrackedMatch[],
+  selectedMatchId: string | null,
+) =>
+  selectedMatchId
+    ? (matches.find((candidate) => candidate.id === selectedMatchId) ?? null)
+    : null;
+
+const findLiveMatch = (liveMatches: LiveMatch[], selectedMatchId: string | null) =>
+  liveMatches.find((candidate) => candidate.id === selectedMatchId);
+
+const isProviderControlledMatch = (
+  match: TrackedMatch | null,
+  liveMatchData: LiveMatch | undefined,
+) =>
+  (match?.sourceProvider != null &&
+    match.sourceProvider.toLowerCase() !== "manual") ||
+  Boolean(liveMatchData);
+
+const getTeamScorers = (
+  liveMatchData: LiveMatch | undefined,
+  team: "home" | "away",
+) => {
+  if (!liveMatchData) return [];
+  const teamId = team === "home" ? liveMatchData.homeTeamId : liveMatchData.awayTeamId;
+  return liveMatchData.goalScorers?.filter((scorer) => scorer.teamId === teamId) || [];
+};
+
+const getAffectedPlayers = (
+  match: TrackedMatch | null,
+  players: Player[],
+  commonMatchId: string,
+  playerAssignments: Record<string, string[]>,
+) => {
+  if (!match) return [];
+  return players.filter(
+    (player) =>
+      match.id === commonMatchId ||
+      playerAssignments[player.id]?.includes(match.id),
   );
-  const [activeTab, setActiveTab] = useState("overview");
+};
 
-  /** Selected match entity (or null). */
-  const match = useMemo(() => {
-    return selectedMatchId
-      ? matches.find((m) => m.id === selectedMatchId)
-      : null;
-  }, [selectedMatchId, matches]);
-
-  // Get team logos with async fallback support
-  const homeTeamLogo = useTeamLogo(match?.homeTeam || "");
-  const awayTeamLogo = useTeamLogo(match?.awayTeam || "");
-
-  /** Live data for selected match (if present). */
-  const liveMatchData = useMemo(() => {
-    return liveMatches?.find((m) => m.id === selectedMatchId);
-  }, [liveMatches, selectedMatchId]);
-
-  /** Whether scores are driven by live API (read-only). */
-  const isApiControlledMatch = useMemo(() => {
-    // Multiplayer snapshots carry the authoritative provider provenance even
-    // when the client is offline or the provider poll has not returned yet.
-    // Solo games retain the legacy live-data check for backwards compatibility.
-    return (
-      (match?.sourceProvider != null &&
-        match.sourceProvider.toLowerCase() !== "manual") ||
-      !!liveMatchData
-    );
-  }, [liveMatchData, match]);
-
-  /** Goal scorers array for home team (live data). */
-  const homeTeamScorers = useMemo(() => {
-    return (
-      liveMatchData?.goalScorers?.filter(
-        (scorer) => scorer.teamId === liveMatchData.homeTeamId,
-      ) || []
-    );
-  }, [liveMatchData]);
-
-  /** Goal scorers array for away team (live data). */
-  const awayTeamScorers = useMemo(() => {
-    return (
-      liveMatchData?.goalScorers?.filter(
-        (scorer) => scorer.teamId === liveMatchData.awayTeamId,
-      ) || []
-    );
-  }, [liveMatchData]);
-
-  const {
-    closeButtonAnim,
-    goalValueAnimHome,
-    goalValueAnimAway,
-    modalContentAnim,
-    incrementAnimHome,
-    decrementAnimHome,
-    incrementAnimAway,
-    decrementAnimAway,
-    animateButtonPress,
-  } = useMatchQuickActionsAnimations({
-    isVisible,
-    match,
-    liveMatchData,
-    isApiControlledMatch,
+const distributePlayers = (players: Player[], columnCount: number) => {
+  const columns: Player[][] = Array.from({ length: columnCount }, () => []);
+  players.forEach((player, index) => {
+    columns[index % columnCount].push(player);
   });
+  return columns;
+};
 
-  /** Players impacted by this match (assigned or common). */
-  const affectedPlayers = useMemo(() => {
-    if (!match) return [];
-    return players.filter(
-      (p) =>
-        match.id === commonMatchId ||
-        playerAssignments[p.id]?.includes(match.id),
-    );
-  }, [match, players, commonMatchId, playerAssignments]);
+const isCommonMatchSelection = (
+  match: TrackedMatch | null,
+  commonMatchId: string,
+) => Boolean(match && match.id === commonMatchId);
 
-  // Check if the selected match is the common match
-  const isCommonMatch = match ? match.id === commonMatchId : false;
+const shouldShowStatisticsTab = (
+  isApiControlledMatch: boolean,
+  liveMatchData: LiveMatch | undefined,
+) => Boolean(isApiControlledMatch && liveMatchData?.homeTeamStatistics);
 
-  /**
-   * Distribute affected players into three columns for display.
-   * @returns {Player[][]} 2D array; each sub-array is a column of players.
-   */
-  const playerColumns = useMemo(() => {
-    const result: Player[][] = Array.from(
-      { length: playerColumnCount },
-      () => [],
-    );
+const getMatchStatistics = (
+  isApiControlledMatch: boolean,
+  liveMatchData: LiveMatch | undefined,
+): MatchTabContentProps["statistics"] => {
+  if (
+    !isApiControlledMatch ||
+    !liveMatchData?.homeTeamStatistics ||
+    !liveMatchData.awayTeamStatistics
+  ) {
+    return null;
+  }
+  return {
+    homeStats: liveMatchData.homeTeamStatistics,
+    awayStats: liveMatchData.awayTeamStatistics,
+  };
+};
 
-    affectedPlayers.forEach((player, index) => {
-      const columnIndex = index % playerColumnCount;
-      result[columnIndex].push(player);
-    });
+const getModalWidth = (screenWidth: number) =>
+  Math.min(screenWidth - 32, screenWidth >= 1024 ? 960 : 420);
 
-    return result;
-  }, [affectedPlayers, playerColumnCount]);
+type QuickActionAnimations = ReturnType<typeof useMatchQuickActionsAnimations>;
 
-  // If no match is selected or the modal is not visible, render nothing.
-  if (!match || !isVisible) return null;
+const getScoreControlValues = (
+  match: TrackedMatch | null,
+  liveMatchData: LiveMatch | undefined,
+  isApiControlledMatch: boolean,
+  animations: QuickActionAnimations,
+  handleGoalIncrement: MatchQuickActionsModalProps["handleGoalIncrement"],
+  handleGoalDecrement: MatchQuickActionsModalProps["handleGoalDecrement"],
+  disabled: boolean,
+): ScoreControlValues | null => {
+  if (!match) return null;
+  return {
+    matchId: match.id,
+    homeGoals: match.homeGoals ?? 0,
+    awayGoals: match.awayGoals ?? 0,
+    isApiControlledMatch,
+    liveHomeScore: liveMatchData?.homeScore ?? match.homeGoals ?? 0,
+    liveAwayScore: liveMatchData?.awayScore ?? match.awayGoals ?? 0,
+    goalValueAnimHome: animations.goalValueAnimHome,
+    goalValueAnimAway: animations.goalValueAnimAway,
+    incrementAnimHome: animations.incrementAnimHome,
+    decrementAnimHome: animations.decrementAnimHome,
+    incrementAnimAway: animations.incrementAnimAway,
+    decrementAnimAway: animations.decrementAnimAway,
+    animateButtonPress: animations.animateButtonPress,
+    handleGoalIncrement,
+    handleGoalDecrement,
+    disabled,
+  };
+};
 
-  const showStatisticsTab = Boolean(
-    isApiControlledMatch && liveMatchData?.homeTeamStatistics,
-  );
+interface MatchQuickActionsModalViewProps {
+  isVisible: boolean;
+  onClose: () => void;
+  match: TrackedMatch | null;
+  homeTeamLogo: ReturnType<typeof useTeamLogo>;
+  awayTeamLogo: ReturnType<typeof useTeamLogo>;
+  isCommonMatch: boolean;
+  showStatisticsTab: boolean;
+  scoreControls: ScoreControlValues | null;
+  isApiControlledMatch: boolean;
+  goalScorers: GoalScorerValues;
+  players: PlayerValues;
+  statistics: MatchTabContentProps["statistics"];
+  animations: QuickActionAnimations;
+  styles: ReturnType<typeof createStyles>;
+}
+
+const MatchQuickActionsModalView = ({
+  isVisible,
+  onClose,
+  match,
+  homeTeamLogo,
+  awayTeamLogo,
+  isCommonMatch,
+  showStatisticsTab,
+  scoreControls,
+  isApiControlledMatch,
+  goalScorers,
+  players,
+  statistics,
+  animations,
+  styles,
+}: MatchQuickActionsModalViewProps) => {
+  const [activeTab, setActiveTab] = useState("overview");
+  if (!match || !isVisible || !scoreControls) return null;
 
   return (
-    // No SafeAreaView wrapper here. A Modal renders into its own root view, so an
-    // outer wrapper contributes nothing to it -- but it is still a laid-out sibling
-    // of the screen's content, and react-native-safe-area-context's SafeAreaView
-    // applies real inset padding on Android (unlike react-native's, which is a bare
-    // View there). That empty box was eating top+bottom insets of vertical space
-    // from the game screen, clipping the match list and hiding the footer.
     <Modal
       animationType="none"
       transparent={true}
@@ -192,10 +257,10 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
             style={[
               styles.modalContainer,
               {
-                opacity: modalContentAnim,
+                opacity: animations.modalContentAnim,
                 transform: [
                   {
-                    scale: modalContentAnim.interpolate({
+                    scale: animations.modalContentAnim.interpolate({
                       inputRange: [0, 1],
                       outputRange: [0.95, 1],
                     }),
@@ -206,7 +271,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
           >
             <TouchableOpacity
               activeOpacity={1}
-              onPress={(e) => e.stopPropagation()}
+              onPress={(event) => event.stopPropagation()}
               style={styles.modalInnerContainer}
             >
               <ScrollView
@@ -224,86 +289,35 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
                 />
 
                 <View style={styles.divider} />
-
                 <ModalTabBar
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
                   showStatisticsTab={showStatisticsTab}
                   styles={styles}
                 />
-
                 <View style={styles.divider} />
 
-                {/* Overview Tab Content */}
-                {activeTab === "overview" && (
-                  <>
-                    <ScoreControls
-                      matchId={match.id}
-                      homeGoals={match.homeGoals ?? 0}
-                      awayGoals={match.awayGoals ?? 0}
-                      isApiControlledMatch={isApiControlledMatch}
-                      liveHomeScore={
-                        liveMatchData?.homeScore ?? match.homeGoals ?? 0
-                      }
-                      liveAwayScore={
-                        liveMatchData?.awayScore ?? match.awayGoals ?? 0
-                      }
-                      goalValueAnimHome={goalValueAnimHome}
-                      goalValueAnimAway={goalValueAnimAway}
-                      incrementAnimHome={incrementAnimHome}
-                      decrementAnimHome={decrementAnimHome}
-                      incrementAnimAway={incrementAnimAway}
-                      decrementAnimAway={decrementAnimAway}
-                      animateButtonPress={animateButtonPress}
-                      handleGoalIncrement={handleGoalIncrement}
-                      handleGoalDecrement={handleGoalDecrement}
-                      disabled={disabled}
-                      styles={styles}
-                    />
+                <MatchTabContent
+                  activeTab={activeTab}
+                  scoreControls={scoreControls}
+                  isApiControlledMatch={isApiControlledMatch}
+                  goalScorers={goalScorers}
+                  players={players}
+                  statistics={statistics}
+                  styles={styles}
+                />
 
-                    {isApiControlledMatch && (
-                      <GoalScorersSection
-                        homeTeamScorers={homeTeamScorers}
-                        awayTeamScorers={awayTeamScorers}
-                        styles={styles}
-                      />
-                    )}
-
-                    <View style={styles.divider} />
-
-                    <PlayersSection
-                      affectedPlayersCount={affectedPlayers.length}
-                      playerColumns={playerColumns}
-                      modalContentAnim={modalContentAnim}
-                      styles={styles}
-                    />
-                  </>
-                )}
-
-                {/* Statistics Tab Content */}
-                {activeTab === "statistics" &&
-                  isApiControlledMatch &&
-                  liveMatchData?.homeTeamStatistics &&
-                  liveMatchData?.awayTeamStatistics && (
-                    <StatisticsSection
-                      homeStats={liveMatchData.homeTeamStatistics}
-                      awayStats={liveMatchData.awayTeamStatistics}
-                      styles={styles}
-                    />
-                  )}
-
-                {/* Close Button */}
                 <Animated.View
                   style={{
-                    transform: [{ scale: closeButtonAnim }],
+                    transform: [{ scale: animations.closeButtonAnim }],
                     width: "100%",
                   }}
                 >
                   <TouchableOpacity
                     style={styles.closeButton}
                     onPress={() => {
-                      animateButtonPress(closeButtonAnim);
-                      setTimeout(onClose, 100); // Delay close for animation
+                      animations.animateButtonPress(animations.closeButtonAnim);
+                      setTimeout(onClose, 100);
                     }}
                   >
                     <Text style={styles.closeButtonText}>Close</Text>
@@ -315,6 +329,134 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
         </View>
       </TouchableOpacity>
     </Modal>
+  );
+};
+
+/** Quick actions & stats modal for selected match (scores, scorers, assignments, stats). */
+const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
+  isVisible,
+  onClose,
+  selectedMatchId,
+  matches,
+  players,
+  commonMatchId,
+  playerAssignments,
+  liveMatches,
+  handleGoalIncrement,
+  handleGoalDecrement,
+  disabled = false,
+}) => {
+  const colors = useThemed();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isWideLayout = screenWidth >= 1024;
+  const playerColumnCount = getPlayerColumnCount(screenWidth);
+
+  const modalWidth = getModalWidth(screenWidth);
+  const styles = useMemo(
+    () =>
+      createStyles(
+        colors,
+        modalWidth,
+        screenHeight,
+        isWideLayout,
+        playerColumnCount,
+      ),
+    [colors, isWideLayout, modalWidth, playerColumnCount, screenHeight],
+  );
+  /** Selected match entity (or null). */
+  const match = useMemo(
+    () => findSelectedMatch(matches, selectedMatchId),
+    [selectedMatchId, matches],
+  );
+
+  // Get team logos with async fallback support
+  const homeTeamLogo = useTeamLogo(match?.homeTeam || "");
+  const awayTeamLogo = useTeamLogo(match?.awayTeam || "");
+
+  /** Live data for selected match (if present). */
+  const liveMatchData = useMemo(
+    () => findLiveMatch(liveMatches, selectedMatchId),
+    [liveMatches, selectedMatchId],
+  );
+
+  /** Whether scores are driven by live API (read-only). */
+  // Multiplayer snapshots carry provider provenance even before a live poll;
+  // solo games retain the legacy live-data check.
+  const isApiControlledMatch = isProviderControlledMatch(match, liveMatchData);
+
+  /** Goal scorers array for home team (live data). */
+  const homeTeamScorers = useMemo(
+    () => getTeamScorers(liveMatchData, "home"),
+    [liveMatchData],
+  );
+
+  /** Goal scorers array for away team (live data). */
+  const awayTeamScorers = useMemo(
+    () => getTeamScorers(liveMatchData, "away"),
+    [liveMatchData],
+  );
+
+  const animations = useMatchQuickActionsAnimations({
+    isVisible,
+    match,
+    liveMatchData,
+    isApiControlledMatch,
+  });
+
+  /** Players impacted by this match (assigned or common). */
+  const affectedPlayers = useMemo(
+    () =>
+      getAffectedPlayers(match, players, commonMatchId, playerAssignments),
+    [match, players, commonMatchId, playerAssignments],
+  );
+
+  const isCommonMatch = isCommonMatchSelection(match, commonMatchId);
+
+  /**
+   * Distribute affected players into three columns for display.
+   * @returns {Player[][]} 2D array; each sub-array is a column of players.
+   */
+  const playerColumns = useMemo(
+    () => distributePlayers(affectedPlayers, playerColumnCount),
+    [affectedPlayers, playerColumnCount],
+  );
+
+  const showStatisticsTab = shouldShowStatisticsTab(
+    isApiControlledMatch,
+    liveMatchData,
+  );
+  const statistics = getMatchStatistics(isApiControlledMatch, liveMatchData);
+  const scoreControls = getScoreControlValues(
+    match,
+    liveMatchData,
+    isApiControlledMatch,
+    animations,
+    handleGoalIncrement,
+    handleGoalDecrement,
+    disabled,
+  );
+
+  return (
+    <MatchQuickActionsModalView
+      isVisible={isVisible}
+      onClose={onClose}
+      match={match}
+      homeTeamLogo={homeTeamLogo}
+      awayTeamLogo={awayTeamLogo}
+      isCommonMatch={isCommonMatch}
+      showStatisticsTab={showStatisticsTab}
+      scoreControls={scoreControls}
+      isApiControlledMatch={isApiControlledMatch}
+      goalScorers={{ homeTeamScorers, awayTeamScorers }}
+      players={{
+        affectedPlayersCount: affectedPlayers.length,
+        playerColumns,
+        modalContentAnim: animations.modalContentAnim,
+      }}
+      statistics={statistics}
+      animations={animations}
+      styles={styles}
+    />
   );
 };
 

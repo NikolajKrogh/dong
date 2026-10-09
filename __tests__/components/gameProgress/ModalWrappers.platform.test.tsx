@@ -14,11 +14,21 @@
  * outside the Modal. Layout itself is not measurable under Jest.
  */
 import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { actCreate } from "../../../test-utils/render";
 
 import EndGameModal from "../../../components/gameProgress/EndGameModal";
 import MatchQuickActionsModal from "../../../components/gameProgress/MatchQuickActionsModal";
+
+const renderWithQueryClient = (element: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  return actCreate(
+    <QueryClientProvider client={queryClient}>{element}</QueryClientProvider>,
+  );
+};
 
 jest.mock("react-native-safe-area-context", () => {
   const actual = jest.requireActual("react-native-safe-area-context");
@@ -37,7 +47,7 @@ jest.mock("react-native-safe-area-context", () => {
 describe("game screen modals", () => {
   it("renders EndGameModal without a SafeAreaView wrapper", () => {
     expect(() =>
-      actCreate(
+      renderWithQueryClient(
         <EndGameModal isVisible={false} onCancel={jest.fn()} onConfirm={jest.fn()} />,
       ),
     ).not.toThrow();
@@ -45,7 +55,7 @@ describe("game screen modals", () => {
 
   it("renders MatchQuickActionsModal without a SafeAreaView wrapper", () => {
     expect(() =>
-      actCreate(
+      renderWithQueryClient(
         <MatchQuickActionsModal
           isVisible={false}
           onClose={jest.fn()}
