@@ -1,37 +1,4 @@
-
-
 const padNumber = (value: number): string => String(value).padStart(2, "0");
-
-export const coerceDateInputDate = (
-  value: unknown,
-  fallback = new Date(),
-): Date => {
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value;
-  }
-
-  if (typeof value === "number") {
-    const nextDate = new Date(value);
-    return Number.isNaN(nextDate.getTime()) ? fallback : nextDate;
-  }
-
-  if (typeof value === "string") {
-    const nextDate = new Date(value);
-    return Number.isNaN(nextDate.getTime()) ? fallback : nextDate;
-  }
-
-  if (
-    value &&
-    typeof value === "object" &&
-    "toDate" in value &&
-    typeof (value as { toDate?: unknown }).toDate === "function"
-  ) {
-    const nextDate = (value as { toDate: () => Date }).toDate();
-    return Number.isNaN(nextDate.getTime()) ? fallback : nextDate;
-  }
-
-  return fallback;
-};
 
 export const formatDateIsoValue = (date: Date): string => {
   return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(
