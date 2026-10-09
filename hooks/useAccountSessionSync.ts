@@ -4,7 +4,15 @@ import type {
   SupabaseClient,
   User,
 } from "@supabase/supabase-js";
-import { useCallback, useEffect, useRef, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from "react";
 
 import {
   applySyncedPreferenceState,
@@ -29,14 +37,16 @@ interface UseAccountSessionSyncParams {
   activeSettingsUserIdRef: MutableRefObject<string | null>;
   lastSyncedPreferenceSignatureRef: MutableRefObject<string | null>;
   pendingManualSignOutRef: MutableRefObject<boolean>;
-  setStatus: (status: AccountAuthStatus) => void;
-  setSession: (session: Session | null) => void;
-  setSessionNotice: (notice: string | null) => void;
-  setUser: (user: User | null) => void;
-  setAccount: (account: Account | null) => void;
 }
 
 interface UseAccountSessionSyncResult {
+  status: AccountAuthStatus;
+  session: Session | null;
+  sessionNotice: string | null;
+  user: User | null;
+  account: Account | null;
+  setStatus: Dispatch<SetStateAction<AccountAuthStatus>>;
+  setAccount: Dispatch<SetStateAction<Account | null>>;
   clearAuthenticatedState: (nextSessionNotice?: string | null) => void;
   syncAuthenticatedSession: (
     nextSession: Session | null,
@@ -77,12 +87,14 @@ export const useAccountSessionSync = ({
   activeSettingsUserIdRef,
   lastSyncedPreferenceSignatureRef,
   pendingManualSignOutRef,
-  setStatus,
-  setSession,
-  setSessionNotice,
-  setUser,
-  setAccount,
 }: UseAccountSessionSyncParams): UseAccountSessionSyncResult => {
+  const [status, setStatus] = useState<AccountAuthStatus>(
+    isConfigured ? "loading" : "signedOut",
+  );
+  const [session, setSession] = useState<Session | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [account, setAccount] = useState<Account | null>(null);
   const syncVersion = useRef(0);
   const clearAuthenticatedState = useCallback(
     (nextSessionNotice: string | null = null) => {
@@ -291,5 +303,15 @@ export const useAccountSessionSync = ({
     };
   }, [clearAuthenticatedState, isConfigured, syncAuthenticatedSession]);
 
-  return { clearAuthenticatedState, syncAuthenticatedSession };
+  return {
+    status,
+    session,
+    sessionNotice,
+    user,
+    account,
+    setStatus,
+    setAccount,
+    clearAuthenticatedState,
+    syncAuthenticatedSession,
+  };
 };

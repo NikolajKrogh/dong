@@ -57,6 +57,95 @@ interface MatchListProps {
   disableSelection?: boolean;
 }
 
+interface MatchListViewProps {
+  matches: Match[];
+  poolMatchIds: string[];
+  disableSelection: boolean;
+  showSectionTitle: boolean;
+  content: React.ReactNode;
+  processingState: ReturnType<typeof useMatchProcessing>["processingState"];
+  leagueFilterProps: React.ComponentProps<typeof LeagueFilter>;
+  matchFilterProps: React.ComponentProps<typeof MatchFilter>;
+  onRemoveMatch: (matchId: string) => void;
+  onClearAll: () => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  colors: ReturnType<typeof useColors>;
+}
+
+const MatchListView = ({
+  matches,
+  poolMatchIds,
+  disableSelection,
+  showSectionTitle,
+  content,
+  processingState,
+  leagueFilterProps,
+  matchFilterProps,
+  onRemoveMatch,
+  onClearAll,
+  styles,
+  colors,
+}: MatchListViewProps) => (
+  <View style={styles.tabContent}>
+    {showSectionTitle ? <Text style={styles.sectionTitle}>Matches</Text> : null}
+
+    <View testID="MatchListLayout" style={styles.matchListLayout}>
+      <View testID="MatchListControls" style={styles.matchListControls}>
+        <LeagueFilter {...leagueFilterProps} />
+        <MatchFilter {...matchFilterProps} />
+        {content}
+
+        {processingState.isProcessing && (
+          <View style={styles.processingIndicator}>
+            <Text>
+              Processing matches: {processingState.matchesAdded} added, {" "}
+              {processingState.matchesSkipped} skipped
+            </Text>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        )}
+      </View>
+
+      <View testID="MatchListResults" style={styles.matchListResults}>
+        {/* The shared list keeps solo and multiplayer match cards visually aligned. */}
+        {matches.length === 0 ? (
+          <View
+            testID="MatchListEmptyState"
+            style={styles.matchEmptyListContainer}
+          >
+            <AppIcon name="football-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyListTitleText}>No matches added yet!</Text>
+            <Text style={styles.emptyListSubtitleText}>
+              Use the filters above to find matches, or the team selectors to
+              add your first match.
+            </Text>
+          </View>
+        ) : (
+          <SelectableMatchList
+            matches={matches}
+            selectedMatchIds={poolMatchIds}
+            onToggleMatch={onRemoveMatch}
+            disabledMatchIds={disableSelection ? poolMatchIds : undefined}
+            testIDPrefix="SetupPoolMatch"
+          />
+        )}
+
+        {matches.length > 0 && (
+          <TouchableOpacity style={styles.clearAllButton} onPress={onClearAll}>
+            <AppIcon
+              name="trash-outline"
+              size={16}
+              color={colors.textLight}
+              style={{ marginRight: 5 }}
+            />
+            <Text style={styles.clearAllButtonText}>Clear All Matches</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  </View>
+);
+
 /**
  * Functional component that renders a list of matches with filtering and team selection.
  *
@@ -321,98 +410,36 @@ const MatchList: FC<MatchListProps> = ({
   }
 
   return (
-    <View style={styles.tabContent}>
-      {showSectionTitle ? (
-        <Text style={styles.sectionTitle}>Matches</Text>
-      ) : null}
-
-      <View testID="MatchListLayout" style={styles.matchListLayout}>
-        <View testID="MatchListControls" style={styles.matchListControls}>
-          <LeagueFilter
-            availableLeagues={availableLeagues}
-            selectedLeagues={selectedLeagues}
-            handleLeagueChange={handleLeagueChange}
-          />
-
-          <MatchFilter
-            selectedDate={selectedDate}
-            startTime={startTime}
-            endTime={endTime}
-            setSelectedDate={setSelectedDate}
-            setStartTime={setStartTime}
-            setEndTime={setEndTime}
-            handleAddAllFilteredMatches={handleAddAllFilteredMatches}
-            isTimeFilterActive={isTimeFilterActive}
-            isDateFilterActive={isDateFilterActive}
-            filteredMatches={filteredMatches}
-            isLoading={isLoading}
-          />
-
-          {content}
-
-          {processingState.isProcessing && (
-            <View style={styles.processingIndicator}>
-              <Text>
-                Processing matches: {processingState.matchesAdded} added,{" "}
-                {processingState.matchesSkipped} skipped
-              </Text>
-              <ActivityIndicator size="small" color={colors.primary} />
-            </View>
-          )}
-        </View>
-
-        <View testID="MatchListResults" style={styles.matchListResults}>
-          {/*
-            The pool renders through the app's shared match-card component, the
-            same one the lobby's pick panel and the wizard's assign step use, so a
-            match looks identical everywhere it appears. Its own list has no
-            empty-state slot, hence the branch rather than a `ListEmptyComponent`.
-          */}
-          {matches.length === 0 ? (
-            <View
-              testID="MatchListEmptyState"
-              style={styles.matchEmptyListContainer}
-            >
-              <AppIcon
-                name="football-outline"
-                size={48}
-                color={colors.textMuted}
-              />
-              <Text style={styles.emptyListTitleText}>
-                No matches added yet!
-              </Text>
-              <Text style={styles.emptyListSubtitleText}>
-                Use the filters above to find matches, or the team selectors to
-                add your first match.
-              </Text>
-            </View>
-          ) : (
-            <SelectableMatchList
-              matches={matches}
-              selectedMatchIds={poolMatchIds}
-              onToggleMatch={handleRemoveMatch}
-              disabledMatchIds={disableSelection ? poolMatchIds : undefined}
-              testIDPrefix="SetupPoolMatch"
-            />
-          )}
-
-          {matches.length > 0 && (
-            <TouchableOpacity
-              style={styles.clearAllButton}
-              onPress={handleClearAllMatches}
-            >
-              <AppIcon
-                name="trash-outline"
-                size={16}
-                color={colors.textLight}
-                style={{ marginRight: 5 }}
-              />
-              <Text style={styles.clearAllButtonText}>Clear All Matches</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </View>
+    <MatchListView
+      matches={matches}
+      poolMatchIds={poolMatchIds}
+      disableSelection={disableSelection}
+      showSectionTitle={showSectionTitle}
+      content={content}
+      processingState={processingState}
+      leagueFilterProps={{
+        availableLeagues,
+        selectedLeagues,
+        handleLeagueChange,
+      }}
+      matchFilterProps={{
+        selectedDate,
+        startTime,
+        endTime,
+        setSelectedDate,
+        setStartTime,
+        setEndTime,
+        handleAddAllFilteredMatches,
+        isTimeFilterActive,
+        isDateFilterActive,
+        filteredMatches,
+        isLoading,
+      }}
+      onRemoveMatch={handleRemoveMatch}
+      onClearAll={handleClearAllMatches}
+      styles={styles}
+      colors={colors}
+    />
   );
 };
 

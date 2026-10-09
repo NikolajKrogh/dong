@@ -66,7 +66,11 @@ export function useLiveScores(
       const dateParam = formatDateForAPI(today.toISOString().split("T")[0]);
 
       // Create a map of match IDs to track which matches we're monitoring
-      const matchIdsToTrack = new Set(matches.map((m) => m.id));
+      const matchesById = new Map<string, Match>();
+      matches.forEach((match) => {
+        if (!matchesById.has(match.id)) matchesById.set(match.id, match);
+      });
+      const matchIdsToTrack = new Set(matchesById.keys());
       if (matchIdsToTrack.size === 0) return; // Don't fetch if no matches are tracked
 
       // Use the user-configured leagues
@@ -81,23 +85,26 @@ export function useLiveScores(
         ),
       );
 
+      const responseData = await Promise.all(
+        responses.map((response, index) => {
+          if (!response.ok) {
+            console.error(
+              `Failed to fetch ${leagueEndpoints[index].name}: ${response.status}`,
+            );
+            return null;
+          }
+
+          return response.json() as Promise<ESPNResponse>;
+        }),
+      );
+
       const updatedMatches: MatchWithScore[] = [];
+      const latestMatchesById = new Map<string, MatchWithScore>();
       const newGoals: Record<string, number> = {}; // Store total goals for matches with updates
 
-      // Process all responses
-      for (let i = 0; i < responses.length; i++) {
-        const response = responses[i];
-
-        // Skip failed requests
-        if (!response.ok) {
-          console.error(
-            `Failed to fetch ${leagueEndpoints[i].name}: ${response.status}`,
-          );
-          continue;
-        }
-
-        const data: ESPNResponse = await response.json();
-
+      // Process parsed responses in league order.
+      for (const data of responseData) {
+        if (!data) continue;
         // Look for tracked matches in the response
         for (const event of data.events) {
           // Ensure the event has an ID we are tracking
@@ -110,7 +117,7 @@ export function useLiveScores(
           const { id, homeScore, awayScore } = processedMatch;
 
           // Find the corresponding match in our app's state
-          const appMatch = matches.find((m) => m.id === id);
+          const appMatch = matchesById.get(id);
           if (!appMatch) continue; // Should not happen if ID is tracked, but good check
 
           // Calculate total goals from the API data
@@ -135,6 +142,7 @@ export function useLiveScores(
 
           // Add the processed match data to the list for UI update
           updatedMatches.push(processedMatch);
+          if (!latestMatchesById.has(id)) latestMatchesById.set(id, processedMatch);
         }
       }
 
@@ -148,8 +156,8 @@ export function useLiveScores(
         // Update goals for each affected match via the callback
         matchIdsWithNewGoals.forEach((matchId) => {
           // Find the latest processed data and the app's current state for this match
-          const latestMatchData = updatedMatches.find((m) => m.id === matchId);
-          const currentAppMatch = matches.find((m) => m.id === matchId);
+          const latestMatchData = latestMatchesById.get(matchId);
+          const currentAppMatch = matchesById.get(matchId);
 
           if (latestMatchData && currentAppMatch) {
             // Check if home score increased compared to app state

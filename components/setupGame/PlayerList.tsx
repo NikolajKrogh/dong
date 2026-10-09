@@ -4,16 +4,21 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
+  type ListRenderItemInfo,
   Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
+  type ViewStyle,
   View,
 } from "react-native";
 import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { usePlayerSuggestions } from "../../hooks/usePlayerSuggestions";
+import {
+  type PlayerSuggestion,
+  usePlayerSuggestions,
+} from "../../hooks/usePlayerSuggestions";
 import { Player } from "../../store/store";
 import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
 
@@ -39,6 +44,184 @@ interface PlayerListEmptyStateProps {
   styles: ReturnType<typeof createSetupGameStyles>;
   iconColor: string;
 }
+
+interface PlayerInputSectionProps {
+  playerCount: number;
+  newPlayerName: string;
+  isInputFocused: boolean;
+  showSuggestions: boolean;
+  availableSuggestions: PlayerSuggestion[];
+  inputRef: React.RefObject<TextInput | null>;
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  onTextChange: (text: string) => void;
+  onFocus: () => void;
+  onBlur: () => void;
+  onAdd: () => void;
+  onSelectSuggestion: (playerName: string) => void;
+}
+
+interface PlayerListItemProps {
+  player: Player;
+  index: number;
+  isWideLayout: boolean;
+  fadeAnim: Animated.Value;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  errorColor: string;
+  onRemove: (playerId: string) => void;
+}
+
+const playerKeyExtractor = (player: Player) => player.id;
+
+const playerHeaderRowStyle: ViewStyle = {
+  alignItems: "center",
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginBottom: 15,
+};
+
+const playerGradients: readonly (readonly [string, string, ...string[]])[] = [
+  ["#FF416C", "#FF4B2B"],
+  ["#4776E6", "#8E54E9"],
+  ["#11998e", "#38ef7d"],
+  ["#FDC830", "#F37335"],
+  ["#667eea", "#764ba2"],
+  ["#1A2980", "#26D0CE"],
+  ["#FF0099", "#493240"],
+  ["#8A2387", "#E94057", "#F27121"],
+  ["#00c6ff", "#0072ff"],
+  ["#f857a6", "#ff5858"],
+  ["#4facfe", "#00f2fe"],
+  ["#43e97b", "#38f9d7"],
+  ["#fa709a", "#fee140"],
+  ["#7F00FF", "#E100FF"],
+  ["#3E5151", "#DECBA4"],
+  ["#12c2e9", "#c471ed", "#f64f59"],
+  ["#b721ff", "#21d4fd"],
+];
+
+const getPlayerGradient = (index: number) =>
+  playerGradients[index % playerGradients.length];
+const playerRemoveHitSlop = { top: 10, bottom: 10, left: 10, right: 10 };
+
+const PlayerInputSection = ({
+  playerCount,
+  newPlayerName,
+  isInputFocused,
+  showSuggestions,
+  availableSuggestions,
+  inputRef,
+  colors,
+  styles,
+  onTextChange,
+  onFocus,
+  onBlur,
+  onAdd,
+  onSelectSuggestion,
+}: PlayerInputSectionProps) => (
+  <>
+    <View style={playerHeaderRowStyle}>
+      <Text style={styles.sectionTitle}>Players</Text>
+      <Text style={styles.playerCount}>
+        {playerCount} {playerCount === 1 ? "player" : "players"}
+      </Text>
+    </View>
+
+    <View style={[styles.inputRow, styles.playerInputRow]}>
+      <View testID="PlayerInputStack" style={styles.playerInputStack}>
+        <View
+          style={[
+            styles.playerInputContainer,
+            isInputFocused && styles.playerInputContainerFocused,
+          ]}
+        >
+          <Ionicons
+            name="person-outline"
+            size={20}
+            color={colors.textSecondary}
+            style={styles.playerInputIcon}
+          />
+          <TextInput
+            ref={inputRef}
+            style={styles.playerTextInput}
+            placeholder="Enter player name"
+            placeholderTextColor={colors.textPlaceholder}
+            value={newPlayerName}
+            onChangeText={onTextChange}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            returnKeyType="done"
+            onSubmitEditing={onAdd}
+          />
+        </View>
+
+        <PlayerSuggestionDropdown
+          suggestions={availableSuggestions}
+          visible={showSuggestions}
+          onSelectPlayer={onSelectSuggestion}
+          searchQuery={newPlayerName}
+        />
+      </View>
+
+      <TouchableOpacity
+        accessibilityLabel="Add Player"
+        testID="SetupAddPlayerButton"
+        style={[
+          styles.playerAddButton,
+          !newPlayerName.trim() && styles.playerAddButtonDisabled,
+        ]}
+        onPress={onAdd}
+        disabled={!newPlayerName.trim()}
+      >
+        <Ionicons name="add-circle-outline" size={28} color={colors.white} />
+      </TouchableOpacity>
+    </View>
+  </>
+);
+
+const PlayerListItem = React.memo(function PlayerListItem({
+  player,
+  index,
+  isWideLayout,
+  fadeAnim,
+  styles,
+  errorColor,
+  onRemove,
+}: PlayerListItemProps) {
+  const animatedStyle = React.useMemo(
+    () => ({ opacity: fadeAnim, transform: [{ scale: fadeAnim }] }),
+    [fadeAnim],
+  );
+  const handleRemove = React.useCallback(
+    () => onRemove(player.id),
+    [onRemove, player.id],
+  );
+
+  return (
+    <Animated.View
+      style={[
+        styles.playerItemContainer,
+        isWideLayout && styles.playerItemWide,
+        animatedStyle,
+        index % 2 === 0 ? styles.playerItemEven : styles.playerItemOdd,
+      ]}
+    >
+      <LinearGradient colors={getPlayerGradient(index)} style={styles.playerAvatar}>
+        <Text style={styles.playerAvatarText}>
+          {player.name.charAt(0).toUpperCase()}
+        </Text>
+      </LinearGradient>
+      <Text style={styles.playerNameText}>{player.name}</Text>
+      <TouchableOpacity
+        style={styles.playerRemoveButton}
+        onPress={handleRemove}
+        hitSlop={playerRemoveHitSlop}
+      >
+        <Ionicons name="trash-outline" size={20} color={errorColor} />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+});
 
 const PlayerListEmptyState = ({
   styles,
@@ -182,7 +365,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
    * Handles the removal of a player with a fade-out animation.
    * @param {string} playerId The ID of the player to remove.
    */
-  const handleRemoveWithAnimation = (playerId: string) => {
+  const handleRemoveWithAnimation = React.useCallback((playerId: string) => {
     const anim = fadeAnims.current[playerId];
     if (!anim) return;
 
@@ -194,7 +377,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
       handleRemovePlayer(playerId);
       delete fadeAnims.current[playerId];
     });
-  };
+  }, [handleRemovePlayer]);
 
   /**
    * Removes all players with a parallel fade-out animation.
@@ -221,138 +404,54 @@ const PlayerList: React.FC<PlayerListProps> = ({
    * @param {number} index The index of the player in the list.
    * @returns {readonly [string, string, ...string[]]} An array of color strings for the gradient.
    */
-  const getPlayerGradient = (
-    index: number,
-  ): readonly [string, string, ...string[]] => {
-    const gradients: readonly (readonly [string, string, ...string[]])[] = [
-      ["#FF416C", "#FF4B2B"] as const,
-      ["#4776E6", "#8E54E9"] as const,
-      ["#11998e", "#38ef7d"] as const,
-      ["#FDC830", "#F37335"] as const,
-      ["#667eea", "#764ba2"] as const,
-      ["#1A2980", "#26D0CE"] as const,
-      ["#FF0099", "#493240"] as const,
-      ["#8A2387", "#E94057", "#F27121"] as const,
-      ["#00c6ff", "#0072ff"] as const,
-      ["#f857a6", "#ff5858"] as const,
-      ["#4facfe", "#00f2fe"] as const,
-      ["#43e97b", "#38f9d7"] as const,
-      ["#fa709a", "#fee140"] as const,
-      ["#7F00FF", "#E100FF"] as const,
-      ["#3E5151", "#DECBA4"] as const,
-      ["#12c2e9", "#c471ed", "#f64f59"] as const,
-      ["#b721ff", "#21d4fd"] as const,
-    ];
-    return gradients[index % gradients.length];
-  };
+  const getOrCreateFadeAnim = React.useCallback((playerId: string) => {
+    const existing = fadeAnims.current[playerId];
+    if (existing) return existing;
+
+    const animation = new Animated.Value(1);
+    fadeAnims.current[playerId] = animation;
+    return animation;
+  }, []);
+
+  const renderPlayerItem = React.useCallback(
+    ({ item, index }: ListRenderItemInfo<Player>) => (
+      <PlayerListItem
+        player={item}
+        index={index}
+        isWideLayout={isWideLayout}
+        fadeAnim={getOrCreateFadeAnim(item.id)}
+        styles={styles}
+        errorColor={colors.error}
+        onRemove={handleRemoveWithAnimation}
+      />
+    ),
+    [colors.error, getOrCreateFadeAnim, handleRemoveWithAnimation, isWideLayout, styles],
+  );
 
   return (
     <View style={styles.tabContent}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          marginBottom: 15,
-        }}
-      >
-        <Text style={styles.sectionTitle}>Players</Text>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={styles.playerCount}>
-            {players.length} {players.length === 1 ? "player" : "players"}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[styles.inputRow, styles.playerInputRow]}>
-        <View testID="PlayerInputStack" style={styles.playerInputStack}>
-          <View
-            style={[
-              styles.playerInputContainer,
-              isInputFocused && styles.playerInputContainerFocused,
-            ]}
-          >
-            <Ionicons
-              name="person-outline"
-              size={20}
-              color={colors.textSecondary}
-              style={styles.playerInputIcon}
-            />
-            <TextInput
-              ref={inputRef}
-              style={styles.playerTextInput}
-              placeholder="Enter player name"
-              placeholderTextColor={colors.textPlaceholder}
-              value={newPlayerName}
-              onChangeText={handleTextChange}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
-              returnKeyType="done"
-              onSubmitEditing={addPlayerAndFocus}
-            />
-          </View>
-
-          <PlayerSuggestionDropdown
-            suggestions={availableSuggestions}
-            visible={showPlayerSuggestions}
-            onSelectPlayer={handleSelectSuggestion}
-            searchQuery={newPlayerName}
-          />
-        </View>
-
-        <TouchableOpacity
-          accessibilityLabel="Add Player"
-          testID="SetupAddPlayerButton"
-          style={[
-            styles.playerAddButton,
-            !newPlayerName.trim() && styles.playerAddButtonDisabled,
-          ]}
-          onPress={addPlayerAndFocus}
-          disabled={!newPlayerName.trim()}
-        >
-          <Ionicons name="add-circle-outline" size={28} color={colors.white} />
-        </TouchableOpacity>
-      </View>
+      <PlayerInputSection
+        playerCount={players.length}
+        newPlayerName={newPlayerName}
+        isInputFocused={isInputFocused}
+        showSuggestions={showPlayerSuggestions}
+        availableSuggestions={availableSuggestions}
+        inputRef={inputRef}
+        colors={colors}
+        styles={styles}
+        onTextChange={handleTextChange}
+        onFocus={handleInputFocus}
+        onBlur={handleInputBlur}
+        onAdd={addPlayerAndFocus}
+        onSelectSuggestion={handleSelectSuggestion}
+      />
 
       <FlatList
         key={isWideLayout ? "players-wide" : "players-compact"}
         data={players}
-        keyExtractor={(item) => item.id}
+        keyExtractor={playerKeyExtractor}
         numColumns={isWideLayout ? 2 : 1}
-        renderItem={({ item, index }) => {
-          const fadeAnim = fadeAnims.current[item.id] || new Animated.Value(1);
-          fadeAnims.current[item.id] = fadeAnim;
-
-          return (
-            <Animated.View
-              style={[
-                styles.playerItemContainer,
-                isWideLayout && styles.playerItemWide,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ scale: fadeAnim }],
-                },
-                index % 2 === 0 ? styles.playerItemEven : styles.playerItemOdd,
-              ]}
-            >
-              <LinearGradient
-                colors={getPlayerGradient(index)}
-                style={styles.playerAvatar}
-              >
-                <Text style={styles.playerAvatarText}>
-                  {item.name.charAt(0).toUpperCase()}
-                </Text>
-              </LinearGradient>
-              <Text style={styles.playerNameText}>{item.name}</Text>
-              <TouchableOpacity
-                style={styles.playerRemoveButton}
-                onPress={() => handleRemoveWithAnimation(item.id)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="trash-outline" size={20} color={colors.error} />
-              </TouchableOpacity>
-            </Animated.View>
-          );
-        }}
+        renderItem={renderPlayerItem}
         ListEmptyComponent={
           <PlayerListEmptyState
             styles={styles}

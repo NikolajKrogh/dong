@@ -764,6 +764,15 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "bootstrap_account": {
+                Args: Record<PropertyKey, never>;
+                Returns: {
+                    "created_at": string;
+                    "id": string;
+                    "updated_at": string;
+                    "username": string | null;
+                }[];
+            };
             "cancel_friendship": {
                 Args: {
                     "expected_status": string;

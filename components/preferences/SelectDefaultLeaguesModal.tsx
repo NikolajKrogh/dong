@@ -42,28 +42,34 @@ interface SelectDefaultLeaguesModalProps {
  * @param props Item props.
  * @returns {JSX.Element} Row element.
  */
-const LeagueItem = ({
-  league,
-  isSelected,
-  onPress,
-}: {
+interface LeagueItemProps {
   league: LeagueEndpoint;
   isSelected: boolean;
-  onPress: () => void;
-}) => {
+  onToggleLeague: (league: LeagueEndpoint) => void;
+}
+
+const LeagueItem = React.memo(function LeagueItem({
+  league,
+  isSelected,
+  onToggleLeague,
+}: LeagueItemProps) {
   const colors = useColors();
   const { selectDefaultLeaguesModalStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
     [colors]
   );
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const handlePress = React.useCallback(
+    () => onToggleLeague(league),
+    [league, onToggleLeague],
+  );
   return (
     <TouchableOpacity
       style={[
         selectDefaultLeaguesModalStyles.availableLeagueItem,
         isSelected && selectDefaultLeaguesModalStyles.selectedLeagueItem,
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
       <View style={selectDefaultLeaguesModalStyles.leagueLogoContainer}>
@@ -106,7 +112,9 @@ const LeagueItem = ({
       />
     </TouchableOpacity>
   );
-};
+});
+
+const leagueKeyExtractor = (league: LeagueEndpoint) => league.code;
 
 /**
  * Select default leagues modal.
@@ -134,19 +142,33 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
   }
 
   /** Toggle selection for a league. */
-  const toggleLeagueSelection = (league: LeagueEndpoint) => {
+  const toggleLeagueSelection = React.useCallback((league: LeagueEndpoint) => {
     setSelectedLeagues((prevSelected) =>
       prevSelected.some((l) => l.code === league.code)
         ? prevSelected.filter((l) => l.code !== league.code)
         : [...prevSelected, league]
     );
-  };
+  }, []);
 
   /** Persist selected defaults then close. */
-  const handleSave = () => {
+  const handleSave = React.useCallback(() => {
     onSave(selectedLeagues);
     onClose();
-  };
+  }, [onClose, onSave, selectedLeagues]);
+  const selectedLeagueCodes = React.useMemo(
+    () => new Set(selectedLeagues.map((league) => league.code)),
+    [selectedLeagues],
+  );
+  const renderLeague = React.useCallback(
+    ({ item }: { item: LeagueEndpoint }) => (
+      <LeagueItem
+        league={item}
+        isSelected={selectedLeagueCodes.has(item.code)}
+        onToggleLeague={toggleLeagueSelection}
+      />
+    ),
+    [selectedLeagueCodes, toggleLeagueSelection],
+  );
 
   return (
     <Modal
@@ -180,14 +202,8 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
           {configuredLeagues.length > 0 ? (
             <FlatList
               data={configuredLeagues}
-              keyExtractor={(item) => item.code}
-              renderItem={({ item }) => (
-                <LeagueItem
-                  league={item}
-                  isSelected={selectedLeagues.some((l) => l.code === item.code)}
-                  onPress={() => toggleLeagueSelection(item)}
-                />
-              )}
+              keyExtractor={leagueKeyExtractor}
+              renderItem={renderLeague}
               contentContainerStyle={
                 selectDefaultLeaguesModalStyles.leagueListContent
               }

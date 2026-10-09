@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getCurrentColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 
 /**
  * Goal toast configuration for react-native-toast-message.
@@ -72,11 +73,8 @@ export const goalToastConfig = {
           padding: 12,
           flexDirection: "column",
           alignSelf: "center",
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 5,
-          elevation: 8,
+          boxShadow: `0px 4px 5px ${hexWithAlpha(colors.black, 0.3)}`,
+          ...androidElevationFallback(8),
           borderLeftWidth: 3,
           borderLeftColor: colors.warning,
         }}

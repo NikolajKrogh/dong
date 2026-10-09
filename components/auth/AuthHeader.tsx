@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { TouchableOpacity, View } from "react-native";
+import { Platform, TouchableOpacity, View } from "react-native";
 
 import { useColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 
 const AuthHeader: React.FC = () => {
   const router = useRouter();
@@ -28,7 +29,8 @@ const AuthHeader: React.FC = () => {
         paddingHorizontal: 8,
         flexDirection: "row",
         alignItems: "center",
-        elevation: 2,
+        boxShadow: Platform.OS === "android" ? `0px 2px 4px ${hexWithAlpha(colors.black, 0.2)}` : undefined,
+        ...androidElevationFallback(2),
       }}
     >
       <TouchableOpacity onPress={handleBack} style={{ padding: 8 }}>

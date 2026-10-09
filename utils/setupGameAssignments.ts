@@ -253,8 +253,9 @@ const verifyFinalAssignments = (
     for (let j = i + 1; j < players.length; j += 1) {
       const playerOneAssignments = assignments[players[i].id];
       const playerTwoAssignments = assignments[players[j].id];
+      const playerTwoMatchIds = new Set(playerTwoAssignments);
       const sharedMatches = playerOneAssignments.filter((matchId) =>
-        playerTwoAssignments.includes(matchId),
+        playerTwoMatchIds.has(matchId),
       );
 
       if (sharedMatches.length !== 2) {

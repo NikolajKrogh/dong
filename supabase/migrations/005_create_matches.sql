@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.matches (
     away_score integer NOT NULL DEFAULT 0,
     created_at timestamptz DEFAULT now()
 );
+ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.matches
 ADD CONSTRAINT chk_matches_scores_nonnegative CHECK (
         home_score >= 0

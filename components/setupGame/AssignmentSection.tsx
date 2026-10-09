@@ -43,6 +43,237 @@ interface AssignmentSectionProps {
   handleRandomAssignment: (numMatches: number) => void;
 }
 
+interface AssignmentInfoModalProps {
+  visible: boolean;
+  message: string;
+  onClose: () => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+}
+
+const AssignmentInfoModal = ({
+  visible,
+  message,
+  onClose,
+  styles,
+}: AssignmentInfoModalProps) => (
+  <Modal
+    animationType="slide"
+    transparent
+    visible={visible}
+    onRequestClose={onClose}
+  >
+    <View style={styles.centeredView}>
+      <View style={styles.modalView}>
+        <Text style={styles.modalText}>{message}</Text>
+        <TouchableOpacity
+          style={[styles.button, styles.buttonCancel]}
+          onPress={onClose}
+        >
+          <Text style={styles.textStyle}>Close</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </Modal>
+);
+
+interface RandomAssignmentSectionProps {
+  playerCount: number;
+  matchCount: number;
+  commonMatchId: string | null;
+  matchesPerPlayer: number;
+  setMatchesPerPlayer: (count: number) => void;
+  onRandomAssignment: (count: number) => void;
+  modalVisible: boolean;
+  onToggleModal: () => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  colors: ReturnType<typeof useColors>;
+}
+
+const RandomAssignmentSection = ({
+  playerCount,
+  matchCount,
+  commonMatchId,
+  matchesPerPlayer,
+  setMatchesPerPlayer,
+  onRandomAssignment,
+  modalVisible,
+  onToggleModal,
+  styles,
+  colors,
+}: RandomAssignmentSectionProps) => {
+  if (playerCount === 0 || matchCount === 0 || !commonMatchId) return null;
+
+  return (
+    <View style={[styles.assignmentSection, { marginBottom: 16 }]}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Random Assignment</Text>
+        <TouchableOpacity onPress={onToggleModal}>
+          <Ionicons
+            name="information-circle-outline"
+            size={24}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <AssignmentInfoModal
+        visible={modalVisible}
+        message="Randomly assign matches to players. Each player will share exactly one match with every other player."
+        onClose={onToggleModal}
+        styles={styles}
+      />
+
+      <View style={styles.randomizeContainer}>
+        <View style={styles.matchCounterContainer}>
+          <Text style={styles.matchCountLabel}>Matches per player:</Text>
+          <View style={styles.counter}>
+            <TouchableOpacity
+              style={styles.counterButton}
+              onPress={() => setMatchesPerPlayer(Math.max(1, matchesPerPlayer - 1))}
+            >
+              <Ionicons
+                name="remove-outline"
+                size={20}
+                color={colors.primaryLight}
+              />
+            </TouchableOpacity>
+            <Text style={styles.counterValue}>{matchesPerPlayer}</Text>
+            <TouchableOpacity
+              style={styles.counterButton}
+              onPress={() =>
+                setMatchesPerPlayer(Math.min(matchesPerPlayer + 1, matchCount - 1))
+              }
+            >
+              <Ionicons
+                name="add-outline"
+                size={20}
+                color={colors.primaryLight}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.randomizeButton}
+          onPress={() => onRandomAssignment(matchesPerPlayer)}
+        >
+          <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
+          <Text style={styles.randomizeButtonText}>Randomize Matches</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+interface ManualAssignmentSectionProps {
+  players: Player[];
+  matchCount: number;
+  commonMatchId: string | null;
+  nonCommonMatchCount: number;
+  selectableMatches: SelectableMatch[];
+  playerAssignments: { [playerId: string]: string[] };
+  collapsedPlayers: Record<string, boolean>;
+  isWideLayout: boolean;
+  useGridLayout: boolean;
+  onToggleCollapse: (playerId: string) => void;
+  onToggleAssignment: (playerId: string, matchId: string) => void;
+  onToggleLayout: () => void;
+  modalVisible: boolean;
+  onToggleModal: () => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  colors: ReturnType<typeof useColors>;
+}
+
+const ManualAssignmentSection = ({
+  players,
+  matchCount,
+  commonMatchId,
+  nonCommonMatchCount,
+  selectableMatches,
+  playerAssignments,
+  collapsedPlayers,
+  isWideLayout,
+  useGridLayout,
+  onToggleCollapse,
+  onToggleAssignment,
+  onToggleLayout,
+  modalVisible,
+  onToggleModal,
+  styles,
+  colors,
+}: ManualAssignmentSectionProps) => {
+  if (players.length === 0 || matchCount === 0) return null;
+
+  const getAssignmentCount = (playerId: string) =>
+    (playerAssignments[playerId] ?? []).filter((matchId) =>
+      matchId !== commonMatchId,
+    ).length;
+
+  return (
+    <View style={styles.assignmentSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Manual Assignment</Text>
+        <View style={styles.headerActionsRow}>
+          <TouchableOpacity onPress={onToggleLayout} style={styles.layoutToggleButton}>
+            <Ionicons
+              name={useGridLayout ? "list" : "grid"}
+              size={22}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onToggleModal}>
+            <Ionicons
+              name="information-circle-outline"
+              size={24}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <AssignmentInfoModal
+        visible={modalVisible}
+        message="Tap on matches below to select which matches each player will drink for."
+        onClose={onToggleModal}
+        styles={styles}
+      />
+
+      <View
+        testID="AssignmentPlayersGrid"
+        style={[
+          styles.assignmentPlayersGrid,
+          isWideLayout && styles.assignmentPlayersGridWide,
+        ]}
+      >
+        {players.map((player) => (
+          <MatchSelectionCard
+            key={player.id}
+            testID="AssignmentPlayerCard"
+            style={[
+              styles.assignmentContainer,
+              styles.playerContainer,
+              isWideLayout && styles.assignmentPlayerCardWide,
+            ]}
+            title={player.name}
+            selectedCount={getAssignmentCount(player.id)}
+            totalCount={nonCommonMatchCount}
+            collapsed={collapsedPlayers[player.id] ?? true}
+            onToggleCollapsed={() => onToggleCollapse(player.id)}
+          >
+            <SelectableMatchList
+              key={`${useGridLayout ? "grid" : "list"}-${player.id}`}
+              matches={selectableMatches}
+              selectedMatchIds={playerAssignments[player.id] ?? []}
+              onToggleMatch={(matchId) => onToggleAssignment(player.id, matchId)}
+              useGridLayout={useGridLayout}
+            />
+          </MatchSelectionCard>
+        ))}
+      </View>
+    </View>
+  );
+};
+
 /**
  * Component for assigning matches to players, either manually or randomly.
  *
@@ -137,27 +368,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     }));
   };
 
-  /** Instructional text for manual match assignment. */
-  const instructionText =
-    "Tap on matches below to select which matches each player will drink for.";
-
-  /** Instructional text for random match assignment. */
-  const randomInstructionText =
-    "Randomly assign matches to players. Each player will share exactly one match with every other player.";
-
-  /**
-   * Calculates the number of non-common matches assigned to a player.
-   * Used to display the assignment count in the player badge.
-   *
-   * @function
-   * @param {string} playerId - The ID of the player.
-   * @returns {number} The count of assigned non-common matches.
-   */
-  const getAssignmentCount = (playerId: string) => {
-    const playerMatches = playerAssignments[playerId] || [];
-    return playerMatches.filter((matchId) => matchId !== commonMatchId).length;
-  };
-
   /**
    * Filters out the common match from the list of all matches.
    * Common match is excluded from the manual assignment section as it's assigned to all players.
@@ -181,182 +391,38 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     }),
   );
 
-  /**
-   * Renders the shared selectable match list for one player, in grid or list
-   * form. The card/grid markup itself now lives in
-   * `components/matchSelection/SelectableMatchList`.
-   */
-  const renderMatches = (player: Player) => (
-    <SelectableMatchList
-      key={`${useGridLayout ? "grid" : "list"}-${player.id}`}
-      matches={selectableMatches}
-      selectedMatchIds={playerAssignments[player.id] ?? []}
-      onToggleMatch={(matchId) => toggleMatchAssignment(player.id, matchId)}
-      useGridLayout={useGridLayout}
-    />
-  );
-
   return (
     <View style={baseStyles.tabContent}>
-      {/* Random Assignment Section */}
-      {players.length > 0 && matches.length > 0 && commonMatchId && (
-        <View style={[baseStyles.assignmentSection, { marginBottom: 16 }]}>
-          <View style={baseStyles.sectionHeader}>
-            <Text style={baseStyles.sectionTitle}>Random Assignment</Text>
-            <TouchableOpacity onPress={toggleRandomModal}>
-              <Ionicons
-                name="information-circle-outline"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isRandomModalVisible}
-            onRequestClose={toggleRandomModal}
-          >
-            <View style={baseStyles.centeredView}>
-              <View style={baseStyles.modalView}>
-                <Text style={baseStyles.modalText}>
-                  {randomInstructionText}
-                </Text>
-                <TouchableOpacity
-                  style={[baseStyles.button, baseStyles.buttonCancel]}
-                  onPress={toggleRandomModal}
-                >
-                  <Text style={baseStyles.textStyle}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-
-          <View style={baseStyles.randomizeContainer}>
-            <View style={baseStyles.matchCounterContainer}>
-              <Text style={baseStyles.matchCountLabel}>
-                Matches per player:
-              </Text>
-              <View style={baseStyles.counter}>
-                <TouchableOpacity
-                  style={baseStyles.counterButton}
-                  onPress={() =>
-                    setMatchesPerPlayer(Math.max(1, matchesPerPlayer - 1))
-                  }
-                >
-                  <Ionicons
-                    name="remove-outline"
-                    size={20}
-                    color={colors.primaryLight}
-                  />
-                </TouchableOpacity>
-                <Text style={baseStyles.counterValue}>{matchesPerPlayer}</Text>
-                <TouchableOpacity
-                  style={baseStyles.counterButton}
-                  onPress={() =>
-                    setMatchesPerPlayer(
-                      Math.min(matchesPerPlayer + 1, matches.length - 1),
-                    )
-                  }
-                >
-                  <Ionicons
-                    name="add-outline"
-                    size={20}
-                    color={colors.primaryLight}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={baseStyles.randomizeButton}
-              onPress={() => handleRandomAssignment(matchesPerPlayer)}
-            >
-              <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
-              <Text style={baseStyles.randomizeButtonText}>
-                Randomize Matches
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {/* Manual Assignment Section */}
-      {players.length > 0 && matches.length > 0 && (
-        <View style={baseStyles.assignmentSection}>
-          <View style={baseStyles.sectionHeader}>
-            <Text style={baseStyles.sectionTitle}>Manual Assignment</Text>
-            <View style={baseStyles.headerActionsRow}>
-              <TouchableOpacity
-                onPress={toggleLayoutMode}
-                style={baseStyles.layoutToggleButton}
-              >
-                <Ionicons
-                  name={useGridLayout ? "list" : "grid"}
-                  size={22}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggleModal}>
-                <Ionicons
-                  name="information-circle-outline"
-                  size={24}
-                  color={colors.primary}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={isModalVisible}
-            onRequestClose={toggleModal}
-          >
-            <View style={baseStyles.centeredView}>
-              <View style={baseStyles.modalView}>
-                <Text style={baseStyles.modalText}>{instructionText}</Text>
-                <TouchableOpacity
-                  style={[baseStyles.button, baseStyles.buttonCancel]}
-                  onPress={toggleModal}
-                >
-                  <Text style={baseStyles.textStyle}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Modal>
-
-          <View
-            testID="AssignmentPlayersGrid"
-            style={[
-              baseStyles.assignmentPlayersGrid,
-              isWideLayout && baseStyles.assignmentPlayersGridWide,
-            ]}
-          >
-            {players.map((player) => (
-              <MatchSelectionCard
-                key={player.id}
-                testID="AssignmentPlayerCard"
-                style={[
-                  baseStyles.assignmentContainer,
-                  baseStyles.playerContainer,
-                  isWideLayout && baseStyles.assignmentPlayerCardWide,
-                ]}
-                title={player.name}
-                selectedCount={getAssignmentCount(player.id)}
-                // This flow counts progress against the POOL, not a per-player
-                // cap — the pick surfaces pass their cap here instead.
-                totalCount={nonCommonMatches.length}
-                collapsed={collapsedPlayers[player.id] ?? true}
-                onToggleCollapsed={() => togglePlayerCollapse(player.id)}
-              >
-                {renderMatches(player)}
-              </MatchSelectionCard>
-            ))}
-          </View>
-        </View>
-      )}
+      <RandomAssignmentSection
+        playerCount={players.length}
+        matchCount={matches.length}
+        commonMatchId={commonMatchId}
+        matchesPerPlayer={matchesPerPlayer}
+        setMatchesPerPlayer={setMatchesPerPlayer}
+        onRandomAssignment={handleRandomAssignment}
+        modalVisible={isRandomModalVisible}
+        onToggleModal={toggleRandomModal}
+        styles={baseStyles}
+        colors={colors}
+      />
+      <ManualAssignmentSection
+        players={players}
+        matchCount={matches.length}
+        commonMatchId={commonMatchId}
+        nonCommonMatchCount={nonCommonMatches.length}
+        selectableMatches={selectableMatches}
+        playerAssignments={playerAssignments}
+        collapsedPlayers={collapsedPlayers}
+        isWideLayout={isWideLayout}
+        useGridLayout={useGridLayout}
+        onToggleCollapse={togglePlayerCollapse}
+        onToggleAssignment={toggleMatchAssignment}
+        onToggleLayout={toggleLayoutMode}
+        modalVisible={isModalVisible}
+        onToggleModal={toggleModal}
+        styles={baseStyles}
+        colors={colors}
+      />
     </View>
   );
 };

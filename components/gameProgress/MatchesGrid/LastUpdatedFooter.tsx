@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { LastUpdatedFooterProps } from "./types";
 import { useColors } from "../../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../../styles/shadows";
 
 /**
  * Footer showing last update time with manual refresh and live polling indicators.
@@ -44,11 +45,8 @@ const LastUpdatedFooter: React.FC<LastUpdatedFooterProps> = ({
           borderRadius: 20,
           paddingVertical: 6,
           paddingHorizontal: 12,
-          elevation: 3,
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3.84,
+          boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.black, 0.25)}`,
+          ...androidElevationFallback(3),
         },
         pillRefreshing: {
           backgroundColor: colors.backgroundSubtle,

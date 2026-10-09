@@ -4,7 +4,6 @@ import React, {
   useContext,
   useEffect,
   useRef,
-  useState,
 } from "react";
 
 import {
@@ -71,29 +70,26 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   children,
 }) => {
   const isConfigured = hasSupabasePublicConfig();
-  const [status, setStatus] = useState<AccountAuthStatus>(
-    isConfigured ? "loading" : "signedOut",
-  );
-  const [session, setSession] = useState<Session | null>(null);
-  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [account, setAccount] = useState<Account | null>(null);
   const activeSettingsUserIdRef = useRef<string | null>(null);
   const lastSyncedPreferenceSignatureRef = useRef<string | null>(null);
   const pendingManualSignOutRef = useRef(false);
 
-  const { clearAuthenticatedState, syncAuthenticatedSession } =
-    useAccountSessionSync({
+  const {
+    status,
+    session,
+    sessionNotice,
+    user,
+    account,
+    setStatus,
+    setAccount,
+    clearAuthenticatedState,
+    syncAuthenticatedSession,
+  } = useAccountSessionSync({
       isConfigured,
       sessionExpiredMessage: SESSION_EXPIRED_MESSAGE,
       activeSettingsUserIdRef,
       lastSyncedPreferenceSignatureRef,
       pendingManualSignOutRef,
-      setStatus,
-      setSession,
-      setSessionNotice,
-      setUser,
-      setAccount,
     });
 
   useAccountSettingsSync({

@@ -78,12 +78,13 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   const atCap = localPicks.length >= cap;
 
   const disabledMatchIds = useMemo(
-    () =>
-      atCap
-        ? matches
-            .filter((match) => !localPicks.includes(match.id))
-            .map((match) => match.id)
-        : [],
+    () => {
+      if (!atCap) return [];
+      const pickedIds = new Set(localPicks);
+      return matches
+        .filter((match) => !pickedIds.has(match.id))
+        .map((match) => match.id);
+    },
     [atCap, matches, localPicks],
   );
 

@@ -1,5 +1,6 @@
 import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 import { useColors } from "./theme";
+import { androidElevationFallback, hexWithAlpha } from "./shadows";
 
 export const createUserPreferencesStyles = (
   colors: ReturnType<typeof useColors>,
@@ -43,11 +44,8 @@ export const createUserPreferencesStyles = (
     backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 20,
-    shadowColor: colors.textPrimary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+    ...androidElevationFallback(5),
   };
 
   const commonStyles = StyleSheet.create({
@@ -73,7 +71,8 @@ export const createUserPreferencesStyles = (
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderSubtle,
-      elevation: 2,
+      boxShadow: `0px 2px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
     },
     backButton: {
       padding: 8,
@@ -201,19 +200,15 @@ export const createUserPreferencesStyles = (
       borderRadius: 10,
       borderLeftWidth: 0,
       borderBottomWidth: 0,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.08,
-      shadowRadius: 2,
-      elevation: 1,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.08)}`,
+      ...androidElevationFallback(1),
     },
     selectedLeagueItem: {
       backgroundColor: colors.successLight,
       borderLeftWidth: 4,
       borderLeftColor: colors.success,
-      shadowColor: colors.success,
-      shadowOpacity: 0.15,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.success, 0.15)}`,
+      ...androidElevationFallback(2),
     },
     leagueItemContent: {
       flex: 1,
@@ -375,7 +370,8 @@ export const createUserPreferencesStyles = (
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderSubtle,
-      elevation: 2,
+      boxShadow: `0px 2px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
     },
     backButton: {
       padding: 8,
@@ -416,11 +412,8 @@ export const createUserPreferencesStyles = (
       borderRadius: 10,
       padding: 12,
       marginBottom: 10,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     leagueCardContent: {
       flexDirection: "row",
@@ -528,11 +521,8 @@ export const createUserPreferencesStyles = (
       padding: 8,
       marginBottom: 8,
       marginTop: 4,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 1,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(1),
     },
     ultraCompactInfo: {
       marginBottom: 4,
@@ -619,11 +609,8 @@ export const createUserPreferencesStyles = (
       borderRadius: 16,
       padding: 20,
       backgroundColor: colors.surface,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-      elevation: 6,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(6),
     },
     confirmTitle: {
       fontSize: 18,
@@ -680,7 +667,8 @@ export const createUserPreferencesStyles = (
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderSubtle,
-      elevation: 2,
+      boxShadow: `0px 2px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
     },
     backButton: {
       padding: 8,
@@ -727,11 +715,8 @@ export const createUserPreferencesStyles = (
       borderRadius: 10,
       padding: 12,
       marginBottom: 10,
-      shadowColor: colors.textPrimary,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.1,
-      shadowRadius: 2,
-      elevation: 2,
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(2),
     },
     selectedLeagueItem: {
       borderColor: colors.primary,

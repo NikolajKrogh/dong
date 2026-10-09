@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS public.game_sessions (
     started_at timestamptz,
     completed_at timestamptz
 );
+ALTER TABLE public.game_sessions ENABLE ROW LEVEL SECURITY;
 -- partial unique index for active join codes
 CREATE UNIQUE INDEX IF NOT EXISTS ux_game_sessions_join_code_active ON public.game_sessions (join_code)
 WHERE state != 'completed';

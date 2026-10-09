@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getCurrentColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 
 const RandomMatchesToast = {
   themedSuccess: (props: { text1?: string; text2?: string }) => {
@@ -17,11 +18,8 @@ const RandomMatchesToast = {
           paddingHorizontal: 14,
           flexDirection: "row",
           alignItems: "center",
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
-          shadowRadius: 6,
-          elevation: 6,
+          boxShadow: `0px 4px 6px ${hexWithAlpha(colors.black, 0.2)}`,
+          ...androidElevationFallback(6),
           borderLeftWidth: 3,
           borderLeftColor: colors.success,
         }}
@@ -66,11 +64,8 @@ const RandomMatchesToast = {
           paddingHorizontal: 14,
           flexDirection: "row",
           alignItems: "center",
-          shadowColor: colors.black,
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
-          shadowRadius: 6,
-          elevation: 6,
+          boxShadow: `0px 4px 6px ${hexWithAlpha(colors.black, 0.2)}`,
+          ...androidElevationFallback(6),
           borderLeftWidth: 3,
           borderLeftColor: colors.warning,
         }}

@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
+  type GestureResponderEvent,
+  type ListRenderItemInfo,
   Modal,
   Text,
   TextInput,
@@ -48,6 +50,165 @@ interface TeamSelectionRowProps {
   addNewAwayTeam: (team: string) => void;
 }
 
+interface TeamPickerModalProps {
+  testID: string;
+  placeholder: string;
+  visible: boolean;
+  options: TeamOptionWithLeague[];
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  onClose: () => void;
+  onSelect: (team: string) => void;
+  onAdd: () => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+}
+
+interface TeamOptionRowProps {
+  item: TeamOptionWithLeague;
+  onSelect: (team: string) => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+}
+
+interface TeamSelectionFieldProps {
+  team: string;
+  placeholder: string;
+  onOpen: () => void;
+  onClear: (event: GestureResponderEvent) => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  colors: ReturnType<typeof useColors>;
+}
+
+const teamOptionKeyExtractor = (item: TeamOptionWithLeague) => item.key;
+
+const TeamSelectionField = ({
+  team,
+  placeholder,
+  onOpen,
+  onClear,
+  styles,
+  colors,
+}: TeamSelectionFieldProps) => (
+  <View style={styles.teamInputWrapper}>
+    <TouchableOpacity
+      style={[styles.teamSearchField, team ? styles.teamSearchFieldSelected : null]}
+      onPress={onOpen}
+      activeOpacity={0.7}
+    >
+      <Ionicons
+        name="search-outline"
+        size={20}
+        color={team ? colors.primary : colors.textMuted}
+        style={styles.teamSearchIcon}
+      />
+      <Text
+        style={[
+          styles.teamSearchText,
+          team ? styles.teamSearchTextSelected : styles.teamSearchTextPlaceholder,
+        ]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {team || placeholder}
+      </Text>
+      {!!team && (
+        <TouchableOpacity style={styles.teamClearButton} onPress={onClear}>
+          <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
+  </View>
+);
+
+const TeamOptionRow = React.memo(function TeamOptionRow({
+  item,
+  onSelect,
+  styles,
+}: TeamOptionRowProps) {
+  const handlePress = useCallback(
+    () => onSelect(item.value),
+    [item.value, onSelect],
+  );
+
+  return (
+    <TouchableOpacity style={styles.modalItem} onPress={handlePress}>
+      <Text style={styles.modalItemText}>{item.displayName || item.value}</Text>
+    </TouchableOpacity>
+  );
+});
+
+const TeamPickerModal = ({
+  testID,
+  placeholder,
+  visible,
+  options,
+  searchTerm,
+  setSearchTerm,
+  onClose,
+  onSelect,
+  onAdd,
+  styles,
+}: TeamPickerModalProps) => {
+  const renderOption = useCallback(
+    ({ item }: ListRenderItemInfo<TeamOptionWithLeague>) => (
+      <TeamOptionRow item={item} onSelect={onSelect} styles={styles} />
+    ),
+    [onSelect, styles],
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView testID={testID} style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <TextInput
+              style={styles.modalSearchInput}
+              placeholder={placeholder}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              autoFocus
+            />
+            <TouchableOpacity style={styles.modalCloseButton} onPress={onClose}>
+              <Text style={styles.modalCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={options}
+            keyExtractor={teamOptionKeyExtractor}
+            renderItem={renderOption}
+            ListEmptyComponent={
+              <View style={styles.emptyListContainer}>
+                <Text style={styles.emptyListText}>No teams found</Text>
+                {!!searchTerm.trim() && (
+                  <TouchableOpacity style={styles.addNewButton} onPress={onAdd}>
+                    <Text style={styles.addNewButtonText}>
+                      Add &quot;{searchTerm}&quot;
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            }
+            ListFooterComponent={
+              options.length > 0 && searchTerm ? (
+                <TouchableOpacity style={styles.addNewButton} onPress={onAdd}>
+                  <Text style={styles.addNewButtonText}>
+                    Add &quot;{searchTerm}&quot; as new team
+                  </Text>
+                </TouchableOpacity>
+              ) : null
+            }
+          />
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
 /**
  * Row UI for selecting and optionally creating home and away teams.
  * @description Renders two searchable modal pickers (home/away), supports free‑text addition of new teams, and an add‑match button once both sides are selected.
@@ -85,10 +246,12 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   /** Flag controlling visibility of the away team modal. */
   const [showAwayDropdown, setShowAwayDropdown] = useState(false);
 
-  const filteredHomeOptions = homeTeamOptions.filter(item =>
-    item.value.toLowerCase().includes(homeSearchTerm.toLowerCase()));
-  const filteredAwayOptions = awayTeamOptions.filter(item =>
-    item.value.toLowerCase().includes(awaySearchTerm.toLowerCase()));
+  const filteredHomeOptions = homeTeamOptions.filter((item) =>
+    item.value.toLowerCase().includes(homeSearchTerm.toLowerCase()),
+  );
+  const filteredAwayOptions = awayTeamOptions.filter((item) =>
+    item.value.toLowerCase().includes(awaySearchTerm.toLowerCase()),
+  );
 
   /**
    * Whether the add button is disabled.
@@ -102,151 +265,90 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
    * @description Sets chosen team, clears search input and closes the modal.
    * @param team Team name.
    */
-  const selectHomeTeam = (team: string) => {
+  const selectHomeTeam = useCallback((team: string) => {
     setHomeTeam(team);
     setHomeSearchTerm("");
     setShowHomeDropdown(false);
-  };
+  }, [setHomeTeam]);
 
   /**
    * Selects an away team and resets related UI state.
    * @description Sets chosen team, clears search input and closes the modal.
    * @param team Team name.
    */
-  const selectAwayTeam = (team: string) => {
+  const selectAwayTeam = useCallback((team: string) => {
     setAwayTeam(team);
     setAwaySearchTerm("");
     setShowAwayDropdown(false);
-  };
+  }, [setAwayTeam]);
 
   /**
    * Adds a new custom home team then selects it.
    * @description No-op if the trimmed search term is empty.
    */
-  const handleAddHomeTeam = () => {
+  const handleAddHomeTeam = useCallback(() => {
     if (homeSearchTerm.trim()) {
       addNewHomeTeam(homeSearchTerm.trim());
       selectHomeTeam(homeSearchTerm.trim());
     }
-  };
+  }, [addNewHomeTeam, homeSearchTerm, selectHomeTeam]);
 
   /**
    * Adds a new custom away team then selects it.
    * @description No-op if the trimmed search term is empty.
    */
-  const handleAddAwayTeam = () => {
+  const handleAddAwayTeam = useCallback(() => {
     if (awaySearchTerm.trim()) {
       addNewAwayTeam(awaySearchTerm.trim());
       selectAwayTeam(awaySearchTerm.trim());
     }
-  };
+  }, [addNewAwayTeam, awaySearchTerm, selectAwayTeam]);
+
+  const openHomeDropdown = useCallback(() => {
+    setShowHomeDropdown(true);
+    setShowAwayDropdown(false);
+  }, []);
+  const openAwayDropdown = useCallback(() => {
+    setShowAwayDropdown(true);
+    setShowHomeDropdown(false);
+  }, []);
+  const closeHomeDropdown = useCallback(() => setShowHomeDropdown(false), []);
+  const closeAwayDropdown = useCallback(() => setShowAwayDropdown(false), []);
+  const clearHomeTeam = useCallback((event: GestureResponderEvent) => {
+    event.stopPropagation();
+    setHomeTeam("");
+    setHomeSearchTerm("");
+  }, [setHomeTeam]);
+  const clearAwayTeam = useCallback((event: GestureResponderEvent) => {
+    event.stopPropagation();
+    setAwayTeam("");
+    setAwaySearchTerm("");
+  }, [setAwayTeam]);
 
   return (
     <View>
       {/* Team Selection Input Row */}
       <View style={styles.inputRow}>
-        {/* Home Team Selection Field */}
-        <View style={styles.teamInputWrapper}>
-          <TouchableOpacity
-            style={[
-              styles.teamSearchField,
-              homeTeam ? styles.teamSearchFieldSelected : null,
-            ]}
-            onPress={() => {
-              setShowHomeDropdown(true);
-              setShowAwayDropdown(false);
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={homeTeam ? colors.primary : colors.textMuted}
-              style={styles.teamSearchIcon}
-            />
-            <Text
-              style={[
-                styles.teamSearchText,
-                homeTeam
-                  ? styles.teamSearchTextSelected
-                  : styles.teamSearchTextPlaceholder,
-              ]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {homeTeam || "Home Team"}
-            </Text>
-            {!!homeTeam && (
-              <TouchableOpacity
-                style={styles.teamClearButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setHomeTeam("");
-                  setHomeSearchTerm("");
-                }}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={colors.textMuted}
-                />
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TeamSelectionField
+          team={homeTeam}
+          placeholder="Home Team"
+          onOpen={openHomeDropdown}
+          onClear={clearHomeTeam}
+          styles={styles}
+          colors={colors}
+        />
 
         {/* VS Text Separator */}
         <Text style={styles.vsText}>vs</Text>
 
-        {/* Away Team Selection Field */}
-        <View style={styles.teamInputWrapper}>
-          <TouchableOpacity
-            style={[
-              styles.teamSearchField,
-              awayTeam ? styles.teamSearchFieldSelected : null,
-            ]}
-            onPress={() => {
-              setShowAwayDropdown(true);
-              setShowHomeDropdown(false);
-            }}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="search-outline"
-              size={20}
-              color={awayTeam ? colors.primary : colors.textMuted}
-              style={styles.teamSearchIcon}
-            />
-            <Text
-              style={[
-                styles.teamSearchText,
-                awayTeam
-                  ? styles.teamSearchTextSelected
-                  : styles.teamSearchTextPlaceholder,
-              ]}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {awayTeam || "Away Team"}
-            </Text>
-            {!!awayTeam && (
-              <TouchableOpacity
-                style={styles.teamClearButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setAwayTeam("");
-                  setAwaySearchTerm("");
-                }}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color={colors.textMuted}
-                />
-              </TouchableOpacity>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TeamSelectionField
+          team={awayTeam}
+          placeholder="Away Team"
+          onOpen={openAwayDropdown}
+          onClear={clearAwayTeam}
+          styles={styles}
+          colors={colors}
+        />
 
         {/* Add Match Button */}
         <TouchableOpacity
@@ -267,145 +369,30 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Home Team Selection Modal */}
-      <Modal
+      <TeamPickerModal
+        testID="SetupHomeTeamModal"
+        placeholder="Search home"
         visible={showHomeDropdown}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowHomeDropdown(false)}
-      >
-        <SafeAreaView testID="SetupHomeTeamModal" style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder="Search home"
-                value={homeSearchTerm}
-                onChangeText={setHomeSearchTerm}
-                autoFocus
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowHomeDropdown(false)}
-              >
-                <Text style={styles.modalCloseText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={filteredHomeOptions}
-              keyExtractor={(item) => item.key}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => selectHomeTeam(item.value)}
-                >
-                  <Text style={styles.modalItemText}>
-                    {item.displayName || item.value}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={
-                <View style={styles.emptyListContainer}>
-                  <Text style={styles.emptyListText}>No teams found</Text>
-                  {!!homeSearchTerm.trim() && (
-                    <TouchableOpacity
-                      style={styles.addNewButton}
-                      onPress={handleAddHomeTeam}
-                    >
-                      <Text style={styles.addNewButtonText}>
-                        Add &quot;{homeSearchTerm}&quot;
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              }
-              ListFooterComponent={
-                filteredHomeOptions.length > 0 && homeSearchTerm ? (
-                  <TouchableOpacity
-                    style={styles.addNewButton}
-                    onPress={handleAddHomeTeam}
-                  >
-                    <Text style={styles.addNewButtonText}>
-                      Add &quot;{homeSearchTerm}&quot; as new team
-                    </Text>
-                  </TouchableOpacity>
-                ) : null
-              }
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Away Team Selection Modal */}
-      <Modal
+        options={filteredHomeOptions}
+        searchTerm={homeSearchTerm}
+        setSearchTerm={setHomeSearchTerm}
+        onClose={closeHomeDropdown}
+        onSelect={selectHomeTeam}
+        onAdd={handleAddHomeTeam}
+        styles={styles}
+      />
+      <TeamPickerModal
+        testID="SetupAwayTeamModal"
+        placeholder="Search away"
         visible={showAwayDropdown}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAwayDropdown(false)}
-      >
-        <SafeAreaView testID="SetupAwayTeamModal" style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TextInput
-                style={styles.modalSearchInput}
-                placeholder="Search away"
-                value={awaySearchTerm}
-                onChangeText={setAwaySearchTerm}
-                autoFocus
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowAwayDropdown(false)}
-              >
-                <Text style={styles.modalCloseText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-
-            <FlatList
-              data={filteredAwayOptions}
-              keyExtractor={(item) => item.key}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() => selectAwayTeam(item.value)}
-                >
-                  <Text style={styles.modalItemText}>
-                    {item.displayName || item.value}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              ListEmptyComponent={
-                <View style={styles.emptyListContainer}>
-                  <Text style={styles.emptyListText}>No teams found</Text>
-                  {!!awaySearchTerm.trim() && (
-                    <TouchableOpacity
-                      style={styles.addNewButton}
-                      onPress={handleAddAwayTeam}
-                    >
-                      <Text style={styles.addNewButtonText}>
-                        Add &quot;{awaySearchTerm}&quot;
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              }
-              ListFooterComponent={
-                filteredAwayOptions.length > 0 && awaySearchTerm ? (
-                  <TouchableOpacity
-                    style={styles.addNewButton}
-                    onPress={handleAddAwayTeam}
-                  >
-                    <Text style={styles.addNewButtonText}>
-                      Add &quot;{awaySearchTerm}&quot; as new team
-                    </Text>
-                  </TouchableOpacity>
-                ) : null
-              }
-            />
-          </View>
-        </SafeAreaView>
-      </Modal>
+        options={filteredAwayOptions}
+        searchTerm={awaySearchTerm}
+        setSearchTerm={setAwaySearchTerm}
+        onClose={closeAwayDropdown}
+        onSelect={selectAwayTeam}
+        onAdd={handleAddAwayTeam}
+        styles={styles}
+      />
     </View>
   );
 };

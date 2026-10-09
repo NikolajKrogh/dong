@@ -25,11 +25,12 @@ import { Text, YStack } from "tamagui";
 
 import { CommonMatchSelector, MatchList, SetupWizard } from "../../components";
 import type { WizardStep } from "../../components/setupGame/SetupWizard";
-import { SelectableMatchList } from "../../components/matchSelection/SelectableMatchList";
 import {
-  ASSIGNMENT_MODE_LABELS,
-  AssignmentModeSelector,
-} from "../../components/lobby/AssignmentModeSelector";
+  SelectableMatchList,
+  type SelectableMatch,
+} from "../../components/matchSelection/SelectableMatchList";
+import { AssignmentModeSelector } from "../../components/lobby/AssignmentModeSelector";
+import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
 import {
   AssignmentRequirementLine,
   AssignmentSettingsPanel,
@@ -60,6 +61,152 @@ import type { AssignmentMode, BatchRoomMatchResult } from "../../types/room";
 
 const normalizeParam = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
+const noop = () => undefined;
+
+type RoomLobbyState = ReturnType<typeof useRoomLobby>;
+type RoomLobbySnapshot = NonNullable<RoomLobbyState["snapshot"]>;
+type RoomLobbyConfigure = ReturnType<typeof useRoomConfigure>;
+type RoomLobbyExit = ReturnType<typeof useRoomExit>;
+type RoomLobbyPool = ReturnType<typeof useRoomMatchPool>;
+type LobbyPlan = RoomLobbySnapshot["assignmentPlan"];
+type LobbyPickProgress = Record<string, { picked: number; total: number }>;
+type LobbyAuthRoute = "/auth" | "/auth/onboarding" | "/auth/change-password";
+
+const EMPTY_ASSIGNMENT_PLAN: LobbyPlan = {
+  participantCount: 0,
+  poolSize: 0,
+  matchesPerPlayer: 0,
+  sharedMatchesPerPair: 0,
+  effectivePerPlayer: 0,
+  requiredPoolSize: 0,
+  relaxedFloor: 0,
+  feasible: false,
+  startable: false,
+};
+
+function useLobbyAssignmentController(
+  lobby: RoomLobbyState,
+  configure: RoomLobbyConfigure,
+  participantId: string,
+) {
+  const snapshot = lobby.snapshot;
+  const [pendingModeSwitch, setPendingModeSwitch] = useState<AssignmentMode | null>(null);
+  const plan = snapshot?.assignmentPlan ?? EMPTY_ASSIGNMENT_PLAN;
+  const assignmentMode = snapshot?.assignmentMode ?? "automatic";
+  const participants = useMemo(
+    () => snapshot ? roomSnapshotToActiveRoster(snapshot) : [],
+    [snapshot],
+  );
+  const assignments = useMemo(() => snapshot?.assignments ?? [], [snapshot?.assignments]);
+  const commonMatchId = snapshot?.commonMatchId ?? null;
+
+  const handleSelectMode = useCallback((mode: AssignmentMode) => {
+    if (mode === assignmentMode) return;
+    if ((snapshot?.assignments.length ?? 0) > 0) {
+      setPendingModeSwitch(mode);
+      return;
+    }
+    void configure.setAssignmentMode(mode);
+  }, [assignmentMode, configure, snapshot?.assignments.length]);
+
+  const handleConfirmModeSwitch = useCallback(() => {
+    if (pendingModeSwitch) {
+      void configure.setAssignmentMode(pendingModeSwitch);
+    }
+    setPendingModeSwitch(null);
+  }, [configure, pendingModeSwitch]);
+  const handleCancelModeSwitch = useCallback(() => setPendingModeSwitch(null), []);
+
+  const automaticMinimum = plan.sharedMatchesPerPair * Math.max(participants.length - 1, 0);
+  const modeSwitchRaisesMinimum = pendingModeSwitch === "automatic" &&
+    automaticMinimum > plan.matchesPerPlayer;
+
+  const picks = useMemo(() => snapshot?.picks ?? [], [snapshot?.picks]);
+  const isPlayerPicked = assignmentMode === "player_picked";
+  const canPick = isPlayerPicked && lobby.state === "joinable";
+  const pickableMatches = useMemo<SelectableMatch[]>(
+    () => (snapshot?.matches ?? [])
+      .filter((match) => match.id !== commonMatchId)
+      .map((match) => ({
+        id: match.id,
+        homeTeam: match.homeTeamName,
+        awayTeam: match.awayTeamName,
+        startTime: match.kickoffAt ?? undefined,
+      })),
+    [snapshot?.matches, commonMatchId],
+  );
+  const poolAsSelectable = useMemo<SelectableMatch[]>(
+    () => (snapshot?.matches ?? []).map((match) => ({
+      id: match.id,
+      homeTeam: match.homeTeamName,
+      awayTeam: match.awayTeamName,
+      startTime: match.kickoffAt ?? undefined,
+    })),
+    [snapshot?.matches],
+  );
+  const myPicks = useMemo(
+    () => participantId
+      ? picks.filter((pick) => pick.participantId === participantId)
+        .map((pick) => pick.matchId)
+      : [],
+    [participantId, picks],
+  );
+  const pickProgress = useMemo<LobbyPickProgress | undefined>(() => {
+    if (!isPlayerPicked) return undefined;
+    return participants.reduce<LobbyPickProgress>((accumulator, participant) => {
+      accumulator[participant.id] = {
+        picked: picks.filter((pick) => pick.participantId === participant.id).length,
+        total: plan.matchesPerPlayer,
+      };
+      return accumulator;
+    }, {});
+  }, [isPlayerPicked, participants, picks, plan.matchesPerPlayer]);
+
+  const additionalMatchIdsFor = useCallback(
+    (participantId: string) => assignments
+      .filter((assignment) => assignment.participantId === participantId && assignment.matchId !== commonMatchId)
+      .map((assignment) => assignment.matchId),
+    [assignments, commonMatchId],
+  );
+  const shortParticipants = participants.filter(
+    (participant) => additionalMatchIdsFor(participant.id).length < plan.matchesPerPlayer,
+  );
+  const toggleAllocation = useCallback((participantId: string, matchId: string) => {
+    const activeAssignments = assignments.filter((assignment) =>
+      participants.some((participant) => participant.id === assignment.participantId),
+    );
+    const exists = activeAssignments.some((assignment) =>
+      assignment.participantId === participantId && assignment.matchId === matchId,
+    );
+    const next = exists
+      ? activeAssignments.filter((assignment) =>
+        assignment.participantId !== participantId || assignment.matchId !== matchId,
+      )
+      : [...activeAssignments, { participantId, matchId }];
+    void configure.setAssignments(next);
+  }, [assignments, configure, participants]);
+
+  return {
+    assignmentMode,
+    automaticMinimum,
+    canPick,
+    commonMatchId,
+    handleCancelModeSwitch,
+    handleConfirmModeSwitch,
+    handleSelectMode,
+    modeSwitchRaisesMinimum,
+    myPicks,
+    participants,
+    pendingModeSwitch,
+    pickProgress,
+    pickableMatches,
+    plan,
+    poolAsSelectable,
+    shortParticipants,
+    additionalMatchIdsFor,
+    toggleAllocation,
+  };
+}
 
 const LobbyScreen = () => {
   const router = useRouter();
@@ -67,59 +214,144 @@ const LobbyScreen = () => {
   const sessionId = normalizeParam(params.sessionId);
   const { status, account } = useAccountAuth();
   const membership = useMyActiveRoom(status === "ready" ? account?.id ?? null : null);
-  const returnTo = `/lobby/${encodeURIComponent(sessionId)}`;
 
   if (status === "ready" && membership.activeRoom?.sessionId === sessionId) {
     return <RoomLobbyScreen key={`${account?.id}:${sessionId}:${membership.activeRoom.participantId}`}
       sessionId={sessionId} participantId={membership.activeRoom.participantId} />;
   }
 
+  return (
+    <LobbyMembershipFallback
+      sessionId={sessionId}
+      status={status}
+      membership={membership}
+      router={router}
+    />
+  );
+};
+
+function LobbyMembershipFallback({
+  sessionId,
+  status,
+  membership,
+  router,
+}: {
+  sessionId: string;
+  status: ReturnType<typeof useAccountAuth>["status"];
+  membership: ReturnType<typeof useMyActiveRoom>;
+  router: ReturnType<typeof useRouter>;
+}) {
   const loading = status === "loading" || (status === "ready" && membership.isLoading);
   const requiresAuth = status !== "ready" && !loading;
+  const returnTo = `/lobby/${encodeURIComponent(sessionId)}`;
   const authRoute = status === "needsUsername" ? "/auth/onboarding"
     : status === "recoveringPassword" ? "/auth/change-password" : "/auth";
   return (
     <ShellScreen centerContent>
       <YStack gap="$4" padding="$4">
-        <Text accessibilityRole="header">{loading ? "Loading your room…" : requiresAuth
-          ? "Sign in to return to your room" : membership.error ? "Unable to load your room"
-            : "You are not an active member of this room"}</Text>
-        {!loading && <Text>{requiresAuth
-          ? "Use the account you joined with. Guests can join from Home using the room code."
-          : membership.error ?? "This room may have ended. Join from Home using its room code."}</Text>}
-        {requiresAuth && <ShellActionButton label="Continue" onPress={() => router.push(buildAccountAuthRoute(authRoute, returnTo) as never)} />}
-        {membership.error && <ShellActionButton label="Retry" onPress={() => void membership.refresh()} />}
-        {!loading && <ShellActionButton label="Go Home" variant="secondary" onPress={() => router.replace("/")} />}
+        <LobbyMembershipMessage
+          loading={loading}
+          requiresAuth={requiresAuth}
+          error={membership.error}
+        />
+        <LobbyMembershipActions
+          loading={loading}
+          requiresAuth={requiresAuth}
+          error={membership.error}
+          authRoute={authRoute}
+          returnTo={returnTo}
+          refresh={membership.refresh}
+          router={router}
+        />
       </YStack>
     </ShellScreen>
   );
-};
+}
+
+function LobbyMembershipMessage({
+  loading,
+  requiresAuth,
+  error,
+}: {
+  loading: boolean;
+  requiresAuth: boolean;
+  error: string | null;
+}) {
+  const copy = getLobbyMembershipCopy(loading, requiresAuth, error);
+
+  return (
+    <>
+      <Text accessibilityRole="header">{copy.title}</Text>
+      {copy.description ? <Text>{copy.description}</Text> : null}
+    </>
+  );
+}
+
+function getLobbyMembershipCopy(
+  loading: boolean,
+  requiresAuth: boolean,
+  error: string | null,
+): { title: string; description: string | null } {
+  if (loading) return { title: "Loading your room…", description: null };
+  if (requiresAuth) {
+    return {
+      title: "Sign in to return to your room",
+      description: "Use the account you joined with. Guests can join from Home using the room code.",
+    };
+  }
+  if (error) return { title: "Unable to load your room", description: error };
+  return {
+    title: "You are not an active member of this room",
+    description: "This room may have ended. Join from Home using its room code.",
+  };
+}
+
+function LobbyMembershipActions({
+  loading,
+  requiresAuth,
+  error,
+  authRoute,
+  returnTo,
+  refresh,
+  router,
+}: {
+  loading: boolean;
+  requiresAuth: boolean;
+  error: string | null;
+  authRoute: LobbyAuthRoute;
+  returnTo: string;
+  refresh: () => Promise<void>;
+  router: ReturnType<typeof useRouter>;
+}) {
+  const handleContinue = useCallback(() => {
+    router.push(buildAccountAuthRoute(authRoute, returnTo) as never);
+  }, [authRoute, returnTo, router]);
+  const handleRetry = useCallback(() => {
+    void refresh();
+  }, [refresh]);
+  const handleGoHome = useCallback(() => {
+    router.replace("/");
+  }, [router]);
+
+  return (
+    <>
+      {requiresAuth ? <ShellActionButton label="Continue" onPress={handleContinue} /> : null}
+      {error ? <ShellActionButton label="Retry" onPress={handleRetry} /> : null}
+      {!loading ? <ShellActionButton label="Go Home" variant="secondary" onPress={handleGoHome} /> : null}
+    </>
+  );
+}
 
 const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; participantId: string }) => {
   const router = useRouter();
 
   const lobby = useRoomLobby(sessionId || null, participantId);
   const exit = useRoomExit();
-  const hasHydratedGameplayRef = useRef(false);
-  // Whether this mount ever saw the room *before* it started. It is the only
-  // thing that separates "the game just started while I was watching the lobby"
-  // (redirect, FR-012) from "I opened the lobby of a game already running"
-  // (stay). Both look identical on the first snapshot after mount, which is why
-  // returning to a running room used to bounce straight back into the game and
-  // made the lobby unreachable.
-  const seenPreStartRef = useRef(false);
-
   const configure = useRoomConfigure(lobby.snapshot, lobby.refresh);
-  const [pendingModeSwitch, setPendingModeSwitch] =
-    useState<AssignmentMode | null>(null);
+  useLobbyGameplayHydration(lobby, participantId, router);
 
   const { width } = useWindowDimensions();
   const wideLayout = isWideLayout(width);
-  const colors = useColors();
-
-  // Manual-entry fields belong to MatchList's caller in the solo wizard too.
-  const [homeTeam, setHomeTeam] = useState("");
-  const [awayTeam, setAwayTeam] = useState("");
 
   // useCallback because it feeds useRoomMatchPool's `setMatches` dependency
   // array and this screen re-renders on every ~4s poll.
@@ -146,16 +378,8 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
     removeMatches: configure.removeMatches,
     onBatchAdded: handleBatchAdded,
   });
+  const assignment = useLobbyAssignmentController(lobby, configure, participantId);
 
-  const setPlayers = useGameStore((state) => state.setPlayers);
-  const setMatches = useGameStore((state) => state.setMatches);
-  const setCommonMatchId = useGameStore((state) => state.setCommonMatchId);
-  const setPlayerAssignments = useGameStore(
-    (state) => state.setPlayerAssignments,
-  );
-  const setActiveGameContext = useGameStore(
-    (state) => state.setActiveGameContext,
-  );
   const clearActiveGameContext = useGameStore(
     (state) => state.clearActiveGameContext,
   );
@@ -213,21 +437,105 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
     }
   }, [exit, goHome, sessionId]);
 
-  // US4 (FR-012): once the snapshot flips to in_progress, hydrate the gameplay
-  // store from the room's final configuration and redirect every connected device.
+  const isHost = lobby.myRole === "owner";
+  const handleOpenEndGameConfirmation = useCallback(() => {
+    setIsEndGameConfirmVisible(true);
+  }, []);
+  const handleCloseEndGameConfirmation = useCallback(() => {
+    setIsEndGameConfirmVisible(false);
+  }, []);
+  const refreshLobby = lobby.refresh;
+  const handleRetryLobby = useCallback(() => {
+    void refreshLobby();
+  }, [refreshLobby]);
+  const isPreStart = !lobby.roomEnded && !lobby.gameStarted;
+
+  if (!lobby.snapshot) {
+    return (
+      <LobbyLoadingScreen
+        error={lobby.error}
+        onRetry={handleRetryLobby}
+        onHome={goHome}
+      />
+    );
+  }
+
+  return (
+    <ShellScreen
+      padded={!isPreStart}
+      centerContent={isPreStart && wideLayout}
+      contentMaxWidth={isPreStart && wideLayout ? 1120 : undefined}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        {lobby.error && (
+          <YStack padding="$3" gap="$2">
+            <Text>Connection interrupted. Room information may be out of date.</Text>
+            <ShellActionButton label="Retry" onPress={handleRetryLobby} />
+          </YStack>
+        )}
+        {isPreStart ? (
+          <RoomLobbyWizard
+            lobby={lobby}
+            snapshot={lobby.snapshot}
+            exit={exit}
+            configure={configure}
+            pool={pool}
+            assignment={assignment}
+            isHost={isHost}
+            onLeave={handleLeave}
+          />
+        ) : (
+          <LobbyPostStartContent
+            lobby={lobby}
+            exit={exit}
+            configure={configure}
+            assignment={assignment}
+            isHost={isHost}
+            onReturnHome={goHome}
+            onReturnToGame={handleReturnToGame}
+            onLeave={handleLeave}
+            onOpenEndGameConfirmation={handleOpenEndGameConfirmation}
+          />
+        )}
+        <RoomLobbyDialogs
+          assignment={assignment}
+          configure={configure}
+          exit={exit}
+          isEndGameConfirmVisible={isEndGameConfirmVisible}
+          onCloseEndGameConfirmation={handleCloseEndGameConfirmation}
+          onEndGame={handleEndGame}
+          onChooseSuccessor={handleChooseSuccessor}
+          onConfirmClose={handleConfirmClose}
+        />
+      </SafeAreaView>
+    </ShellScreen>
+  );
+};
+type LobbyAssignmentController = ReturnType<typeof useLobbyAssignmentController>;
+type LobbyRouter = ReturnType<typeof useRouter>;
+
+function useLobbyGameplayHydration(
+  lobby: RoomLobbyState,
+  participantId: string,
+  router: LobbyRouter,
+) {
+  const hasHydratedGameplayRef = useRef(false);
+  // Only a start observed after this mount began in the lobby should redirect.
+  const seenPreStartRef = useRef(false);
+  const setPlayers = useGameStore((state) => state.setPlayers);
+  const setMatches = useGameStore((state) => state.setMatches);
+  const setCommonMatchId = useGameStore((state) => state.setCommonMatchId);
+  const setPlayerAssignments = useGameStore((state) => state.setPlayerAssignments);
+  const setActiveGameContext = useGameStore((state) => state.setActiveGameContext);
+
   useEffect(() => {
-    if (lobby.snapshot && !lobby.gameStarted) {
-      seenPreStartRef.current = true;
-    }
+    if (lobby.snapshot && !lobby.gameStarted) seenPreStartRef.current = true;
   }, [lobby.gameStarted, lobby.snapshot]);
 
   useEffect(() => {
     const snapshot = lobby.snapshot;
-    if (!lobby.gameStarted || !snapshot || hasHydratedGameplayRef.current) {
-      return;
-    }
+    if (!lobby.gameStarted || !snapshot || hasHydratedGameplayRef.current) return;
     hasHydratedGameplayRef.current = true;
-
     const gameState = roomSnapshotToGameState(snapshot);
     setPlayers(gameState.players);
     setMatches(gameState.matches);
@@ -240,745 +548,776 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
       accessKind: "registered",
       lastAppliedSequence: snapshot.lastEventSequence ?? 0,
     });
-
-    // Hydration always runs -- "Return to game" below needs a populated store --
-    // but only a start observed from this lobby redirects.
-    if (seenPreStartRef.current) {
-      router.replace("/gameProgress");
-    }
+    if (seenPreStartRef.current) router.replace("/gameProgress");
   }, [
     lobby.gameStarted,
     lobby.snapshot,
+    participantId,
     router,
+    setActiveGameContext,
     setCommonMatchId,
     setMatches,
     setPlayerAssignments,
     setPlayers,
-    setActiveGameContext,
-    participantId,
   ]);
+}
 
-  const isHost = lobby.myRole === "owner";
-  // Null-safe fallback so the JSX below never has to guard snapshot presence
-  // separately from isHost; a snapshot-less render simply shows an "empty" plan.
-  const plan = lobby.snapshot?.assignmentPlan ?? {
-    participantCount: 0,
-    poolSize: 0,
-    matchesPerPlayer: 0,
-    sharedMatchesPerPair: 0,
-    effectivePerPlayer: 0,
-    requiredPoolSize: 0,
-    relaxedFloor: 0,
-    feasible: false,
-    startable: false,
+function LobbyLoadingScreen({
+  error,
+  onRetry,
+  onHome,
+}: {
+  error: string | null;
+  onRetry: () => void;
+  onHome: () => void;
+}) {
+  return (
+    <ShellScreen centerContent>
+      <YStack gap="$4" padding="$4">
+        <Text>{error ? "Unable to load the room. Check your connection and try again." : "Loading room…"}</Text>
+        {error && <ShellActionButton label="Retry" onPress={onRetry} />}
+        <ShellActionButton label="Go Home" variant="secondary" onPress={onHome} />
+      </YStack>
+    </ShellScreen>
+  );
+}
+
+function RoomLobbyWizard({
+  lobby,
+  snapshot,
+  exit,
+  configure,
+  pool,
+  assignment,
+  isHost,
+  onLeave,
+}: {
+  lobby: RoomLobbyState;
+  snapshot: RoomLobbySnapshot;
+  exit: RoomLobbyExit;
+  configure: RoomLobbyConfigure;
+  pool: RoomLobbyPool;
+  assignment: LobbyAssignmentController;
+  isHost: boolean;
+  onLeave: () => void;
+}) {
+  const colors = useColors();
+  const [homeTeam, setHomeTeam] = useState("");
+  const [awayTeam, setAwayTeam] = useState("");
+  const startGame = configure.startGame;
+  const handleStartGame = useCallback(() => void startGame(), [startGame]);
+  const steps: WizardStep[] = [
+    {
+      key: "room",
+      name: "Room",
+      icon: "people",
+      canEnter: true,
+      content: <LobbyIdentityStepContent lobby={lobby} exit={exit} assignment={assignment} />,
+    },
+    {
+      key: "matches",
+      name: "Matches",
+      icon: "game-controller-outline",
+      canEnter: true,
+      content: (
+        <LobbyMatchesStepContent
+          isHost={isHost}
+          pool={pool}
+          configure={configure}
+          assignment={assignment}
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          onHomeTeamChange={setHomeTeam}
+          onAwayTeamChange={setAwayTeam}
+        />
+      ),
+    },
+    {
+      key: "common",
+      name: "Common",
+      icon: "tv-outline",
+      canEnter: snapshot.assignmentPlan.poolSize > 0,
+      content: (
+        <LobbyCommonStepContent
+          matches={pool.matches}
+          commonMatchId={snapshot.commonMatchId}
+          isHost={isHost}
+          onSelect={configure.setCommonMatch}
+        />
+      ),
+    },
+    {
+      key: "assign",
+      name: "Assign",
+      icon: "git-network",
+      canEnter: snapshot.commonMatchId !== null || assignment.canPick,
+      content: (
+        <LobbyAssignmentStepContent
+          snapshot={snapshot}
+          configure={configure}
+          assignment={assignment}
+          isHost={isHost}
+          onSelectMode={assignment.handleSelectMode}
+        />
+      ),
+    },
+  ];
+  const firstSlotAction = {
+    label: isHost ? "Leave Room" : "Leave",
+    icon: "exit-outline" as const,
+    iconPosition: "leading" as const,
+    testID: "lobby-leave-button",
+    disabled: exit.isExiting,
+    onPress: onLeave,
+    backgroundColor: colors.secondary,
   };
-  const assignmentMode: AssignmentMode =
-    lobby.snapshot?.assignmentMode ?? "automatic";
-  const participants = useMemo(() => lobby.snapshot
-    ? roomSnapshotToActiveRoster(lobby.snapshot)
-    : [], [lobby.snapshot]);
-  const assignments = useMemo(
-    () => lobby.snapshot?.assignments ?? [],
-    [lobby.snapshot?.assignments],
-  );
-  const commonMatchId = lobby.snapshot?.commonMatchId ?? null;
-  const hasDraft = assignments.length > 0;
-
-  // FR-030a: switching mode with an existing draft requires confirmation
-  // before the server call is made — the RPC itself has no way to know
-  // whether a draft existed, so this gate is entirely client-side
-  // (research.md R10).
-  const handleSelectMode = useCallback(
-    (mode: AssignmentMode) => {
-      if (mode === assignmentMode) {
-        return;
+  const finalAction = isHost
+    ? {
+        label: "Start Game",
+        icon: "play" as const,
+        testID: "lobby-start-game",
+        disabled: configure.isBusy || !assignment.plan.startable,
+        onPress: handleStartGame,
+        backgroundColor: colors.success,
       }
-      if (hasDraft) {
-        setPendingModeSwitch(mode);
-        return;
-      }
-      void configure.setAssignmentMode(mode);
-    },
-    [assignmentMode, configure, hasDraft],
-  );
+    : null;
 
-  const handleConfirmModeSwitch = useCallback(() => {
-    if (pendingModeSwitch) {
-      void configure.setAssignmentMode(pendingModeSwitch);
-    }
-    setPendingModeSwitch(null);
-  }, [configure, pendingModeSwitch]);
+  return <SetupWizard steps={steps} firstSlotAction={firstSlotAction} finalAction={finalAction} />;
+}
 
-  const handleCancelModeSwitch = useCallback(() => {
-    setPendingModeSwitch(null);
-  }, []);
-
-  // spec.md edge case: switching to automatic can silently raise the
-  // effective per-player count past what the host was shown (FR-009's
-  // minimum). Surface that in the same confirmation surface rather than
-  // letting FR-032 change it invisibly at start (T015a).
-  const automaticMinimum =
-    plan.sharedMatchesPerPair * Math.max(participants.length - 1, 0);
-  const modeSwitchRaisesMinimum =
-    pendingModeSwitch === "automatic" &&
-    automaticMinimum > plan.matchesPerPlayer;
-
-  // research.md R9: per-participant "still short" is derived client-side from
-  // the snapshot's own assignments array — no server field needed.
-  const additionalMatchIdsFor = useCallback(
-    (participantId: string) =>
-      assignments
-        .filter(
-          (assignment) =>
-            assignment.participantId === participantId &&
-            assignment.matchId !== commonMatchId,
-        )
-        .map((assignment) => assignment.matchId),
-    [assignments, commonMatchId],
-  );
-  const isParticipantShort = useCallback(
-    (participantId: string) =>
-      additionalMatchIdsFor(participantId).length < plan.matchesPerPlayer,
-    [additionalMatchIdsFor, plan.matchesPerPlayer],
-  );
-  const shortParticipants = participants.filter((participant) =>
-    isParticipantShort(participant.id),
-  );
-
-  // ---------------------------------------------------------------------------
-  // Player-picked mode (#185). The pick panel renders for the host and members
-  // alike — the host is an ordinary participant who picks their own matches.
-  // ---------------------------------------------------------------------------
-  const picks = useMemo(
-    () => lobby.snapshot?.picks ?? [],
-    [lobby.snapshot?.picks],
-  );
-  const isPlayerPicked = assignmentMode === "player_picked";
-  const canPick = isPlayerPicked && lobby.state === "joinable";
-
-  // RoomMatchSummary → the shared renderer's view-model, minus the Common Match
-  // (FR-040a). Mapped here rather than inside the panel because the guest
-  // surface's match type doesn't unify with this one.
-  const pickableMatches = useMemo(
-    () =>
-      (lobby.snapshot?.matches ?? [])
-        .filter((match) => match.id !== commonMatchId)
-        .map((match) => ({
-          id: match.id,
-          homeTeam: match.homeTeamName,
-          awayTeam: match.awayTeamName,
-          startTime: match.kickoffAt ?? undefined,
-        })),
-    [lobby.snapshot?.matches, commonMatchId],
-  );
-
-  // The whole pool, for the member's read-only Matches step. Deliberately not
-  // `pickableMatches` below — that one drops the Common Match, which belongs in
-  // a list of "the matches this room has".
-  const poolAsSelectable = useMemo(
-    () =>
-      (lobby.snapshot?.matches ?? []).map((match) => ({
-        id: match.id,
-        homeTeam: match.homeTeamName,
-        awayTeam: match.awayTeamName,
-        startTime: match.kickoffAt ?? undefined,
-      })),
-    [lobby.snapshot?.matches],
-  );
-
-  const myPicks = useMemo(
-    () =>
-      participantId
-        ? picks
-            .filter((pick) => pick.participantId === participantId)
-            .map((pick) => pick.matchId)
-        : [],
-    [picks, participantId],
-  );
-
-  // FR-042: everyone sees how far everyone else has progressed.
-  const pickProgress = useMemo(() => {
-    if (!isPlayerPicked) {
-      return undefined;
-    }
-    return participants.reduce<
-      Record<string, { picked: number; total: number }>
-    >((accumulator, participant) => {
-      accumulator[participant.id] = {
-        picked: picks.filter((pick) => pick.participantId === participant.id)
-          .length,
-        total: plan.matchesPerPlayer,
-      };
-      return accumulator;
-    }, {});
-  }, [isPlayerPicked, participants, picks, plan.matchesPerPlayer]);
-
-  const pickPanel = canPick ? (
-    <PlayerPickPanel
-      matches={pickableMatches}
-      myPicks={myPicks}
-      cap={plan.matchesPerPlayer}
-      onSetPicks={configure.setMyPicks}
-      isBusy={configure.isBusy}
-    />
-  ) : null;
-
-  // set_room_assignments replaces the room's *entire* assignment set on every
-  // call (migration 035) — toggling one participant's one match means
-  // reconstructing the full desired array from the current snapshot, not
-  // sending a diff.
-  const toggleAllocation = useCallback(
-    (participantId: string, matchId: string) => {
-      const activeAssignments = assignments.filter((assignment) =>
-        participants.some(
-          (participant) => participant.id === assignment.participantId,
-        ),
-      );
-      const exists = activeAssignments.some(
-        (assignment) =>
-          assignment.participantId === participantId &&
-          assignment.matchId === matchId,
-      );
-      const next = exists
-        ? activeAssignments.filter(
-            (assignment) =>
-              !(
-                assignment.participantId === participantId &&
-                assignment.matchId === matchId
-              ),
-          )
-        : [...activeAssignments, { participantId, matchId }];
-      void configure.setAssignments(next);
-    },
-    [assignments, configure, participants],
-  );
-
-  // ---------------------------------------------------------------------------
-  // The pre-start room, as the single-player setup wizard.
-  //
-  // Every viewer gets the same four steps in the same order — a member's steps
-  // are the host&apos;s, read-only, plus their own pick panel. Same length and same
-  // order matters mechanically, not just visually: SetupWizard's current step is
-  // uncontrolled, so a steps array that changed shape between polls would
-  // remount the wizard and drop the viewer back to step one every ~4 seconds.
-  //
-  // For the same reason these are JSX values, never components declared here.
-  // ---------------------------------------------------------------------------
-  const isPreStart = !lobby.roomEnded && !lobby.gameStarted;
-
-  const roomStepContent = (
+function LobbyIdentityStepContent({
+  lobby,
+  exit,
+  assignment,
+}: {
+  lobby: RoomLobbyState;
+  exit: RoomLobbyExit;
+  assignment: LobbyAssignmentController;
+}) {
+  return (
     <YStack gap="$4" padding="$4">
-      <Text color="$color" fontSize={22} fontWeight="700">
-        Room Lobby
-      </Text>
+      <Text color="$color" fontSize={22} fontWeight="700">Room Lobby</Text>
       <RoomIdentityPanel
         joinCode={lobby.joinCode}
-        participants={participants}
-        pickProgress={pickProgress}
+        participants={assignment.participants}
+        pickProgress={assignment.pickProgress}
       />
-      {exit.error ? (
-        <Text color="$danger" fontSize={14} testID="lobby-exit-error">
-          {exit.error}
-        </Text>
-      ) : null}
+      {exit.error ? <Text color="$danger" fontSize={14} testID="lobby-exit-error">{exit.error}</Text> : null}
     </YStack>
   );
+}
 
-  const matchesStepContent = (
+function LobbyMatchesStepContent({
+  isHost,
+  pool,
+  configure,
+  assignment,
+  homeTeam,
+  awayTeam,
+  onHomeTeamChange,
+  onAwayTeamChange,
+}: {
+  isHost: boolean;
+  pool: RoomLobbyPool;
+  configure: RoomLobbyConfigure;
+  assignment: LobbyAssignmentController;
+  homeTeam: string;
+  awayTeam: string;
+  onHomeTeamChange: (value: string) => void;
+  onAwayTeamChange: (value: string) => void;
+}) {
+  const matchCount = pool.matches.length;
+  return (
     <YStack gap="$2">
       <YStack paddingHorizontal={16} paddingTop={16} gap="$1">
-        <Text color="$color" fontSize={22} fontWeight="700">
-          Select Matches
-        </Text>
+        <Text color="$color" fontSize={22} fontWeight="700">Select Matches</Text>
         <Text color="$colorMuted" fontSize={14}>
           {isHost
-            ? pool.matches.length === 0
+            ? matchCount === 0
               ? "This room has no matches yet. Add some below to continue."
-              : `${pool.matches.length} in this room`
-            : `${pool.matches.length} in this room — the host picks these.`}
+              : `${matchCount} in this room`
+            : `${matchCount} in this room — the host picks these.`}
         </Text>
-        {/*
-          Adds and removals are server round-trips that can fail on this step,
-          and the Assign step's own error line is nowhere in sight from here.
-          Its own testID, deliberately: one testID per surface.
-        */}
-        {configure.error ? (
-          <Text testID="lobby-matches-error" color="$danger" fontSize={14}>
-            {configure.error}
-          </Text>
-        ) : null}
+        {configure.error ? <Text testID="lobby-matches-error" color="$danger" fontSize={14}>{configure.error}</Text> : null}
       </YStack>
-
       {isHost ? (
-        /*
-          `showSectionTitle={false}` because the heading above is this step's;
-          leaving both on stacked two titles from two type systems.
-          `disableSelection` while a write is in flight — unlike the solo flow,
-          releasing a match here is a server round-trip.
-        */
         <MatchList
           matches={pool.matches}
           homeTeam={homeTeam}
           awayTeam={awayTeam}
-          setHomeTeam={setHomeTeam}
-          setAwayTeam={setAwayTeam}
+          setHomeTeam={onHomeTeamChange}
+          setAwayTeam={onAwayTeamChange}
           handleRemoveMatch={pool.removeMatch}
           setGlobalMatches={pool.setMatches}
           showSectionTitle={false}
           disableSelection={configure.isBusy}
         />
       ) : (
-        /*
-          Not a defanged MatchList: that is an acquisition UI (league filter,
-          catalogue, manual entry) a member has no permission to use. This is
-          the pool, shown inert.
-        */
         <YStack paddingHorizontal={16} paddingBottom={16}>
           <SelectableMatchList
-            matches={poolAsSelectable}
+            matches={assignment.poolAsSelectable}
             selectedMatchIds={[]}
-            disabledMatchIds={poolAsSelectable.map((match) => match.id)}
-            onToggleMatch={() => {}}
+            disabledMatchIds={assignment.poolAsSelectable.map((match) => match.id)}
+            onToggleMatch={noop}
           />
         </YStack>
       )}
     </YStack>
   );
+}
 
-  const commonStepContent = (
+function LobbyCommonStepContent({
+  matches,
+  commonMatchId,
+  isHost,
+  onSelect,
+}: {
+  matches: RoomLobbyPool["matches"];
+  commonMatchId: string | null;
+  isHost: boolean;
+  onSelect: RoomLobbyConfigure["setCommonMatch"];
+}) {
+  const handleSelect = useCallback((matchId: string) => {
+    if (isHost) void onSelect(matchId);
+  }, [isHost, onSelect]);
+  return (
     <CommonMatchSelector
-      matches={pool.matches}
+      matches={matches}
       selectedCommonMatch={commonMatchId}
-      // Read-only for a member: the cards stay, the write does not.
-      handleSelectCommonMatch={
-        isHost
-          ? (matchId: string) => {
-              void configure.setCommonMatch(matchId);
-            }
-          : () => {}
-      }
+      handleSelectCommonMatch={handleSelect}
     />
   );
+}
 
-  const assignStepContent = (
+function LobbyAssignmentStepContent({
+  snapshot,
+  configure,
+  assignment,
+  isHost,
+  onSelectMode,
+}: {
+  snapshot: RoomLobbySnapshot;
+  configure: RoomLobbyConfigure;
+  assignment: LobbyAssignmentController;
+  isHost: boolean;
+  onSelectMode: (mode: AssignmentMode) => void;
+}) {
+  const pickPanel = assignment.canPick ? (
+    <PlayerPickPanel
+      matches={assignment.pickableMatches}
+      myPicks={assignment.myPicks}
+      cap={assignment.plan.matchesPerPlayer}
+      onSetPicks={configure.setMyPicks}
+      isBusy={configure.isBusy}
+    />
+  ) : null;
+  return (
     <YStack gap="$4" padding="$4">
       {isHost ? (
-        <>
-          <AssignmentModeSelector
-            assignmentMode={assignmentMode}
-            isBusy={configure.isBusy}
-            onSelectMode={handleSelectMode}
-          />
-
-          {/* The host picks their own matches like any other participant
-              (FR-038). */}
-          {pickPanel}
-
-          {assignmentMode === "host_assigned" ? (
-            <HostAllocationGrid
-              participants={participants}
-              matches={lobby.snapshot?.matches ?? []}
-              commonMatchId={commonMatchId}
-              matchesPerPlayer={plan.matchesPerPlayer}
-              additionalMatchIdsFor={additionalMatchIdsFor}
-              isBusy={configure.isBusy}
-              onToggleAllocation={toggleAllocation}
-            />
-          ) : null}
-
-          <AssignmentSettingsPanel
-            plan={plan}
-            isBusy={configure.isBusy}
-            onChange={(settings) => {
-              void configure.setAssignmentSettings(settings);
-            }}
-          />
-
-          <StartGameWarnings
-            plan={plan}
-            shortParticipants={shortParticipants}
-            isHostAssigned={assignmentMode === "host_assigned"}
-            error={configure.error}
-            isBusy={configure.isBusy}
-            onStartAnyway={() => {
-              void configure.startGame(true);
-            }}
-          />
-        </>
+        <HostAssignmentContent
+          snapshot={snapshot}
+          configure={configure}
+          assignment={assignment}
+          pickPanel={pickPanel}
+          onSelectMode={onSelectMode}
+        />
       ) : (
-        <>
-          <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-            {canPick
-              ? "Pick your matches while you wait for the host to start."
-              : "Waiting for the host to start the game…"}
-          </Text>
-          <Text
-            testID="lobby-assignment-mode-readonly"
-            color="$colorMuted"
-            fontSize={13}
-          >
-            Assignment mode: {ASSIGNMENT_MODE_LABELS[assignmentMode]}
-          </Text>
-
-          {/* A member's own pick control — the same panel the host uses. */}
-          {pickPanel}
-          <AssignmentRequirementLine plan={plan} />
-        </>
+        <MemberAssignmentContent assignment={assignment} pickPanel={pickPanel} />
       )}
     </YStack>
   );
+}
 
-  const roomSteps: WizardStep[] = [
-    {
-      key: "room",
-      name: "Room",
-      icon: "people",
-      canEnter: true,
-      content: roomStepContent,
-    },
-    {
-      key: "matches",
-      name: "Matches",
-      icon: "game-controller-outline",
-      canEnter: Boolean(lobby.snapshot),
-      content: matchesStepContent,
-    },
-    {
-      key: "common",
-      name: "Common",
-      icon: "tv-outline",
-      canEnter: Boolean(lobby.snapshot) && plan.poolSize > 0,
-      content: commonStepContent,
-    },
-    {
-      key: "assign",
-      name: "Assign",
-      icon: "git-network",
-      // `canPick` is an alternative to the Common Match being set, not an
-      // addition to it: a member with picks to make must be able to reach the
-      // pick panel even before the host has designated a Common Match.
-      canEnter: Boolean(lobby.snapshot) && (commonMatchId !== null || canPick),
-      content: assignStepContent,
-    },
-  ];
+function HostAssignmentContent({
+  snapshot,
+  configure,
+  assignment,
+  pickPanel,
+  onSelectMode,
+}: {
+  snapshot: RoomLobbySnapshot;
+  configure: RoomLobbyConfigure;
+  assignment: LobbyAssignmentController;
+  pickPanel: React.ReactNode;
+  onSelectMode: (mode: AssignmentMode) => void;
+}) {
+  const startGame = configure.startGame;
+  const handleStartAnyway = useCallback(() => void startGame(true), [startGame]);
+  return (
+    <>
+      <AssignmentModeSelector assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy} onSelectMode={onSelectMode} />
+      {pickPanel}
+      {assignment.assignmentMode === "host_assigned" ? (
+        <HostAllocationGrid
+          participants={assignment.participants}
+          matches={snapshot.matches}
+          commonMatchId={assignment.commonMatchId}
+          matchesPerPlayer={assignment.plan.matchesPerPlayer}
+          additionalMatchIdsFor={assignment.additionalMatchIdsFor}
+          isBusy={configure.isBusy}
+          onToggleAllocation={assignment.toggleAllocation}
+        />
+      ) : null}
+      <AssignmentSettingsPanel plan={assignment.plan} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
+      <StartGameWarnings
+        plan={assignment.plan}
+        shortParticipants={assignment.shortParticipants}
+        isHostAssigned={assignment.assignmentMode === "host_assigned"}
+        error={configure.error}
+        isBusy={configure.isBusy}
+        onStartAnyway={handleStartAnyway}
+      />
+    </>
+  );
+}
 
-  if (!lobby.snapshot) {
-    return (
-      <ShellScreen centerContent>
-        <YStack gap="$4" padding="$4">
-          <Text>{lobby.error ? "Unable to load the room. Check your connection and try again." : "Loading room…"}</Text>
-          {lobby.error && <ShellActionButton label="Retry" onPress={() => void lobby.refresh()} />}
-          <ShellActionButton label="Go Home" variant="secondary" onPress={goHome} />
-        </YStack>
-      </ShellScreen>
-    );
+function MemberAssignmentContent({
+  assignment,
+  pickPanel,
+}: {
+  assignment: LobbyAssignmentController;
+  pickPanel: React.ReactNode;
+}) {
+  return (
+    <>
+      <Text color="$colorMuted" fontSize={14} lineHeight={20}>
+        {assignment.canPick
+          ? "Pick your matches while you wait for the host to start."
+          : "Waiting for the host to start the game…"}
+      </Text>
+      <Text testID="lobby-assignment-mode-readonly" color="$colorMuted" fontSize={13}>
+        Assignment mode: {ASSIGNMENT_MODE_LABELS[assignment.assignmentMode]}
+      </Text>
+      {pickPanel}
+      <AssignmentRequirementLine plan={assignment.plan} />
+    </>
+  );
+}
+
+function LobbyPostStartContent({
+  lobby,
+  exit,
+  configure,
+  assignment,
+  isHost,
+  onReturnHome,
+  onReturnToGame,
+  onLeave,
+  onOpenEndGameConfirmation,
+}: {
+  lobby: RoomLobbyState;
+  exit: RoomLobbyExit;
+  configure: RoomLobbyConfigure;
+  assignment: LobbyAssignmentController;
+  isHost: boolean;
+  onReturnHome: () => void;
+  onReturnToGame: () => void;
+  onLeave: () => void;
+  onOpenEndGameConfirmation: () => void;
+}) {
+  return (
+    <ScrollView
+      contentContainerStyle={{ flexGrow: 1 }}
+      keyboardShouldPersistTaps="handled"
+    >
+      <YStack flex={1} gap="$5" paddingVertical="$4">
+        <LobbyPostStartState
+          lobby={lobby}
+          exit={exit}
+          configure={configure}
+          assignment={assignment}
+          isHost={isHost}
+          onReturnHome={onReturnHome}
+          onReturnToGame={onReturnToGame}
+          onLeave={onLeave}
+          onOpenEndGameConfirmation={onOpenEndGameConfirmation}
+        />
+      </YStack>
+    </ScrollView>
+  );
+}
+
+function LobbyPostStartState({
+  lobby,
+  exit,
+  configure,
+  assignment,
+  isHost,
+  onReturnHome,
+  onReturnToGame,
+  onLeave,
+  onOpenEndGameConfirmation,
+}: {
+  lobby: RoomLobbyState;
+  exit: RoomLobbyExit;
+  configure: RoomLobbyConfigure;
+  assignment: LobbyAssignmentController;
+  isHost: boolean;
+  onReturnHome: () => void;
+  onReturnToGame: () => void;
+  onLeave: () => void;
+  onOpenEndGameConfirmation: () => void;
+}) {
+  if (lobby.roomEnded) {
+    return <RoomEndedNotice onReturnHome={onReturnHome} />;
   }
+  if (!lobby.gameStarted) return null;
 
   return (
-    <ShellScreen
-      padded={!isPreStart}
-      centerContent={isPreStart && wideLayout}
-      contentMaxWidth={isPreStart && wideLayout ? 1120 : undefined}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        {lobby.error && <YStack padding="$3" gap="$2">
-          <Text>Connection interrupted. Room information may be out of date.</Text>
-          <ShellActionButton label="Retry" onPress={() => void lobby.refresh()} />
-        </YStack>}
-        {isPreStart ? (
-          /*
-            No ScrollView around the wizard, and this is load-bearing rather
-            than tidiness: the wizard's own `stepContentScroll` needs a bounded
-            parent. Give it an unbounded one and `wizardMainPanel` collapses,
-            which shows up as an empty step body rather than as an error.
-          */
-          <SetupWizard
-            steps={roomSteps}
-            firstSlotAction={{
-              label: isHost ? "Leave Room" : "Leave",
-              icon: "exit-outline",
-              iconPosition: "leading",
-              testID: "lobby-leave-button",
-              disabled: exit.isExiting,
-              onPress: () => {
-                void handleLeave();
-              },
-              backgroundColor: colors.secondary,
-            }}
-            // A member gets no final action — SetupWizard renders its "Waiting
-            // for host" placeholder so the nav bar keeps both slots.
-            finalAction={
-              isHost
-                ? {
-                    label: "Start Game",
-                    icon: "play",
-                    testID: "lobby-start-game",
-                    disabled: configure.isBusy || !plan.startable,
-                    onPress: () => {
-                      void configure.startGame();
-                    },
-                    backgroundColor: colors.success,
-                  }
-                : null
-            }
-          />
-        ) : (
-          /*
-            The ended and in-progress bodies still scroll: they are plain
-            stacked content, and without this the material below the fold was
-            unreachable on a phone.
-
-            `flexGrow: 1` keeps the short-content case (a room that has ended,
-            which renders only RoomEndedNotice) filling the screen rather than
-            hugging the top.
-          */
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <YStack flex={1} gap="$5" paddingVertical="$4">
-              {lobby.roomEnded ? (
-                <RoomEndedNotice onReturnHome={goHome} />
-              ) : lobby.gameStarted ? (
-                /*
-              A game that is already under way. None of the configure controls
-              below apply once the server has generated the assignments, so this
-              is deliberately just the roster and the three ways out.
-            */
-                <YStack gap="$4" testID="lobby-in-progress">
-                  <Text color="$color" fontSize={28} fontWeight="700">
-                    Game in progress
-                  </Text>
-                  <Text color="$colorMuted" fontSize={14}>
-                    {isHost
-                      ? "Ending the game finishes it for everyone and saves it to the room's history."
-                      : "Leaving takes you out of the room; the game carries on for everyone else."}
-                  </Text>
-
-                  <ParticipantList
-                    participants={lobby.participants}
-                    pickProgress={pickProgress}
-                  />
-
-                  <ShellActionButton
-                    variant="primary"
-                    label="Return to game"
-                    testID="lobby-return-to-game"
-                    onPress={handleReturnToGame}
-                  />
-
-                  {isHost ? (
-                    <ShellActionButton
-                      variant="danger"
-                      label="End game for everyone"
-                      testID="lobby-end-game"
-                      disabled={configure.isBusy}
-                      onPress={() => {
-                        setIsEndGameConfirmVisible(true);
-                      }}
-                    />
-                  ) : null}
-
-                  <ShellActionButton
-                    variant="surface"
-                    label={isHost ? "Leave Room" : "Leave"}
-                    testID="lobby-in-progress-leave"
-                    disabled={exit.isExiting}
-                    onPress={() => {
-                      void handleLeave();
-                    }}
-                  />
-
-                  {configure.error ? (
-                    <Text
-                      color="$danger"
-                      fontSize={13}
-                      testID="lobby-in-progress-error"
-                    >
-                      {configure.error}
-                    </Text>
-                  ) : null}
-                  {exit.error ? (
-                    <Text color="$danger" fontSize={13}>
-                      {exit.error}
-                    </Text>
-                  ) : null}
-                </YStack>
-              ) : null}
-            </YStack>
-          </ScrollView>
-        )}
-
-        {/*
-          Modals stay OUTSIDE the ScrollView — and outside the wizard, never in
-          a step's `content`, which renders inside the wizard's own ScrollView.
-          These are portal-less react-native Modals; nesting one inside a scroll
-          container makes its own scrolling and gesture handling unreliable.
-        */}
-        <Modal
-          visible={pendingModeSwitch !== null}
-          transparent
-          animationType="fade"
-          onRequestClose={handleCancelModeSwitch}
-        >
-          <YStack
-            flex={1}
-            justifyContent="center"
-            alignItems="center"
-            backgroundColor="$backgroundModalOverlay"
-            padding="$5"
-          >
-            <YStack
-              testID="lobby-assignment-mode-confirm"
-              backgroundColor="$background"
-              borderRadius="$6"
-              gap="$3"
-              padding="$5"
-              width="100%"
-              maxWidth={420}
-            >
-              <Text color="$color" fontSize={20} fontWeight="700">
-                Switch assignment mode?
-              </Text>
-              <Text color="$colorMuted" fontSize={14}>
-                The current draft arrangement will not carry over to{" "}
-                {pendingModeSwitch
-                  ? ASSIGNMENT_MODE_LABELS[pendingModeSwitch]
-                  : ""}{" "}
-                mode.
-              </Text>
-              {modeSwitchRaisesMinimum ? (
-                <Text
-                  testID="lobby-assignment-mode-confirm-minimum-notice"
-                  color="$danger"
-                  fontSize={13}
-                >
-                  Switching to automatic raises the per-player count to{" "}
-                  {automaticMinimum} to satisfy the shared-matches setting.
-                </Text>
-              ) : null}
-              <ShellActionButton
-                variant="danger"
-                label="Switch mode"
-                testID="lobby-assignment-mode-confirm-button"
-                onPress={handleConfirmModeSwitch}
-              />
-              <ShellActionButton
-                variant="surface"
-                label="Cancel"
-                onPress={handleCancelModeSwitch}
-              />
-            </YStack>
-          </YStack>
-        </Modal>
-
-        <Modal
-          visible={isEndGameConfirmVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => {
-            setIsEndGameConfirmVisible(false);
-          }}
-        >
-          <YStack
-            flex={1}
-            justifyContent="center"
-            alignItems="center"
-            backgroundColor="$backgroundModalOverlay"
-            padding="$5"
-          >
-            <YStack
-              testID="lobby-end-game-confirm"
-              backgroundColor="$background"
-              borderRadius="$6"
-              gap="$3"
-              padding="$5"
-              width="100%"
-              maxWidth={420}
-            >
-              <Text color="$color" fontSize={20} fontWeight="700">
-                End the game?
-              </Text>
-              <Text color="$colorMuted" fontSize={14}>
-                This finishes the game for everyone in the room. It cannot be
-                resumed.
-              </Text>
-              <ShellActionButton
-                variant="danger"
-                label="End game"
-                testID="lobby-end-game-confirm-button"
-                disabled={configure.isBusy}
-                onPress={() => {
-                  void handleEndGame();
-                }}
-              />
-              <ShellActionButton
-                variant="surface"
-                label="Cancel"
-                onPress={() => {
-                  setIsEndGameConfirmVisible(false);
-                }}
-              />
-            </YStack>
-          </YStack>
-        </Modal>
-
-        <SuccessorChooserModal
-          visible={exit.pendingSuccessorChoice}
-          candidates={exit.eligibleSuccessors}
-          onChoose={(id) => {
-            void handleChooseSuccessor(id);
-          }}
-          onCancel={exit.cancel}
-        />
-
-        <Modal
-          visible={exit.needsCloseConfirm}
-          transparent
-          animationType="fade"
-          onRequestClose={exit.cancel}
-        >
-          <YStack
-            flex={1}
-            justifyContent="center"
-            alignItems="center"
-            backgroundColor="$backgroundModalOverlay"
-            padding="$5"
-          >
-            <YStack
-              testID="lobby-close-confirm"
-              backgroundColor="$background"
-              borderRadius="$6"
-              gap="$3"
-              padding="$5"
-              width="100%"
-              maxWidth={420}
-            >
-              <Text color="$color" fontSize={20} fontWeight="700">
-                Everyone left
-              </Text>
-              <Text color="$colorMuted" fontSize={14}>
-                There&apos;s no one left to take over. Close the room?
-              </Text>
-              <ShellActionButton
-                variant="danger"
-                label="Close room"
-                testID="lobby-close-confirm-button"
-                onPress={() => {
-                  void handleConfirmClose();
-                }}
-              />
-              <ShellActionButton
-                variant="surface"
-                label="Cancel"
-                onPress={exit.cancel}
-              />
-            </YStack>
-          </YStack>
-        </Modal>
-      </SafeAreaView>
-    </ShellScreen>
+    <YStack gap="$4" testID="lobby-in-progress">
+      <Text color="$color" fontSize={28} fontWeight="700">
+        Game in progress
+      </Text>
+      <Text color="$colorMuted" fontSize={14}>
+        {isHost
+          ? "Ending the game finishes it for everyone and saves it to the room's history."
+          : "Leaving takes you out of the room; the game carries on for everyone else."}
+      </Text>
+      <ParticipantList
+        participants={lobby.participants}
+        pickProgress={assignment.pickProgress}
+      />
+      <LobbyInProgressActions
+        isHost={isHost}
+        isBusy={configure.isBusy}
+        isExiting={exit.isExiting}
+        onReturnToGame={onReturnToGame}
+        onLeave={onLeave}
+        onOpenEndGameConfirmation={onOpenEndGameConfirmation}
+      />
+      <LobbyInProgressErrors configureError={configure.error} exitError={exit.error} />
+    </YStack>
   );
-};
+}
+
+function LobbyInProgressActions({
+  isHost,
+  isBusy,
+  isExiting,
+  onReturnToGame,
+  onLeave,
+  onOpenEndGameConfirmation,
+}: {
+  isHost: boolean;
+  isBusy: boolean;
+  isExiting: boolean;
+  onReturnToGame: () => void;
+  onLeave: () => void;
+  onOpenEndGameConfirmation: () => void;
+}) {
+  return (
+    <>
+      <ShellActionButton
+        variant="primary"
+        label="Return to game"
+        testID="lobby-return-to-game"
+        onPress={onReturnToGame}
+      />
+      {isHost ? (
+        <ShellActionButton
+          variant="danger"
+          label="End game for everyone"
+          testID="lobby-end-game"
+          disabled={isBusy}
+          onPress={onOpenEndGameConfirmation}
+        />
+      ) : null}
+      <ShellActionButton
+        variant="surface"
+        label={isHost ? "Leave Room" : "Leave"}
+        testID="lobby-in-progress-leave"
+        disabled={isExiting}
+        onPress={onLeave}
+      />
+    </>
+  );
+}
+
+function LobbyInProgressErrors({
+  configureError,
+  exitError,
+}: {
+  configureError: string | null;
+  exitError: string | null;
+}) {
+  return (
+    <>
+      {configureError ? (
+        <Text color="$danger" fontSize={13} testID="lobby-in-progress-error">
+          {configureError}
+        </Text>
+      ) : null}
+      {exitError ? (
+        <Text color="$danger" fontSize={13}>
+          {exitError}
+        </Text>
+      ) : null}
+    </>
+  );
+}
+
+function RoomLobbyDialogs({
+  assignment,
+  configure,
+  exit,
+  isEndGameConfirmVisible,
+  onCloseEndGameConfirmation,
+  onEndGame,
+  onChooseSuccessor,
+  onConfirmClose,
+}: {
+  assignment: LobbyAssignmentController;
+  configure: RoomLobbyConfigure;
+  exit: RoomLobbyExit;
+  isEndGameConfirmVisible: boolean;
+  onCloseEndGameConfirmation: () => void;
+  onEndGame: () => Promise<void>;
+  onChooseSuccessor: (id: string) => Promise<void>;
+  onConfirmClose: () => Promise<void>;
+}) {
+  return (
+    <>
+      <AssignmentModeSwitchDialog
+        assignment={assignment}
+        onConfirm={assignment.handleConfirmModeSwitch}
+        onCancel={assignment.handleCancelModeSwitch}
+      />
+      <EndGameDialogController
+        visible={isEndGameConfirmVisible}
+        isBusy={configure.isBusy}
+        onClose={onCloseEndGameConfirmation}
+        onConfirm={onEndGame}
+      />
+      <RoomExitDialogController
+        exit={exit}
+        onChooseSuccessor={onChooseSuccessor}
+        onConfirmClose={onConfirmClose}
+      />
+    </>
+  );
+}
+
+function EndGameDialogController({
+  visible,
+  isBusy,
+  onClose,
+  onConfirm,
+}: {
+  visible: boolean;
+  isBusy: boolean;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const handleConfirm = useCallback(() => {
+    void onConfirm();
+  }, [onConfirm]);
+
+  return (
+    <EndGameConfirmationDialog
+      visible={visible}
+      isBusy={isBusy}
+      onClose={onClose}
+      onConfirm={handleConfirm}
+    />
+  );
+}
+
+function RoomExitDialogController({
+  exit,
+  onChooseSuccessor,
+  onConfirmClose,
+}: {
+  exit: RoomLobbyExit;
+  onChooseSuccessor: (id: string) => Promise<void>;
+  onConfirmClose: () => Promise<void>;
+}) {
+  const handleChooseSuccessor = useCallback((id: string) => {
+    void onChooseSuccessor(id);
+  }, [onChooseSuccessor]);
+  const handleConfirmClose = useCallback(() => {
+    void onConfirmClose();
+  }, [onConfirmClose]);
+
+  return (
+    <>
+      <SuccessorChooserModal
+        visible={exit.pendingSuccessorChoice}
+        candidates={exit.eligibleSuccessors}
+        onChoose={handleChooseSuccessor}
+        onCancel={exit.cancel}
+      />
+      <CloseRoomConfirmationDialog
+        visible={exit.needsCloseConfirm}
+        onCancel={exit.cancel}
+        onConfirm={handleConfirmClose}
+      />
+    </>
+  );
+}
+
+function AssignmentModeSwitchDialog({
+  assignment,
+  onConfirm,
+  onCancel,
+}: {
+  assignment: LobbyAssignmentController;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const pendingMode = assignment.pendingModeSwitch;
+  return (
+    <Modal
+      visible={pendingMode !== null}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <YStack
+        flex={1}
+        justifyContent="center"
+        alignItems="center"
+        backgroundColor="$backgroundModalOverlay"
+        padding="$5"
+      >
+        <YStack
+          testID="lobby-assignment-mode-confirm"
+          backgroundColor="$background"
+          borderRadius="$6"
+          gap="$3"
+          padding="$5"
+          width="100%"
+          maxWidth={420}
+        >
+          <Text color="$color" fontSize={20} fontWeight="700">
+            Switch assignment mode?
+          </Text>
+          <Text color="$colorMuted" fontSize={14}>
+            The current draft arrangement will not carry over to{" "}
+            {pendingMode ? ASSIGNMENT_MODE_LABELS[pendingMode] : ""}{" "}
+            mode.
+          </Text>
+          {assignment.modeSwitchRaisesMinimum ? (
+            <Text
+              testID="lobby-assignment-mode-confirm-minimum-notice"
+              color="$danger"
+              fontSize={13}
+            >
+              Switching to automatic raises the per-player count to{" "}
+              {assignment.automaticMinimum} to satisfy the shared-matches setting.
+            </Text>
+          ) : null}
+          <ShellActionButton
+            variant="danger"
+            label="Switch mode"
+            testID="lobby-assignment-mode-confirm-button"
+            onPress={onConfirm}
+          />
+          <ShellActionButton variant="surface" label="Cancel" onPress={onCancel} />
+        </YStack>
+      </YStack>
+    </Modal>
+  );
+}
+
+function EndGameConfirmationDialog({
+  visible,
+  isBusy,
+  onClose,
+  onConfirm,
+}: {
+  visible: boolean;
+  isBusy: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <YStack
+        flex={1}
+        justifyContent="center"
+        alignItems="center"
+        backgroundColor="$backgroundModalOverlay"
+        padding="$5"
+      >
+        <YStack
+          testID="lobby-end-game-confirm"
+          backgroundColor="$background"
+          borderRadius="$6"
+          gap="$3"
+          padding="$5"
+          width="100%"
+          maxWidth={420}
+        >
+          <Text color="$color" fontSize={20} fontWeight="700">End the game?</Text>
+          <Text color="$colorMuted" fontSize={14}>
+            This finishes the game for everyone in the room. It cannot be resumed.
+          </Text>
+          <ShellActionButton
+            variant="danger"
+            label="End game"
+            testID="lobby-end-game-confirm-button"
+            disabled={isBusy}
+            onPress={onConfirm}
+          />
+          <ShellActionButton variant="surface" label="Cancel" onPress={onClose} />
+        </YStack>
+      </YStack>
+    </Modal>
+  );
+}
+
+function CloseRoomConfirmationDialog({
+  visible,
+  onCancel,
+  onConfirm,
+}: {
+  visible: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <YStack
+        flex={1}
+        justifyContent="center"
+        alignItems="center"
+        backgroundColor="$backgroundModalOverlay"
+        padding="$5"
+      >
+        <YStack
+          testID="lobby-close-confirm"
+          backgroundColor="$background"
+          borderRadius="$6"
+          gap="$3"
+          padding="$5"
+          width="100%"
+          maxWidth={420}
+        >
+          <Text color="$color" fontSize={20} fontWeight="700">Everyone left</Text>
+          <Text color="$colorMuted" fontSize={14}>
+            There&apos;s no one left to take over. Close the room?
+          </Text>
+          <ShellActionButton
+            variant="danger"
+            label="Close room"
+            testID="lobby-close-confirm-button"
+            onPress={onConfirm}
+          />
+          <ShellActionButton variant="surface" label="Cancel" onPress={onCancel} />
+        </YStack>
+      </YStack>
+    </Modal>
+  );
+}
 
 export default LobbyScreen;

@@ -48,6 +48,7 @@ export const HostAllocationGrid: React.FC<HostAllocationGridProps> = ({
     </Text>
     {participants.map((participant) => {
       const held = additionalMatchIdsFor(participant.id);
+      const heldIds = new Set(held);
       const short = held.length < matchesPerPlayer;
 
       return (
@@ -65,7 +66,7 @@ export const HostAllocationGrid: React.FC<HostAllocationGridProps> = ({
             {matches
               .filter((match) => match.id !== commonMatchId)
               .map((match) => {
-                const isHeld = held.includes(match.id);
+                const isHeld = heldIds.has(match.id);
 
                 return (
                   <ShellActionButton

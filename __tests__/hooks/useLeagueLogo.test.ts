@@ -1,5 +1,6 @@
 import { actCreate } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -13,6 +14,11 @@ jest.mock("../../utils/teamLogos", () => ({
 
 const mockCacheLeagueLogo = jest.mocked(cacheLeagueLogo);
 
+const flushQuery = async () => {
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+};
+
 const renderHookProbe = (leagueName: string, leagueCode?: string) => {
   let latest:
     | { logoSource: unknown; isLoading: boolean }
@@ -23,7 +29,16 @@ const renderHookProbe = (leagueName: string, leagueCode?: string) => {
     return null;
   };
 
-  const renderer = actCreate(React.createElement(Probe));
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  const renderer = actCreate(
+    React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      React.createElement(Probe),
+    ),
+  );
 
   return { renderer, getLatest: () => latest };
 };
@@ -59,8 +74,7 @@ describe("useLeagueLogo", () => {
     const { renderer, getLatest } = renderHookProbe("Eredivisie");
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(getLatest()?.logoSource).toEqual({
@@ -91,14 +105,12 @@ describe("useLeagueLogo", () => {
     const { renderer, getLatest } = renderHookProbe("Eredivisie", "ned.1");
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
       "https://site.api.espn.com/apis/site/v2/sports/soccer/ned.1/scoreboard",
+      { signal: expect.anything() },
     );
     expect(mockCacheLeagueLogo).toHaveBeenCalledWith(
       "Eredivisie",
@@ -121,8 +133,7 @@ describe("useLeagueLogo", () => {
     const { renderer, getLatest } = renderHookProbe("Eredivisie");
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(fetchMock).not.toHaveBeenCalled();
@@ -144,9 +155,7 @@ describe("useLeagueLogo", () => {
     const { renderer, getLatest } = renderHookProbe("Eredivisie", "ned.1");
 
     await TestRenderer.act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      await flushQuery();
     });
 
     expect(consoleWarnSpy).toHaveBeenCalled();

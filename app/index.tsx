@@ -49,43 +49,7 @@ const HomeScreen = () => {
   const { players, matches, resetState } = useGameStore();
   const { history, refresh: refreshHistory, accountId: historyAccountId } = useHistory();
   useFocusEffect(useCallback(() => { void refreshHistory(); }, [refreshHistory]));
-  const {
-    account,
-    activeRoom,
-    isCreatingRoom,
-    createRoomError,
-    createRoom,
-    isJoiningRoom,
-    joinRoomError,
-    conflictRoom,
-    clearConflict,
-    exit,
-    isJoinModalVisible,
-    setIsJoinModalVisible,
-    registeredJoinCode,
-    setRegisteredJoinCode,
-    guestRoomSession,
-    guestRoomStatus,
-    guestRoomError,
-    isGuestJoinSubmitting,
-    submitGuestJoin,
-    setGuestPicks,
-    isGuestPickBusy,
-    isGuestJoinModalVisible,
-    guestJoinCode,
-    setGuestJoinCode,
-    guestName,
-    setGuestName,
-    guestJoinActionLabel,
-    handleReturnToRoom,
-    handleSubmitRegisteredJoin,
-    handleLeaveCurrentAndSwitch,
-    handleChooseSuccessorOnHome,
-    handleConfirmCloseOnHome,
-    handleOpenGuestJoin,
-    handleCloseGuestJoin,
-    handleLeaveGuestJoin,
-  } = useHomeRoomActions();
+  const roomActions = useHomeRoomActions();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(() => {
     const shouldShow = !hasSplashBeenShown;
@@ -225,85 +189,7 @@ const HomeScreen = () => {
               />
             )}
 
-            {account !== null && activeRoom !== null && (
-              <ShellActionButton
-                variant="primary"
-                label="Return to room"
-                testID="home-return-to-room"
-                icon={<AppIcon name="people" size={22} color={colors.white} />}
-                onPress={handleReturnToRoom}
-                widthMode={wideLayout ? "wide" : undefined}
-                style={{ marginTop: 16 }}
-              />
-            )}
-
-            {account !== null && (
-              <>
-                <ShellActionButton
-                  variant="primary"
-                  label={isCreatingRoom ? "Creating Room…" : "Create Room"}
-                  testID="home-create-room-button"
-                  disabled={isCreatingRoom}
-                  icon={
-                    isCreatingRoom ? (
-                      <ActivityIndicator color={colors.white} />
-                    ) : (
-                      <AppIcon
-                        name="people-outline"
-                        size={22}
-                        color={colors.white}
-                      />
-                    )
-                  }
-                  onPress={() => {
-                    void createRoom();
-                  }}
-                  widthMode={wideLayout ? "wide" : undefined}
-                  style={{ marginTop: 16 }}
-                />
-
-                {createRoomError !== null && (
-                  <Text
-                    testID="home-create-room-error"
-                    style={styles.createRoomError}
-                  >
-                    {createRoomError}
-                  </Text>
-                )}
-
-                <ShellActionButton
-                  variant="secondary"
-                  label="Join Room"
-                  testID="home-join-registered-button"
-                  icon={
-                    <AppIcon
-                      name="people-outline"
-                      size={22}
-                      color={colors.white}
-                    />
-                  }
-                  onPress={() => setIsJoinModalVisible(true)}
-                  widthMode={wideLayout ? "wide" : undefined}
-                  style={{ marginTop: 16 }}
-                />
-              </>
-            )}
-
-            <ShellActionButton
-              variant={guestRoomSession ? "primary" : "secondary"}
-              label={guestJoinActionLabel}
-              testID="home-join-room-button"
-              icon={
-                <AppIcon
-                  name={guestRoomSession ? "people" : "people-outline"}
-                  size={22}
-                  color={colors.white}
-                />
-              }
-              onPress={handleOpenGuestJoin}
-              widthMode={wideLayout ? "wide" : undefined}
-              style={{ marginTop: 16 }}
-            />
+            <HomeRoomActions actions={roomActions} colors={colors} styles={styles} wideLayout={wideLayout} />
 
             <ShellActionButton
               variant="surface"
@@ -329,62 +215,207 @@ const HomeScreen = () => {
             onConfirm={handleCancelGame}
           />
 
-          <GuestJoinModal
-            error={guestRoomError}
-            guestName={guestName}
-            isSubmitting={isGuestJoinSubmitting}
-            joinCode={guestJoinCode}
-            onClose={handleCloseGuestJoin}
-            onGuestNameChange={setGuestName}
-            onJoinCodeChange={setGuestJoinCode}
-            onLeaveRoom={handleLeaveGuestJoin}
-            onSetPicks={setGuestPicks}
-            isPickBusy={isGuestPickBusy}
-            onSubmit={() => {
-              void submitGuestJoin(guestJoinCode, guestName);
-            }}
-            session={guestRoomSession}
-            status={guestRoomStatus}
-            visible={isGuestJoinModalVisible}
-          />
-
-          <JoinRoomModal
-            visible={isJoinModalVisible}
-            styles={styles}
-            colors={colors}
-            conflictRoom={conflictRoom}
-            exit={exit}
-            registeredJoinCode={registeredJoinCode}
-            setRegisteredJoinCode={setRegisteredJoinCode}
-            joinRoomError={joinRoomError}
-            isJoiningRoom={isJoiningRoom}
-            onRequestClose={() => {
-              setIsJoinModalVisible(false);
-              clearConflict();
-              exit.cancel();
-            }}
-            onCancelJoinForm={() => setIsJoinModalVisible(false)}
-            onSubmitJoin={() => {
-              void handleSubmitRegisteredJoin();
-            }}
-            onStay={() => {
-              clearConflict();
-              setIsJoinModalVisible(false);
-            }}
-            onLeaveCurrentAndSwitch={() => {
-              void handleLeaveCurrentAndSwitch();
-            }}
-            onChooseSuccessor={(participantId) => {
-              void handleChooseSuccessorOnHome(participantId);
-            }}
-            onConfirmClose={() => {
-              void handleConfirmCloseOnHome();
-            }}
-          />
+          <HomeRoomModals actions={roomActions} colors={colors} styles={styles} />
         </SafeAreaView>
       </ShellScreen>
     </>
   );
 };
+
+function HomeRoomActions({ actions, colors, styles, wideLayout }: {
+  actions: ReturnType<typeof useHomeRoomActions>;
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createStyles>;
+  wideLayout: boolean;
+}) {
+  const {
+    account,
+    activeRoom,
+    isCreatingRoom,
+    createRoomError,
+    createRoom,
+    setIsJoinModalVisible,
+    guestRoomSession,
+    guestJoinActionLabel,
+    handleReturnToRoom,
+    handleOpenGuestJoin,
+  } = actions;
+  return (
+    <>
+    {account !== null && activeRoom !== null && (
+      <ShellActionButton
+        variant="primary"
+        label="Return to room"
+        testID="home-return-to-room"
+        icon={<AppIcon name="people" size={22} color={colors.white} />}
+        onPress={handleReturnToRoom}
+        widthMode={wideLayout ? "wide" : undefined}
+        style={{ marginTop: 16 }}
+      />
+    )}
+
+    {account !== null && (
+      <>
+        <ShellActionButton
+          variant="primary"
+          label={isCreatingRoom ? "Creating Room…" : "Create Room"}
+          testID="home-create-room-button"
+          disabled={isCreatingRoom}
+          icon={
+            isCreatingRoom ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <AppIcon
+                name="people-outline"
+                size={22}
+                color={colors.white}
+              />
+            )
+          }
+          onPress={() => {
+            void createRoom();
+          }}
+          widthMode={wideLayout ? "wide" : undefined}
+          style={{ marginTop: 16 }}
+        />
+
+        {createRoomError !== null && (
+          <Text
+            testID="home-create-room-error"
+            style={styles.createRoomError}
+          >
+            {createRoomError}
+          </Text>
+        )}
+
+        <ShellActionButton
+          variant="secondary"
+          label="Join Room"
+          testID="home-join-registered-button"
+          icon={
+            <AppIcon
+              name="people-outline"
+              size={22}
+              color={colors.white}
+            />
+          }
+          onPress={() => setIsJoinModalVisible(true)}
+          widthMode={wideLayout ? "wide" : undefined}
+          style={{ marginTop: 16 }}
+        />
+      </>
+    )}
+
+    <ShellActionButton
+      variant={guestRoomSession ? "primary" : "secondary"}
+      label={guestJoinActionLabel}
+      testID="home-join-room-button"
+      icon={
+        <AppIcon
+          name={guestRoomSession ? "people" : "people-outline"}
+          size={22}
+          color={colors.white}
+        />
+      }
+      onPress={handleOpenGuestJoin}
+      widthMode={wideLayout ? "wide" : undefined}
+      style={{ marginTop: 16 }}
+    />
+
+    </>
+  );
+}
+
+function HomeRoomModals({ actions, colors, styles }: {
+  actions: ReturnType<typeof useHomeRoomActions>;
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const {
+    guestRoomError,
+    guestName,
+    isGuestJoinSubmitting,
+    guestJoinCode,
+    handleCloseGuestJoin,
+    setGuestName,
+    setGuestJoinCode,
+    handleLeaveGuestJoin,
+    setGuestPicks,
+    isGuestPickBusy,
+    submitGuestJoin,
+    guestRoomSession,
+    guestRoomStatus,
+    isGuestJoinModalVisible,
+    isJoinModalVisible,
+    conflictRoom,
+    exit,
+    registeredJoinCode,
+    setRegisteredJoinCode,
+    joinRoomError,
+    isJoiningRoom,
+    setIsJoinModalVisible,
+    clearConflict,
+    handleSubmitRegisteredJoin,
+    handleLeaveCurrentAndSwitch,
+    handleChooseSuccessorOnHome,
+    handleConfirmCloseOnHome,
+  } = actions;
+  return (
+    <>
+    <GuestJoinModal
+      error={guestRoomError}
+      guestName={guestName}
+      isSubmitting={isGuestJoinSubmitting}
+      joinCode={guestJoinCode}
+      onClose={handleCloseGuestJoin}
+      onGuestNameChange={setGuestName}
+      onJoinCodeChange={setGuestJoinCode}
+      onLeaveRoom={handleLeaveGuestJoin}
+      onSetPicks={setGuestPicks}
+      isPickBusy={isGuestPickBusy}
+      onSubmit={() => {
+        void submitGuestJoin(guestJoinCode, guestName);
+      }}
+      session={guestRoomSession}
+      status={guestRoomStatus}
+      visible={isGuestJoinModalVisible}
+    />
+
+    <JoinRoomModal
+      visible={isJoinModalVisible}
+      styles={styles}
+      colors={colors}
+      conflictRoom={conflictRoom}
+      exit={exit}
+      registeredJoinCode={registeredJoinCode}
+      setRegisteredJoinCode={setRegisteredJoinCode}
+      joinRoomError={joinRoomError}
+      isJoiningRoom={isJoiningRoom}
+      onRequestClose={() => {
+        setIsJoinModalVisible(false);
+        clearConflict();
+        exit.cancel();
+      }}
+      onCancelJoinForm={() => setIsJoinModalVisible(false)}
+      onSubmitJoin={() => {
+        void handleSubmitRegisteredJoin();
+      }}
+      onStay={() => {
+        clearConflict();
+        setIsJoinModalVisible(false);
+      }}
+      onLeaveCurrentAndSwitch={() => {
+        void handleLeaveCurrentAndSwitch();
+      }}
+      onChooseSuccessor={(participantId) => {
+        void handleChooseSuccessorOnHome(participantId);
+      }}
+      onConfirmClose={() => {
+        void handleConfirmCloseOnHome();
+      }}
+    />
+    </>
+  );
+}
 
 export default HomeScreen;

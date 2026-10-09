@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS public.assignments (
     created_at timestamptz DEFAULT now(),
     PRIMARY KEY (session_id, participant_id, match_id)
 );
+ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.assignments
 ADD CONSTRAINT fk_assignments_participant FOREIGN KEY (session_id, participant_id) REFERENCES public.participants(session_id, id),
     ADD CONSTRAINT fk_assignments_match FOREIGN KEY (session_id, match_id) REFERENCES public.matches(session_id, id);

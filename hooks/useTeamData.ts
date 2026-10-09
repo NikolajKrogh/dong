@@ -1,125 +1,105 @@
-import { useState, useEffect } from "react";
-import { TeamWithLeague } from "../utils/matchUtils";
+import { useQuery } from "@tanstack/react-query";
+import type { TeamWithLeague } from "../utils/matchUtils";
 
-/**
- * Load team lists from multiple league JSON sources.
- * @description Fetches several openfootball JSON files, derives unique teams with league attribution and exposes loading/error state.
- * @returns State bundle (isLoading, isError, errorMessage, teamsData, availableLeagues).
- */
-export const useTeamData = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [teamsData, setTeamsData] = useState<TeamWithLeague[]>([]);
-  const [availableLeagues, setAvailableLeagues] = useState<string[]>([]);
+const EMPTY_TEAMS: TeamWithLeague[] = [];
+const EMPTY_LEAGUES: string[] = [];
 
-  useEffect(() => {
-    const fetchTeamData = async () => {
-      setIsLoading(true);
-      setIsError(false);
+const fetchTeamData = async (signal: AbortSignal) => {
+  const leagueUrls = [
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.1.json",
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.2.json",
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.3.json",
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/de.1.json",
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/es.1.json",
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/it.1.json",
+    "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/fr.1.json",
+  ];
+  const leagueNames = [
+    "Premier League",
+    "Championship",
+    "EFL League One",
+    "Bundesliga",
+    "La Liga",
+    "Serie A",
+    "Ligue 1",
+  ];
 
-      const leagueUrls = [
-        // Premier League
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.1.json",
-        // Championship
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.2.json",
-        // EFL League One
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/en.3.json",
-        // Bundesliga
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/de.1.json",
-        // La Liga
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/es.1.json",
-        // Serie A
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/it.1.json",
-        // Ligue 1
-        "https://raw.githubusercontent.com/openfootball/football.json/refs/heads/master/2024-25/fr.1.json",
-      ];
+  try {
+    const teams = new Map<string, TeamWithLeague>();
+    const leagues = new Set<string>();
+    const responses = await Promise.all(
+      leagueUrls.map(async (url, index) => {
+        const response = await fetch(url, { signal });
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
+          );
+        }
+        return {
+          data: await response.json(),
+          leagueName: leagueNames[index],
+        };
+      }),
+    );
 
-      const leagueNames = [
-        "Premier League",
-        "Championship",
-        "EFL League One",
-        "Bundesliga",
-        "La Liga",
-        "Serie A",
-        "Ligue 1",
-      ];
+    responses.forEach(({ data, leagueName }) => {
+      leagues.add(leagueName);
 
-      try {
-        const teams = new Map<string, TeamWithLeague>();
-        const leagues = new Set<string>();
+      if (data.matches) {
+        data.matches.forEach((match: any) => {
+          if (match.team1) {
+            const teamKey = match.team1.toLowerCase();
+            if (!teams.has(teamKey)) {
+              teams.set(teamKey, {
+                key: teamKey,
+                value: match.team1,
+                league: leagueName,
+              });
+            }
+          }
 
-        // Fetch data from each URL
-        const responses = await Promise.all(
-          leagueUrls.map((url, index) =>
-            fetch(url).then(async (res) => {
-              if (!res.ok) {
-                throw new Error(
-                  `Failed to fetch ${url}: ${res.status} ${res.statusText}`,
-                );
-              }
-              return {
-                data: await res.json(),
-                leagueName: leagueNames[index],
-              };
-            }),
-          ),
-        );
-
-        // Process each response
-        responses.forEach(({ data, leagueName }) => {
-          leagues.add(leagueName);
-
-          // Extract teams from matches
-          if (data.matches) {
-            data.matches.forEach((match: any) => {
-              if (match.team1) {
-                const teamKey = match.team1.toLowerCase();
-                if (!teams.has(teamKey)) {
-                  teams.set(teamKey, {
-                    key: teamKey,
-                    value: match.team1,
-                    league: leagueName,
-                  });
-                }
-              }
-
-              if (match.team2) {
-                const teamKey = match.team2.toLowerCase();
-                if (!teams.has(teamKey)) {
-                  teams.set(teamKey, {
-                    key: teamKey,
-                    value: match.team2,
-                    league: leagueName,
-                  });
-                }
-              }
-            });
+          if (match.team2) {
+            const teamKey = match.team2.toLowerCase();
+            if (!teams.has(teamKey)) {
+              teams.set(teamKey, {
+                key: teamKey,
+                value: match.team2,
+                league: leagueName,
+              });
+            }
           }
         });
-
-        setTeamsData(Array.from(teams.values()));
-        setAvailableLeagues(Array.from(leagues));
-      } catch (error) {
-        console.error("Error fetching team data:", error);
-        setIsError(true);
-        setErrorMessage("Failed to fetch team data");
-
-        setTeamsData([]);
-        setAvailableLeagues([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
+    });
 
-    fetchTeamData();
-  }, []);
+    return {
+      teamsData: Array.from(teams.values()),
+      availableLeagues: Array.from(leagues),
+    };
+  } catch (error) {
+    if (!signal.aborted) console.error("Error fetching team data:", error);
+    throw error;
+  }
+};
+
+/** Load the remote team lists, exposing the same empty/error state on failure. */
+export const useTeamData = () => {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["setup-team-data"],
+    queryFn: ({ signal }) => fetchTeamData(signal),
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    networkMode: "always",
+  });
 
   return {
     isLoading,
     isError,
-    errorMessage,
-    teamsData,
-    availableLeagues,
+    errorMessage: isError ? "Failed to fetch team data" : "",
+    teamsData: isError ? EMPTY_TEAMS : data?.teamsData ?? EMPTY_TEAMS,
+    availableLeagues: isError ? EMPTY_LEAGUES : data?.availableLeagues ?? EMPTY_LEAGUES,
   };
 };

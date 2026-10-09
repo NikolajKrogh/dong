@@ -90,6 +90,18 @@ const render = (props: Record<string, unknown> = {}) => {
   );
 };
 
+const findMatchButton = (renderer: ReturnType<typeof actCreate>, matchId: string) => {
+  const matchButton = renderer.root
+    .findAllByProps({ testID: `pick-${matchId}` })
+    .find((node) => String(node.type) === "TouchableOpacity");
+
+  if (!matchButton) {
+    throw new Error(`Expected the TouchableOpacity for match ${matchId}`);
+  }
+
+  return matchButton;
+};
+
 describe("SelectableMatchList", () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -97,7 +109,7 @@ describe("SelectableMatchList", () => {
     const onToggleMatch = jest.fn();
     const renderer = render({ onToggleMatch, useGridLayout: true });
 
-    renderer.root.findByProps({ testID: "pick-m2" }).props.onPress();
+    findMatchButton(renderer, "m2").props.onPress();
 
     expect(onToggleMatch).toHaveBeenCalledWith("m2");
   });
@@ -109,12 +121,10 @@ describe("SelectableMatchList", () => {
     });
 
     expect(
-      renderer.root.findByProps({ testID: "pick-m2" }).props
-        .accessibilityState,
+      findMatchButton(renderer, "m2").props.accessibilityState,
     ).toEqual({ selected: true, disabled: false });
     expect(
-      renderer.root.findByProps({ testID: "pick-m1" }).props
-        .accessibilityState,
+      findMatchButton(renderer, "m1").props.accessibilityState,
     ).toEqual({ selected: false, disabled: false });
   });
 
@@ -128,10 +138,10 @@ describe("SelectableMatchList", () => {
     });
 
     expect(
-      renderer.root.findByProps({ testID: "pick-m2" }).props.disabled,
+      findMatchButton(renderer, "m2").props.disabled,
     ).toBe(true);
     expect(
-      renderer.root.findByProps({ testID: "pick-m1" }).props.disabled,
+      findMatchButton(renderer, "m1").props.disabled,
     ).toBe(false);
   });
 

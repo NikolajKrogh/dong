@@ -17,12 +17,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT chk_profiles_display_name_nonempty CHECK (length(btrim(display_name)) > 0)
 );
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.settings (
     account_id uuid PRIMARY KEY REFERENCES public.accounts(id) ON DELETE CASCADE,
     settings_data jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.friendships (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     requester_account_id uuid NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
@@ -33,3 +35,4 @@ CREATE TABLE IF NOT EXISTS public.friendships (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;

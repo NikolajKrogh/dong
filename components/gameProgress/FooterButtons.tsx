@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 import GameActionsSheet from "./GameActionsSheet";
 
 /**
@@ -158,11 +159,8 @@ const createStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.primary,
       justifyContent: "center",
       alignItems: "center",
-      shadowColor: colors.black,
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-      elevation: 3,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(3),
     },
   });
 

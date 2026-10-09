@@ -9,9 +9,16 @@ import { randomBytes, randomInt, randomUUID } from "node:crypto";
 
 const defaultDatabaseUrl =
   "postgresql://postgres:postgres@127.0.0.1:55422/postgres";
-const databaseUrl = new URL(
-  process.env.DONG_GUEST_TEST_DATABASE_URL ?? defaultDatabaseUrl,
-);
+let databaseUrl;
+try {
+  databaseUrl = new URL(
+    process.env.DONG_GUEST_TEST_DATABASE_URL ?? defaultDatabaseUrl,
+  );
+} catch {
+  throw new Error(
+    "Refusing to run: DONG_GUEST_TEST_DATABASE_URL must be a valid URL targeting local loopback and the postgres database.",
+  );
+}
 const host = databaseUrl.hostname.replace(/^\[|\]$/g, "").toLowerCase();
 const loopbackHosts = new Set(["localhost", "127.0.0.1", "::1"]);
 

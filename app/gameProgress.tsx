@@ -25,15 +25,6 @@ import { useGameStore } from "../store/store";
 import { isWideLayout } from "../styles/responsive";
 
 const GameProgressScreen = () => {
-  const router = useRouter();
-  const context = useGameStore((state) => state.activeGameContext);
-  const resetState = useGameStore((state) => state.resetState);
-  const guestRoom = useGuestRoomSession();
-  const exit = useRoomExit();
-  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const [leaveError, setLeaveError] = useState<string | null>(null);
-  const leaveFinishedRef = useRef(false);
   const { width } = useWindowDimensions();
   const wideLayout = isWideLayout(width);
   const {
@@ -91,52 +82,9 @@ const GameProgressScreen = () => {
       },
     } as NonNullable<typeof activeGameFromController>);
 
-  const finishLeave = useCallback(() => {
-    if (leaveFinishedRef.current) return;
-    leaveFinishedRef.current = true;
-    resetState();
-    router.replace("/");
-  }, [resetState, router]);
-
-  useEffect(() => {
-    if (leaving && context.accessKind === "guest" && guestRoom.status === "left") {
-      finishLeave();
-    }
-  }, [context.accessKind, finishLeave, guestRoom.status, leaving]);
-
-  const confirmLeave = useCallback(async () => {
-    if (!context.sessionId || leaving) return;
-    setLeaving(true);
-    setLeaveError(null);
-    if (context.accessKind === "guest") {
-      if (await guestRoom.leaveRoom()) finishLeave();
-      else {
-        setLeaveError("Departure has not been confirmed. It will retry while you are connected.");
-        setLeaving(false);
-      }
-      return;
-    }
-    const result = await exit.exitRoom(context.sessionId, activeGame.isHost ? "owner" : "member");
-    setLeaving(false);
-    if (result) finishLeave();
-  }, [activeGame.isHost, context.accessKind, context.sessionId, exit, finishLeave, guestRoom, leaving]);
-
-  const chooseSuccessor = useCallback(async (participantId: string) => {
-    if (!context.sessionId) return;
-    const result = await exit.confirmSuccessor(context.sessionId, participantId);
-    if (result) finishLeave();
-  }, [context.sessionId, exit, finishLeave]);
-
-  const confirmClose = useCallback(async () => {
-    if (!context.sessionId) return;
-    const result = await exit.confirmClose(context.sessionId);
-    if (result) finishLeave();
-  }, [context.sessionId, exit, finishLeave]);
-
-  const departurePending = leaving || (context.accessKind === "guest"
-    && guestRoom.status === "pending_leave");
-  const canLeave = activeGame.isMultiplayer && activeGame.isEditable
-    && Boolean(context.sessionId && context.participantId) && !departurePending;
+  const departure = useGameDeparture(activeGame);
+  const { departurePending, canLeave, setLeaveConfirmVisible } = departure;
+  const controlsDisabled = activeGame.isMultiplayer && (!activeGame.isEditable || departurePending);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -198,7 +146,7 @@ const GameProgressScreen = () => {
                 playerAssignments={playerAssignments}
                 handleDrinkIncrement={handleDrinkIncrement}
                 handleDrinkDecrement={handleDrinkDecrement}
-                disabled={activeGame.isMultiplayer && (!activeGame.isEditable || departurePending)}
+                disabled={controlsDisabled}
               />
             </View>
           </TabNavigation>
@@ -231,7 +179,7 @@ const GameProgressScreen = () => {
         handleGoalIncrement={handleGoalIncrement}
         handleGoalDecrement={handleGoalDecrement}
         liveMatches={liveMatches}
-        disabled={activeGame.isMultiplayer && (!activeGame.isEditable || departurePending)}
+        disabled={controlsDisabled}
       />
 
       <EndGameModal
@@ -240,51 +188,130 @@ const GameProgressScreen = () => {
         onConfirm={confirmEndGame}
       />
 
-      <Modal visible={leaveConfirmVisible && !exit.pendingSuccessorChoice && !exit.needsCloseConfirm}
-        transparent animationType="fade"
-        onRequestClose={() => { if (!leaving) setLeaveConfirmVisible(false); }}>
-        <YStack flex={1} justifyContent="center" alignItems="center"
-          backgroundColor="$backgroundModalOverlay" padding="$5">
-          <YStack backgroundColor="$background" borderRadius="$6" gap="$3"
-            padding="$5" width="100%" maxWidth={420} testID="game-leave-confirm">
-            <Text color="$color" fontSize={20} fontWeight="700">Leave Game?</Text>
-            <Text color="$colorMuted">
-              {activeGame.isHost
-                ? "A signed-in player can take over. If none remains, the room closes."
-                : "Your result is saved at departure. The game continues for everyone else."}
-            </Text>
-            {leaveError || exit.error || guestRoom.error ? (
-              <Text color="$danger">{leaveError || exit.error || guestRoom.error}</Text>
-            ) : null}
-            <ShellActionButton variant="danger" label={leaving ? "Leaving…" : "Leave Game"}
-              testID="game-leave-confirm-button" onPress={() => { void confirmLeave(); }}
-              disabled={leaving || exit.isExiting} />
-            {!leaving ? <ShellActionButton variant="surface" label="Cancel"
-              testID="game-leave-cancel" onPress={() => setLeaveConfirmVisible(false)} /> : null}
-          </YStack>
-        </YStack>
-      </Modal>
-
-      <SuccessorChooserModal visible={exit.pendingSuccessorChoice}
-        candidates={exit.eligibleSuccessors}
-        onChoose={(id) => { void chooseSuccessor(id); }} onCancel={exit.cancel} />
-
-      <Modal visible={exit.needsCloseConfirm} transparent animationType="fade"
-        onRequestClose={exit.cancel}>
-        <YStack flex={1} justifyContent="center" alignItems="center"
-          backgroundColor="$backgroundModalOverlay" padding="$5">
-          <YStack backgroundColor="$background" borderRadius="$6" gap="$3"
-            padding="$5" width="100%" maxWidth={420} testID="game-close-confirm">
-            <Text color="$color" fontSize={20} fontWeight="700">Close the room?</Text>
-            <Text color="$colorMuted">No signed-in player can take over. Leaving closes the room for everyone.</Text>
-            <ShellActionButton variant="danger" label="Close Room"
-              onPress={() => { void confirmClose(); }} />
-            <ShellActionButton variant="surface" label="Cancel" onPress={exit.cancel} />
-          </YStack>
-        </YStack>
-      </Modal>
+      <GameDepartureModals departure={departure} isHost={activeGame.isHost} />
     </SafeAreaView>
   );
 };
+
+function useGameDeparture(activeGame: NonNullable<ReturnType<typeof useGameProgressController>["activeGame"]>) {
+  const router = useRouter();
+  const context = useGameStore((state) => state.activeGameContext);
+  const resetState = useGameStore((state) => state.resetState);
+  const guestRoom = useGuestRoomSession();
+  const exit = useRoomExit();
+  const [leaveConfirmVisible, setLeaveConfirmVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
+  const leaveFinishedRef = useRef(false);
+  const finishLeave = useCallback(() => {
+    if (leaveFinishedRef.current) return;
+    leaveFinishedRef.current = true;
+    resetState();
+    router.replace("/");
+  }, [resetState, router]);
+
+  useEffect(() => {
+    if (leaving && context.accessKind === "guest" && guestRoom.status === "left") {
+      finishLeave();
+    }
+  }, [context.accessKind, finishLeave, guestRoom.status, leaving]);
+
+  const confirmLeave = useCallback(async () => {
+    if (!context.sessionId || leaving) return;
+    setLeaving(true);
+    setLeaveError(null);
+    if (context.accessKind === "guest") {
+      if (await guestRoom.leaveRoom()) finishLeave();
+      else {
+        setLeaveError("Departure has not been confirmed. It will retry while you are connected.");
+        setLeaving(false);
+      }
+      return;
+    }
+    const result = await exit.exitRoom(context.sessionId, activeGame.isHost ? "owner" : "member");
+    setLeaving(false);
+    if (result) finishLeave();
+  }, [activeGame.isHost, context.accessKind, context.sessionId, exit, finishLeave, guestRoom, leaving]);
+
+  const chooseSuccessor = useCallback(async (participantId: string) => {
+    if (!context.sessionId) return;
+    const result = await exit.confirmSuccessor(context.sessionId, participantId);
+    if (result) finishLeave();
+  }, [context.sessionId, exit, finishLeave]);
+
+  const confirmClose = useCallback(async () => {
+    if (!context.sessionId) return;
+    const result = await exit.confirmClose(context.sessionId);
+    if (result) finishLeave();
+  }, [context.sessionId, exit, finishLeave]);
+
+  const departurePending = leaving || (context.accessKind === "guest"
+    && guestRoom.status === "pending_leave");
+  const canLeave = activeGame.isMultiplayer && activeGame.isEditable
+    && Boolean(context.sessionId && context.participantId) && !departurePending;
+
+  return { leaveConfirmVisible, setLeaveConfirmVisible, leaving, leaveError, guestRoom, exit, confirmLeave, chooseSuccessor, confirmClose, departurePending, canLeave };
+}
+
+function GameDepartureModals({ departure, isHost }: { departure: ReturnType<typeof useGameDeparture>; isHost: boolean }) {
+  const {
+    leaveConfirmVisible,
+    setLeaveConfirmVisible,
+    leaving,
+    leaveError,
+    guestRoom,
+    exit,
+    confirmLeave,
+    chooseSuccessor,
+    confirmClose,
+  } = departure;
+  return (
+    <>
+    <Modal visible={leaveConfirmVisible && !exit.pendingSuccessorChoice && !exit.needsCloseConfirm}
+      transparent animationType="fade"
+      onRequestClose={() => { if (!leaving) setLeaveConfirmVisible(false); }}>
+      <YStack flex={1} justifyContent="center" alignItems="center"
+        backgroundColor="$backgroundModalOverlay" padding="$5">
+        <YStack backgroundColor="$background" borderRadius="$6" gap="$3"
+          padding="$5" width="100%" maxWidth={420} testID="game-leave-confirm">
+          <Text color="$color" fontSize={20} fontWeight="700">Leave Game?</Text>
+          <Text color="$colorMuted">
+            {isHost
+              ? "A signed-in player can take over. If none remains, the room closes."
+              : "Your result is saved at departure. The game continues for everyone else."}
+          </Text>
+          {leaveError || exit.error || guestRoom.error ? (
+            <Text color="$danger">{leaveError || exit.error || guestRoom.error}</Text>
+          ) : null}
+          <ShellActionButton variant="danger" label={leaving ? "Leaving…" : "Leave Game"}
+            testID="game-leave-confirm-button" onPress={() => { void confirmLeave(); }}
+            disabled={leaving || exit.isExiting} />
+          {!leaving ? <ShellActionButton variant="surface" label="Cancel"
+            testID="game-leave-cancel" onPress={() => setLeaveConfirmVisible(false)} /> : null}
+        </YStack>
+      </YStack>
+    </Modal>
+
+    <SuccessorChooserModal visible={exit.pendingSuccessorChoice}
+      candidates={exit.eligibleSuccessors}
+      onChoose={(id) => { void chooseSuccessor(id); }} onCancel={exit.cancel} />
+
+    <Modal visible={exit.needsCloseConfirm} transparent animationType="fade"
+      onRequestClose={exit.cancel}>
+      <YStack flex={1} justifyContent="center" alignItems="center"
+        backgroundColor="$backgroundModalOverlay" padding="$5">
+        <YStack backgroundColor="$background" borderRadius="$6" gap="$3"
+          padding="$5" width="100%" maxWidth={420} testID="game-close-confirm">
+          <Text color="$color" fontSize={20} fontWeight="700">Close the room?</Text>
+          <Text color="$colorMuted">No signed-in player can take over. Leaving closes the room for everyone.</Text>
+          <ShellActionButton variant="danger" label="Close Room"
+            onPress={() => { void confirmClose(); }} />
+          <ShellActionButton variant="surface" label="Cancel" onPress={exit.cancel} />
+        </YStack>
+      </YStack>
+    </Modal>
+    </>
+  );
+}
 
 export default GameProgressScreen;
