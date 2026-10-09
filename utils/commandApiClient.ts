@@ -111,7 +111,8 @@ const readErrorMessage = async (response: Response) => {
   return `Command API request failed with status ${response.status}.`;
 };
 
-const MATCH_DISCOVERY_TIMEOUT_MS = 10_000;
+// Allow the production Java service time to start after scaling to zero.
+const MATCH_DISCOVERY_TIMEOUT_MS = 30_000;
 
 const createMatchDiscoveryApiClient = (
   fetchFn: typeof fetch = fetch,
@@ -198,7 +199,7 @@ export const generateIdempotencyKey = (): string => {
   });
 };
 
-const START_GAME_TIMEOUT_MS = 10_000;
+const START_GAME_TIMEOUT_MS = 30_000;
 
 const createStartGameApiClient = (
   fetchFn: typeof fetch = fetch,

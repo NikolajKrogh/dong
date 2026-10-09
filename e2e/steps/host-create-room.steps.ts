@@ -42,6 +42,14 @@ Then("the host is navigated to the lobby screen", async ({ page }) => {
   await page.waitForURL(/\/lobby\//, { timeout: 10_000 });
 });
 
+When("the host opens the canonical lobby URL directly and refreshes it", async ({ page }) => {
+  const lobbyUrl = new URL(page.url());
+  lobbyUrl.search = "";
+  await page.goto(lobbyUrl.toString(), { waitUntil: "domcontentloaded" });
+  await expect(page.getByTestId("lobby-join-code")).toBeVisible({ timeout: 15_000 });
+  await page.reload({ waitUntil: "domcontentloaded" });
+});
+
 Then("a 6-digit numeric join code is displayed", async ({ page }) => {
   const joinCode = page.getByTestId("lobby-join-code");
 

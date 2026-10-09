@@ -20,7 +20,7 @@ spring:
       - optional:file:./command-api/.env[.properties]
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 command-api:
   match-discovery:

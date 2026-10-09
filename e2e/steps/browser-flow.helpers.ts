@@ -880,6 +880,7 @@ export const mockHostRoomServices = async (
   page: Page,
   { resetParticipants = true }: { resetParticipants?: boolean } = {},
 ) => {
+  let activeRoom: { sessionId: string; participantId: string; role: string; joinCode: string | null } | null = null;
   // Reset the roster injection. `extraSnapshotParticipants` is module-level and
   // was previously only ever assigned, so a scenario that added members leaked
   // them into every later scenario in the same worker -- silently changing
@@ -919,10 +920,12 @@ export const mockHostRoomServices = async (
   });
 
   await page.route(HOST_ROOM_CREATE_RPC_PATH, async (route) => {
+    const created = buildHostRoomCreateResponse();
+    activeRoom = { sessionId: created.sessionId, participantId: created.hostParticipantId, role: "owner", joinCode: HOST_ROOM_JOIN_CODE };
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(buildHostRoomCreateResponse()),
+      body: JSON.stringify(created),
     });
   });
 
@@ -930,7 +933,7 @@ export const mockHostRoomServices = async (
     await route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(null),
+      body: JSON.stringify(activeRoom),
     });
   });
 
@@ -945,6 +948,7 @@ export const mockHostRoomServices = async (
   });
 
   await page.route("**/rest/v1/rpc/join_room_as_registered", async (route) => {
+    activeRoom = { sessionId: HOST_ROOM_SESSION_ID, participantId: "joined-member-1", role: "member", joinCode: null };
     await route.fulfill({
       status: 200,
       contentType: "application/json",

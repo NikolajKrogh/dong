@@ -20,6 +20,13 @@ const mockPush = jest.fn();
 const mockLobby: Record<string, unknown> = {};
 const mockEndGame = jest.fn(async () => true);
 
+jest.mock("../../../hooks/useAccountAuth", () => ({
+  useAccountAuth: () => ({ status: "ready", account: { id: "account-1" } }),
+}));
+jest.mock("../../../hooks/useMyActiveRoom", () => ({
+  useMyActiveRoom: () => ({ activeRoom: { sessionId: "room-1", participantId: "p1" }, isLoading: false, error: null, refresh: jest.fn() }),
+}));
+
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));

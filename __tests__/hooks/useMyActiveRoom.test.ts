@@ -36,7 +36,7 @@ const renderMyActiveRoom = async (
 }> => {
   let observed: UseMyActiveRoomResult | null = null;
   const Probe = () => {
-    observed = useMyActiveRoom(enabled);
+    observed = useMyActiveRoom(enabled ? "account-1" : null);
     return null;
   };
   const renderer = actCreate(React.createElement(Probe));
@@ -89,7 +89,7 @@ describe("useMyActiveRoom", () => {
     unmount();
   });
 
-  it("clears the active room and swallows the error when the RPC rejects", async () => {
+  it("exposes a retryable error when the RPC rejects", async () => {
     const getMyActiveRoom = jest.fn(async () => {
       throw new Error("network error");
     });
@@ -99,8 +99,30 @@ describe("useMyActiveRoom", () => {
 
     expect(result()?.activeRoom).toBeNull();
     expect(result()?.isLoading).toBe(false);
+    expect(result()?.error).toContain("try again");
 
     unmount();
+  });
+
+  it("ignores an earlier account's response after switching accounts", async () => {
+    let resolveOld!: (room: MyActiveRoom) => void;
+    const getMyActiveRoom = jest.fn<() => Promise<MyActiveRoom | null>>()
+      .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
+      .mockResolvedValueOnce(null);
+    mockGetRoomRpcClient.mockReturnValue({ getMyActiveRoom } as never);
+    let observed: UseMyActiveRoomResult | undefined;
+    const Probe = ({ accountId }: { accountId: string }) => {
+      observed = useMyActiveRoom(accountId);
+      return null;
+    };
+    const renderer = actCreate(React.createElement(Probe, { accountId: "old-account" }));
+    await TestRenderer.act(async () => {
+      renderer.update(React.createElement(Probe, { accountId: "new-account" }));
+    });
+    await TestRenderer.act(async () => { resolveOld(buildActiveRoom()); });
+    expect(observed?.activeRoom).toBeNull();
+    expect(observed?.isLoading).toBe(false);
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("re-fetches when refresh() is called explicitly", async () => {
@@ -133,7 +155,7 @@ describe("useMyActiveRoom", () => {
     const observedStates: (UseMyActiveRoomResult | null)[] = [];
     const props = { enabled: true };
     const Probe = ({ enabled }: { enabled: boolean }) => {
-      observedStates.push(useMyActiveRoom(enabled));
+      observedStates.push(useMyActiveRoom(enabled ? "account-1" : null));
       return null;
     };
 

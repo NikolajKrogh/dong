@@ -45,6 +45,9 @@ import { ShellActionButton, ShellScreen } from "../../components/ui";
 import { useRoomConfigure } from "../../hooks/useRoomConfigure";
 import { useRoomExit } from "../../hooks/useRoomExit";
 import { useRoomLobby } from "../../hooks/useRoomLobby";
+import { useAccountAuth } from "../../hooks/useAccountAuth";
+import { useMyActiveRoom } from "../../hooks/useMyActiveRoom";
+import { buildAccountAuthRoute } from "../../utils/accountAuthRoutes";
 import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
 import { useGameStore } from "../../store/store";
 import {
@@ -60,12 +63,40 @@ const normalizeParam = (value: string | string[] | undefined): string =>
 
 const LobbyScreen = () => {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    sessionId: string;
-    participantId: string;
-  }>();
+  const params = useLocalSearchParams<{ sessionId: string }>();
   const sessionId = normalizeParam(params.sessionId);
-  const participantId = normalizeParam(params.participantId) || null;
+  const { status, account } = useAccountAuth();
+  const membership = useMyActiveRoom(status === "ready" ? account?.id ?? null : null);
+  const returnTo = `/lobby/${encodeURIComponent(sessionId)}`;
+
+  if (status === "ready" && membership.activeRoom?.sessionId === sessionId) {
+    return <RoomLobbyScreen key={`${account?.id}:${sessionId}:${membership.activeRoom.participantId}`}
+      sessionId={sessionId} participantId={membership.activeRoom.participantId} />;
+  }
+
+  const loading = status === "loading" || (status === "ready" && membership.isLoading);
+  const requiresAuth = status !== "ready" && !loading;
+  const authRoute = status === "needsUsername" ? "/auth/onboarding"
+    : status === "recoveringPassword" ? "/auth/change-password" : "/auth";
+  return (
+    <ShellScreen centerContent>
+      <YStack gap="$4" padding="$4">
+        <Text accessibilityRole="header">{loading ? "Loading your room…" : requiresAuth
+          ? "Sign in to return to your room" : membership.error ? "Unable to load your room"
+            : "You are not an active member of this room"}</Text>
+        {!loading && <Text>{requiresAuth
+          ? "Use the account you joined with. Guests can join from Home using the room code."
+          : membership.error ?? "This room may have ended. Join from Home using its room code."}</Text>}
+        {requiresAuth && <ShellActionButton label="Continue" onPress={() => router.push(buildAccountAuthRoute(authRoute, returnTo) as never)} />}
+        {membership.error && <ShellActionButton label="Retry" onPress={() => void membership.refresh()} />}
+        {!loading && <ShellActionButton label="Go Home" variant="secondary" onPress={() => router.replace("/")} />}
+      </YStack>
+    </ShellScreen>
+  );
+};
+
+const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; participantId: string }) => {
+  const router = useRouter();
 
   const lobby = useRoomLobby(sessionId || null, participantId);
   const exit = useRoomExit();
@@ -631,6 +662,18 @@ const LobbyScreen = () => {
     },
   ];
 
+  if (!lobby.snapshot) {
+    return (
+      <ShellScreen centerContent>
+        <YStack gap="$4" padding="$4">
+          <Text>{lobby.error ? "Unable to load the room. Check your connection and try again." : "Loading room…"}</Text>
+          {lobby.error && <ShellActionButton label="Retry" onPress={() => void lobby.refresh()} />}
+          <ShellActionButton label="Go Home" variant="secondary" onPress={goHome} />
+        </YStack>
+      </ShellScreen>
+    );
+  }
+
   return (
     <ShellScreen
       padded={!isPreStart}
@@ -638,6 +681,10 @@ const LobbyScreen = () => {
       contentMaxWidth={isPreStart && wideLayout ? 1120 : undefined}
     >
       <SafeAreaView style={{ flex: 1 }}>
+        {lobby.error && <YStack padding="$3" gap="$2">
+          <Text>Connection interrupted. Room information may be out of date.</Text>
+          <ShellActionButton label="Retry" onPress={() => void lobby.refresh()} />
+        </YStack>}
         {isPreStart ? (
           /*
             No ScrollView around the wizard, and this is load-bearing rather

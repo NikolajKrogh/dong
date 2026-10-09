@@ -18,6 +18,18 @@ const mockPush = jest.fn();
 const mockLobby: Record<string, unknown> = {};
 const mockSetCommonMatch = jest.fn();
 const mockStartGame = jest.fn();
+let mockAuthStatus = "ready";
+let mockActiveRoom: { sessionId: string; participantId: string } | null = { sessionId: "room-1", participantId: "p1" };
+let mockMembershipError: string | null = null;
+const mockMembershipRefresh = jest.fn();
+const mockUseRoomLobby = jest.fn((..._args: unknown[]) => mockLobby);
+
+jest.mock("../../../hooks/useAccountAuth", () => ({
+  useAccountAuth: () => ({ status: mockAuthStatus, account: { id: "account-1" } }),
+}));
+jest.mock("../../../hooks/useMyActiveRoom", () => ({
+  useMyActiveRoom: () => ({ activeRoom: mockActiveRoom, isLoading: false, error: mockMembershipError, refresh: mockMembershipRefresh }),
+}));
 
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
@@ -25,7 +37,7 @@ jest.mock("react-native-safe-area-context", () => ({
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
-  useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "p1" }),
+  useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "untrusted-id" }),
 }));
 
 // The wizard is stubbed so the steps array it is handed can be inspected
@@ -58,7 +70,7 @@ jest.mock("../../../components/lobby/SuccessorChooserModal", () => ({
 }));
 
 jest.mock("../../../hooks/useRoomLobby", () => ({
-  useRoomLobby: () => mockLobby,
+  useRoomLobby: (...args: unknown[]) => mockUseRoomLobby(...args),
 }));
 
 jest.mock("../../../hooks/useRoomConfigure", () => ({
@@ -192,6 +204,46 @@ const renderStep = (content: React.ReactNode) =>
 describe("pre-start lobby, as the setup wizard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuthStatus = "ready";
+    mockActiveRoom = { sessionId: "room-1", participantId: "p1" };
+    mockMembershipError = null;
+  });
+
+  it("uses server membership instead of the participant query parameter", () => {
+    setLobby({ role: "owner" });
+    const tree = renderLobby();
+    expect(mockUseRoomLobby).toHaveBeenCalledWith("room-1", "p1");
+    tree.unmount();
+  });
+
+  it("offers sign-in with a return URL while signed out", () => {
+    mockAuthStatus = "signedOut";
+    mockActiveRoom = null;
+    const tree = renderLobby();
+    tree.root.findAllByType("ShellActionButton" as unknown as React.ElementType)
+      .find(button => button.props.label === "Continue")!.props.onPress();
+    expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2Flobby%2Froom-1");
+    expect(mockUseRoomLobby).not.toHaveBeenCalled();
+    tree.unmount();
+  });
+
+  it("does not load another room's snapshot", () => {
+    mockActiveRoom = { sessionId: "other-room", participantId: "p2" };
+    const tree = renderLobby();
+    expect(mockUseRoomLobby).not.toHaveBeenCalled();
+    expect(JSON.stringify(tree.toJSON())).toContain("not an active member");
+    tree.unmount();
+  });
+
+  it("offers retry when membership lookup fails", () => {
+    mockActiveRoom = null;
+    mockMembershipError = "Connection failed";
+    const tree = renderLobby();
+    tree.root.findAllByType("ShellActionButton" as unknown as React.ElementType)
+      .find(button => button.props.label === "Retry")!.props.onPress();
+    expect(mockMembershipRefresh).toHaveBeenCalled();
+    expect(mockUseRoomLobby).not.toHaveBeenCalled();
+    tree.unmount();
   });
 
   it("gives the host the four wizard steps in wizard order", () => {

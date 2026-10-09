@@ -6,9 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.List;
 
 /**
- * CORS settings. Bound from {@code command-api.cors} — populated only by
- * {@code application-dev.yml} so cross-origin access is never silently enabled
- * in other profiles (grep-able, profile-scoped).
+ * CORS settings bound from {@code command-api.cors}. Dev permits loopback;
+ * prod requires an explicit list of web origins.
  */
 @ConfigurationProperties(prefix = "command-api.cors")
 public record CorsProperties(

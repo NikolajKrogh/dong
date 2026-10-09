@@ -69,7 +69,7 @@ public class SecurityConfig {
         }
 
         /**
-         * Dev-only CORS, active only when {@code command-api.cors.enabled=true}.
+         * Profile-configured CORS, active when {@code command-api.cors.enabled=true}.
          *
          * <p>Configured via {@code setAllowedOriginPatterns} rather than
          * {@code setAllowedOrigins}: the Expo web dev server picks the first free

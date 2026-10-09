@@ -50,7 +50,6 @@ export const useHostRoomCreate = (): UseHostRoomCreateResult => {
         pathname: "/lobby/[sessionId]",
         params: {
           sessionId: response.sessionId,
-          participantId: response.hostParticipantId,
         },
       });
     } catch (err) {

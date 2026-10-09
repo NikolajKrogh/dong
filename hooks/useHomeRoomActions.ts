@@ -28,7 +28,7 @@ export const useHomeRoomActions = () => {
     createRoom,
   } = useHostRoomCreate();
   const { activeRoom, refresh: refreshActiveRoom } = useMyActiveRoom(
-    account !== null,
+    account?.id ?? null,
   );
   const {
     isJoining: isJoiningRoom,
@@ -64,7 +64,6 @@ export const useHomeRoomActions = () => {
       pathname: "/lobby/[sessionId]",
       params: {
         sessionId: activeRoom.sessionId,
-        participantId: activeRoom.participantId,
       },
     });
   }, [activeRoom, router]);
@@ -78,7 +77,6 @@ export const useHomeRoomActions = () => {
         pathname: "/lobby/[sessionId]",
         params: {
           sessionId: response.sessionId,
-          participantId: response.participantId,
         },
       });
     }
@@ -111,7 +109,6 @@ export const useHomeRoomActions = () => {
         pathname: "/lobby/[sessionId]",
         params: {
           sessionId: response.sessionId,
-          participantId: response.participantId,
         },
       });
     }
@@ -149,7 +146,6 @@ export const useHomeRoomActions = () => {
           pathname: "/lobby/[sessionId]",
           params: {
             sessionId: response.sessionId,
-            participantId: response.participantId,
           },
         });
       }
@@ -185,7 +181,6 @@ export const useHomeRoomActions = () => {
         pathname: "/lobby/[sessionId]",
         params: {
           sessionId: response.sessionId,
-          participantId: response.participantId,
         },
       });
     }

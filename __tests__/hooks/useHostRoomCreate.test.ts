@@ -110,7 +110,6 @@ describe("useHostRoomCreate", () => {
       pathname: "/lobby/[sessionId]",
       params: {
         sessionId: "abc-session",
-        participantId: "abc-participant",
       },
     });
   });

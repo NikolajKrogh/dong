@@ -1,0 +1,14 @@
+command-api:
+  cors:
+    enabled: true
+    # Comma-separated exact web origins. Required when the prod profile is active.
+    allowed-origins: ${COMMAND_API_CORS_ALLOWED_ORIGINS}
+    allowed-methods:
+      - GET
+      - POST
+      - OPTIONS
+    allowed-headers:
+      - Authorization
+      - Content-Type
+      - Idempotency-Key
+      - X-Request-Id
