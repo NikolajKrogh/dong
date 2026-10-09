@@ -30,7 +30,8 @@
     "typecheck:edge": "npx --yes deno@2.9.6 check --no-lock --node-modules-dir=none supabase/functions/delete-account/index.ts supabase/functions/guest-room-access/index.ts supabase/functions/refresh-provider-scores/index.ts",
     "test:unit": "node --no-experimental-webstorage -r ./scripts/jest-ci-env.cjs ./node_modules/jest/bin/jest.js --runInBand --watchAll=false --testPathIgnorePatterns=\"node_modules|e2e|\\.features-gen|platform.test.tsx\"",
     "check:unused": "knip",
-    "doctor": "npx react-doctor@latest"
+    "doctor": "npx react-doctor@latest",
+    "test:e2e:schedule": "bddgen --config=playwright.schedule.config.ts && playwright test --config=playwright.schedule.config.ts"
   },
   "jest": {
     "preset": "jest-expo",
@@ -44,7 +45,7 @@
       "/\\.features-gen/"
     ],
     "transformIgnorePatterns": [
-      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|tamagui|@tamagui))",
+      "/node_modules/(?!(.pnpm|color|color-string|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|tamagui|@tamagui))",
       "/node_modules/react-native-reanimated/plugin/",
       "/node_modules/@react-native/babel-preset/"
     ]
@@ -76,14 +77,14 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-date-picker": "^5.0.10",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-paper": "^5.15.3",
+    "react-native-paper-dates": "^0.24.0",
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-svg": "15.15.4",
     "react-native-toast-message": "^2.5.0",
-    "react-native-ui-datepicker": "^3.0.7",
     "react-native-web": "^0.21.2",
     "react-native-webview": "13.16.1",
     "react-native-worklets": "0.10.1",
