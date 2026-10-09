@@ -29,7 +29,8 @@
     "typecheck": "tsc --noEmit",
     "typecheck:edge": "npx --yes deno@2.9.6 check --no-lock --node-modules-dir=none supabase/functions/delete-account/index.ts supabase/functions/guest-room-access/index.ts supabase/functions/refresh-provider-scores/index.ts",
     "test:unit": "node --no-experimental-webstorage -r ./scripts/jest-ci-env.cjs ./node_modules/jest/bin/jest.js --runInBand --watchAll=false --testPathIgnorePatterns=\"node_modules|e2e|\\.features-gen|platform.test.tsx\"",
-    "check:unused": "knip"
+    "check:unused": "knip",
+    "doctor": "npx react-doctor@latest"
   },
   "jest": {
     "preset": "jest-expo",
