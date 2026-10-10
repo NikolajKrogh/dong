@@ -5,6 +5,7 @@ import {
   PlayerStat,
   HeadToHeadStats,
 } from "./historyTypes";
+import { getHistoryTimestamp } from "../../features/history/historyDate";
 
 export type PlayerStatsSession = Pick<GameSession, "id" | "date" | "players">;
 
@@ -72,8 +73,10 @@ const isIdentityTopDrinker = (
  * @returns {string} Localized short date string.
  */
 export const formatHistoryDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "Completion date unknown";
+  const timestamp = getHistoryTimestamp(dateString);
+  if (timestamp === null) return "Completion date unknown";
+
+  const date = new Date(timestamp);
   return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
@@ -88,8 +91,10 @@ export const formatHistoryDate = (dateString: string): string => {
  * @returns {string} Localized verbose date/time string.
  */
 export const formatModalDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "Completion date unknown";
+  const timestamp = getHistoryTimestamp(dateString);
+  if (timestamp === null) return "Completion date unknown";
+
+  const date = new Date(timestamp);
   return date.toLocaleString(undefined, {
     weekday: "long",
     year: "numeric",

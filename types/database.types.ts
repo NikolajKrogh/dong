@@ -923,13 +923,30 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "get_history_coplayer_context": {
+                Args: {
+                    "target_account_ids": (string)[];
+                };
+                Returns: Json;
+            };
             "get_my_active_room": {
+                Args: Record<PropertyKey, never>;
+                Returns: Json;
+            };
+            "get_personal_history_stats": {
                 Args: Record<PropertyKey, never>;
                 Returns: Json;
             };
             "get_room_snapshot": {
                 Args: {
                     "session_id": string;
+                };
+                Returns: Json;
+            };
+            "get_social_history": {
+                Args: {
+                    "page_size"?: number;
+                    "target_account_id": string;
                 };
                 Returns: Json;
             };
@@ -978,6 +995,22 @@ export type Database = {
                     "cursor"?: string;
                     "kind": string;
                     "page_size"?: number;
+                };
+                Returns: Json;
+            };
+            "list_social_shared_games": {
+                Args: {
+                    "cursor"?: string;
+                    "page_size"?: number;
+                    "target_account_id": string;
+                };
+                Returns: Json;
+            };
+            "list_social_shared_timeline": {
+                Args: {
+                    "cursor"?: string;
+                    "page_size"?: number;
+                    "target_account_id": string;
                 };
                 Returns: Json;
             };

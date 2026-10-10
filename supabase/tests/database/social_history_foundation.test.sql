@@ -1,0 +1,26 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET LOCAL search_path = public, extensions;
+SELECT no_plan();
+\ir ../fixtures/social_history.inc
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
+SELECT is(public.get_social_history((SELECT b FROM social_fixture))->'viewer'->>'games_participated','3','each completed online game contributes once');
+SELECT is(public.get_social_history((SELECT b FROM social_fixture))->'viewer'->>'total_drinks','12.0','preserved leaver total and separate online games');
+SELECT is((public.get_social_history((SELECT b FROM social_fixture))->'target'->>'total_drinks')::numeric,9::numeric,'target aggregate includes its separate game');
+SELECT is(public.get_social_history((SELECT b FROM social_fixture))->'shared'->>'shared_games','2','only common online completions are shared');
+SELECT is((public.get_social_history((SELECT b FROM social_fixture))->'shared'->>'viewer_average_drinks')::numeric,3::numeric,'departure counts in shared denominator');
+SELECT is(public.get_social_history((SELECT b FROM social_fixture))->'shared'->>'viewer_higher_count','1','higher count uses numeric results');
+SELECT is(public.get_social_history((SELECT b FROM social_fixture))->'shared'->>'target_higher_count','1','other higher count');
+SELECT is(jsonb_array_length(public.get_social_history((SELECT b FROM social_fixture))->'games'->'items'),2,'separate records excluded');
+SELECT ok(NOT (public.get_social_history((SELECT b FROM social_fixture))->'target' ? 'session_id'),'overall projection has no game ID');
+SELECT throws_ok($$SELECT public.get_social_history((SELECT c FROM social_fixture))$$,'P0001','comparison_not_allowed','nonfriend denied');
+SELECT throws_ok($$SELECT private.get_social_history((SELECT c FROM social_fixture),20)$$,'P0001','comparison_not_allowed','private-call bypass denied');
+SELECT throws_ok($$SELECT public.get_social_history((SELECT a FROM social_fixture))$$,'P0001','invalid_input','self pair invalid');
+SELECT throws_ok($$SELECT public.get_social_history((SELECT b FROM social_fixture),51)$$,'P0001','invalid_input','page bound enforced');
+SELECT is((SELECT count(*)::integer FROM public.completed_session_summaries WHERE session_id='28000000-0000-4000-8000-000000000004'),0,'friend totals do not grant separate details');
+RESET ROLE;
+SELECT ok(NOT has_function_privilege('anon','public.get_social_history(uuid,integer)','EXECUTE'),'anonymous wrapper denied');
+SELECT ok(NOT has_table_privilege('authenticated','private.social_history_participants','SELECT'),'canonical social projection private');
+SELECT * FROM finish();
+ROLLBACK;

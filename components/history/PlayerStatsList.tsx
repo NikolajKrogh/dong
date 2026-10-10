@@ -2,15 +2,64 @@ import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View, useWindowDimensions } from "react-native";
 import { Text } from "tamagui";
 import AppIcon from "../AppIcon";
-import { GameSession, PlayerStat } from "./historyTypes";
+import type { GameSession, Player, PlayerStat } from "./historyTypes";
 import { useColors } from "../../styles/theme";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import PlayerComparisonModal from "./PlayerComparisonModal";
+import type { Person } from "../../features/friends";
+import { getPlayerIdentityKey } from "./historyUtils";
+import { getHistoryTimestamp } from "../../features/history/historyDate";
+
+const EMPTY_SOCIAL_PEOPLE: Person[] = [];
+
+function getPersonIdentityKey(person: Person): string {
+  const registeredPlayer: Player = {
+    id: person.account_id,
+    name: person.username,
+    accountId: person.account_id,
+    membershipType: "registered",
+  };
+  return getPlayerIdentityKey(registeredPlayer, "", 0);
+}
+
+function getPersonRelationshipLabel(person: Person): string | null {
+  switch (person.relationship) {
+    case "friends":
+      return "Friend · Shared history";
+    case "none":
+      return "Registered player";
+    case "incoming":
+    case "outgoing":
+      return "Friend request pending";
+    default:
+      return null;
+  }
+}
+
+function comparePlayerStats(
+  left: PlayerStat,
+  right: PlayerStat,
+  prioritizeRecent: boolean,
+  recentByKey: ReadonlyMap<string, number>,
+): number {
+  const priorityComparison = prioritizeRecent
+    ? (recentByKey.get(right.identityKey) ?? 0) - (recentByKey.get(left.identityKey) ?? 0)
+    : right.totalDrinks - left.totalDrinks;
+
+  return priorityComparison
+    || left.name.localeCompare(right.name)
+    || left.identityKey.localeCompare(right.identityKey);
+}
 
 interface PlayerStatsListProps {
   playerStats: PlayerStat[];
   history: GameSession[];
   availableWidth?: number;
+  socialPeople?: Person[];
+  onOpenShared?: (accountId: string) => void;
+  onAddFriend?: (person: Person) => void;
+  friendBusyAccountId?: string | null;
+  friendError?: string | null;
 }
 
 interface ComparisonState {
@@ -69,6 +118,9 @@ interface PlayerStatsCardProps {
   maxDrinks: number;
   maxWidth: number | "100%";
   onSelectPlayer: (player: PlayerStat) => void;
+  person?: Person;
+  onAddFriend?: (person: Person) => void;
+  friendBusyAccountId?: string | null;
 }
 
 const PlayerStatsCard = React.memo(function PlayerStatsCard({
@@ -78,8 +130,14 @@ const PlayerStatsCard = React.memo(function PlayerStatsCard({
   maxDrinks,
   maxWidth,
   onSelectPlayer,
+  person,
+  onAddFriend,
+  friendBusyAccountId,
 }: PlayerStatsCardProps) {
   const colors = useColors();
+  const friendActionBusy = friendBusyAccountId != null;
+  const friendActionPending = friendBusyAccountId === person?.account_id;
+  const relationshipLabel = person ? getPersonRelationshipLabel(person) : null;
   const handlePress = useCallback(
     () => onSelectPlayer(player),
     [onSelectPlayer, player],
@@ -139,7 +197,7 @@ const PlayerStatsCard = React.memo(function PlayerStatsCard({
           <Text color={rank <= 3 ? "$primary" : "$textMuted"} fontWeight="700">#{rank}</Text>
         </View>
         <View accessible={false} style={avatarStyle}>
-          <Text color="$primary" fontWeight="700" fontSize={18}>{player.name.trim().slice(0, 1).toLocaleUpperCase() || "?"}</Text>
+          <Text color="$primary" fontWeight="700" fontSize={18}>{player.name.trim().slice(0, 1).toUpperCase() || "?"}</Text>
         </View>
         <View style={styles.titleCopy}>
           <Text color="$color" fontSize={19} fontWeight="700">{player.name}</Text>
@@ -147,10 +205,39 @@ const PlayerStatsCard = React.memo(function PlayerStatsCard({
         </View>
         <AppIcon name="chevron-forward" size={22} color={colors.primary} />
       </View>
+      {person && relationshipLabel ? (
+        <Text color="$textMuted">
+          {person.username} · {relationshipLabel}
+        </Text>
+      ) : null}
+      {person?.relationship === "none" && onAddFriend ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${person.username} as friend`}
+          style={styles.compare}
+          disabled={friendActionBusy}
+          accessibilityState={{ disabled: friendActionBusy }}
+          onPress={(event) => {
+            event.stopPropagation();
+            onAddFriend(person);
+          }}
+        >
+          <Text color="$primary">{friendActionPending ? "Working…" : "Add friend"}</Text>
+        </Pressable>
+      ) : null}
       <View style={styles.metrics}>
-        <View><Text color="$color" fontSize={25} fontWeight="700">{player.totalDrinks.toFixed(1)}</Text><Text color="$textMuted">Total drinks</Text></View>
-        <View><Text color="$color" fontSize={20} fontWeight="600">{player.gamesPlayed}</Text><Text color="$textMuted">Games</Text></View>
-        <View><Text color="$color" fontSize={20} fontWeight="600">{player.averagePerGame.toFixed(1)}</Text><Text color="$textMuted">Per game</Text></View>
+        <View>
+          <Text color="$color" fontSize={25} fontWeight="700">{player.totalDrinks.toFixed(1)}</Text>
+          <Text color="$textMuted">Total drinks</Text>
+        </View>
+        <View>
+          <Text color="$color" fontSize={20} fontWeight="600">{player.gamesPlayed}</Text>
+          <Text color="$textMuted">Games</Text>
+        </View>
+        <View>
+          <Text color="$color" fontSize={20} fontWeight="600">{player.averagePerGame.toFixed(1)}</Text>
+          <Text color="$textMuted">Per game</Text>
+        </View>
       </View>
       <View accessible={false} style={barTrackStyle}>
         <View style={barStyle} />
@@ -159,7 +246,16 @@ const PlayerStatsCard = React.memo(function PlayerStatsCard({
   );
 });
 
-export default function PlayerStatsList({ playerStats, history, availableWidth }: PlayerStatsListProps) {
+export default function PlayerStatsList({
+  playerStats,
+  history,
+  availableWidth,
+  socialPeople = EMPTY_SOCIAL_PEOPLE,
+  onOpenShared,
+  onAddFriend,
+  friendBusyAccountId,
+  friendError,
+}: PlayerStatsListProps) {
   const window = useWindowDimensions();
   const columns = (availableWidth ?? window.width) >= 1024 && window.fontScale < 1.5 ? 2 : 1;
   const [search, setSearch] = useState("");
@@ -169,9 +265,27 @@ export default function PlayerStatsList({ playerStats, history, availableWidth }
     initialComparisonState,
   );
   const { selectedKeys, selectionMode, comparing } = comparisonState;
-  const rankedPlayers = useMemo(() => [...playerStats]
-    .sort((a, b) => b.totalDrinks - a.totalDrinks || a.name.localeCompare(b.name) || a.identityKey.localeCompare(b.identityKey))
-    .map((player, index) => ({ player, rank: index + 1 })), [playerStats]);
+  const peopleByKey = useMemo(
+    () => new Map(socialPeople.map((person) => [getPersonIdentityKey(person), person])),
+    [socialPeople],
+  );
+  const recentByKey = useMemo(() => {
+    const dates = new Map<string, number>();
+    history.forEach((game) => {
+      const timestamp = getHistoryTimestamp(game.date) ?? 0;
+      game.players.forEach((player, index) => {
+        const identityKey = getPlayerIdentityKey(player, game.id, index);
+        dates.set(identityKey, Math.max(dates.get(identityKey) ?? 0, timestamp));
+      });
+    });
+    return dates;
+  }, [history]);
+  const rankedPlayers = useMemo(
+    () => [...playerStats]
+      .sort((left, right) => comparePlayerStats(left, right, !!onOpenShared, recentByKey))
+      .map((player, index) => ({ player, rank: index + 1 })),
+    [onOpenShared, playerStats, recentByKey],
+  );
   const query = search.trim().toLocaleLowerCase();
   const filteredPlayers = useMemo(
     () => rankedPlayers.filter(({ player }) =>
@@ -191,13 +305,18 @@ export default function PlayerStatsList({ playerStats, history, availableWidth }
     return player ? [player] : [];
   });
   const selectedPlayer = playerStats.find((player) => player.identityKey === selectedPlayerKey) ?? null;
-  const maxDrinks = rankedPlayers[0]?.player.totalDrinks ?? 0;
+  const maxDrinks = playerStats.reduce((maximum, player) => Math.max(maximum, player.totalDrinks), 0);
   const cardMaxWidth: number | "100%" = columns > 1
     ? ((availableWidth ?? window.width) - 48) / 2
     : "100%";
 
   const selectPlayer = useCallback((player: PlayerStat) => {
     if (!selectionMode) {
+      const person = peopleByKey.get(player.identityKey);
+      if (person?.relationship === "friends" && onOpenShared) {
+        onOpenShared(person.account_id);
+        return;
+      }
       setSelectedPlayerKey(player.identityKey);
       return;
     }
@@ -206,7 +325,7 @@ export default function PlayerStatsList({ playerStats, history, availableWidth }
       identityKey: player.identityKey,
       availableIdentityKeys,
     });
-  }, [availableIdentityKeys, selectionMode]);
+  }, [availableIdentityKeys, selectionMode, peopleByKey, onOpenShared]);
   const handleToggleComparison = useCallback(() => {
     dispatch({ type: "toggle-selection-mode" });
   }, []);
@@ -223,11 +342,15 @@ export default function PlayerStatsList({ playerStats, history, availableWidth }
       maxDrinks={maxDrinks}
       maxWidth={cardMaxWidth}
       onSelectPlayer={selectPlayer}
+      person={peopleByKey.get(player.identityKey)}
+      onAddFriend={onAddFriend}
+      friendBusyAccountId={friendBusyAccountId}
     />
-  ), [cardMaxWidth, maxDrinks, selectPlayer, selectedKeys]);
+  ), [cardMaxWidth, maxDrinks, selectPlayer, selectedKeys, peopleByKey, onAddFriend, friendBusyAccountId]);
 
   return (
     <View style={styles.container}>
+      {friendError ? <Text color="$danger" accessibilityRole="alert">{friendError}</Text> : null}
       <FlatList
         key={columns}
         data={filteredPlayers}
@@ -246,6 +369,7 @@ export default function PlayerStatsList({ playerStats, history, availableWidth }
             setSearch={setSearch}
             handleClearSearch={handleClearSearch}
             handleToggleComparison={handleToggleComparison}
+            recent={!!onOpenShared}
           />
         }
         ListEmptyComponent={<Text color="$textMuted" paddingVertical="$5">{query ? "No players match your search." : "Player rankings will appear after your first game."}</Text>}
@@ -263,7 +387,7 @@ export default function PlayerStatsList({ playerStats, history, availableWidth }
   );
 }
 
-function PlayerStatsHeader({ playerCount, filteredCount, selectedPlayers, selectionMode, search, setSearch, handleClearSearch, handleToggleComparison }: {
+function PlayerStatsHeader({ playerCount, filteredCount, selectedPlayers, selectionMode, search, setSearch, handleClearSearch, handleToggleComparison, recent }: {
   playerCount: number;
   filteredCount: number;
   selectedPlayers: PlayerStat[];
@@ -272,14 +396,15 @@ function PlayerStatsHeader({ playerCount, filteredCount, selectedPlayers, select
   setSearch: (value: string) => void;
   handleClearSearch: () => void;
   handleToggleComparison: () => void;
+  recent: boolean;
 }) {
   const colors = useColors();
   return (
           <View style={styles.header}>
             <View style={styles.titleRow}>
               <View style={styles.titleCopy}>
-                <Text accessibilityRole="header" color="$color" fontSize={23} fontWeight="700">Player rankings</Text>
-                <Text color="$textMuted" fontSize={14}>Ranked by total drinks across your history</Text>
+                <Text accessibilityRole="header" color="$color" fontSize={23} fontWeight="700">{recent ? 'Players' : 'Player rankings'}</Text>
+                <Text color="$textMuted" fontSize={14}>{recent ? 'Most recent game together first · Select a friend for shared history' : 'Ranked by total drinks across your history'}</Text>
               </View>
               <Pressable
                 accessibilityRole="button"

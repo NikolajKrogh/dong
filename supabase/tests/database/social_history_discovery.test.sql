@@ -1,0 +1,22 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET LOCAL search_path=public,extensions;
+SELECT no_plan();
+\ir ../fixtures/social_history.inc
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
+SELECT is(jsonb_array_length(public.get_history_coplayer_context(ARRAY[(SELECT b FROM social_fixture),(SELECT c FROM social_fixture)])),1,'only evidenced co-player gets current context');
+SELECT is(public.get_history_coplayer_context(ARRAY[(SELECT b FROM social_fixture)])->0->>'relationship','friends','accepted context supplies shortcut');
+CREATE TEMP TABLE first_page AS SELECT public.list_social_shared_games((SELECT b FROM social_fixture),NULL,1) AS page;
+SELECT is(first_page.page->'items'->0->>'session_id','28000000-0000-4000-8000-000000000002','newest first') FROM first_page;
+SELECT is(public.list_social_shared_games((SELECT b FROM social_fixture),(SELECT page->>'next_cursor' FROM first_page),1)->'items'->0->>'session_id','28000000-0000-4000-8000-000000000001','cursor advances without duplicates');
+SELECT is(public.list_social_shared_games((SELECT b FROM social_fixture),(SELECT page->>'next_cursor' FROM first_page),1)->>'next_cursor',NULL,'last page has no cursor');
+SELECT throws_ok($$SELECT public.list_social_shared_games((SELECT b FROM social_fixture),'{}',20)$$,'P0001','invalid_input','invalid cursor fails closed');
+SELECT throws_ok($$SELECT public.get_history_coplayer_context(array_fill((SELECT b FROM social_fixture),ARRAY[101]))$$,'P0001','invalid_input','oversize batch rejected');
+SELECT throws_ok($$SELECT public.list_social_shared_timeline((SELECT b FROM social_fixture),NULL,101)$$,'P0001','invalid_input','timeline capped');
+RESET ROLE;
+INSERT INTO private.account_blocks(blocker_account_id,blocked_account_id) SELECT b,a FROM social_fixture;
+SET LOCAL ROLE authenticated;
+SELECT is(jsonb_array_length(public.get_history_coplayer_context(ARRAY[(SELECT b FROM social_fixture)])),0,'reverse block discloses no action or label');
+SELECT * FROM finish();
+ROLLBACK;

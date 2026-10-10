@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../types/database";
+import { throwIfAborted } from "../../platform/abort";
+import * as z from "zod/mini";
 
 import type { GameSession, Match, Player } from "../../components/history/historyTypes";
 
@@ -22,68 +24,89 @@ type PageRequest<T> = (
   to: number,
 ) => PromiseLike<PageResult<T>>;
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && Array.isArray(value) === false;
+const recordSchema = z.record(z.string(), z.unknown());
+const recordOrEmptySchema = z.catch(recordSchema, {});
+const stringSchema = z.string();
+const stringOrEmptySchema = z.catch(stringSchema, "");
+const nullableStringOrNullSchema = z.catch(z.nullable(stringSchema), null);
+const numberOrZeroSchema = z.catch(z.number(), 0);
+const arrayOrEmptySchema = z.catch(z.array(z.unknown()), []);
+const membershipTypeOrUndefinedSchema = z.catch(
+  z.optional(z.enum(["registered", "guest"])),
+  undefined,
+);
+const nonEmptyStringSchema = stringSchema.check(z.minLength(1));
+const dateSchema = z.coerce.date();
+const departureTimestampSchema = stringSchema.check(
+  z.refine<string>((value) => dateSchema.safeParse(value).success),
+);
 
-const readString = (value: unknown, fallback = "") =>
-  typeof value === "string" ? value : fallback;
+const departureResultSchema = z.looseObject({
+  sessionId: stringSchema,
+  state: z.literal("in_progress"),
+  participants: z.array(z.unknown()),
+  matches: z.array(z.unknown()),
+  assignments: z.array(z.unknown()),
+  assignmentPlan: recordSchema,
+});
+const departureParticipantSchema = z.looseObject({ id: stringSchema });
+const departureMatchSchema = z.looseObject({ id: stringSchema });
+const departureAssignmentSchema = z.looseObject({
+  participantId: z.unknown(),
+  matchId: stringSchema,
+});
 
-const readNumber = (value: unknown, fallback = 0) =>
-  typeof value === "number" && Number.isFinite(value) ? value : fallback;
-
-const readArray = (value: unknown): unknown[] =>
-  Array.isArray(value) ? value : [];
+const earlyLeaveRowSchema = z.object({
+  session_id: nonEmptyStringSchema,
+  left_at: stringSchema,
+});
 
 const mapPlayer = (value: unknown): Player => {
-  const player = isRecord(value) ? value : {};
-  const membershipType =
-    player.membershipType === "registered" || player.membershipType === "guest"
-      ? player.membershipType
-      : undefined;
+  const player = recordOrEmptySchema.parse(value);
   return {
-    id: readString(player.id),
-    name: readString(player.name),
-    drinksTaken: readNumber(player.drinksTaken),
-    accountId:
-      typeof player.accountId === "string" ? player.accountId : null,
-    membershipType,
-    leftAt: typeof player.leftAt === "string" ? player.leftAt : null,
+    id: stringOrEmptySchema.parse(player.id),
+    name: stringOrEmptySchema.parse(player.name),
+    drinksTaken: numberOrZeroSchema.parse(player.drinksTaken),
+    accountId: nullableStringOrNullSchema.parse(player.accountId),
+    membershipType: membershipTypeOrUndefinedSchema.parse(player.membershipType),
+    leftAt: nullableStringOrNullSchema.parse(player.leftAt),
   };
 };
 
 const mapMatch = (value: unknown): Match => {
-  const match = isRecord(value) ? value : {};
+  const match = recordOrEmptySchema.parse(value);
   return {
-    id: readString(match.id),
-    homeTeam: readString(match.homeTeam),
-    awayTeam: readString(match.awayTeam),
-    homeGoals: readNumber(match.homeGoals),
-    awayGoals: readNumber(match.awayGoals),
-    goals: readNumber(match.goals),
+    id: stringOrEmptySchema.parse(match.id),
+    homeTeam: stringOrEmptySchema.parse(match.homeTeam),
+    awayTeam: stringOrEmptySchema.parse(match.awayTeam),
+    homeGoals: numberOrZeroSchema.parse(match.homeGoals),
+    awayGoals: numberOrZeroSchema.parse(match.awayGoals),
+    goals: numberOrZeroSchema.parse(match.goals),
   };
 };
 
 const mapAssignments = (value: unknown): Record<string, string[]> => {
-  if (!isRecord(value)) return {};
+  const assignments = recordOrEmptySchema.parse(value);
 
   return Object.fromEntries(
-    Object.entries(value).map(([playerId, matchIds]) => [
+    Object.entries(assignments).map(([playerId, matchIds]) => [
       playerId,
-      readArray(matchIds).filter(
-        (matchId): matchId is string => typeof matchId === "string",
-      ),
+      arrayOrEmptySchema.parse(matchIds).flatMap((matchId) => {
+        const parsedMatchId = stringSchema.safeParse(matchId);
+        return parsedMatchId.success ? [parsedMatchId.data] : [];
+      }),
     ]),
   );
 };
 
-const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSession => ({
+export const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSession => ({
   id: row.session_id ?? "",
   date: row.completed_at ?? "",
-  players: readArray(row.players).map(mapPlayer),
-  matches: readArray(row.matches).map(mapMatch),
+  players: arrayOrEmptySchema.parse(row.players).map(mapPlayer),
+  matches: arrayOrEmptySchema.parse(row.matches).map(mapMatch),
   commonMatchId: row.common_match_id,
   playerAssignments: mapAssignments(row.player_assignments),
-  matchesPerPlayer: readNumber(row.matches_per_player),
+  matchesPerPlayer: numberOrZeroSchema.parse(row.matches_per_player),
 });
 
 /** Maps the server's immutable departure capture into the existing history shape. */
@@ -92,53 +115,55 @@ export const mapDepartureResult = (
   leftAt: string,
   value: unknown,
 ): GameSession => {
-  if (!isRecord(value) || value.sessionId !== sessionId
-    || value.state !== "in_progress"
-    || !Array.isArray(value.participants)
-    || !Array.isArray(value.matches)
-    || !Array.isArray(value.assignments)
-    || !isRecord(value.assignmentPlan)
-    || !Number.isFinite(Date.parse(leftAt))) {
+  const parsedDeparture = departureResultSchema.safeParse(value);
+  if (!parsedDeparture.success
+    || parsedDeparture.data.sessionId !== sessionId
+    || !departureTimestampSchema.safeParse(leftAt).success) {
     throw new Error("Invalid departure result.");
   }
 
-  const players: Player[] = value.participants.map((item) => {
-    if (!isRecord(item) || typeof item.id !== "string") {
+  const departure = parsedDeparture.data;
+  const players: Player[] = departure.participants.map((item) => {
+    const participant = departureParticipantSchema.safeParse(item);
+    if (!participant.success) {
       throw new Error("Invalid departure participant.");
     }
     return {
-      id: item.id,
-      name: readString(item.displayName),
-      drinksTaken: readNumber(item.currentDrinkTotal),
-      membershipType: item.membershipType === "registered" || item.membershipType === "guest"
-        ? item.membershipType : undefined,
-      leftAt: typeof item.leftAt === "string" ? item.leftAt : null,
+      id: participant.data.id,
+      name: stringOrEmptySchema.parse(participant.data.displayName),
+      drinksTaken: numberOrZeroSchema.parse(participant.data.currentDrinkTotal),
+      membershipType: membershipTypeOrUndefinedSchema.parse(participant.data.membershipType),
+      leftAt: nullableStringOrNullSchema.parse(participant.data.leftAt),
     };
   });
-  const matches: Match[] = value.matches.map((item) => {
-    if (!isRecord(item) || typeof item.id !== "string") {
+  const matches: Match[] = departure.matches.map((item) => {
+    const match = departureMatchSchema.safeParse(item);
+    if (!match.success) {
       throw new Error("Invalid departure match.");
     }
-    const homeGoals = readNumber(item.homeScore);
-    const awayGoals = readNumber(item.awayScore);
+    const homeGoals = numberOrZeroSchema.parse(match.data.homeScore);
+    const awayGoals = numberOrZeroSchema.parse(match.data.awayScore);
     return {
-      id: item.id,
-      homeTeam: readString(item.homeTeamName),
-      awayTeam: readString(item.awayTeamName),
+      id: match.data.id,
+      homeTeam: stringOrEmptySchema.parse(match.data.homeTeamName),
+      awayTeam: stringOrEmptySchema.parse(match.data.awayTeamName),
       homeGoals,
       awayGoals,
       goals: homeGoals + awayGoals,
     };
   });
-  const assignments = value.assignments as unknown[];
+  const commonMatchId = nullableStringOrNullSchema.parse(departure.commonMatchId);
   const playerAssignments = Object.fromEntries(players.map((player) => [
     player.id,
-    assignments
-      .filter((item): item is Record<string, unknown> => isRecord(item)
-        && item.participantId === player.id
-        && typeof item.matchId === "string")
-      .map((item) => item.matchId as string)
-      .filter((id) => id !== value.commonMatchId),
+    departure.assignments.flatMap((item) => {
+      const assignment = departureAssignmentSchema.safeParse(item);
+      if (!assignment.success
+        || assignment.data.participantId !== player.id
+        || assignment.data.matchId === commonMatchId) {
+        return [];
+      }
+      return [assignment.data.matchId];
+    }),
   ]));
 
   return {
@@ -146,9 +171,9 @@ export const mapDepartureResult = (
     date: leftAt,
     players,
     matches,
-    commonMatchId: typeof value.commonMatchId === "string" ? value.commonMatchId : null,
+    commonMatchId,
     playerAssignments,
-    matchesPerPlayer: readNumber(value.assignmentPlan.matchesPerPlayer),
+    matchesPerPlayer: numberOrZeroSchema.parse(departure.assignmentPlan.matchesPerPlayer),
     isEarlyLeaveResult: true,
   };
 };
@@ -157,8 +182,9 @@ const readAllPages = async <T>(requestPage: PageRequest<T>, signal?: AbortSignal
   const rows: T[] = [];
 
   for (let from = 0; ; from += HISTORY_PAGE_SIZE) {
-    signal?.throwIfAborted();
+    throwIfAborted(signal);
     const { data, error } = await requestPage(from, from + HISTORY_PAGE_SIZE - 1);
+    throwIfAborted(signal);
     if (error) throw error;
 
     const page = data ?? [];
@@ -194,10 +220,12 @@ export const loadCloudHistory = async (
   return {
     sessions: [
       ...earlyLeaveRows
-        .filter((row): row is EarlyLeaveRow & { session_id: string; left_at: string } => typeof row.session_id === "string" && row.session_id.length > 0 && typeof row.left_at === 'string')
+        .filter((row): row is EarlyLeaveRow & { session_id: string; left_at: string } =>
+          earlyLeaveRowSchema.safeParse(row).success,
+        )
         .map((row) => mapDepartureResult(row.session_id, row.left_at, row.snapshot)),
       ...summaryRows
-        .filter((row) => typeof row.session_id === "string" && row.session_id.length > 0)
+        .filter((row) => nonEmptyStringSchema.safeParse(row.session_id).success)
         .map(mapCompletedSession),
     ],
   };

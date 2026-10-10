@@ -20,13 +20,15 @@ describe('private account scope', () => {
     expect(isCurrentAccountScope(a)).toBe(false);
     expect(getAccountScope().accountId).toBe('A');
   });
-  it('cancels an active query and never installs its late data', async () => {
+  it.each(['history','social-history'])('cancels an active %s query and never installs its late data', async (feature) => {
     setAccountScope('A');
     let finish!: (value: string) => void;
-    const result = queryClient.fetchQuery({ queryKey: ['account', 'A', 'history'], queryFn: () => new Promise<string>(resolve => { finish = resolve; }) }).catch(() => undefined);
+    const key = ['account', 'A', feature, 'B'];
+    const result = queryClient.fetchQuery({ queryKey: key, gcTime: 0,
+      queryFn: () => new Promise<string>(resolve => { finish = resolve; }) }).catch(() => undefined);
     setAccountScope('B');
     finish('private');
     await result;
-    expect(queryClient.getQueryData(['account', 'A', 'history'])).toBeUndefined();
+    expect(queryClient.getQueryData(key)).toBeUndefined();
   });
 });

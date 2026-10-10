@@ -1,8 +1,8 @@
 /**
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
-import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useReducer, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -23,14 +23,17 @@ import {
   calculateTotalDrinks,
   calculateTotalGoals,
 } from "../components/history/historyUtils";
-import OverallStats from "../components/history/OverallStats";
+import HistoryStatistics from "../features/history/HistoryStatistics";
 import PlayerStatsList from "../components/history/PlayerStatsList";
 import SortHistoryModal, {
   HistorySortField,
   SortDirection,
 } from "../components/history/SortHistoryModal";
 import { ShellActionButton, ShellScreen } from "../components/ui";
-import { useHistory } from "../features/history";
+import { useHistory, useHistoryCoplayerContext } from "../features/history";
+import { getHistoryTimestamp } from "../features/history/historyDate";
+import { isAccountId } from "../features/history/socialHistoryRepository";
+import { useFriends, type Person } from "../features/friends";
 import { createHistoryStyles } from "../styles/historyStyles";
 import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";
@@ -82,6 +85,12 @@ const initialHistoryViewState: HistoryViewState = {
   sortModalVisible: false,
 };
 
+function getRouteFriendId(value: string | string[] | undefined): string {
+  return isAccountId(value)
+    ? value.toLowerCase()
+    : "";
+}
+
 const historyViewReducer = (
   state: HistoryViewState,
   action: HistoryViewAction,
@@ -118,6 +127,14 @@ type HistoryColors = ReturnType<typeof useColors>;
 interface HistoryContentData extends Pick<HistoryScreenState, "history" | "loading" | "error" | "refresh" | "accountId"> {
   playerStats: PlayerStat[];
   gameRows: HistoryGameRow[];
+  socialPeople: Person[];
+  onOpenShared: (accountId: string) => void;
+  onAddFriend: (person: Person) => void;
+  friendBusyAccountId: string | null;
+  friendError: string | null;
+  friendList: ReturnType<typeof useFriends>;
+  statsTargetId: string;
+  onSelectStatsTarget: (id: string) => void;
 }
 
 interface HistoryLayout {
@@ -144,21 +161,92 @@ interface HistoryActions {
 
 const HistoryScreen = () => {
   const historyState = useHistory();
+  const params = useLocalSearchParams<{ friendId?: string | string[] }>();
+  const initialTarget = getRouteFriendId(params.friendId);
   const { refresh } = historyState;
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
-  return <HistoryContent key={historyState.accountId ?? "local"} {...historyState} />;
+  return (
+    <HistoryContent
+      key={`${historyState.accountId ?? "local"}:${initialTarget || "default"}`}
+      initialTarget={initialTarget}
+      {...historyState}
+    />
+  );
 };
 
-const HistoryContent = (historyState: HistoryScreenState) => {
+interface HistoryContentProps extends HistoryScreenState {
+  initialTarget: string;
+}
+
+const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps) => {
   const router = useRouter();
+  const [statsTargetId, setStatsTargetId] = useState(initialTarget);
   const { history, loading, error, refresh, accountId } = historyState;
+  const coplayers = useHistoryCoplayerContext(
+    history.flatMap((game) => game.players.flatMap((player) =>
+      player.membershipType === "registered" && player.accountId ? [player.accountId] : [])),
+  );
+  const friends = useFriends('friends');
+  const onAddFriend = useCallback((person: Person) => {
+    void friends.act("send", person);
+  }, [friends]);
   const { width, fontScale } = useWindowDimensions();
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
   const availableWidth = Math.min(measuredWidth ?? width, width, 1120);
   const wideLayout = isWideLayout(availableWidth);
   const shellWideLayout = isWideLayout(width);
   const columns = wideLayout && fontScale < 1.5 ? 2 : 1;
-  const [viewState, dispatch] = useReducer(historyViewReducer, initialHistoryViewState);
+  const [viewState, dispatch] = useReducer(historyViewReducer, {
+    ...initialHistoryViewState,
+    activeTabIndex: initialTarget ? 2 : 0,
+  });
+
+  const targetFriendLoaded = friends.items.some(
+    (person) => person.account_id === statsTargetId && person.relationship === "friends",
+  );
+  const {
+    hasNextPage: hasMoreFriends,
+    isFetching: isFetchingFriends,
+    isFetchingNextPage: isFetchingMoreFriends,
+    isError: friendsLoadFailed,
+    error: friendsLoadError,
+    fetchNextPage: fetchNextFriendPage,
+  } = friends.list;
+  useEffect(() => {
+    if (
+      !statsTargetId
+      || !isAccountId(statsTargetId)
+      || !friends.enabled
+      || statsTargetId === friends.id
+      || targetFriendLoaded
+      || !hasMoreFriends
+      || isFetchingFriends
+      || isFetchingMoreFriends
+      || friendsLoadFailed
+      || friendsLoadError
+    ) {
+      return;
+    }
+    void fetchNextFriendPage();
+  }, [
+    statsTargetId,
+    friends.enabled,
+    friends.id,
+    friends.items,
+    targetFriendLoaded,
+    hasMoreFriends,
+    isFetchingFriends,
+    isFetchingMoreFriends,
+    friendsLoadFailed,
+    friendsLoadError,
+    fetchNextFriendPage,
+  ]);
+
+  const onOpenShared = useCallback((targetId: string) => {
+    dispatch({ type: "closeDetails" });
+    setStatsTargetId(targetId);
+    dispatch({ type: "switchTab", index: 2 });
+  }, []);
   const selectedGame = viewState.selectedGame;
   const { sortField, sortDirection } = viewState;
   const selectedResult = history.find((game) => game.id === selectedGame?.id);
@@ -210,8 +298,37 @@ const HistoryContent = (historyState: HistoryScreenState) => {
   }, []);
 
   const data = useMemo<HistoryContentData>(
-    () => ({ history, loading, error, refresh, accountId, playerStats, gameRows }),
-    [history, loading, error, refresh, accountId, playerStats, gameRows],
+    () => ({
+      history,
+      loading,
+      error,
+      refresh,
+      accountId,
+      playerStats,
+      gameRows,
+      socialPeople: coplayers,
+      onOpenShared,
+      onAddFriend,
+      friendBusyAccountId: friends.busy,
+      friendError: friends.actionError,
+      friendList: friends,
+      statsTargetId,
+      onSelectStatsTarget: setStatsTargetId,
+    }),
+    [
+      history,
+      loading,
+      error,
+      refresh,
+      accountId,
+      playerStats,
+      gameRows,
+      coplayers,
+      onOpenShared,
+      onAddFriend,
+      friends,
+      statsTargetId,
+    ],
   );
   const layout = useMemo<HistoryLayout>(
     () => ({ width, availableWidth, wideLayout, shellWideLayout, columns, styles, colors }),
@@ -242,10 +359,10 @@ function sortHistory(
     let comparison: number;
     switch (sortField) {
       case "date": {
-        const aDate = Date.parse(a.date);
-        const bDate = Date.parse(b.date);
-        if (!Number.isFinite(aDate) || !Number.isFinite(bDate)) {
-          return Number(!Number.isFinite(aDate)) - Number(!Number.isFinite(bDate)) || a.id.localeCompare(b.id);
+        const aDate = getHistoryTimestamp(a.date);
+        const bDate = getHistoryTimestamp(b.date);
+        if (aDate === null || bDate === null) {
+          return Number(aDate === null) - Number(bDate === null) || a.id.localeCompare(b.id);
         }
         comparison = bDate - aDate;
         break;
@@ -282,7 +399,7 @@ function HistoryContentView({
   actions: HistoryActions;
   selectedResult: GameSession | undefined;
 }) {
-  return data.history.length === 0
+  return data.history.length === 0 && state.activeTabIndex === 0
     ? <HistoryEmptyScreen data={data} layout={layout} actions={actions} />
     : <HistoryPage data={data} layout={layout} state={state} actions={actions} selectedResult={selectedResult} />;
 }
@@ -301,8 +418,10 @@ function HistoryEmptyScreen({
         contentMaxWidth={layout.shellWideLayout ? 1120 : undefined}
         contentProps={centeredContentProps}
       >
-        <HistoryHeader onBack={actions.onBack} showSortButton={false} sortDirection="desc" onOpenSortModal={noop} />
+        <HistoryHeader title="History" onBack={actions.onBack} showSortButton={false} sortDirection="desc" onOpenSortModal={noop} />
         {cloudStatus}
+        <HistoryTabBar activeTabIndex={0} styles={layout.styles} colors={layout.colors}
+          wideLayout={layout.wideLayout} onSwitchTab={actions.onSwitchTab} />
         <View style={layout.styles.emptyStateContainer}>
           <AppIcon name="calendar-outline" size={60} color={layout.colors.neutralGray} />
           <Text style={layout.styles.emptyStateText}>
@@ -336,6 +455,7 @@ function HistoryPage({
         contentProps={centeredContentProps}
       >
         <HistoryHeader
+          title="History"
           onBack={actions.onBack}
           showSortButton={state.activeTabIndex === 0}
           sortDirection={state.sortDirection}
@@ -370,7 +490,8 @@ function HistoryPage({
         </View>
       </ShellScreen>
       {state.isDetailVisible && selectedResult && (
-        <GameDetailsModal game={selectedResult} visible={state.isDetailVisible} onClose={actions.onCloseDetails} />
+        <GameDetailsModal game={selectedResult} visible={state.isDetailVisible} onClose={actions.onCloseDetails}
+          socialPeople={data.socialPeople} onOpenShared={data.onOpenShared} />
       )}
     </SafeAreaView>
   );
@@ -505,7 +626,16 @@ function HistoryTabContent({
     return (
       <View style={layout.styles.tabContent}>
         {data.playerStats.length > 0 ? (
-          <PlayerStatsList playerStats={data.playerStats} history={data.history} availableWidth={layout.availableWidth} />
+          <PlayerStatsList
+            playerStats={data.playerStats}
+            history={data.history}
+            availableWidth={layout.availableWidth}
+            socialPeople={data.socialPeople}
+            onOpenShared={data.onOpenShared}
+            onAddFriend={data.onAddFriend}
+            friendBusyAccountId={data.friendBusyAccountId}
+            friendError={data.friendError}
+          />
         ) : (
           <View style={layout.styles.emptyTabContent}>
             <AppIcon name="people-outline" size={40} color={layout.colors.neutralGray} />
@@ -517,7 +647,12 @@ function HistoryTabContent({
   }
   return (
     <View style={layout.styles.tabContent}>
-      <OverallStats history={data.history} availableWidth={layout.availableWidth} onGamePress={onOpenGame} />
+      <HistoryStatistics
+        history={data.history}
+        friends={data.friendList}
+        targetId={data.statsTargetId}
+        onSelect={data.onSelectStatsTarget}
+      />
     </View>
   );
 }

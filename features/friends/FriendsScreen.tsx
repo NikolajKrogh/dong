@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text, XStack, YStack } from 'tamagui';
@@ -11,6 +11,9 @@ import { useFriends } from './useFriends';
 export default function FriendsScreen() {
   const router = useRouter();
   const friends = useFriends('friends');
+  const openShared = useCallback((accountId: string) => {
+    router.push({ pathname: '/history', params: { friendId: accountId } });
+  }, [router]);
   const [tab, setTab] = useState<'friends' | 'requests'>('friends');
   const [menu, setMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -27,11 +30,34 @@ export default function FriendsScreen() {
       </XStack>
       {friends.actionError ? <Text color="$danger" accessibilityRole="alert">{friends.actionError}</Text> : null}
       {tab === 'requests' ? <RequestsPanel /> : <YStack gap="$3">
-        {!friends.list.isFetching && !friends.list.error && friends.items.length === 0 ? <YStack alignItems="center" gap="$3" paddingVertical="$6">
-          <Text color="$textPrimary" fontSize={22} fontWeight="700" textAlign="center">Better games with friends</Text>
-          <Text color="$textMuted" textAlign="center">Find your friends by username.</Text>
-          <ShellActionButton role="button" widthMode="fit" label="Find friends" onPress={() => router.push('/friends/search' as never)} />
-        </YStack> : <><Text color="$textPrimary" fontWeight="700" fontSize={18}>Your friends</Text><PeopleList items={friends.items} loading={friends.list.isFetching} error={friends.list.error} empty="No friends yet." busy={friends.busy} onAction={friends.act} loadMore={friends.list.hasNextPage ? () => { void friends.list.fetchNextPage(); } : undefined} /></>}
+        {!friends.list.isFetching && !friends.list.error && friends.items.length === 0 ? (
+          <YStack alignItems="center" gap="$3" paddingVertical="$6">
+            <Text color="$textPrimary" fontSize={22} fontWeight="700" textAlign="center">Better games with friends</Text>
+            <Text color="$textMuted" textAlign="center">Find your friends by username.</Text>
+            <ShellActionButton
+              role="button"
+              widthMode="fit"
+              label="Find friends"
+              onPress={() => router.push('/friends/search' as never)}
+            />
+          </YStack>
+        ) : (
+          <>
+            <Text color="$textPrimary" fontWeight="700" fontSize={18}>Your friends</Text>
+            <PeopleList
+              items={friends.items}
+              loading={friends.list.isLoading}
+              fetching={friends.list.isFetching}
+              error={friends.list.error}
+              empty="No friends yet."
+              busyAccountId={friends.busy}
+              onAction={friends.act}
+              onOpenShared={openShared}
+              loadMore={friends.list.hasNextPage ? () => { void friends.list.fetchNextPage(); } : undefined}
+              loadingMore={friends.list.isFetchingNextPage}
+            />
+          </>
+        )}
         <Text color="$textMuted" textAlign="center" fontSize={13} paddingTop="$4">Pull down to refresh</Text>
       </YStack>}
     </YStack>}

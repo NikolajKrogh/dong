@@ -12,8 +12,17 @@ export default function BlockedAccountsScreen() {
       <Text color="$textMuted">Unblocking allows new requests. It does not restore a friendship.</Text>
       <ShellActionButton role="button" variant="surface" label="Refresh" onPress={() => { void friends.refresh(); }} />
       {friends.actionError ? <Text color="$danger" accessibilityRole="alert">{friends.actionError}</Text> : null}
-      <PeopleList items={friends.items} loading={friends.list.isFetching} error={friends.list.error} empty="No blocked accounts." busy={friends.busy} onAction={friends.act}
-        loadMore={friends.list.hasNextPage ? () => { void friends.list.fetchNextPage(); } : undefined} />
+      <PeopleList
+        items={friends.items}
+        loading={friends.list.isLoading}
+        fetching={friends.list.isFetching}
+        error={friends.list.error}
+        empty="No blocked accounts."
+        busyAccountId={friends.busy}
+        onAction={friends.act}
+        loadMore={friends.list.hasNextPage ? () => { void friends.list.fetchNextPage(); } : undefined}
+        loadingMore={friends.list.isFetchingNextPage}
+      />
     </>}
   </SettingsPage>;
 }
