@@ -9,6 +9,7 @@ import SettingsPage from "../components/preferences/SettingsPage";
 import { ShellActionButton, ShellCard, ShellSection } from "../components/ui";
 import { buildAccountAuthRoute, useAccountAuth } from "../hooks/useAccountAuth";
 import { useGameStore } from "../store/store";
+import { isWebPlatform } from "../platform/environment";
 
 type SettingsAccountContentProps = Pick<
   ReturnType<typeof useAccountAuth>,
@@ -57,7 +58,7 @@ export default function UserPreferencesScreen() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const signedIn = status !== "signedOut" && status !== "loading";
 
-  if (showOnboarding) {
+  if (!isWebPlatform && showOnboarding) {
     return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
   }
 
@@ -80,7 +81,7 @@ export default function UserPreferencesScreen() {
       </ShellSection>
 
       {signedIn ? <ShellActionButton variant="surface" label="Sign out" onPress={() => { void signOut(); }} /> : null}
-      <ShellActionButton variant="surface" label="View onboarding" onPress={() => setShowOnboarding(true)} />
+      {!isWebPlatform ? <ShellActionButton variant="surface" label="View onboarding" onPress={() => setShowOnboarding(true)} /> : null}
     </SettingsPage>
   );
 }

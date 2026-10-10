@@ -28,6 +28,7 @@ import { getTopDrinker, getTotalDrinks } from "../utils/homeStats";
 import createStyles from "../styles/indexStyles";
 import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";
+import { isWebPlatform } from "../platform/environment";
 
 // Create a global variable to track if splash has already been shown
 // This will be reset when app is closed and reopened
@@ -36,7 +37,7 @@ let hasSplashBeenShown = false;
 /**
  * HomeScreen component.
  * @description Main landing screen: shows logo, game-in-progress actions,
- * aggregate stats, onboarding on first launch,
+ * aggregate stats, onboarding on first native launch,
  * and splash animation (once per session).
  * @returns {React.ReactElement} Home screen UI.
  */
@@ -61,6 +62,8 @@ const HomeScreen = () => {
   const [isFirstLaunch, setIsFirstLaunch] = useState(false); // Tutorial state
 
   useEffect(() => {
+    if (isWebPlatform) return;
+
     const checkFirstLaunch = async () => {
       const hasLaunched = await AsyncStorage.getItem("hasLaunched");
       if (!hasLaunched) {
