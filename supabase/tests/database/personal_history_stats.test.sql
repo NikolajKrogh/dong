@@ -1,0 +1,22 @@
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET LOCAL search_path=public,extensions;
+SELECT no_plan();
+\ir ../fixtures/social_history.sql
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
+SELECT is(public.get_personal_history_stats()->>'account_id',(SELECT a::text FROM social_fixture),'actor-only personal statistics');
+SELECT is(public.get_personal_history_stats()->>'games_participated','3','completed online games counted once');
+SELECT is((public.get_personal_history_stats()->>'total_drinks')::numeric,12::numeric,'own drinks include preserved early departure and exclude ongoing/imports');
+SELECT is((public.get_personal_history_stats()->>'average_drinks')::numeric,4::numeric,'average uses completed games');
+SELECT set_config('request.jwt.claim.sub',(SELECT c::text FROM social_fixture),true);
+SELECT is(public.get_personal_history_stats()->>'games_participated','0','no games or friendship required');
+SELECT is(public.get_personal_history_stats()->>'average_drinks',NULL,'no games has unavailable average');
+SELECT set_config('request.jwt.claim.sub','',true);
+SELECT throws_ok($$SELECT public.get_personal_history_stats()$$,'P0001','authentication_required','rejects absent actor');
+RESET ROLE;
+SELECT ok(NOT has_function_privilege('anon','public.get_personal_history_stats()','EXECUTE'),'anonymous cannot execute');
+SELECT ok(NOT has_function_privilege('anon','private.get_personal_history_stats()','EXECUTE'),'anonymous cannot bypass wrapper');
+SELECT ok(NOT (SELECT prosecdef FROM pg_proc WHERE oid='public.get_personal_history_stats()'::regprocedure),'public wrapper is security invoker');
+SELECT * FROM finish();
+ROLLBACK;

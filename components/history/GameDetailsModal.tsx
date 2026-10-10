@@ -11,11 +11,15 @@ import {
 } from "./historyUtils";
 import MatchCard from "./MatchCard";
 import HistoryModalFrame from "./HistoryModalFrame";
+import { ShellActionButton } from "../ui/ShellActionButton";
+import type { Person } from "../../features/friends";
 
 interface GameDetailsModalProps {
   visible: boolean;
   onClose: () => void;
   game: GameSession | null;
+  socialPeople?: Person[];
+  onOpenShared?: (accountId: string) => void;
 }
 
 interface GameDetailsLayout {
@@ -193,12 +197,14 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
   visible,
   onClose,
   game,
+  socialPeople,
+  onOpenShared,
 }) => {
   const renderContent = useCallback(
     (layout: GameDetailsLayout) => game
-      ? <GameDetailsContent game={game} {...layout} />
+      ? <GameDetailsContent game={game} {...layout} socialPeople={socialPeople} onOpenShared={onOpenShared} />
       : null,
-    [game],
+    [game,socialPeople,onOpenShared],
   );
 
   if (!game) return null;
@@ -218,6 +224,8 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({
 
 interface GameDetailsContentProps extends GameDetailsLayout {
   game: GameSession;
+  socialPeople?: Person[];
+  onOpenShared?: (accountId: string) => void;
 }
 
 function GameDetailsContent({
@@ -225,20 +233,36 @@ function GameDetailsContent({
   contentWidth,
   fontScale,
   isDesktop,
+  socialPeople,
+  onOpenShared,
 }: GameDetailsContentProps) {
   const colors = useColors();
-  const columns = contentWidth < 360 || fontScale >= 1.5
-    ? 1
-    : isDesktop ? 4 : 2;
+  let columns = 2;
+  if (contentWidth < 360 || fontScale >= 1.5) columns = 1;
+  else if (isDesktop) columns = 4;
   const styles = useMemo(
     () => createGameDetailsStyles(colors, columns, isDesktop),
     [colors, columns, isDesktop],
   );
+  const sharedFriends = onOpenShared
+    ? socialPeople?.filter((person) => person.relationship === 'friends'
+      && game.players.some((player) => player.membershipType === 'registered' && player.accountId === person.account_id)) ?? []
+    : [];
 
   return (
     <>
       <Text style={styles.date}>{formatModalDate(game.date)}</Text>
       <GameSummarySection game={game} styles={styles} colors={colors} />
+      {sharedFriends.map((person) => (
+        <ShellActionButton
+          key={person.account_id}
+          role="button"
+          variant="surface"
+          widthMode="fit"
+          label={`You & ${person.username}`}
+          onPress={() => onOpenShared?.(person.account_id)}
+        />
+      ))}
       <View testID="GameDetailsSections" style={styles.sections}>
         <GamePlayersSection game={game} styles={styles} colors={colors} />
         <GameMatchesSection game={game} styles={styles} colors={colors} />
@@ -279,10 +303,10 @@ function GameSummarySection({ game, styles, colors }: GameDetailsSectionProps) {
 
 function GamePlayersSection({ game, styles, colors }: GameDetailsSectionProps) {
   const sortedPlayers = useMemo(
-    () => [...game.players].sort(
-      (leftPlayer, rightPlayer) =>
-        (rightPlayer.drinksTaken || 0) - (leftPlayer.drinksTaken || 0),
-    ),
+    () => game.players
+      .map((player, index) => ({ player, index }))
+      .sort(({ player: left }, { player: right }) =>
+        (right.drinksTaken || 0) - (left.drinksTaken || 0)),
     [game.players],
   );
 
@@ -292,15 +316,14 @@ function GamePlayersSection({ game, styles, colors }: GameDetailsSectionProps) {
       {sortedPlayers.length === 0 ? (
         <Text style={styles.empty}>No players recorded</Text>
       ) : (
-        sortedPlayers.map((player) => {
-          const playerIndex = game.players.indexOf(player);
+        sortedPlayers.map(({ player, index }) => {
           const assignedMatches = game.matches.filter((match) =>
             game.playerAssignments?.[player.id]?.includes(match.id),
           );
 
           return (
             <GamePlayerCard
-              key={getPlayerIdentityKey(player, game.id, Math.max(playerIndex, 0))}
+              key={getPlayerIdentityKey(player, game.id, index)}
               player={player}
               assignedMatches={assignedMatches}
               styles={styles}

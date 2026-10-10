@@ -9,6 +9,7 @@ import { useAppVisibility } from '../../platform/visibility';
 import { normalizeAccountUsername } from '../account';
 import { actOnFriend, listFriends, searchFriends, SocialError, type FriendAction, type Person, type ListKind, type SocialPage } from './friendsRepository';
 import { friendKeys } from './queryKeys';
+import { invalidateSocialHistory } from '../history';
 
 const refreshes = new Map<string, Promise<void>>();
 export function refreshFriends(accountId: string) {
@@ -63,6 +64,7 @@ export function useFriends(kind: ListKind, prefix = '') {
       const confirmed = await actOnFriend(getSupabaseClient(), action, person, operationId);
       if (!isCurrentAccountScope(start)) return;
       intents.current.delete(key);
+      await invalidateSocialHistory(id);
       await queryClient.cancelQueries({ queryKey: friendKeys.all(id) });
       if (!isCurrentAccountScope(start)) return;
       // Apply only the server-confirmed projection before refreshing. A failed read

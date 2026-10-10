@@ -97,7 +97,7 @@ const localSession = (id: string, name = "Alex"): GameSession => ({
 });
 
 describe("historyRepository", () => {
-  it("maps and paginates canonical cloud history without importer calls", async () => {
+  it.each(["browser", "native"])("maps and paginates canonical cloud history with a %s signal", async (runtime) => {
     const summaries = Array.from({ length: 501 }, (_, index) =>
       cloudSession(`cloud-${String(index).padStart(3, "0")}`, {
         completed_at: index === 0 ? null : "2026-09-20T12:00:00.000Z",
@@ -115,7 +115,9 @@ describe("historyRepository", () => {
       ),
     } as unknown as SupabaseClient;
 
-    const result = await loadCloudHistory(client);
+    const signal = new AbortController().signal;
+    if (runtime === "native") Object.defineProperty(signal, "throwIfAborted", { value: undefined });
+    const result = await loadCloudHistory(client, signal);
 
     expect(client.from).toHaveBeenCalledWith("completed_session_summaries");
     expect(client.from).toHaveBeenCalledWith("early_leave_results");
@@ -156,6 +158,95 @@ describe("historyRepository", () => {
         { source: "summaries", column: "session_id", ascending: true },
       ]),
     );
+  });
+
+  it("rejects a canceled native signal before requesting cloud history", async () => {
+    const controller = new AbortController();
+    Object.defineProperty(controller.signal, "throwIfAborted", { value: undefined });
+    Object.defineProperty(controller.signal, "reason", { value: undefined });
+    controller.abort();
+    const client = { from: jest.fn() } as unknown as SupabaseClient;
+    await expect(loadCloudHistory(client, controller.signal)).rejects.toMatchObject({ name: "AbortError" });
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("preserves legacy fallbacks for malformed summary fields", async () => {
+    const summaries = [
+      cloudSession("fallback-fields", {
+        players: [null, {
+          id: 12,
+          name: false,
+          drinksTaken: Number.POSITIVE_INFINITY,
+          accountId: 12,
+          membershipType: "unknown",
+          leftAt: 12,
+        }],
+        matches: [null, {
+          id: 12,
+          homeTeam: false,
+          awayTeam: 12,
+          homeGoals: Number.POSITIVE_INFINITY,
+          awayGoals: "3",
+          goals: Number.NaN,
+        }],
+        player_assignments: {
+          p1: ["match-1", null, 12],
+          p2: "not-an-array",
+        },
+        matches_per_player: Number.POSITIVE_INFINITY,
+      }),
+      cloudSession("fallback-arrays", {
+        players: "not-an-array",
+        matches: null,
+        player_assignments: [],
+      }),
+    ];
+    const requests: QueryRequest[] = [];
+    const orderRequests: OrderRequest[] = [];
+    const client = {
+      from: jest.fn((table: string) =>
+        pagedQuery(
+          table === "early_leave_results" ? "early" : "summaries",
+          table === "early_leave_results" ? [] : summaries,
+          requests,
+          orderRequests,
+        ),
+      ),
+    } as unknown as SupabaseClient;
+
+    const { sessions } = await loadCloudHistory(client);
+
+    expect(sessions[0]).toMatchObject({
+      players: [
+        {
+          id: "",
+          name: "",
+          drinksTaken: 0,
+          accountId: null,
+          membershipType: undefined,
+          leftAt: null,
+        },
+        {
+          id: "",
+          name: "",
+          drinksTaken: 0,
+          accountId: null,
+          membershipType: undefined,
+          leftAt: null,
+        },
+      ],
+      matches: [
+        { id: "", homeTeam: "", awayTeam: "", homeGoals: 0, awayGoals: 0, goals: 0 },
+        { id: "", homeTeam: "", awayTeam: "", homeGoals: 0, awayGoals: 0, goals: 0 },
+      ],
+      playerAssignments: { p1: ["match-1"], p2: [] },
+      matchesPerPlayer: 0,
+    });
+    expect(sessions[1]).toMatchObject({
+      players: [],
+      matches: [],
+      playerAssignments: {},
+    });
   });
 
   it("rejects the combined load if either page stream fails", async () => {
@@ -217,5 +308,70 @@ describe("historyRepository", () => {
       matches: [{ goals: 3 }], playerAssignments: { p1: ["m1"] } });
     const completed = localSession("room-1");
     expect(mergeHistory([provisional], [provisional, completed])).toEqual([completed]);
+  });
+
+  it("keeps departure field fallbacks and rejects malformed structures", () => {
+    const provisional = mapDepartureResult("room-2", "2026-09-28T10:00:00Z", {
+      sessionId: "room-2",
+      state: "in_progress",
+      commonMatchId: 12,
+      participants: [{
+        id: "p1",
+        displayName: false,
+        currentDrinkTotal: Number.POSITIVE_INFINITY,
+        membershipType: "unknown",
+        leftAt: 12,
+      }],
+      matches: [{
+        id: "m1",
+        homeTeamName: false,
+        awayTeamName: 12,
+        homeScore: Number.NaN,
+        awayScore: "3",
+      }],
+      assignments: [null, { participantId: "p1", matchId: 12 }, { participantId: "p1", matchId: "m1" }],
+      assignmentPlan: { matchesPerPlayer: "2" },
+    });
+
+    expect(provisional).toMatchObject({
+      players: [{
+        id: "p1",
+        name: "",
+        drinksTaken: 0,
+        membershipType: undefined,
+        leftAt: null,
+      }],
+      matches: [{ id: "m1", homeTeam: "", awayTeam: "", homeGoals: 0, awayGoals: 0, goals: 0 }],
+      commonMatchId: null,
+      playerAssignments: { p1: ["m1"] },
+      matchesPerPlayer: 0,
+    });
+
+    expect(() => mapDepartureResult("room-2", "2026-09-28T10:00:00Z", {
+      sessionId: "room-2",
+      state: "in_progress",
+      participants: "not-an-array",
+      matches: [],
+      assignments: [],
+      assignmentPlan: {},
+    })).toThrow("Invalid departure result.");
+
+    expect(() => mapDepartureResult("room-2", "not-a-date", {
+      sessionId: "room-2",
+      state: "in_progress",
+      participants: [],
+      matches: [],
+      assignments: [],
+      assignmentPlan: {},
+    })).toThrow("Invalid departure result.");
+
+    expect(() => mapDepartureResult("room-2", "2026-09-28T10:00:00Z", {
+      sessionId: "room-2",
+      state: "in_progress",
+      participants: [{ id: 12 }],
+      matches: [],
+      assignments: [],
+      assignmentPlan: {},
+    })).toThrow("Invalid departure participant.");
   });
 });

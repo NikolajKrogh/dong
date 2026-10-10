@@ -2,6 +2,8 @@ import React from "react";
 import { act } from "react-test-renderer";
 import { ScrollView } from "react-native";
 import { actCreate } from "../../../test-utils/render";
+jest.mock("../../../components/ui/ShellActionButton", () => ({ShellActionButton:(props:unknown) =>
+  require("react").createElement("SharedHistoryButton",props)}));
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -72,6 +74,20 @@ const mockGame = {
   ],
   commonMatchId: "m1",
 };
+
+it("offers registered accepted-friend shortcuts from recorded game details",() => {
+  const GameDetailsModal=require("../../../components/history/GameDetailsModal").default;
+  const open=jest.fn();
+  const renderer=actCreate(<GameDetailsModal visible onClose={jest.fn()} onOpenShared={open}
+    game={{...mockGame,players:[{id:"p1",name:"Recorded",accountId:"friend",membershipType:"registered",drinksTaken:4}]}}
+    socialPeople={[{account_id:"friend",username:"Current",relationship:"friends",request_id:null},
+      {account_id:"other",username:"Other",relationship:"friends",request_id:null}]} />);
+  const buttons=renderer.root.findAll(node => node.type === ("SharedHistoryButton" as React.ElementType));
+  expect(buttons).toHaveLength(1);
+  act(() => buttons[0].props.onPress());
+  expect(open).toHaveBeenCalledWith("friend");
+  act(() => renderer.unmount());
+});
 
 describe("GameDetailsModal responsive layout", () => {
   it("shows unknown completion dates and empty sections", () => {

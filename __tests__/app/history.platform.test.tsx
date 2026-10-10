@@ -13,6 +13,16 @@ const mockUseWindowDimensions = jest.fn(() => ({
 const mockGoBack = jest.fn();
 const mockRefresh = jest.fn();
 const mockCloudState = { accountId: "account-a" as string | null, loading: false, error: null as string | null };
+const mockRouteParams: { friendId?: string | string[] } = {};
+const mockFriendPagination = {
+  enabled: true,
+  id: "account-a",
+  totalPages: 0,
+  revealAtPage: 0,
+  personId: "00000000-0000-4000-8000-000000000002",
+  fetchCalls: 0,
+  listError: null as Error | null,
+};
 
 const mockHistoryStore = {
   history: [
@@ -74,11 +84,51 @@ jest.mock("react-native-safe-area-context", () => ({
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ back: mockGoBack }),
+  useLocalSearchParams: () => mockRouteParams,
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
+jest.mock("../../features/history/HistoryStatistics", () => (props:unknown) =>
+  require("react").createElement(require("../../components/history/OverallStats"),props));
 
 jest.mock("../../features/history", () => ({
   useHistory: () => ({ ...mockHistoryStore, ...mockCloudState, refresh: mockRefresh }),
+  useHistoryCoplayerContext: () => [],
+}));
+jest.mock("../../features/friends", () => ({
+  useFriends: () => {
+    const [loadedPages, setLoadedPages] = require("react").useState(0);
+    const friend = {
+      account_id: mockFriendPagination.personId,
+      username: "Loaded friend",
+      relationship: "friends",
+      request_id: null,
+    };
+    const hasLoadedTarget = mockFriendPagination.revealAtPage > 0
+      && loadedPages >= mockFriendPagination.revealAtPage;
+
+    return {
+      id: mockFriendPagination.id,
+      enabled: mockFriendPagination.enabled,
+      items: hasLoadedTarget ? [friend] : [],
+      act: jest.fn(),
+      busy: null,
+      actionError: null,
+      refresh: jest.fn(),
+      list: {
+        hasNextPage: loadedPages < mockFriendPagination.totalPages,
+        isLoading: false,
+        isFetching: false,
+        isFetchingNextPage: false,
+        isError: mockFriendPagination.listError !== null,
+        error: mockFriendPagination.listError,
+        fetchNextPage: () => {
+          mockFriendPagination.fetchCalls += 1;
+          setLoadedPages((count: number) => count + 1);
+          return Promise.resolve();
+        },
+      },
+    };
+  },
 }));
 
 jest.mock("../../styles/theme", () => ({
@@ -188,6 +238,16 @@ describe("HistoryScreen responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockCloudState, { accountId: "account-a", loading: false, error: null });
+    Object.assign(mockRouteParams, { friendId: undefined });
+    Object.assign(mockFriendPagination, {
+      enabled: true,
+      id: "account-a",
+      totalPages: 0,
+      revealAtPage: 0,
+      personId: "00000000-0000-4000-8000-000000000002",
+      fetchCalls: 0,
+      listError: null,
+    });
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
@@ -345,6 +405,50 @@ describe("HistoryScreen responsive layout", () => {
     )).toBe(false);
   });
 
+  it("loads accepted-friend pages until a route-selected friend is available", () => {
+    const targetId = "00000000-0000-4000-8000-000000000002";
+    Object.assign(mockRouteParams, { friendId: targetId });
+    Object.assign(mockFriendPagination, { totalPages: 3, revealAtPage: 2, personId: targetId });
+
+    const renderer = renderHistoryScreen();
+    const stats = renderer.root.findByProps({ testID: "OverallStats" });
+
+    expect(mockFriendPagination.fetchCalls).toBe(2);
+    expect(stats.props.targetId).toBe(targetId);
+    expect(stats.props.friends.items).toEqual([
+      expect.objectContaining({ account_id: targetId, relationship: "friends" }),
+    ]);
+  });
+
+  it.each([
+    { label: "malformed ids", friendId: "not-an-account-id", enabled: true, accountId: "account-a", listError: null, totalPages: 3 },
+    { label: "the viewer's own id", friendId: "00000000-0000-4000-8000-000000000002", enabled: true, accountId: "00000000-0000-4000-8000-000000000002", listError: null, totalPages: 3 },
+    { label: "disabled friend lists", friendId: "00000000-0000-4000-8000-000000000002", enabled: false, accountId: "account-a", listError: null, totalPages: 3 },
+    { label: "friend-list errors", friendId: "00000000-0000-4000-8000-000000000002", enabled: true, accountId: "account-a", listError: new Error("Unavailable"), totalPages: 3 },
+    { label: "exhausted friend lists", friendId: "00000000-0000-4000-8000-000000000002", enabled: true, accountId: "account-a", listError: null, totalPages: 0 },
+  ])("does not fetch friend pages for $label", ({ friendId, enabled, accountId, listError, totalPages }) => {
+    Object.assign(mockRouteParams, { friendId });
+    Object.assign(mockFriendPagination, { enabled, id: accountId, listError, totalPages });
+
+    renderHistoryScreen();
+
+    expect(mockFriendPagination.fetchCalls).toBe(0);
+  });
+
+  it("updates the selected friend when route params change on the same history screen", () => {
+    const firstTarget = "00000000-0000-4000-8000-000000000002";
+    const nextTarget = "00000000-0000-4000-8000-000000000003";
+    Object.assign(mockRouteParams, { friendId: firstTarget });
+
+    const renderer = renderHistoryScreen();
+    expect(renderer.root.findByProps({ testID: "OverallStats" }).props.targetId).toBe(firstTarget);
+
+    Object.assign(mockRouteParams, { friendId: nextTarget });
+    TestRenderer.act(() => renderer.update(React.createElement(require("../../app/history").default)));
+
+    expect(renderer.root.findByProps({ testID: "OverallStats" }).props.targetId).toBe(nextTarget);
+  });
+
   it("uses measured content width for columns and preserves order", () => {
     mockUseWindowDimensions.mockReturnValue({ width: 1400, height: 900, scale: 1, fontScale: 1 });
     const original = mockHistoryStore.history;
@@ -371,4 +475,15 @@ describe("HistoryScreen responsive layout", () => {
       expect(renderer.root.findByType(FlatList).props.data[0].games).toHaveLength(rowSize);
     } finally { mockHistoryStore.history = original; }
   });
+});
+
+it('keeps Stats accessible when personal history is empty',() => {
+  const original=mockHistoryStore.history;
+  mockHistoryStore.history=[];
+  try {
+    const renderer=renderHistoryScreen();
+    TestRenderer.act(() => renderer.root.findByProps({testID:'HistoryTab-Stats'}).props.onPress());
+    expect(renderer.root.findByProps({testID:'OverallStats'}).props.history).toEqual([]);
+    TestRenderer.act(() => renderer.unmount());
+  } finally {mockHistoryStore.history=original;}
 });

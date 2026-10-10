@@ -5,7 +5,14 @@ import { ShellActionButton, ShellCard } from '../../components/ui';
 import { actionsForPerson, type FriendAction, type Person } from './friendsRepository';
 
 const labels: Record<FriendAction, string> = { send: 'Send request', accept: 'Accept', decline: 'Decline', cancel: 'Cancel request', unfriend: 'Unfriend', block: 'Block', unblock: 'Unblock' };
-export default function FriendActions({ person, busy, onAction }: { person: Person; busy: boolean; onAction: (action: FriendAction, person: Person) => Promise<void> }) {
+interface FriendActionsProps {
+  person: Person;
+  busy: boolean;
+  working?: boolean;
+  onAction: (action: FriendAction, person: Person) => Promise<void>;
+}
+
+export default function FriendActions({ person, busy, working = false, onAction }: FriendActionsProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<FriendAction | null>(null);
   const trigger = useRef<React.ElementRef<typeof TouchableOpacity>>(null);
@@ -26,7 +33,7 @@ export default function FriendActions({ person, busy, onAction }: { person: Pers
       {person.relationship === 'outgoing' ? <Text color="$textMuted" fontSize={14}>Pending</Text> : null}
       {actions.filter(action => ['send','accept','decline','unblock'].includes(action)).map(action =>
         <ShellActionButton key={action} widthMode="fit" size="small" role="button" accessibilityLabel={`${labels[action]} ${person.username}`} disabled={busy}
-          label={busy ? 'Working…' : labels[action]} variant={action === 'decline' ? 'surface' : 'primary'} onPress={() => choose(action)} />)}
+          label={working ? 'Working…' : labels[action]} variant={action === 'decline' ? 'surface' : 'primary'} onPress={() => choose(action)} />)}
       {actions.some(action => action === 'block' || action === 'unfriend' || action === 'cancel') ?
         <TouchableOpacity ref={trigger} accessibilityRole="button" accessibilityLabel={`More actions for ${person.username}`} accessibilityState={{ expanded: menuOpen, disabled: busy }} disabled={busy}
           onPress={() => setMenuOpen(!menuOpen)} style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
