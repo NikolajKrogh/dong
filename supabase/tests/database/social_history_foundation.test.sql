@@ -2,7 +2,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET LOCAL search_path = public, extensions;
 SELECT no_plan();
-\ir ../fixtures/social_history.sql
+\ir ../fixtures/social_history.inc
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
 SELECT is(public.get_social_history((SELECT b FROM social_fixture))->'viewer'->>'games_participated','3','each completed online game contributes once');

@@ -96,13 +96,9 @@ function SharedTimeline({ view, username }: { view: SharedHistoryView; username:
   );
 }
 
-export default function SharedHistoryContent({ view }: { view: SharedHistoryView }): React.ReactElement {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const data = view.data;
-  const selected = data?.games.items.find((game) => game.id === selectedId) ?? null;
-
+function SharedHistoryStatus({ view }: { view: SharedHistoryView }): React.ReactElement {
   return (
-    <YStack gap="$4">
+    <>
       {view.checking ? (
         <Text color="$textMuted" accessibilityLiveRegion="polite">Checking access…</Text>
       ) : null}
@@ -112,78 +108,112 @@ export default function SharedHistoryContent({ view }: { view: SharedHistoryView
           <ShellActionButton role="button" label="Retry" onPress={() => { void view.refresh(); }} />
         </YStack>
       ) : null}
+    </>
+  );
+}
 
-      {data ? (
-        <YStack gap="$5">
+function SharedTimelineAction({ view }: { view: SharedHistoryView }): React.ReactElement | null {
+  if (!view.data?.shared.shared_games) return null;
+
+  let label = 'Show drink timeline';
+  let loadTimeline = view.loadTimeline;
+  if (view.timeline) {
+    label = 'Refresh shared history';
+    loadTimeline = view.refresh;
+  }
+  if (view.paging) label = 'Loading…';
+
+  return (
+    <ShellActionButton
+      role="button"
+      variant="surface"
+      label={label}
+      disabled={view.paging}
+      onPress={() => { void loadTimeline(); }}
+    />
+  );
+}
+
+function SharedHistoryDetails({
+  view,
+  onSelectGame,
+}: {
+  view: SharedHistoryView;
+  onSelectGame: (id: string) => void;
+}): React.ReactElement | null {
+  const data = view.data;
+  if (!data) return null;
+
+  return (
+    <YStack gap="$5">
+      <Text color="$textMuted">
+        Friends · {data.shared.shared_games} games together · All time
+      </Text>
+      <YStack gap="$3">
+        <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
+          Overall stats
+        </Text>
+        <Text color="$textMuted">All completed online games, including games played separately.</Text>
+        <XStack flexWrap="wrap" gap="$4">
+          <StatsColumn stats={data.viewer} label="You" />
+          <StatsColumn stats={data.target} label={data.target.username} />
+        </XStack>
+      </YStack>
+
+      <YStack gap="$3">
+        <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
+          Your games together
+        </Text>
+        <Text color="$textMuted">All time · Completed online games only</Text>
+        <XStack flexWrap="wrap" gap="$4">
+          <StatsColumn
+            label="You"
+            stats={{
+              ...data.viewer,
+              games_participated: data.shared.shared_games,
+              total_drinks: data.shared.viewer_total_drinks,
+              average_drinks: data.shared.viewer_average_drinks,
+            }}
+          />
+          <StatsColumn
+            label={data.target.username}
+            stats={{
+              ...data.target,
+              games_participated: data.shared.shared_games,
+              total_drinks: data.shared.target_total_drinks,
+              average_drinks: data.shared.target_average_drinks,
+            }}
+          />
+        </XStack>
+        <Text color="$textPrimary">
+          Higher drink count: You {data.shared.viewer_higher_count} · {data.target.username}{' '}
+          {data.shared.target_higher_count} · Ties {data.shared.tied_count}
+        </Text>
+        <Text color="$textMuted">
+          Counts describe recorded drinks. Players who left early participated for less time.
+        </Text>
+        {!data.shared.shared_games ? (
           <Text color="$textMuted">
-            Friends · {data.shared.shared_games} games together · All time
+            No completed online games together yet. Your overall stats are still available.
           </Text>
-          <YStack gap="$3">
-            <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
-              Overall stats
-            </Text>
-            <Text color="$textMuted">All completed online games, including games played separately.</Text>
-            <XStack flexWrap="wrap" gap="$4">
-              <StatsColumn stats={data.viewer} label="You" />
-              <StatsColumn stats={data.target} label={data.target.username} />
-            </XStack>
-          </YStack>
+        ) : null}
 
-          <YStack gap="$3">
-            <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
-              Your games together
-            </Text>
-            <Text color="$textMuted">All time · Completed online games only</Text>
-            <XStack flexWrap="wrap" gap="$4">
-              <StatsColumn
-                label="You"
-                stats={{
-                  ...data.viewer,
-                  games_participated: data.shared.shared_games,
-                  total_drinks: data.shared.viewer_total_drinks,
-                  average_drinks: data.shared.viewer_average_drinks,
-                }}
-              />
-              <StatsColumn
-                label={data.target.username}
-                stats={{
-                  ...data.target,
-                  games_participated: data.shared.shared_games,
-                  total_drinks: data.shared.target_total_drinks,
-                  average_drinks: data.shared.target_average_drinks,
-                }}
-              />
-            </XStack>
-            <Text color="$textPrimary">
-              Higher drink count: You {data.shared.viewer_higher_count} · {data.target.username}{' '}
-              {data.shared.target_higher_count} · Ties {data.shared.tied_count}
-            </Text>
-            <Text color="$textMuted">
-              Counts describe recorded drinks. Players who left early participated for less time.
-            </Text>
-            {!data.shared.shared_games ? (
-              <Text color="$textMuted">
-                No completed online games together yet. Your overall stats are still available.
-              </Text>
-            ) : null}
+        <SharedGames view={view} onSelectGame={onSelectGame} />
+        <SharedTimelineAction view={view} />
+        <SharedTimeline view={view} username={data.target.username} />
+      </YStack>
+    </YStack>
+  );
+}
 
-            <SharedGames view={view} onSelectGame={setSelectedId} />
-            {data.shared.shared_games ? (
-              <ShellActionButton
-                role="button"
-                variant="surface"
-                label={view.paging ? 'Loading…' : view.timeline ? 'Refresh shared history' : 'Show drink timeline'}
-                disabled={view.paging}
-                onPress={() => {
-                  if (view.timeline) void view.refresh();
-                  else void view.loadTimeline();
-                }}
-              />
-            ) : null}
-            <SharedTimeline view={view} username={data.target.username} />
-          </YStack>
-        </YStack>
-      ) : null}
+export default function SharedHistoryContent({ view }: { view: SharedHistoryView }): React.ReactElement {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = view.data?.games.items.find((game) => game.id === selectedId) ?? null;
+
+  return (
+    <YStack gap="$4">
+      <SharedHistoryStatus view={view} />
+      <SharedHistoryDetails view={view} onSelectGame={setSelectedId} />
 
       {selected ? (
         <GameDetailsModal visible game={selected} onClose={() => setSelectedId(null)} />

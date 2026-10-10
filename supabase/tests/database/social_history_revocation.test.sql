@@ -2,7 +2,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET LOCAL search_path=public,extensions;
 SELECT no_plan();
-\ir ../fixtures/social_history.sql
+\ir ../fixtures/social_history.inc
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
 CREATE TEMP TABLE revoked_page AS SELECT public.list_social_shared_games((SELECT b FROM social_fixture),NULL,1) AS page;

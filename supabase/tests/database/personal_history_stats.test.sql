@@ -2,7 +2,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET LOCAL search_path=public,extensions;
 SELECT no_plan();
-\ir ../fixtures/social_history.sql
+\ir ../fixtures/social_history.inc
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
 SELECT is(public.get_personal_history_stats()->>'account_id',(SELECT a::text FROM social_fixture),'actor-only personal statistics');

@@ -10,6 +10,8 @@ import type { Person } from "../../features/friends";
 import { getPlayerIdentityKey } from "./historyUtils";
 import { getHistoryTimestamp } from "../../features/history/historyDate";
 
+const EMPTY_SOCIAL_PEOPLE: Person[] = [];
+
 function getPersonIdentityKey(person: Person): string {
   const registeredPlayer: Player = {
     id: person.account_id,
@@ -248,7 +250,7 @@ export default function PlayerStatsList({
   playerStats,
   history,
   availableWidth,
-  socialPeople = [],
+  socialPeople = EMPTY_SOCIAL_PEOPLE,
   onOpenShared,
   onAddFriend,
   friendBusyAccountId,

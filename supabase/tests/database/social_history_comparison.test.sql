@@ -2,7 +2,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET LOCAL search_path=public,extensions;
 SELECT no_plan();
-\ir ../fixtures/social_history.sql
+\ir ../fixtures/social_history.inc
 INSERT INTO public.friendships(requester_account_id,addressee_account_id,status) SELECT a,c,'accepted' FROM social_fixture;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);

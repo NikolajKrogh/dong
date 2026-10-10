@@ -2,7 +2,7 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET LOCAL search_path=public,extensions;
 SELECT no_plan();
-\ir ../fixtures/social_history.sql
+\ir ../fixtures/social_history.inc
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',(SELECT a::text FROM social_fixture),true);
 SELECT is(jsonb_array_length(public.get_history_coplayer_context(ARRAY[(SELECT b FROM social_fixture),(SELECT c FROM social_fixture)])),1,'only evidenced co-player gets current context');

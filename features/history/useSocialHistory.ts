@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { useAccountAuth } from '../../hooks/useAccountAuth';
 import { getSupabaseClient } from '../../lib/supabase';
@@ -25,6 +26,10 @@ const socialHistoryQueryKey = (accountId: string) => [...accountQueryKey(account
 const personalHistoryStatsQueryKey = (accountId: string) => [...accountQueryKey(accountId), 'history-stats'] as const;
 const coplayerContextQueryKey = (accountId: string, targetIds: string) =>
   [...socialHistoryQueryKey(accountId), 'coplayers', targetIds] as const;
+const socialHistoryTargetQueryKey = (accountId: string, targetId: string) =>
+  [...socialHistoryQueryKey(accountId), targetId] as const;
+const COPLAYER_CONTEXT_BATCH_SIZE = 100;
+const COPLAYER_CONTEXT_MAX_CONCURRENT_BATCHES = 4;
 
 export function usePersonalHistoryStats() {
   const { account, status } = useAccountAuth();
@@ -88,6 +93,38 @@ const getSocialHistoryErrorMessage = (error: unknown): string =>
 
 type SocialPageLoader<T> = (signal: AbortSignal) => Promise<SocialPage<T>>;
 type SocialPageUpdater<T> = (display: Display, page: SocialPage<T>) => Display;
+type SocialHistoryTargetQueryKey = ReturnType<typeof socialHistoryTargetQueryKey>;
+type SocialHistoryDisplaySetter = Dispatch<SetStateAction<Display | null>>;
+
+interface SocialHistoryDisplayState {
+  current: Display | null;
+  getQueryKey: () => SocialHistoryTargetQueryKey;
+  pageController: MutableRefObject<AbortController | null>;
+  refresh: () => Promise<void>;
+  serial: MutableRefObject<number>;
+  setDisplay: SocialHistoryDisplaySetter;
+}
+
+interface SocialHistoryPageOptions {
+  accountId: string;
+  current: Display | null;
+  getQueryKey: () => SocialHistoryTargetQueryKey;
+  pageController: MutableRefObject<AbortController | null>;
+  serial: MutableRefObject<number>;
+  setDisplay: SocialHistoryDisplaySetter;
+}
+
+function isSocialHistoryTargetAllowed(targetId: string, accountId: string, scopedAccountId: string | null): boolean {
+  return isAccountId(targetId)
+    && !!accountId
+    && targetId !== accountId
+    && scopedAccountId === accountId;
+}
+
+function getSocialHistoryDisplayError(enabled: boolean, accountId: string, current: Display | null): string | null {
+  if (enabled) return current?.error ?? null;
+  return accountId ? 'This shared history link is invalid.' : 'Sign in to view shared history.';
+}
 
 const appendGamePage: SocialPageUpdater<SocialHistory['games']['items'][number]> = (display, page) => {
   if (!display.data) return { ...display, paging: false };
@@ -128,26 +165,20 @@ const appendTimelinePage: SocialPageUpdater<TimelinePoint> = (display, page) => 
   };
 };
 
-export function useSocialHistory(targetId: string) {
-  const { account, status } = useAccountAuth();
-  const accountId = status === 'ready' ? account?.id ?? '' : '';
+function useSocialHistoryDisplay(accountId: string, targetId: string, enabled: boolean): SocialHistoryDisplayState {
   const scope = getAccountScope();
-  const enabled = isAccountId(targetId)
-    && !!accountId
-    && targetId !== accountId
-    && scope.accountId === accountId;
   const [display, setDisplay] = useState<Display | null>(null);
   const serial = useRef(0);
   const focused = useRef(false);
   const pageController = useRef<AbortController | null>(null);
-  const key = useCallback(
-    () => [...socialHistoryQueryKey(accountId), targetId],
+  const getQueryKey = useCallback(
+    () => socialHistoryTargetQueryKey(accountId, targetId),
     [accountId, targetId],
   );
 
-  // Keep an invalidation observer for the lifetime of the view, without rendering its cached data.
+  // Observe invalidations without rendering query-cache data.
   useQuery({
-    queryKey: key(),
+    queryKey: getQueryKey(),
     enabled: false,
     gcTime: 0,
     retry: false,
@@ -155,13 +186,17 @@ export function useSocialHistory(targetId: string) {
     queryFn: ({ signal }) => loadSocialHistory(getSupabaseClient(), accountId, targetId, signal),
   }, queryClient);
 
-  const hide = useCallback(() => {
+  const invalidateCurrentRequest = useCallback(() => {
     serial.current++;
     pageController.current?.abort();
     pageController.current = null;
+    void queryClient.cancelQueries({ queryKey: getQueryKey() });
+  }, [getQueryKey]);
+
+  const hide = useCallback(() => {
+    invalidateCurrentRequest();
     setDisplay(null);
-    void queryClient.cancelQueries({ queryKey: key() });
-  }, [key]);
+  }, [invalidateCurrentRequest]);
 
   const refresh = useCallback(async () => {
     const start = getAccountScope();
@@ -170,11 +205,10 @@ export function useSocialHistory(targetId: string) {
     pageController.current = null;
 
     if (!enabled || start.accountId !== accountId) {
-      setDisplay(null);
       return;
     }
 
-    const emptyDisplay: Display = {
+    const checkingDisplay: Display = {
       accountId,
       generation: start.generation,
       targetId,
@@ -184,14 +218,14 @@ export function useSocialHistory(targetId: string) {
       timeline: null,
       paging: false,
     };
-    setDisplay(emptyDisplay);
+    setDisplay(checkingDisplay);
 
-    await queryClient.cancelQueries({ queryKey: key() });
+    await queryClient.cancelQueries({ queryKey: getQueryKey() });
     if (serial.current !== revision || !isCurrentAccountScope(start)) return;
 
     try {
       const data = await queryClient.fetchQuery({
-        queryKey: key(),
+        queryKey: getQueryKey(),
         staleTime: 0,
         gcTime: 0,
         retry: false,
@@ -200,21 +234,27 @@ export function useSocialHistory(targetId: string) {
       });
 
       if (serial.current === revision && isCurrentAccountScope(start)) {
-        setDisplay({ ...emptyDisplay, status: 'ready', data });
+        setDisplay({ ...checkingDisplay, status: 'ready', data });
       }
     } catch (error) {
       if (serial.current !== revision || !isCurrentAccountScope(start)) return;
 
-      queryClient.removeQueries({ queryKey: key() });
+      queryClient.removeQueries({ queryKey: getQueryKey() });
       setDisplay({
-        ...emptyDisplay,
+        ...checkingDisplay,
         status: 'error',
         error: getSocialHistoryErrorMessage(error),
       });
     }
-  }, [accountId, enabled, key, targetId]);
+  }, [accountId, enabled, getQueryKey, targetId]);
 
+  const { isInteractive } = useAppVisibility();
   useFocusEffect(useCallback(() => {
+    if (!isInteractive) {
+      focused.current = false;
+      return;
+    }
+
     focused.current = true;
     void refresh();
 
@@ -222,20 +262,7 @@ export function useSocialHistory(targetId: string) {
       focused.current = false;
       hide();
     };
-  }, [hide, refresh]));
-
-  const { isInteractive } = useAppVisibility();
-  const previousInteractive = useRef(isInteractive);
-  useEffect(() => {
-    if (!isInteractive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Foreground transitions must clear authorization before showing cached data.
-      hide();
-    } else if (!previousInteractive.current && focused.current) {
-      void refresh();
-    }
-
-    previousInteractive.current = isInteractive;
-  }, [hide, isInteractive, refresh]);
+  }, [hide, isInteractive, refresh]));
 
   useEffect(() => queryClient.getQueryCache().subscribe(event => {
     const queryKey = event.query.queryKey;
@@ -247,55 +274,79 @@ export function useSocialHistory(targetId: string) {
 
     if (isThisTargetInvalidated) {
       hide();
-      if (focused.current) void refresh();
+      if (focused.current && isInteractive) void refresh();
     }
-  }), [accountId, hide, refresh, targetId]);
+  }), [accountId, hide, isInteractive, refresh, targetId]);
 
-  const current = display?.accountId === accountId
+  const isCurrentDisplay = display?.accountId === accountId
     && display.generation === scope.generation
     && display.targetId === targetId
     && enabled
-    && isInteractive
-    ? display
-    : null;
+    && isInteractive;
 
+  return {
+    current: isCurrentDisplay ? display : null,
+    getQueryKey,
+    pageController,
+    refresh,
+    serial,
+    setDisplay,
+  };
+}
+
+async function requestSocialHistoryPage<T>(
+  options: SocialHistoryPageOptions,
+  load: SocialPageLoader<T>,
+  updateDisplay: SocialPageUpdater<T>,
+): Promise<void> {
+  const { accountId, current, getQueryKey, pageController, serial, setDisplay } = options;
+  if (!current || current.status !== 'ready' || !current.data || pageController.current) return;
+
+  const start = getAccountScope();
+  if (start.accountId !== accountId) return;
+
+  const revision = serial.current;
+  const controller = new AbortController();
+  pageController.current = controller;
+  setDisplay(previous => previous ? { ...previous, paging: true } : previous);
+
+  try {
+    const page = await load(controller.signal);
+    if (serial.current !== revision || !isCurrentAccountScope(start)) return;
+
+    setDisplay(previous => previous ? updateDisplay(previous, page) : previous);
+  } catch (error) {
+    if (serial.current !== revision || !isCurrentAccountScope(start)) return;
+
+    queryClient.removeQueries({ queryKey: getQueryKey() });
+    setDisplay({
+      ...current,
+      status: 'error',
+      data: null,
+      timeline: null,
+      paging: false,
+      error: getSocialHistoryErrorMessage(error),
+    });
+  } finally {
+    if (pageController.current === controller) {
+      pageController.current = null;
+    }
+  }
+}
+
+function useSocialHistoryPages(options: SocialHistoryPageOptions, targetId: string) {
+  const { accountId, current, getQueryKey, pageController, serial, setDisplay } = options;
   const requestPage = useCallback(async <T,>(
     load: SocialPageLoader<T>,
     updateDisplay: SocialPageUpdater<T>,
-  ) => {
-    if (!current || current.status !== 'ready' || !current.data || pageController.current) return;
-
-    const start = getAccountScope();
-    if (start.accountId !== accountId) return;
-
-    const revision = serial.current;
-    const controller = new AbortController();
-    pageController.current = controller;
-    setDisplay(previous => previous ? { ...previous, paging: true } : previous);
-
-    try {
-      const page = await load(controller.signal);
-      if (serial.current !== revision || !isCurrentAccountScope(start)) return;
-
-      setDisplay(previous => previous ? updateDisplay(previous, page) : previous);
-    } catch (error) {
-      if (serial.current !== revision || !isCurrentAccountScope(start)) return;
-
-      queryClient.removeQueries({ queryKey: key() });
-      setDisplay({
-        ...current,
-        status: 'error',
-        data: null,
-        timeline: null,
-        paging: false,
-        error: getSocialHistoryErrorMessage(error),
-      });
-    } finally {
-      if (pageController.current === controller) {
-        pageController.current = null;
-      }
-    }
-  }, [accountId, current, key]);
+  ) => requestSocialHistoryPage({
+    accountId,
+    current,
+    getQueryKey,
+    pageController,
+    serial,
+    setDisplay,
+  }, load, updateDisplay), [accountId, current, getQueryKey, pageController, serial, setDisplay]);
 
   const loadGames = useCallback(async () => {
     const cursor = current?.data?.games.next_cursor;
@@ -318,22 +369,112 @@ export function useSocialHistory(targetId: string) {
     );
   }, [current, requestPage, targetId]);
 
-  let error = current?.error ?? null;
-  if (!enabled) {
-    error = 'This shared history link is invalid.';
-    if (!accountId) error = 'Sign in to view shared history.';
-  }
+  return { loadGames, loadTimeline };
+}
+
+export function useSocialHistory(targetId: string) {
+  const { account, status } = useAccountAuth();
+  const accountId = status === 'ready' ? account?.id ?? '' : '';
+  const enabled = isSocialHistoryTargetAllowed(targetId, accountId, getAccountScope().accountId);
+  const display = useSocialHistoryDisplay(accountId, targetId, enabled);
+  const { loadGames, loadTimeline } = useSocialHistoryPages({
+    accountId,
+    current: display.current,
+    getQueryKey: display.getQueryKey,
+    pageController: display.pageController,
+    serial: display.serial,
+    setDisplay: display.setDisplay,
+  }, targetId);
+  const error = getSocialHistoryDisplayError(enabled, accountId, display.current);
 
   return {
-    data: current?.status === 'ready' ? current.data : null,
-    timeline: current?.timeline ?? null,
-    checking: enabled && (!current || current.status === 'checking'),
-    paging: current?.paging ?? false,
+    data: display.current?.status === 'ready' ? display.current.data : null,
+    timeline: display.current?.timeline ?? null,
+    checking: enabled && (!display.current || display.current.status === 'checking'),
+    paging: display.current?.paging ?? false,
     error,
-    refresh,
+    refresh: display.refresh,
     loadGames,
     loadTimeline,
   };
+}
+
+function createAbortError(): Error {
+  const error = new Error('The operation was aborted.');
+  error.name = 'AbortError';
+  return error;
+}
+
+function loadCoplayerBatchWorker(
+  batches: string[][],
+  batchIndex: number,
+  results: Person[][],
+  signal: AbortSignal,
+): Promise<void> {
+  const batch = batches[batchIndex];
+  if (!batch || signal.aborted) return Promise.resolve();
+
+  return loadCoplayerContext(getSupabaseClient(), batch, signal).then(people => {
+    if (signal.aborted) return;
+    results[batchIndex] = people;
+
+    return loadCoplayerBatchWorker(
+      batches,
+      batchIndex + COPLAYER_CONTEXT_MAX_CONCURRENT_BATCHES,
+      results,
+      signal,
+    );
+  });
+}
+
+async function loadCoplayerContextBatches(stableIds: string, signal: AbortSignal): Promise<Person[]> {
+  const targets = stableIds ? stableIds.split(',') : [];
+  const batches = Array.from(
+    { length: Math.ceil(targets.length / COPLAYER_CONTEXT_BATCH_SIZE) },
+    (_, index) => targets.slice(
+      index * COPLAYER_CONTEXT_BATCH_SIZE,
+      (index + 1) * COPLAYER_CONTEXT_BATCH_SIZE,
+    ),
+  );
+  const results = new Array<Person[]>(batches.length);
+  const workerCount = Math.min(COPLAYER_CONTEXT_MAX_CONCURRENT_BATCHES, batches.length);
+  const workersController = new AbortController();
+  const abortWorkers = () => workersController.abort();
+  let failed = false;
+  let failureReason: unknown;
+
+  signal.addEventListener('abort', abortWorkers, { once: true });
+  if (signal.aborted) abortWorkers();
+
+  const runWorker = async (workerIndex: number) => {
+    try {
+      await loadCoplayerBatchWorker(batches, workerIndex, results, workersController.signal);
+    } catch (error) {
+      if (!workersController.signal.aborted) {
+        failed = true;
+        failureReason = error;
+        workersController.abort();
+      }
+      throw error;
+    }
+  };
+
+  try {
+    const settledWorkers = await Promise.allSettled(Array.from(
+      { length: workerCount },
+      (_, workerIndex) => runWorker(workerIndex),
+    ));
+
+    if (failed) throw failureReason;
+    if (signal.aborted) throw createAbortError();
+
+    const failedWorker = settledWorkers.find(result => result.status === 'rejected');
+    if (failedWorker?.status === 'rejected') throw failedWorker.reason;
+  } finally {
+    signal.removeEventListener('abort', abortWorkers);
+  }
+
+  return results.flat();
 }
 
 export function useHistoryCoplayerContext(ids: string[]) {
@@ -351,18 +492,12 @@ export function useHistoryCoplayerContext(ids: string[]) {
     people: Person[];
   } | null>(null);
   const revision = useRef(0);
+  const focused = useRef(false);
 
-  const loadPeople = useCallback(async (signal: AbortSignal) => {
-    const targets = stableIds ? stableIds.split(',') : [];
-    const people: Person[] = [];
-
-    for (let offset = 0; offset < targets.length; offset += 100) {
-      const batch = targets.slice(offset, offset + 100);
-      people.push(...await loadCoplayerContext(getSupabaseClient(), batch, signal));
-    }
-
-    return people;
-  }, [stableIds]);
+  const loadPeople = useCallback(
+    (signal: AbortSignal) => loadCoplayerContextBatches(stableIds, signal),
+    [stableIds],
+  );
 
   useQuery({
     queryKey: coplayerContextQueryKey(accountId, stableIds),
@@ -374,12 +509,8 @@ export function useHistoryCoplayerContext(ids: string[]) {
   const refresh = useCallback(() => {
     const requestRevision = ++revision.current;
     const start = getAccountScope();
-    const controller = new AbortController();
-    setResult(null);
 
-    if (!accountId || start.accountId !== accountId || !stableIds) {
-      return () => controller.abort();
-    }
+    if (!accountId || start.accountId !== accountId || !stableIds) return;
 
     void queryClient.fetchQuery({
       queryKey: coplayerContextQueryKey(accountId, stableIds),
@@ -391,31 +522,37 @@ export function useHistoryCoplayerContext(ids: string[]) {
     }).then(people => {
       if (
         revision.current === requestRevision
-        && !controller.signal.aborted
         && isCurrentAccountScope(start)
       ) {
         setResult({ accountId, generation: start.generation, ids: stableIds, people });
       }
     }).catch(() => {
-      if (revision.current === requestRevision && !controller.signal.aborted) {
+      if (revision.current === requestRevision && isCurrentAccountScope(start)) {
         setResult(null);
       }
     });
-
-    return () => controller.abort();
   }, [accountId, loadPeople, stableIds]);
 
-  useFocusEffect(refresh);
-  const { isInteractive } = useAppVisibility();
+  const cancelRefresh = useCallback(() => {
+    revision.current++;
+    void queryClient.cancelQueries({ queryKey: coplayerContextQueryKey(accountId, stableIds) });
+    setResult(null);
+  }, [accountId, stableIds]);
 
-  useEffect(() => {
-    if (isInteractive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Lifecycle changes clear permission-dependent actions before refreshing.
-      return refresh();
+  const { isInteractive } = useAppVisibility();
+  useFocusEffect(useCallback(() => {
+    if (!isInteractive) {
+      focused.current = false;
+      return;
     }
 
-    setResult(null);
-  }, [isInteractive, refresh]);
+    focused.current = true;
+    refresh();
+    return () => {
+      focused.current = false;
+      cancelRefresh();
+    };
+  }, [cancelRefresh, isInteractive, refresh]));
 
   useEffect(() => queryClient.getQueryCache().subscribe(event => {
     const queryKey = event.query.queryKey;
@@ -425,8 +562,11 @@ export function useHistoryCoplayerContext(ids: string[]) {
       && queryKey[2] === 'social-history'
       && queryKey[3] === 'coplayers';
 
-    if (isCoplayerQueryInvalidated) refresh();
-  }), [accountId, refresh]);
+    if (isCoplayerQueryInvalidated) {
+      setResult(null);
+      if (focused.current && isInteractive) refresh();
+    }
+  }), [accountId, isInteractive, refresh]);
 
   const hasCurrentResult = result?.accountId === accountId
     && result.generation === scope.generation

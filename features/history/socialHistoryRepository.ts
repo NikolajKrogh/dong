@@ -380,8 +380,9 @@ export async function loadCoplayerContext(
 
   if (!result.success) return throwInvalidSocialHistoryResponse();
 
+  const requestedIds = new Set(ids);
   return result.data.map(row => {
-    if (!ids.includes(row.account_id)) return throwInvalidSocialHistoryResponse();
+    if (!requestedIds.has(row.account_id)) return throwInvalidSocialHistoryResponse();
     return row;
   });
 }

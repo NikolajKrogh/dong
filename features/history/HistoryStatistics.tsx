@@ -172,28 +172,190 @@ interface HistoryStatisticsProps {
   onSelect: (id: string) => void;
 }
 
-export default function HistoryStatistics({ history, friends, targetId, onSelect }: HistoryStatisticsProps): React.ReactElement {
-  const personal = usePersonalHistoryStats();
-  const recent = new Map<string, number>();
-
+function getRecentFriends(history: GameSession[], friends: Person[]): Person[] {
+  const recentByAccount = new Map<string, number>();
   history.forEach((game) => {
     const timestamp = getHistoryTimestamp(game.date);
     if (timestamp === null) return;
 
     game.players.forEach((player) => {
       if (player.membershipType === 'registered' && player.accountId) {
-        recent.set(player.accountId, Math.max(recent.get(player.accountId) ?? 0, timestamp));
+        recentByAccount.set(
+          player.accountId,
+          Math.max(recentByAccount.get(player.accountId) ?? 0, timestamp),
+        );
       }
     });
   });
 
-  const people = friends.items
+  return friends
     .filter((person) => person.relationship === 'friends')
-    .sort((a, b) => (recent.get(b.account_id) ?? 0) - (recent.get(a.account_id) ?? 0)
+    .sort((a, b) => (recentByAccount.get(b.account_id) ?? 0) - (recentByAccount.get(a.account_id) ?? 0)
       || a.username.localeCompare(b.username));
+}
+
+function PersonalStatisticsSection({
+  personal,
+}: {
+  personal: ReturnType<typeof usePersonalHistoryStats>;
+}): React.ReactElement {
+  const totals = [
+    ['Games played', personal.data ? String(personal.data.games_participated) : '—'],
+    ['Recorded drinks', formatDrinks(personal.data?.total_drinks)],
+    ['Per game', formatDrinks(personal.data?.average_drinks)],
+  ];
+
+  return (
+    <YStack gap="$3">
+      <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
+        Your stats
+      </Text>
+      <Text color="$textMuted">Completed online games · All time</Text>
+      <XStack
+        backgroundColor="$surface"
+        borderRadius="$3"
+        padding="$3"
+        gap="$2"
+        flexWrap="wrap"
+        borderWidth={1}
+        borderColor="$borderColor"
+      >
+        {totals.map(([label, value]) => (
+          <YStack key={label} flex={1} minWidth={85} gap="$1" alignItems="center" paddingVertical="$2">
+            <Text color="$textPrimary" fontSize={26} fontWeight="700">{value}</Text>
+            <Text color="$textMuted" fontSize={12} textAlign="center">{label}</Text>
+          </YStack>
+        ))}
+      </XStack>
+      {!personal.enabled ? (
+        <Text color="$textMuted">Sign in to see your online statistics.</Text>
+      ) : null}
+      {personal.loading && !personal.data ? (
+        <Text color="$textMuted">Loading your statistics…</Text>
+      ) : null}
+      {personal.error ? (
+        <YStack gap="$2">
+          <Text color="$textMuted" accessibilityRole="alert">{personal.error}</Text>
+          <ShellActionButton
+            role="button"
+            label="Retry your stats"
+            variant="surface"
+            size="small"
+            widthMode="fit"
+            onPress={() => { void personal.refresh(); }}
+          />
+        </YStack>
+      ) : null}
+    </YStack>
+  );
+}
+
+interface FriendsStatusProps {
+  friends: ReturnType<typeof useFriends>;
+  people: Person[];
+  targetId: string;
+  personalAvailable: boolean;
+}
+
+function FriendsStatus({ friends, people, targetId, personalAvailable }: FriendsStatusProps): React.ReactElement | null {
   const selectedFriendPending = Boolean(
     targetId && !people.some((person) => person.account_id === targetId) && friends.list.isFetching,
   );
+  const isLoadingFriends = friends.list.isFetching && !people.length;
+
+  if (!selectedFriendPending && !isLoadingFriends && !friends.list.error) return null;
+
+  return (
+    <>
+      {selectedFriendPending ? (
+        <Text color="$textMuted" accessibilityLiveRegion="polite">Loading selected friend…</Text>
+      ) : null}
+      {isLoadingFriends ? <Text color="$textMuted">Loading friends…</Text> : null}
+      {friends.list.error ? (
+        <YStack gap="$2">
+          <Text color="$textPrimary" accessibilityRole="alert">Friend stats couldn&apos;t load</Text>
+          <Text color="$textMuted">
+            {personalAvailable ? 'Your stats are still available.' : 'Your game history is still available.'}
+          </Text>
+          <ShellActionButton
+            role="button"
+            variant="surface"
+            label="Retry friends"
+            size="small"
+            widthMode="fit"
+            onPress={() => { void friends.refresh(); }}
+          />
+        </YStack>
+      ) : null}
+    </>
+  );
+}
+
+interface FriendsListProps {
+  friends: ReturnType<typeof useFriends>;
+  people: Person[];
+  targetId: string;
+  onSelect: (id: string) => void;
+  personalAvailable: boolean;
+}
+
+function FriendsList({ friends, people, targetId, onSelect, personalAvailable }: FriendsListProps): React.ReactElement {
+  return (
+    <>
+      {people.map((person) => (
+        <FriendStatistics
+          key={person.account_id}
+          person={person}
+          personalAvailable={personalAvailable}
+          expanded={targetId === person.account_id}
+          onToggle={() => onSelect(targetId === person.account_id ? '' : person.account_id)}
+        />
+      ))}
+      {!people.length && !friends.list.isFetching && !friends.list.error ? (
+        <Text color="$textMuted">Your friends&apos; summaries will appear here when you add friends.</Text>
+      ) : null}
+      {friends.list.hasNextPage ? (
+        <ShellActionButton
+          role="button"
+          variant="surface"
+          label="More friends"
+          widthMode="fit"
+          size="small"
+          disabled={friends.list.isFetching}
+          onPress={() => { void friends.list.fetchNextPage(); }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function FriendsSection({ friends, people, targetId, onSelect, personalAvailable }: FriendsListProps): React.ReactElement {
+  return (
+    <YStack gap="$2">
+      <Text accessibilityRole="header" fontSize={18} fontWeight="700" color="$textPrimary">
+        Friends
+      </Text>
+      <Text color="$textMuted">Tap a friend to compare</Text>
+      <FriendsStatus
+        friends={friends}
+        people={people}
+        targetId={targetId}
+        personalAvailable={personalAvailable}
+      />
+      <FriendsList
+        friends={friends}
+        people={people}
+        targetId={targetId}
+        onSelect={onSelect}
+        personalAvailable={personalAvailable}
+      />
+    </YStack>
+  );
+}
+
+export default function HistoryStatistics({ history, friends, targetId, onSelect }: HistoryStatisticsProps): React.ReactElement {
+  const personal = usePersonalHistoryStats();
+  const people = getRecentFriends(history, friends.items);
 
   async function refresh(): Promise<void> {
     if (friends.id) await invalidateSocialHistory(friends.id);
@@ -211,103 +373,14 @@ export default function HistoryStatistics({ history, friends, targetId, onSelect
       )}
     >
       <YStack gap="$5">
-        <YStack gap="$3">
-          <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
-            Your stats
-          </Text>
-          <Text color="$textMuted">Completed online games · All time</Text>
-          <XStack
-            backgroundColor="$surface"
-            borderRadius="$3"
-            padding="$3"
-            gap="$2"
-            flexWrap="wrap"
-            borderWidth={1}
-            borderColor="$borderColor"
-          >
-            {[
-              ['Games played', personal.data ? String(personal.data.games_participated) : '—'],
-              ['Recorded drinks', formatDrinks(personal.data?.total_drinks)],
-              ['Per game', formatDrinks(personal.data?.average_drinks)],
-            ].map(([label, value]) => (
-              <YStack key={label} flex={1} minWidth={85} gap="$1" alignItems="center" paddingVertical="$2">
-                <Text color="$textPrimary" fontSize={26} fontWeight="700">{value}</Text>
-                <Text color="$textMuted" fontSize={12} textAlign="center">{label}</Text>
-              </YStack>
-            ))}
-          </XStack>
-          {!personal.enabled ? (
-            <Text color="$textMuted">Sign in to see your online statistics.</Text>
-          ) : null}
-          {personal.loading && !personal.data ? (
-            <Text color="$textMuted">Loading your statistics…</Text>
-          ) : null}
-          {personal.error ? (
-            <YStack gap="$2">
-              <Text color="$textMuted" accessibilityRole="alert">{personal.error}</Text>
-              <ShellActionButton
-                role="button"
-                label="Retry your stats"
-                variant="surface"
-                size="small"
-                widthMode="fit"
-                onPress={() => { void personal.refresh(); }}
-              />
-            </YStack>
-          ) : null}
-        </YStack>
-
-        <YStack gap="$2">
-          <Text accessibilityRole="header" fontSize={18} fontWeight="700" color="$textPrimary">
-            Friends
-          </Text>
-          <Text color="$textMuted">Tap a friend to compare</Text>
-          {selectedFriendPending ? (
-            <Text color="$textMuted" accessibilityLiveRegion="polite">Loading selected friend…</Text>
-          ) : null}
-          {friends.list.isFetching && !people.length ? (
-            <Text color="$textMuted">Loading friends…</Text>
-          ) : null}
-          {friends.list.error ? (
-            <YStack gap="$2">
-              <Text color="$textPrimary" accessibilityRole="alert">Friend stats couldn&apos;t load</Text>
-              <Text color="$textMuted">
-                {personal.data ? 'Your stats are still available.' : 'Your game history is still available.'}
-              </Text>
-              <ShellActionButton
-                role="button"
-                variant="surface"
-                label="Retry friends"
-                size="small"
-                widthMode="fit"
-                onPress={() => { void friends.refresh(); }}
-              />
-            </YStack>
-          ) : null}
-          {people.map((person) => (
-            <FriendStatistics
-              key={person.account_id}
-              person={person}
-              personalAvailable={!!personal.data}
-              expanded={targetId === person.account_id}
-              onToggle={() => onSelect(targetId === person.account_id ? '' : person.account_id)}
-            />
-          ))}
-          {!people.length && !friends.list.isFetching && !friends.list.error ? (
-            <Text color="$textMuted">Your friends&apos; summaries will appear here when you add friends.</Text>
-          ) : null}
-          {friends.list.hasNextPage ? (
-            <ShellActionButton
-              role="button"
-              variant="surface"
-              label="More friends"
-              widthMode="fit"
-              size="small"
-              disabled={friends.list.isFetching}
-              onPress={() => { void friends.list.fetchNextPage(); }}
-            />
-          ) : null}
-        </YStack>
+        <PersonalStatisticsSection personal={personal} />
+        <FriendsSection
+          friends={friends}
+          people={people}
+          targetId={targetId}
+          onSelect={onSelect}
+          personalAvailable={!!personal.data}
+        />
         <Text color="$textMuted" fontSize={12}>Ongoing and local games aren&apos;t included.</Text>
       </YStack>
     </ScrollView>
