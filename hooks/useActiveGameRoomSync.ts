@@ -1235,14 +1235,16 @@ export const useActiveGameRoomSync = () => {
   );
 
   const retryMutation = useCallback(
-    (id: string) =>
-      retryGameplayMutation({
+    async (id: string) => {
+      if (!mountedRef.current) throw new GameplayRpcErrorClass("service_unavailable", "Return to the game before changing it.");
+      return retryGameplayMutation({
         id,
         pendingRef,
         commandsRef,
         updatePending,
         runMutation,
-      }),
+      });
+    },
     [runMutation, updatePending],
   );
 

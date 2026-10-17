@@ -1205,4 +1205,39 @@ describe("active room sync composition", () => {
     expect(reassignParticipantMatches).toHaveBeenCalledTimes(operation === "reassignment" ? 1 : 0);
   });
 
+  it("rejects a retained uncertain retry before it changes another room after unmount", async () => {
+    const changeManualScore = jest.fn().mockRejectedValue(new Error("network request failed"));
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot, changeManualScore });
+    useGameStore.setState({ activeGameContext: {
+      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 0,
+    } });
+    let latest!: ReturnType<typeof useActiveGameRoomSync>;
+    function Probe() {
+      const value = useActiveGameRoomSync();
+      React.useEffect(() => { latest = value; }, [value]);
+      return null;
+    }
+    let tree!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { tree = TestRenderer.create(React.createElement(Probe)); });
+    await TestRenderer.act(async () => {
+      await expect(latest.changeManualScore("match-manual", "home", 1)).rejects.toThrow("network request failed");
+    });
+    expect(latest.pendingMutations[0].status).toBe("uncertain");
+    const mutationId = latest.pendingMutations[0].id;
+    const retainedRetry = latest.retryMutation;
+    await TestRenderer.act(async () => tree.unmount());
+    const roomB = { mode: "multiplayer" as const, sessionId: "session-2", participantId: "participant-2", accessKind: "registered" as const, lastAppliedSequence: 20 };
+    const playersB = [{ id: "room-b-player", name: "Room B", drinksTaken: 7 }];
+    const matchesB = [{ id: "room-b-match", homeTeam: "B Home", awayTeam: "B Away", homeGoals: 4, awayGoals: 2 }];
+    useGameStore.setState({ activeGameContext: roomB, players: playersB, matches: matchesB, commonMatchId: "room-b-match", playerAssignments: { "room-b-player": ["room-b-match"] } });
+    await expect(retainedRetry(mutationId)).rejects.toThrow("Return to the game");
+    expect(changeManualScore).toHaveBeenCalledTimes(1);
+    expect(getRoomSnapshot).toHaveBeenCalledTimes(1);
+    expect(useGameStore.getState()).toMatchObject({
+      activeGameContext: roomB, players: playersB, matches: matchesB,
+      commonMatchId: "room-b-match", playerAssignments: { "room-b-player": ["room-b-match"] },
+    });
+  });
+
 });
