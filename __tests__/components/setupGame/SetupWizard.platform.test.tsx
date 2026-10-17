@@ -288,3 +288,21 @@ describe("SetupWizard responsive layout", () => {
     expect(stepLabels).toHaveLength(1);
   });
 });
+
+
+describe('controlled route steps', () => {
+ it('requests a new key while keeping the caller selected step', () => {
+  const onStepChange=jest.fn(); const tree=renderSetupWizard({activeStepKey:'matches',onStepChange});
+  expect(tree.root.findByProps({testID:'SetupWizardStep-matches'}).props.accessibilityState.selected).toBe(true);
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizardNext'}).props.onPress());
+  expect(onStepChange).toHaveBeenCalledWith('common');
+  expect(tree.root.findByProps({testID:'SetupWizardStep-matches'}).props.accessibilityState.selected).toBe(true);
+ });
+ it('commits pending input once for repeated Next and cancels deferred work on unmount', () => {
+  jest.useFakeTimers(); const onBeforeNext=jest.fn(()=>true); const onStepChange=jest.fn();
+  const tree=renderSetupWizard({activeStepKey:'players',onStepChange,onBeforeNext});
+  TestRenderer.act(()=>{tree.root.findByProps({testID:'SetupWizardNext'}).props.onPress();tree.root.findByProps({testID:'SetupWizardNext'}).props.onPress();});
+  expect(onBeforeNext).toHaveBeenCalledTimes(1);
+  TestRenderer.act(()=>tree.unmount());TestRenderer.act(()=>jest.runAllTimers());expect(onStepChange).not.toHaveBeenCalled();jest.useRealTimers();
+ });
+});

@@ -498,6 +498,10 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginBottom: 16,
     },
     stepButton: {
+      minHeight: 48,
+      minWidth: 48,
+      justifyContent: "center",
+      alignItems: "center",
       paddingVertical: 8,
       paddingHorizontal: 16,
       borderRadius: 20,
@@ -533,11 +537,16 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     stepConnector: {
       height: 2,
-      width: 30,
+      flex: 1,
+      minWidth: 4,
+      maxWidth: 40,
       backgroundColor: colors.borderLight,
       marginHorizontal: 8,
     },
     stepConnectorWide: {
+      flex: 0,
+      minWidth: 2,
+      maxWidth: 2,
       width: 2,
       height: 24,
       marginHorizontal: 0,

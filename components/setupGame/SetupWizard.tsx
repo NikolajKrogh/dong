@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -60,6 +61,8 @@ interface SetupWizardProps {
   firstSlotAction: WizardAction;
   finalAction: WizardAction | null;
   onBeforeNext?: (currentIndex: number) => boolean;
+  activeStepKey?: string;
+  onStepChange?: (key: string) => void;
 }
 
 /** The wizard defers this long after onBeforeNext claims the advance. */
@@ -68,8 +71,7 @@ const DEFERRED_ADVANCE_DELAY_MS = 50;
 /**
  * Multi-step setup wizard: a step indicator, a bordered content panel, and a
  * bottom navigation bar.
- * @description Presentational and step-agnostic — it owns only the current step
- * index. Both the solo setup flow and the multiplayer room drive it, which is
+ * @description Presentational and step-agnostic; callers may control the stable step key. Both the solo setup flow and the multiplayer room drive it, which is
  * why nothing here knows about players, matches or routes.
  * @param {SetupWizardProps} props Component props.
  * @returns {React.ReactElement} Wizard element.
@@ -79,10 +81,21 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   firstSlotAction,
   finalAction,
   onBeforeNext,
+  activeStepKey,
+  onStepChange,
 }) => {
-  // Active step index. Deliberately uncontrolled: no caller needs to drive it,
-  // and lifting it invites clamping the user off the step they are editing.
-  const [currentStep, setCurrentStep] = useState(0);
+  const [localStep, setLocalStep] = useState(0);
+  const controlled = activeStepKey !== undefined && onStepChange !== undefined;
+  const currentStep = controlled ? Math.max(0, steps.findIndex(step => step.key === activeStepKey)) : localStep;
+  const pendingAdvance = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latest = useRef({ steps, currentStep, controlled, onStepChange });
+  useEffect(() => { latest.current = { steps, currentStep, controlled, onStepChange }; });
+  useEffect(() => () => { if (pendingAdvance.current !== null) clearTimeout(pendingAdvance.current); }, []);
+  const setCurrentStep = (index: number) => {
+    if (index === currentStep || !steps[index]?.canEnter) return;
+    if (controlled) onStepChange(steps[index].key);
+    else setLocalStep(index);
+  };
   const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -94,21 +107,22 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   const isFinalStep = currentStep === lastStepIndex;
   const currentStepContent = steps[currentStep]?.content ?? null;
 
-  const advance = () => {
-    setCurrentStep((step) => Math.min(lastStepIndex, step + 1));
-  };
-
-  const handleNextPress = () => {
+  const handleNextPress = React.useCallback(() => {
+    if (pendingAdvance.current !== null) return;
+    const startKey = steps[currentStep]?.key;
+    const advance = () => {
+      pendingAdvance.current = null;
+      const value = latest.current;
+      if (value.steps[value.currentStep]?.key !== startKey) return;
+      const nextIndex = Math.min(value.steps.length - 1, value.currentStep + 1);
+      if (!value.steps[nextIndex]?.canEnter) return;
+      if (value.controlled) value.onStepChange?.(value.steps[nextIndex].key);
+      else setLocalStep(nextIndex);
+    };
     if (onBeforeNext?.(currentStep)) {
-      // The caller committed something on our behalf (the solo flow adds a
-      // pending player here). Give its state write a tick to land before the
-      // next step renders against it.
-      setTimeout(advance, DEFERRED_ADVANCE_DELAY_MS);
-      return;
-    }
-
-    advance();
-  };
+      pendingAdvance.current = setTimeout(advance, DEFERRED_ADVANCE_DELAY_MS);
+    } else if (canAdvanceFromCurrentStep) advance();
+  }, [steps, currentStep, onBeforeNext, canAdvanceFromCurrentStep]);
 
   /**
    * Renders a nav-bar button. Kept local so Home/Leave, Back, Next and
@@ -116,6 +130,9 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
    */
   const renderAction = (action: WizardAction) => (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={action.label}
+      accessibilityState={{ disabled: !!action.disabled }}
       testID={action.testID}
       style={[
         styles.navButton,
@@ -157,6 +174,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     >
       {/* Progress Indicator */}
       <View
+        accessibilityRole="tablist"
         testID="SetupWizardSteps"
         style={[
           styles.stepIndicatorContainer,
@@ -166,6 +184,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         {steps.map((step, index) => (
           <React.Fragment key={step.key}>
             <TouchableOpacity
+              accessibilityRole="tab"
+              accessibilityLabel={`${step.name}, step ${index + 1} of ${steps.length}`}
+              accessibilityState={{ selected: currentStep === index, disabled: !step.canEnter }}
+              {...(Platform.OS === "web" ? { "aria-current": currentStep === index ? "step" as const : undefined, "aria-selected": currentStep === index, "aria-disabled": !step.canEnter } : {})}
               testID={`SetupWizardStep-${step.key}`}
               style={[
                 styles.stepButton,
@@ -213,6 +235,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       </View>
 
       <View style={styles.wizardMainPanel}>
+        <Text accessibilityRole="header" style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
         {/* Step Content - Now scrollable */}
         <ScrollView
           style={styles.stepContentScroll}
@@ -253,7 +276,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                   backgroundColor: colors.secondary,
                 },
               )
-            : renderAction({
+            : renderAction({ // eslint-disable-line react-hooks/refs -- This helper forwards the event callback; it never calls it while rendering.
                 label: "Next",
                 icon: "arrow-forward",
                 testID: "SetupWizardNext",

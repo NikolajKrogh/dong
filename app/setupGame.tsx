@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import {
@@ -16,6 +16,8 @@ import { createRandomAssignments } from "../utils/setupGameAssignments";
 import { isWideLayout } from "../styles/responsive";
 import createSetupGameStyles from "../styles/setupGameStyles";
 import { useColors } from "../styles/theme";
+import { useStoreHydration } from "../utils/navigation/useStoreHydration";
+import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams, type SoloStep, type RouteParams } from "../utils/navigation/viewState";
 
 /**
  * Game setup wizard: players, matches, common match selection, and assignments.
@@ -25,6 +27,13 @@ import { useColors } from "../styles/theme";
  */
 const SetupGameScreen = () => {
   const router = useRouter();
+  const navigationReady = !!useRootNavigationState()?.key;
+  const params = useLocalSearchParams() as RouteParams;
+  const requestedStep = parseSoloStep(params);
+  const hydrated = useStoreHydration();
+  const [activeStep, setActiveStep] = useState<SoloStep>("players");
+  const [restoreNotice, setRestoreNotice] = useState("");
+  const restoredRequest = useRef<string | null>(null);
   const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -46,9 +55,28 @@ const SetupGameScreen = () => {
     clearActiveGameContext,
   } = useGameStore();
 
-  const canAdvanceToMatches = players.length > 0;
+  const canAdvanceToMatches = players.length > 0 || !!newPlayerName.trim();
   const canAdvanceToCommonMatch = matches.length > 0;
   const canAdvanceToAssign = matches.length >= 1 && commonMatchId !== null;
+  const routeRequest = JSON.stringify(params.step ?? null);
+  useEffect(() => {
+    if (!navigationReady || !hydrated || restoredRequest.current === routeRequest) return;
+    restoredRequest.current = routeRequest;
+    const step = resolveStep(requestedStep, SOLO_STEPS, [true, players.length > 0, matches.length > 0, matches.length > 0 && matches.some(match => match.id === commonMatchId)]);
+    setActiveStep(step);
+    // Route restoration is an external navigation event, independent of live prerequisites.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (step !== requestedStep) setRestoreNotice("Complete this step before continuing your setup.");
+    const canonical = withViewParams(params, { step: step === "players" ? undefined : step });
+    if (!sameViewParams(params, canonical)) router.setParams({ step: step === "players" ? undefined : step });
+  }, [navigationReady, hydrated, routeRequest, requestedStep, params, players.length, matches, commonMatchId, router]);
+  const changeStep = (key: string) => {
+    const step = resolveStep(key as SoloStep, SOLO_STEPS, [true, players.length > 0, matches.length > 0, matches.length > 0 && matches.some(match => match.id === commonMatchId)]);
+    if (step === activeStep) return;
+    setActiveStep(step);
+    setRestoreNotice("");
+    router.push({ pathname: "/setupGame", params: withViewParams(params, { step: step === "players" ? undefined : step }) });
+  };
   const canStartGame =
     players.length > 0 && matches.length > 0 && commonMatchId !== null;
 
@@ -225,7 +253,12 @@ const SetupGameScreen = () => {
         centerContent={wideLayout}
         contentMaxWidth={wideLayout ? 1120 : undefined}
       >
+        <Text accessibilityRole="header" style={styles.currentStepLabel}>Set up game</Text>
+        {!hydrated ? <Text>Loading your saved setup…</Text> : <>
+        {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
         <SetupWizard
+          activeStepKey={activeStep}
+          onStepChange={changeStep}
           steps={[
             {
               key: "players",
@@ -296,7 +329,7 @@ const SetupGameScreen = () => {
             label: "Home",
             icon: "home",
             iconPosition: "leading",
-            onPress: () => router.push("./"),
+            onPress: () => router.replace("/"),
             backgroundColor: colors.secondary,
           }}
           finalAction={{
@@ -316,6 +349,7 @@ const SetupGameScreen = () => {
             return false;
           }}
         />
+        </>}
       </ShellScreen>
     </SafeAreaView>
   );

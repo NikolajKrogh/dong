@@ -1,4 +1,5 @@
 import React from "react";
+import TestRenderer from "react-test-renderer";
 
 import { actCreate } from "../../test-utils/render";
 
@@ -10,6 +11,8 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+let mockParams: Record<string, string | string[]> = {};
 
 const mockStoreState = {
   players: [{ id: "p1", name: "Alice" }],
@@ -38,6 +41,7 @@ jest.mock("react-native", () => ({
     select: (o: Record<string, unknown>) => o.web ?? o.default,
   },
   View: "View",
+  Text: "Text",
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
 
@@ -51,7 +55,9 @@ jest.mock("react-native-toast-message", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockReplace }),
+  useLocalSearchParams: () => mockParams,
+  useRootNavigationState: () => ({key:"root"}),
 }));
 
 jest.mock("../../store/store", () => ({
@@ -108,6 +114,7 @@ const renderSetupGameScreen = () => {
 describe("SetupGameScreen responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockParams = {};
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
@@ -168,4 +175,26 @@ describe("SetupGameScreen responsive layout", () => {
     expect(shell.props.centerContent).toBe(true);
     expect(shell.props.contentMaxWidth).toBe(1120);
   });
+});
+
+
+describe('solo route restoration', () => {
+ beforeEach(()=>{jest.clearAllMocks();mockParams={};});
+ it('restores a valid requested key and pushes only changed step choices', () => {
+  mockParams={step:'assign'};const tree=renderSetupGameScreen();
+  expect(tree.root.findByProps({testID:'SetupWizard'}).props.activeStepKey).toBe('assign');
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepChange('assign'));expect(mockPush).not.toHaveBeenCalled();
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepChange('common'));expect(mockPush).toHaveBeenCalledWith({pathname:'/setupGame',params:{step:'common'}});
+ });
+ it('waits for hydration before resolving missing prerequisites', () => {
+  const store=require('../../store/store').useGameStore;
+  let hydrated=false;let finish!:()=>void;
+  store.persist={hasHydrated:()=>hydrated,onFinishHydration:(callback:()=>void)=>{finish=callback;return ()=>{};}};
+  const oldPlayers=mockStoreState.players;mockStoreState.players=[];mockParams={step:'assign'};
+  try {
+   const tree=renderSetupGameScreen();expect(tree.root.findAllByProps({testID:'SetupWizard'})).toHaveLength(0);expect(mockReplace).not.toHaveBeenCalled();
+   TestRenderer.act(()=>{hydrated=true;finish();});
+   expect(tree.root.findByProps({testID:'SetupWizard'}).props.activeStepKey).toBe('players');expect(mockReplace).toHaveBeenCalledWith({step:undefined});
+  } finally {mockStoreState.players=oldPlayers;delete store.persist;}
+ });
 });
