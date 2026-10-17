@@ -1,5 +1,5 @@
 Read CLAUDE.md
 
 <!-- SPECKIT START -->
-Current feature plan: `specs/028-shared-history-comparisons/plan.md`.
+Current feature plan: `specs/029-web-android-ux/plan.md`.
 <!-- SPECKIT END -->
