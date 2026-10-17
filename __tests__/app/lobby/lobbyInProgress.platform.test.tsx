@@ -10,6 +10,7 @@
  * The discriminator is whether this mount ever observed a pre-start state.
  */
 import React from "react";
+import TestRenderer from "react-test-renderer";
 
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
@@ -18,6 +19,8 @@ const mockReplace = jest.fn();
 const mockPush = jest.fn();
 
 const mockLobby: Record<string, unknown> = {};
+const mockClearContext = jest.fn();
+const mockExitRoom = jest.fn();
 const mockEndGame = jest.fn(async () => true);
 
 jest.mock("../../../hooks/useAccountAuth", () => ({
@@ -32,7 +35,7 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ replace: mockReplace, push: mockPush }),
+  useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: mockPush }),
   useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "p1" }),
 }));
 
@@ -83,7 +86,7 @@ jest.mock("../../../hooks/useRoomExit", () => ({
     pendingSuccessorChoice: false,
     eligibleSuccessors: [],
     needsCloseConfirm: false,
-    exitRoom: jest.fn(),
+    exitRoom: mockExitRoom,
     confirmSuccessor: jest.fn(),
     confirmClose: jest.fn(),
     cancel: jest.fn(),
@@ -93,6 +96,7 @@ jest.mock("../../../hooks/useRoomExit", () => ({
 jest.mock("../../../store/store", () => ({
   useGameStore: (selector: (state: unknown) => unknown) =>
     selector({
+      clearActiveGameContext: mockClearContext,
       setPlayers: jest.fn(),
       setMatches: jest.fn(),
       setCommonMatchId: jest.fn(),
@@ -153,6 +157,22 @@ const renderLobby = () => {
 };
 
 describe("lobby, for a game already in progress", () => {
+
+  it("returns Home without leaving, ending or clearing an active room", () => {
+    setLobby("in_progress");
+    mockClearContext.mockClear();
+    mockExitRoom.mockClear();
+    mockEndGame.mockClear();
+    const renderer = renderLobby();
+    const button = renderer.root.findAllByProps({ testID: "lobby-home" })
+      .find((node) => typeof node.props.onPress === "function")!;
+    TestRenderer.act(() => button.props.onPress());
+    expect(mockPush).toHaveBeenCalledWith("/");
+    expect(mockClearContext).not.toHaveBeenCalled();
+    expect(mockExitRoom).not.toHaveBeenCalled();
+    expect(mockEndGame).not.toHaveBeenCalled();
+    TestRenderer.act(() => renderer.unmount());
+  });
   beforeEach(() => {
     jest.clearAllMocks();
   });

@@ -389,12 +389,14 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
     router.replace("/");
   }, [clearActiveGameContext, router]);
 
+  const navigateHome = useCallback(() => {
+    router.dismissTo("/");
+  }, [router]);
+
   const [isEndGameConfirmVisible, setIsEndGameConfirmVisible] = useState(false);
 
-  // push, not replace: the lobby stays on the stack so the game screen's back
-  // gesture returns here rather than dropping the room entirely.
   const handleReturnToGame = useCallback(() => {
-    router.push("/gameProgress");
+    router.dismissTo("/gameProgress");
   }, [router]);
 
   const handleLeave = useCallback(async () => {
@@ -455,7 +457,7 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
       <LobbyLoadingScreen
         error={lobby.error}
         onRetry={handleRetryLobby}
-        onHome={goHome}
+        onHome={navigateHome}
       />
     );
   }
@@ -483,6 +485,7 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
             assignment={assignment}
             isHost={isHost}
             onLeave={handleLeave}
+            onHome={navigateHome}
           />
         ) : (
           <LobbyPostStartContent
@@ -491,7 +494,7 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
             configure={configure}
             assignment={assignment}
             isHost={isHost}
-            onReturnHome={goHome}
+            onReturnHome={lobby.roomEnded ? goHome : navigateHome}
             onReturnToGame={handleReturnToGame}
             onLeave={handleLeave}
             onOpenEndGameConfirmation={handleOpenEndGameConfirmation}
@@ -591,6 +594,7 @@ function RoomLobbyWizard({
   assignment,
   isHost,
   onLeave,
+  onHome,
 }: {
   lobby: RoomLobbyState;
   snapshot: RoomLobbySnapshot;
@@ -600,6 +604,7 @@ function RoomLobbyWizard({
   assignment: LobbyAssignmentController;
   isHost: boolean;
   onLeave: () => void;
+  onHome: () => void;
 }) {
   const colors = useColors();
   const [homeTeam, setHomeTeam] = useState("");
@@ -682,7 +687,10 @@ function RoomLobbyWizard({
       }
     : null;
 
-  return <SetupWizard steps={steps} firstSlotAction={firstSlotAction} finalAction={finalAction} />;
+  return <YStack flex={1}>
+    <ShellActionButton label="Home" variant="surface" testID="lobby-home" onPress={onHome} />
+    <SetupWizard steps={steps} firstSlotAction={firstSlotAction} finalAction={finalAction} />
+  </YStack>;
 }
 
 function LobbyIdentityStepContent({
@@ -977,6 +985,7 @@ function LobbyPostStartState({
         participants={lobby.participants}
         pickProgress={assignment.pickProgress}
       />
+      <ShellActionButton label="Home" variant="surface" testID="lobby-home" onPress={onReturnHome} />
       <LobbyInProgressActions
         isHost={isHost}
         isBusy={configure.isBusy}
