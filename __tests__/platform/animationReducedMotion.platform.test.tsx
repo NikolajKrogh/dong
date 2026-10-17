@@ -26,3 +26,14 @@ it('uses static native content for reduced motion and follows setting changes', 
   act(() => tree.unmount());
   expect(mockRemove).toHaveBeenCalledTimes(1);
 });
+
+
+it('keeps a newer setting event when the initial preference read resolves late', async () => {
+  let resolveInitial!: (value: boolean) => void;
+  mockReadReducedMotion.mockImplementationOnce(() => new Promise<boolean>(resolve => { resolveInitial = resolve; }));
+  const tree = actCreate(<PlatformAnimation kind="loading" source="fixture-animation" loop />);
+  act(() => mockChange(true));
+  await act(async () => { resolveInitial(false); await Promise.resolve(); });
+  expect(tree.root.findAll((node) => String(node.type) === 'LottieView')).toHaveLength(0);
+  act(() => tree.unmount());
+});

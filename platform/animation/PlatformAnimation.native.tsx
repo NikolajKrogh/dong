@@ -30,8 +30,9 @@ export const PlatformAnimation: React.FC<PlatformAnimationProps> = ({
   useEffect(() => {
     let mounted = true;
     const update = (value: boolean) => { if (mounted) setReduceMotion(value); };
-    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", update);
-    void AccessibilityInfo.isReduceMotionEnabled().then(update).catch(() => {});
+    let settingChanged = false;
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", value => { settingChanged = true; update(value); });
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (!settingChanged) update(value); }).catch(() => {});
     return () => { mounted = false; subscription.remove(); };
   }, []);
   const fallbackConfig = getAnimationFallback(kind);
