@@ -32,7 +32,7 @@ const pageTitles: Record<string, string> = {
   "/friends/blocked": "Blocked accounts", "/userPreferences": "Settings",
   "/userPreferences/profile": "Profile", "/userPreferences/leagues": "Default leagues",
   "/auth": "Sign in or create account", "/auth/onboarding": "Choose username",
-  "/auth/reset-password": "Reset password",
+  "/auth/reset-password": "Reset password", "/auth/change-password": "Change password",
 };
 
 export default function Layout() {

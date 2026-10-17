@@ -24,7 +24,7 @@ const PasswordResetScreen = () => {
   return (
     <ShellScreen padded={false} centerContent contentMaxWidth={720}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <AuthHeader />
+        <AuthHeader title="Reset password" />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}

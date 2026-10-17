@@ -72,3 +72,19 @@ Then('the accessibility pending command is disabled', async ({ page }) => {
   await expect(pending).toHaveAttribute('aria-disabled', 'true');
   await expect(pending).toHaveJSProperty('tagName', 'BUTTON');
 });
+
+Given('the accessibility page {string} is open', async ({ page }, route: string) => {
+  await page.goto(route);
+});
+Then('the accessibility page has one main with heading {string} and title {string}', async ({ page }, heading: string, title: string) => {
+  await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('main').getByRole('heading', { name: heading, exact: true, level: 1 })).toBeVisible();
+  await expect(page).toHaveTitle(title);
+  await expect(page.getByText('DRINK!', { exact: true })).toHaveCount(0);
+});
+Then('the accessibility History recovery is inside main', async ({ page }) => {
+  const main = page.getByRole('main');
+  await expect(main).toHaveCount(1);
+  await expect(main.getByRole('alert')).toHaveText('This game is unavailable on this device or account.');
+  await expect(main.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '/');
+});

@@ -16,3 +16,23 @@ Feature: Operate primary controls and account forms accessibly
     Given the accessibility account form is open
     When I submit the accessibility sign-in form to a pending service
     Then the accessibility pending command is disabled
+
+
+  Scenario Outline: Affected pages identify their main content and destination
+    Given the accessibility page "<route>" is open
+    Then the accessibility page has one main with heading "<heading>" and title "<title>"
+    Examples:
+      | route                       | heading                   | title                           |
+      | /history                    | History                   | History · DONG                  |
+      | /friends                    | Friends                   | Friends · DONG                  |
+      | /friends/search             | Find friends              | Find friends · DONG             |
+      | /friends/blocked            | Blocked accounts          | Blocked accounts · DONG         |
+      | /userPreferences            | Settings                  | Settings · DONG                 |
+      | /userPreferences/profile    | Profile                   | Profile · DONG                  |
+      | /userPreferences/leagues    | Leagues                   | Default leagues · DONG          |
+      | /auth                       | Sign in or create account | Sign in or create account · DONG |
+      | /auth/reset-password        | Reset password            | Reset password · DONG           |
+
+  Scenario: Unavailable History recovery remains in the main landmark
+    Given the accessibility page "/history?gameId=missing-on-this-device" is open
+    Then the accessibility History recovery is inside main

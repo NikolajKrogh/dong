@@ -6,7 +6,7 @@ import { Platform, Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 
-const AuthHeader: React.FC = () => {
+const AuthHeader: React.FC<{ title?: string }> = ({ title = "Sign in or create account" }) => {
   const router = useRouter();
   const colors = useColors();
 
@@ -36,7 +36,7 @@ const AuthHeader: React.FC = () => {
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={handleBack} style={{ padding: 8 }}>
         <Ionicons name="arrow-back" size={24} color={colors.primary} />
       </TouchableOpacity>
-      <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: "700", color: colors.textPrimary }}>Sign in or create account</Text>
+      <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: "700", color: colors.textPrimary }}>{title}</Text>
     </View>
   );
 };

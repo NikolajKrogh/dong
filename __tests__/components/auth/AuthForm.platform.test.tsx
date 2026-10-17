@@ -201,3 +201,16 @@ it('announces password mismatch and associates it with confirmation', () => {
   expect(tree.root.findAll((node) => node.props.nativeID === 'auth-form-error' && node.props.role === 'alert').length).toBeGreaterThan(0);
   TestRenderer.act(() => tree.unmount());
 });
+
+
+it('names the verification code field and declares one-time-code autofill', async () => {
+  const tree = actCreate(React.createElement(TestSubject));
+  const createTab = tree.root.findAll((node) => node.props.active === false && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => createTab.props.onPress());
+  const submit = tree.root.findAll((node) => typeof node.props.label === 'string' && node.props.label.startsWith('Create account') && typeof node.props.onPress === 'function')[0];
+  await TestRenderer.act(async () => { await submit.props.onPress(); });
+  const { TextInput } = require('react-native');
+  const code = tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Verification code');
+  expect(code?.props).toMatchObject({ autoComplete: 'one-time-code', textContentType: 'oneTimeCode', keyboardType: 'number-pad' });
+  TestRenderer.act(() => tree.unmount());
+});

@@ -75,7 +75,7 @@ const AuthStatusCard = ({
   <ShellCard elevated>
     <YStack gap="$4">
       <YStack gap="$2">
-        <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
+        <Text {...(Platform.OS === "web" ? { role: "heading" as const, "aria-level": 2 } : { accessibilityRole: "header" as const })} fontSize={22} fontWeight="700" color="$textPrimary">
           {title}
         </Text>
         <Text fontSize={15} color="$textSecondary">
