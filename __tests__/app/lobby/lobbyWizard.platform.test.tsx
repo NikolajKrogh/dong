@@ -8,12 +8,17 @@
  * a step's content and in the final action, never in the array's shape.
  */
 import React from "react";
+import { act } from "react-test-renderer";
 
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
+const mockSetParams = jest.fn();
+let mockParams: Record<string, string | string[]> = {};
+let mockNavigationReady = true;
+jest.mock("../../../utils/navigation/useNavigationReady", () => ({ useNavigationReady: () => mockNavigationReady }));
 
 const mockLobby: Record<string, unknown> = {};
 const mockSetCommonMatch = jest.fn();
@@ -36,8 +41,8 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ replace: mockReplace, push: mockPush }),
-  useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "untrusted-id" }),
+  useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: jest.fn(), setParams: mockSetParams }),
+  useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "untrusted-id", ...mockParams }),
 }));
 
 // The wizard is stubbed so the steps array it is handed can be inspected
@@ -207,6 +212,8 @@ describe("pre-start lobby, as the setup wizard", () => {
     mockAuthStatus = "ready";
     mockActiveRoom = { sessionId: "room-1", participantId: "p1" };
     mockMembershipError = null;
+    mockParams = {};
+    mockNavigationReady = true;
   });
 
   it("uses server membership instead of the participant query parameter", () => {
@@ -358,5 +365,47 @@ describe("pre-start lobby, as the setup wizard", () => {
     expect(
       tree.root.findAllByProps({ testID: "lobby-in-progress" }).length,
     ).toBeGreaterThan(0);
+  });
+
+  it("restores a permitted route step without changing it during snapshot polling", () => {
+    mockParams = { step: "assign" };
+    setLobby();
+    const tree = renderLobby();
+    expect(wizardProps(tree).activeStepKey).toBe("assign");
+    setLobby({ poolSize: 0, commonMatchId: null });
+    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    expect(wizardProps(tree).activeStepKey).toBe("assign");
+    expect(mockSetParams).not.toHaveBeenCalled();
+    act(() => tree.unmount());
+  });
+
+  it("recovers an inaccessible direct step after navigation is ready", () => {
+    mockParams = { step: "assign" };
+    mockNavigationReady = false;
+    setLobby({ poolSize: 0, commonMatchId: null });
+    const tree = renderLobby();
+    expect(mockSetParams).not.toHaveBeenCalled();
+    mockNavigationReady = true;
+    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    expect(wizardProps(tree).activeStepKey).toBe("matches");
+    expect(mockSetParams).toHaveBeenCalledWith({ step: "matches" });
+    expect(mockStartGame).not.toHaveBeenCalled();
+    act(() => tree.unmount());
+  });
+
+  it("creates one meaningful step entry and reconstructs Back without duplicating it", () => {
+    setLobby();
+    const tree = renderLobby();
+    act(() => wizardProps(tree).onStepChange("matches"));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/lobby/[sessionId]", params: { sessionId: "room-1", participantId: "untrusted-id", step: "matches" } });
+    act(() => wizardProps(tree).onStepChange("matches"));
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    mockParams = { step: "matches" };
+    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    mockParams = {};
+    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    expect(wizardProps(tree).activeStepKey).toBe("room");
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    act(() => tree.unmount());
   });
 });

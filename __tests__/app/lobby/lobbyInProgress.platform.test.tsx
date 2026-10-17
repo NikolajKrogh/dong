@@ -15,6 +15,8 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
+jest.mock("../../../utils/navigation/useNavigationReady", () => ({ useNavigationReady: () => false }));
+
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
 

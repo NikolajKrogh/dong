@@ -49,6 +49,8 @@ import { useRoomLobby } from "../../hooks/useRoomLobby";
 import { useAccountAuth } from "../../hooks/useAccountAuth";
 import { useMyActiveRoom } from "../../hooks/useMyActiveRoom";
 import { buildAccountAuthRoute } from "../../utils/accountAuthRoutes";
+import { useNavigationReady } from "../../utils/navigation/useNavigationReady";
+import { LOBBY_STEPS, parseLobbyStep, resolveStep, sameViewParams, withViewParams, type LobbyStep, type RouteParams } from "../../utils/navigation/viewState";
 import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
 import { useGameStore } from "../../store/store";
 import {
@@ -606,11 +608,20 @@ function RoomLobbyWizard({
   onLeave: () => void;
   onHome: () => void;
 }) {
+  const router = useRouter();
+  const navigationReady = useNavigationReady();
+  const params = useLocalSearchParams() as RouteParams;
+  const requestedStep = parseLobbyStep(params);
+  const [activeStep, setActiveStep] = useState<LobbyStep>("room");
+  const [restoreNotice, setRestoreNotice] = useState("");
+  const restoredRequest = useRef<string | null>(null);
   const colors = useColors();
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
   const startGame = configure.startGame;
   const handleStartGame = useCallback(() => void startGame(), [startGame]);
+  const canEnterCommon = snapshot.assignmentPlan.poolSize > 0;
+  const canEnterAssign = snapshot.commonMatchId !== null || assignment.canPick;
   const steps: WizardStep[] = [
     {
       key: "room",
@@ -641,7 +652,7 @@ function RoomLobbyWizard({
       key: "common",
       name: "Common",
       icon: "tv-outline",
-      canEnter: snapshot.assignmentPlan.poolSize > 0,
+      canEnter: canEnterCommon,
       content: (
         <LobbyCommonStepContent
           matches={pool.matches}
@@ -655,7 +666,7 @@ function RoomLobbyWizard({
       key: "assign",
       name: "Assign",
       icon: "git-network",
-      canEnter: snapshot.commonMatchId !== null || assignment.canPick,
+      canEnter: canEnterAssign,
       content: (
         <LobbyAssignmentStepContent
           snapshot={snapshot}
@@ -667,6 +678,25 @@ function RoomLobbyWizard({
       ),
     },
   ];
+  const routeRequest = JSON.stringify([snapshot.sessionId, params.step ?? null]);
+  useEffect(() => {
+    if (!navigationReady || restoredRequest.current === routeRequest) return;
+    restoredRequest.current = routeRequest;
+    const step = resolveStep(requestedStep, LOBBY_STEPS, [true, true, canEnterCommon, canEnterAssign]);
+    // Restore external route requests once; polling must not move an active editor.
+    setActiveStep(step);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Normalize an external route request only once, never on snapshot polls.
+    if (step !== requestedStep) setRestoreNotice("Complete this step before continuing your room setup.");
+    const canonical = withViewParams(params, { step: step === "room" ? undefined : step });
+    if (!sameViewParams(params, canonical)) router.setParams({ step: step === "room" ? undefined : step });
+  }, [navigationReady, routeRequest, requestedStep, canEnterCommon, canEnterAssign, params, router]);
+  const changeStep = (key: string) => {
+    const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
+    if (step === activeStep) return;
+    setActiveStep(step);
+    setRestoreNotice("");
+    router.push({ pathname: "/lobby/[sessionId]", params: { ...withViewParams(params, { step: step === "room" ? undefined : step }), sessionId: snapshot.sessionId } });
+  };
   const firstSlotAction = {
     label: isHost ? "Leave Room" : "Leave",
     icon: "exit-outline" as const,
@@ -689,7 +719,8 @@ function RoomLobbyWizard({
 
   return <YStack flex={1}>
     <ShellActionButton label="Home" variant="surface" testID="lobby-home" onPress={onHome} />
-    <SetupWizard steps={steps} firstSlotAction={firstSlotAction} finalAction={finalAction} />
+    {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
+    <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} firstSlotAction={firstSlotAction} finalAction={finalAction} />
   </YStack>;
 }
 
