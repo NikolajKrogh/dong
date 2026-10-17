@@ -1,0 +1,100 @@
+{
+  "bar": {
+    "x": 1,
+    "y": 466,
+    "width": 318,
+    "height": 173
+  },
+  "clientWidth": 318,
+  "scrollWidth": 318,
+  "actions": [
+    {
+      "name": "Back",
+      "bounds": {
+        "x": 17,
+        "y": 483,
+        "width": 163.875,
+        "height": 64
+      },
+      "contents": [
+        {
+          "tag": "DIV",
+          "text": "Back",
+          "visible": true,
+          "bounds": {
+            "x": 33,
+            "y": 493,
+            "width": 131.875,
+            "height": 44
+          }
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "x": 33,
+            "y": 493,
+            "width": 40,
+            "height": 44
+          }
+        },
+        {
+          "tag": "DIV",
+          "text": "Back",
+          "visible": true,
+          "bounds": {
+            "x": 89,
+            "y": 493.5,
+            "width": 67.875,
+            "height": 43
+          }
+        }
+      ]
+    },
+    {
+      "name": "Next",
+      "bounds": {
+        "x": 17,
+        "y": 559,
+        "width": 165.140625,
+        "height": 64
+      },
+      "contents": [
+        {
+          "tag": "DIV",
+          "text": "Next",
+          "visible": true,
+          "bounds": {
+            "x": 33,
+            "y": 569,
+            "width": 133.140625,
+            "height": 44
+          }
+        },
+        {
+          "tag": "DIV",
+          "text": "Next",
+          "visible": true,
+          "bounds": {
+            "x": 41,
+            "y": 569.5,
+            "width": 69.140625,
+            "height": 43
+          }
+        },
+        {
+          "tag": "DIV",
+          "text": "",
+          "visible": true,
+          "bounds": {
+            "x": 126.140625,
+            "y": 569,
+            "width": 40,
+            "height": 44
+          }
+        }
+      ]
+    }
+  ]
+}

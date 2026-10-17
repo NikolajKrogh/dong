@@ -3,7 +3,7 @@
 **Feature Branch**: `web-navigation`
 **Feature Directory**: `specs/029-web-android-ux`
 **Created**: 2026-10-17
-**Status**: Specified; implementation not started
+**Status**: Implementation in progress; see tasks.md and validation.md for completed work and acceptance gates
 **Input**: Improve the audited DONG journeys on web and Expo Android. Generate a common specification, plan and bounded subagent tasks before implementing or creating worktrees.
 
 ## Context and scope

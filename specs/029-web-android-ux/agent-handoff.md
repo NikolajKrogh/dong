@@ -1,6 +1,6 @@
 # Agent execution and integration contract
 
-Implementation was authorized on 2026-10-17 and worker slices are integrated on `web-navigation`. Reconciled against integration `f4c7547` and current runner source. This file records interfaces, ownership and remaining execution boundaries; it does not authorize additional workers/worktrees or mark acceptance complete. Results belong in validation.md and task progress belongs in tasks.md.
+Implementation was authorized on 2026-10-17 and worker slices are integrated on `web-navigation`. Reconciled against client source `7f40c70` and runner `c12cf8d`. This file records interfaces, ownership and remaining execution boundaries; it does not authorize additional workers/worktrees or mark acceptance complete. Results belong in validation.md and task progress belongs in tasks.md.
 
 ## Required reading for every worker
 
@@ -74,7 +74,7 @@ Workers report task completion to the coordinator; coordinator alone updates the
 
 ## Implemented interfaces and preservation rules
 
-- `TaskOverlay` is exported through `platform/index.ts`. Its props are `open`, `onClose`, `fallbackHref`, optional `returnFocusId`, and render-function children receiving `open`, `dismiss`, `runAfterDismiss`. Web uses the actual transparent `/taskOverlay` route with bounded owner registration; native renders the existing modal content in place. Destination actions wait for dismissal. Do not introduce raw browser history sentinels or global Back interception. Missing/stale owner recovery and focus restoration require rendered browser checks; the coordinator's new History focus gate remains in progress.
+- `TaskOverlay` is exported through `platform/index.ts`. Its props are `open`, `onClose`, `fallbackHref`, optional `returnFocusId`, and render-function children receiving `open`, `dismiss`, `runAfterDismiss`. Web uses the actual transparent `/taskOverlay` route with bounded owner registration; native renders the existing modal content in place. Destination actions wait for dismissal. Do not introduce raw browser history sentinels or global Back interception. Missing/stale owner recovery and focus restoration require rendered browser checks; the History focus gate and shared-comparison Back regressions pass.
 - `SetupWizard` supports optional `activeStepKey`/`onStepChange(key)` and `onStepBack(key)`. The first pair enables controlled stable-key state; absent props preserve local behavior. Task Back must not push a new duplicate previous-step entry. Preserve canEnter, hydration/readiness handling and at-most-once deferred pending-player advance. Coordinator owns current Wizard/caller changes.
 - Route parsers remain in `utils/navigation/`; the public vocabulary/defaults are in contracts/navigation.md. Meaningful state transitions push, sort/normalization replace owned keys, and data remains in the existing stores/services. Preserve legacy links and account/target remount/privacy fences. Known authorized local History details may resolve despite an unrelated cloud error; incomplete fetch failure must not prove a missing target unavailable.
 - `ShellActionButton` accepts destination `href` while retaining action/native props, caller roles and disabled suppression. Installed Tamagui 2 uses `render` to select actual web button/anchor elements; an old `tag` prop did not establish semantics. Shared main structure uses system typography and avoids nested main landmarks. Do not replace real rendered DOM assertions with renderer-only mock assertions.
@@ -109,11 +109,11 @@ Prepare an approved, already-authenticated fixture and open DONG on populated Ho
 }
 ```
 
-The two count fields are optional; omit them unless they contain exact observed UI labels. The manifest records expectations/approval, never credentials. Top-level names matching password/secret/token are rejected. Preserve any separate local fixture identity/build notes without publishing private account data.
+The two count fields are optional for solo fixtures and required for registered/guest configuration checks; always use exact observed UI labels. Registered fixtures additionally need gameRole=owner|member and at least two distinct roomParticipantNames. For pre-start checks set gamePhase=joinable, with optional roomJoinCode and roomMatchSummary expectations. Guest fixtures use gameMode=guest and a required guestStatusCountText. The manifest records expectations/approval, never credentials. Top-level names matching password/secret/token are rejected. Preserve any separate local fixture identity/build notes without publishing private account data.
 
 | Scenario | Current assertions and prerequisites |
 | --- | --- |
-| game-context | Requires existing solo fixture. Home -> Continue Game -> Game actions -> Setup; named Players step/input; safe Home and re-entry without scoring/ending. It does not exercise registered host/member or guest configuration. |
+| game-context | Solo: Setup and safe re-entry. Registered owner/member: same room participants and owner-only End action. With gamePhase=joinable: Room -> Matches -> hardware Back -> Home/re-entry, caller-role summary and owner-only join code. Guest: disabled End Game, read-only room status/counts, Back and safe Home. Prepare the corresponding explored fixture on Home; no scoring/ending. |
 | back-return | Home -> gameplay -> actions -> hardware Back stays in gameplay; actions -> Home; two further resume/Home cycles. Requires populated Continue Game fixture. |
 | route-state | Home -> History -> Players -> hardware Back restores Games sort control -> header Back Home. Does not exercise the full setup/lobby/detail/account-boundary matrix. |
 | accessibility | Requires solo fixture. Names Player name/Add Player/Players step, opens IME, hardware Back dismisses IME while setup stays open, returns Home. Does not automate TalkBack, autofill or submission. |
@@ -129,8 +129,8 @@ On success the runner writes scenario results to `results.json` and exits 0; eac
 
 ## Pending acceptance and current ownership
 
-The coordinator still owns final integrated History shared-comparison/detail presentation and focus checks, full gates and physical acceptance. The new focused regression must pass on the final source; docs do not mark a work-in-progress gate green. Read validation.md for exact results, not worker claims alone.
+The coordinator owns integrated gates and physical acceptance. History shared-comparison/detail focus checks pass on both browser viewports; the meaningful detail remains available on Back while its portal hides on route blur. Read validation.md for exact results and remaining gates.
 
-Android registered host/member/guest journeys remain pending unless explicitly recorded for the corresponding approved fixture/build. Current solo and signed-in read-only runner checks do not prove role permissions, guest recovery or server state invariants. Physical TalkBack/autofill, enlarged system font/IME, other populated list gesture handoff and real Chrome bar/landscape checks remain separate acceptance items. Packaged Android and production web build/runtime acceptance are also pending; dev-client and mocked browser results cannot substitute.
+Native solo/owner/member/guest primary journeys and local room invariants pass within the build scopes in validation.md. Real Chrome empty/20-player IME and100-friend gestures, native130% text and final local production export runtime also pass. Physical landscape remains inconclusive (blank control reproduces incorrect browser dimensions). TalkBack/autofill/announcements, collapsed bars, packaged Android/deployed web and full real-service negative-state recovery remain separate acceptance items.
 
-Keep unavailable checks not-run/blocked with the reason and next required fixture/build. No production mutation, new account credential request or role fabrication is permitted merely to complete a matrix. Changes to tasks.md, validation.md, plan.md, the navigation contract and runner remain coordinator-only unless reassigned.
+Keep unavailable checks not-run/blocked with the reason and next required fixture/build. Use approved disposable fixtures and keep credentials/grants in ignored files. The user authorized local account/room changes; role acceptance still requires exercising the real UI and authorization paths. Changes to tasks.md, validation.md, plan.md, the navigation contract and runner remain coordinator-only unless reassigned.

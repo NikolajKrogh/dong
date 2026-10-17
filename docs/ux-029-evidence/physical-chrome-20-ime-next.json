@@ -1,0 +1,39 @@
+{
+  "source": "7f40c70",
+  "url": "http://127.0.0.1:8081/setupGame",
+  "layoutHeight": 623,
+  "visual": {
+    "height": 304,
+    "top": 319
+  },
+  "next": {
+    "x": 233.48959350585938,
+    "y": 564,
+    "width": 109.51042175292969,
+    "height": 42,
+    "top": 564,
+    "right": 343.00001525878906,
+    "bottom": 606,
+    "left": 233.48959350585938
+  },
+  "outer": {
+    "rect": {
+      "x": 0,
+      "y": 319,
+      "width": 360,
+      "height": 304,
+      "top": 319,
+      "right": 360,
+      "bottom": 623,
+      "left": 0
+    },
+    "top": 1765.3333740234375,
+    "clientHeight": 304,
+    "scrollHeight": 2069
+  },
+  "focused": true,
+  "sameInput": true,
+  "pendingName": "PhysicalPending21",
+  "players": 20,
+  "trustedListMoves": 29
+}

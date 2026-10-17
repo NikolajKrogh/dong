@@ -1,0 +1,73 @@
+{
+  "artifactSourceCommit": "7f40c700be4d74a5bd830be5b4b7a8714660de72",
+  "scope": "Production web export on loopback static SPA server; not Cloudflare/deployment acceptance",
+  "externalServices": "Blocked; no backend acceptance claimed",
+  "checks": [
+    {
+      "name": "Production Home renders at touch viewport",
+      "status": "passed",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "name": "Home destination opens Setup and touching Player name focuses its textbox",
+      "status": "passed"
+    },
+    {
+      "name": "Solo player can be added through the exported UI",
+      "status": "passed"
+    },
+    {
+      "name": "Deep Setup entry and full refresh load the SPA, retain persisted player, and accept focus",
+      "status": "passed"
+    },
+    {
+      "name": "Actual icon font requests return binary font payloads with correct Content-Type",
+      "status": "passed",
+      "requests": 3
+    },
+    {
+      "name": "Static server rejects path traversal and missing font assets instead of HTML fallback",
+      "status": "passed"
+    },
+    {
+      "name": "No uncaught browser page errors",
+      "status": "passed"
+    }
+  ],
+  "fonts": [
+    {
+      "url": "/assets/vendor/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf",
+      "status": 200,
+      "contentType": "font/ttf",
+      "bytes": 389724,
+      "isHtml": false,
+      "magicHex": "00010000"
+    },
+    {
+      "url": "/assets/vendor/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf",
+      "status": 200,
+      "contentType": "font/ttf",
+      "bytes": 389724,
+      "isHtml": false,
+      "magicHex": "00010000"
+    },
+    {
+      "url": "/assets/vendor/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.b4eb097d35f44ed943676fd56f6bdc51.ttf",
+      "status": 200,
+      "contentType": "font/ttf",
+      "bytes": 389724,
+      "isHtml": false,
+      "magicHex": "00010000"
+    }
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "indexSha256": "cc01284203fe0471f96729209820b02d95dfd72688a100c420c9409f2607b0c9",
+  "chromiumVersion": "151.0.7922.34",
+  "status": "passed",
+  "browserStopped": true,
+  "serverStopped": true
+}

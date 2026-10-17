@@ -2,6 +2,8 @@
 
 Date: 2026-10-16. Local source: commit `3750010`.
 
+Implementation follow-up: [feature 029 validation and remaining acceptance](../specs/029-web-android-ux/validation.md). This audit remains a historical baseline.
+
 Follow-up: [navigation audit across gameplay, lobbies, Friends, and History](navigation-audit-2026-10-16.md), including physical Android evidence and remaining checks.
 
 ## Scope and evidence

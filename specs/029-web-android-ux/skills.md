@@ -2,7 +2,7 @@
 
 **Feature**: 029 — Predictable navigation and usable mobile web
 **Updated**: 2026-10-17
-**Scope**: Instructions for future execution. Reading this guide does not authorize implementation, worktree creation, dependency installation or deployment.
+**Scope**: Execution and review guide for the user-authorized implementation. Skill instructions do not independently authorize dependency installation or deployment.
 
 ## How every agent uses this guide
 

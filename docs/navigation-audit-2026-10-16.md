@@ -2,6 +2,8 @@
 
 Date: 2026-10-16. Local source commit: `3750010`.
 
+Implementation follow-up: [feature 029 validation and remaining acceptance](../specs/029-web-android-ux/validation.md). The observations below describe the original baseline.
+
 Status: initial audit completed, including physical Android Chrome and Expo Android checks after the user granted exclusive device access. This extends [the mobile web UX audit](mobile-web-ux-audit-2026-10-16.md) into gameplay, lobbies, Friends, and History. Product code is unchanged. Native iOS release work is out of scope. Untested room lifecycle paths are listed explicitly below; this report is not full release acceptance.
 
 ## Evidence and coverage

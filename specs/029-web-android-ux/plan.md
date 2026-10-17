@@ -51,6 +51,8 @@ Add focused platform adapters under `platform/navigation/`, exported via `platfo
 
 Existing History Modal close handling is useful; the game actions sheet is a different presentation and needs explicit integration. Preserve quick-action behavior. Default-league selection belongs to the same dismissal contract. For direct-open detail routes, close removes detail state with replacement rather than leaving DONG when no known underlying list entry exists. A focused keyboard dismisses before any competing screen Back handler.
 
+Implementation decision: scoped browser-history sentinels were rejected for stale-entry cleanup risk. A may add `app/taskOverlay.tsx` and a minimal owner-registration adapter; coordinator wires its transparent-modal Stack entry and platform export. Router owns Back/Forward. Direct/dead overlay entries fall back safely; native renders existing modal presentation in place. No second history manager is introduced.
+
 ### B. Preserve solo/registered/guest game context
 
 Change `useGameProgressController` Setup destination and visible action naming by existing active context. Registered games use their actual room route; guest status remains inside guest-authorized flow (a read-only status overlay in gameplay is the minimal fallback). No registered lobby access is assumed for guests. Existing room phase/edit permissions remain unchanged.
@@ -110,16 +112,16 @@ scripts/android/                     # planned host runner, not created during p
 
 See tasks.md for six story phases and exact dependencies. First freeze shared contracts and record verified test paths. Then run at most three workers plus coordinator. A safe first batch is multiplayer context (A), Friends-only return/recovery (B), and shared accessibility/forms (C). Route-state work and common Back integration follow the relevant handoffs. Layout never edits SetupWizard or History concurrently with route-state work.
 
-Only the coordinator merges/cherry-picks completed worker commits into `web-navigation`, one at a time, and runs combined checks after merge points. Workers do not independently merge into the integration branch. Worker worktrees must explicitly start from the approved committed `web-navigation` planning/integration baseline, never the managed-worktree remote-default fallback. Planning artifacts and needed audit evidence must be included in that baseline before workers start. No commit/worktree creation is part of this planning turn.
+Only the coordinator merges/cherry-picks completed worker commits into `web-navigation`, one at a time, and runs combined checks after merge points. Workers do not independently merge into the integration branch. Worker worktrees must explicitly start from the approved committed `web-navigation` planning/integration baseline, never the managed-worktree remote-default fallback. Planning artifacts and needed audit evidence must be included in that baseline before workers start. Implementation was authorized after planning; committed slices, actual worktree ownership and validation results are recorded in validation.md.
 
 ## Validation and release acceptance
 
 - Unit/component: `npm run test:ci -- --runInBand`; `test:unit` alone excludes platform component tests and is insufficient.
 - Static: `npm run typecheck`, `npm run lint`, `npm run check:unused`; relevant React Doctor review after React changes.
 - Web: `npm run bdd:gen`, `npm run test:e2e` with unique story tags and all affected existing journeys. Record real base URL/build and effective viewport; fixtures/mocks are labeled.
-- Android: ARTEMIS exploration followed by `scripts/android/run-ux-journeys.ps1` (to be authored) with explicit serial/package/fixture manifest, dynamic IDs/text then verified coordinate fallback, explicit state waits and nonzero failure. Do not invent fixture credentials or depend silently on live production data.
+- Android: ARTEMIS exploration followed by `scripts/android/run-ux-journeys.ps1` with explicit serial/package/fixture manifest, dynamic IDs/text then verified coordinate fallback, explicit state waits and nonzero failure. Do not invent fixture credentials or depend silently on live production data.
 - Runtime: mobile Chrome and native Android checks in quickstart.md, including TalkBack/autofill, IME, enlarged text, populated scrolls and owner/member/guest re-entry. Shared phone access is serialized.
-- Completion: every FR has tests/evidence, each story accepted independently, no unverified path silently passed. Test authoring belongs to implementation, not this planning deliverable.
+- Completion: every FR has tests/evidence, each story accepted independently, no unverified path silently passed. See validation.md for implemented coverage and remaining runtime/release acceptance.
 
 ## Rollback and recovery
 

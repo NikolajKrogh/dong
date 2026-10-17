@@ -1,6 +1,6 @@
 # Validation quickstart
 
-Feature 029 implementation is integrated on `web-navigation`; this guide describes the implemented paths and executable checks, not a claim that every runtime gate passed. Reconciled against integration `f4c7547` and current runner source on 2026-10-17. [validation.md](validation.md) owns execution results and acceptance; [tasks.md](tasks.md) owns completion status. The coordinator's final History focus gate is still in progress.
+Feature 029 implementation is integrated on `web-navigation`; this guide describes the implemented paths and executable checks, not a claim that every runtime gate passed. Reconciled against the integrated implementation and current runner source on 2026-10-17. [validation.md](validation.md) owns execution results and acceptance; [tasks.md](tasks.md) owns completion status. History shared-comparison/detail focus and Back regressions pass on both browser viewports.
 
 ## Prerequisites
 
@@ -33,6 +33,7 @@ npm run lint
 npm run check:unused
 npm run bdd:gen
 npm run test:e2e
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/android/test-ux-journey-guards.ps1
 npx react-doctor@latest . --verbose --scope changed --base 2604e1a
 ```
 
@@ -42,8 +43,8 @@ For the feature's generated BDD files, including the coordinator's new History f
 
 ```powershell
 $env:PLAYWRIGHT_WEB_PORT = '8196'
-npm run test:e2e -- ux- --workers=2
-npm run test:e2e -- ux-route-state.feature --workers=1 --repeat-each=3 --trace=retain-on-failure
+npm run test:e2e -- ux- --workers=2 --output=test-results/ux-browser-final
+npm run test:e2e -- ux-route-state.feature --workers=1 --repeat-each=3 --trace=retain-on-failure --output=test-results/ux-route-repeat
 ```
 
 `npm run test:e2e` runs generation before Playwright. The projects are `chromium-phone` and `chromium-desktop`; the phone project is a Chromium viewport, not an Android browser/device. The config starts or reuses an Expo web server and supplies mock service defaults; use a free dedicated port to avoid reusing a server from another checkout. Existing environment overrides can change those defaults, so record the effective fixture environment without secrets. Preserve affected existing game/lobby/guest/auth journeys alongside the new UX cases.
@@ -74,9 +75,9 @@ The runner checks explicit authorized device, foreground package, read-only mani
 
 | Journey | Required evidence beyond implementation/browser fixtures |
 | --- | --- |
-| US1 configuration | Same solo data; registered host and member stay in the same room with unchanged edit/start permissions; guest remains guest-authorized; expired/ended recovery; zero navigation-triggered mutation. Current runner configuration checks are solo-only. |
+| US1 configuration | Same solo data; registered host and member stay in the same room with unchanged edit/start permissions; guest remains guest-authorized; expired/ended recovery; zero navigation-triggered mutation. Runner configuration checks support solo, registered owner/member and guest fixtures; results remain role/build-specific. |
 | US2 Back/return | Overlay dismissal, keyboard-first dismissal, History detail/sort, default leagues, Requests child return, direct entry and repeated Home/resume cycles on Android. Current runner covers a narrower game-actions cycle and Friends search return. |
-| US3 route position | Setup/lobby/History task Back, hydration, invalid prerequisites, refresh/Back/Forward, pending player once, account change and revoked-target privacy. Runner currently checks only History Players-to-Games Back. Final History shared-comparison/detail focus gate remains coordinator work. |
+| US3 route position | Setup/lobby/History task Back, hydration, invalid prerequisites, refresh/Back/Forward, pending player once, account change and revoked-target privacy. Runner checks History Players-to-Games Back and the explored pre-start registered Room/Matches/Back path. History shared-comparison/detail focus and Back regression passes. |
 | US4 accessibility | Native TalkBack, announcements, real autofill and keyboard submission; form/guest flows and hidden feedback. Runner checks named solo controls and IME dismissal only. Automated web checks do not establish accessibility conformance. |
 | US5 geometry/scroll | Physical Chrome expanded/collapsed bars and IME; Android enlarged system font/IME; populated list gesture/boundary behavior and reduced motion. Browser 320/360/390, 640x360, 200% text simulation and 1/20/100-row evidence remain separate. Runner layout coverage is populated Home top/bottom reachability only. |
 | US6 Home | Signed-in and signed-out shortcuts/recovery, local History, populated Home room re-entry on device. Runner Friends return requires the approved signed-in fixture. |

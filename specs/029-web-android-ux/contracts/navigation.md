@@ -7,9 +7,11 @@ This is the behavioral source of truth for all workers. Update spec/plan/tasks t
 | Route | Query vocabulary | Default/normalization |
 | --- | --- | --- |
 | `/setupGame` | `step=players|matches|common|assign` | players; after hydration use earliest unmet prerequisite for invalid/inaccessible requested later step |
+| `/gameProgress` | `gameTab=players` | matches when absent/invalid; incidental tab choice replaces owned state so scoped overlay Back can reconstruct selection after Expo remount |
 | `/lobby/[sessionId]` | `step=room|matches|common|assign` | room for pre-start; in-progress status ignores step; no membership granted by URL |
 | `/history` | `tab=games|players|stats`; `friendId=<account ID>`; `gameId=<existing GameSession ID>`; `sort=date|players|drinks|goals|matches`; `direction=asc|desc` | games/date/desc. Legacy friendId without tab opens stats. Explicit valid tab takes precedence. friendId only applies to stats; self selection removes it. gameId applies to games details; incompatible parameters are removed with replacement |
 | `/friends` | `tab=friends|requests` | friends. Child return restores prior tab rather than replacing caller |
+| `/friends/search`, `/friends/blocked` | `tab=friends|requests` describes the caller's tab | friends when absent/invalid/ambiguous. Parse to a safe default without rewriting a direct child URL. Header Back uses the existing caller entry, or replaces to `/friends?tab=<resolved tab>` when no caller exists. Sign-in recovery preserves this validated child path and tab. |
 
 Reject array/duplicate ambiguous values and malformed IDs to safe defaults; trim/bound strings and reuse existing ID validation. Do not assume local GameSession IDs are account UUIDs. Unknown view keys are ignored by parsing; canonicalization changes owned keys only and preserves unrelated validated return parameters. Defaults may be omitted from canonical URLs. Preserve legacy bare paths and legacy friendId links.
 
@@ -38,7 +40,7 @@ Do not mix raw pushState/popstate with router state independently. If the chosen
 
 ## Controlled Wizard handoff
 
-Planned optional `activeStepKey` and `onStepChange(key)` props make step choice caller-controlled when provided; both absent preserve current local behavior. Use stable caller keys, not numeric URL indexes. Validate prerequisites after hydration/restoration and explicit transition. Preserve onBeforeNext pending-input/deferred advance exactly once. Do not continuously clamp a user on each polled snapshot. Route-state owner also owns Wizard compact labels/current-step semantics and connector fit.
+Optional `activeStepKey` and `onStepChange(key)` props make step choice caller-controlled when provided; both absent preserve current local behavior. Use stable caller keys, not numeric URL indexes. Validate prerequisites after hydration/restoration and explicit transition. Preserve onBeforeNext pending-input/deferred advance exactly once. Do not continuously clamp a user on each polled snapshot. Route-state owner also owns Wizard compact labels/current-step semantics and connector fit.
 
 ## Home and accessibility
 
