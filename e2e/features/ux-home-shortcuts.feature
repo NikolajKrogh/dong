@@ -10,3 +10,11 @@ Feature: Find Friends and History from Home
     Given the Home shortcuts fixture is signed in
     Then the Home shortcuts are named destination links
     And the Home room entry remains available
+
+
+  Scenario: Signed-out Friends preserves the Home shortcut through sign-in
+    Given the Home Friends recovery services are mocked
+    And the Home shortcuts fixture is signed out
+    When I keyboard open Friends from the Home shortcut
+    And I complete the Home Friends sign-in recovery
+    Then the Home Friends intended destination is restored

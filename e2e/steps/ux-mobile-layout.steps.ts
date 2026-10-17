@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
-import { buildPersistedBrowserStateFromSetupDataset, createSetupJourneyDataset, mockConfigureStartGameServices, PERSISTED_STORE_KEY } from './browser-flow.helpers';
+import { buildHostRoomAccountRow, buildPersistedBrowserStateFromSetupDataset, createSetupJourneyDataset, mockConfigureStartGameServices, mockHostRoomServices, PERSISTED_STORE_KEY, seedHostRoomAuthSession } from './browser-flow.helpers';
 const { Given, When, Then } = createBdd();
 Given('the compact setup fixture has {int} matches at {int} by {int} with text scale {int}', async ({ page }, rows: number, width: number, height: number, scale: number) => {
  await page.setViewportSize({ width, height });
@@ -97,4 +97,75 @@ Then('the compact selected team names wrap without clipping', async ({ page, $te
  const screenshotPath = $testInfo.outputPath('long-team-names.png');
  await page.screenshot({ path: screenshotPath });
  await $testInfo.attach('long-team-names', { path: screenshotPath, contentType: 'image/png' });
+});
+
+Given('the compact History fixture has {int} games at {int} by {int}', async ({ page, $testInfo }, rows: number, width: number, height: number) => {
+ await page.setViewportSize({ width, height });
+ const state = buildPersistedBrowserStateFromSetupDataset(createSetupJourneyDataset());
+ state.state.history = Array.from({ length: rows }, (_, index) => ({
+   id: `layout-history-${index + 1}`, date: new Date(Date.UTC(2026, 9, 17) - index * 86400000).toISOString(),
+   players: state.state.players.map(player => ({ ...player, drinksTaken: 1 })), matches: state.state.matches,
+   playerAssignments: state.state.playerAssignments, commonMatchId: state.state.commonMatchId, matchesPerPlayer: 1,
+ }));
+ await page.addInitScript(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: PERSISTED_STORE_KEY, state });
+ $testInfo.annotations.push({ type: 'uxHistoryRows', description: String(rows) });
+ await page.goto('/history');
+ await expect(page.getByTestId('HistoryGameItem-layout-history-1')).toBeVisible();
+});
+Then('the compact History last game and Back control are reachable', async ({ page, $testInfo }) => {
+ const viewport = page.getByTestId('HistoryContentViewport');
+ const scrollToBottom = () => viewport.evaluate((panel) => {
+   const scrollers = [panel, ...panel.querySelectorAll('*')].filter((node): node is HTMLElement => node instanceof HTMLElement && /(auto|scroll)/.test(getComputedStyle(node).overflowY) && node.scrollHeight > node.clientHeight + 1);
+   for (const node of scrollers) node.scrollTop = node.scrollHeight;
+   return scrollers.map(node => ({ tag: node.tagName, scrollTop: node.scrollTop, height: node.clientHeight, contentHeight: node.scrollHeight }));
+ });
+ const rows = Number($testInfo.annotations.find(item => item.type === 'uxHistoryRows')?.description);
+ const last = page.getByTestId(`HistoryGameItem-layout-history-${rows}`);
+ await expect(async () => {
+   await scrollToBottom();
+   await expect(last).toBeInViewport({ timeout: 500 });
+ }).toPass({ timeout: 15000, intervals: [100, 250, 500] });
+ const metrics = await scrollToBottom();
+ await expect(last).toBeInViewport();
+ await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeInViewport();
+ expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+ expect(metrics.length).toBeLessThanOrEqual(1);
+ await writeFile($testInfo.outputPath('history-scroll.json'), JSON.stringify({ viewport: page.viewportSize(), metrics }));
+ const screenshotPath = $testInfo.outputPath('history-last-row.png');
+ await page.screenshot({ path: screenshotPath });
+});
+Given('the compact Friends fixture has {int} friends at {int} by {int}', async ({ page }, rows: number, width: number, height: number) => {
+ await page.setViewportSize({ width, height });
+ await mockHostRoomServices(page);
+ await page.route('**/rest/v1/rpc/bootstrap_account', async (route) => {
+   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...buildHostRoomAccountRow(), username: 'Alice_Host' }) });
+ });
+ await page.route('**/rest/v1/rpc/list_social_relationships', async (route) => {
+   const body = route.request().postDataJSON();
+   const start = body.cursor ? 50 : 0;
+   const items = body.kind === 'friends' ? Array.from({ length: Math.min(50, Math.max(0, rows - start)) }, (_, offset) => ({ account_id: `00000000-0000-4000-8000-${String(start + offset + 1).padStart(12, '0')}`, username: `fixture_friend_${String(start + offset + 1).padStart(3, '0')}`, relationship: 'friends', request_id: null })) : [];
+   await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items, next_cursor: rows > 50 && !body.cursor ? 'page-2' : null }) });
+ });
+ await seedHostRoomAuthSession(page);
+ await page.goto('/friends');
+ await expect(page.getByText('fixture_friend_001', { exact: true })).toBeVisible();
+ if (rows > 50) await page.getByRole('button', { name: 'Load more', exact: true }).click();
+ await expect(page.getByText(`fixture_friend_${String(rows).padStart(3, '0')}`, { exact: true })).toBeAttached();
+});
+Then('the compact Friends final comparison and Back control are reachable', async ({ page, $testInfo }) => {
+ const last = page.getByRole('button', { name: /^You & fixture_friend_/ }).last();
+ await last.scrollIntoViewIfNeeded();
+ await expect(last).toBeInViewport();
+ await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeInViewport();
+ expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+ const owners = await last.evaluate(element => {
+   const owners: string[] = [];
+   let parent = element.parentElement;
+   while (parent) { if (/(auto|scroll)/.test(getComputedStyle(parent).overflowY) && parent.scrollHeight > parent.clientHeight + 1) owners.push(parent.getAttribute('data-testid') ?? parent.tagName); parent = parent.parentElement; }
+   return owners;
+ });
+ expect(owners.length).toBeLessThanOrEqual(1);
+ await writeFile($testInfo.outputPath('friends-scroll.json'), JSON.stringify({ viewport: page.viewportSize(), owners }));
+ const screenshotPath = $testInfo.outputPath('friends-last-row.png');
+ await page.screenshot({ path: screenshotPath });
 });

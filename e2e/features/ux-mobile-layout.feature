@@ -25,3 +25,24 @@ Feature: Compact setup labels and scroll reachability
     Given the compact setup fixture has 1 matches at 320 by 640 with text scale 1
     When I select long custom team names in compact setup
     Then the compact selected team names wrap without clipping
+
+
+  Scenario Outline: Populated History retains one usable list scroller
+    Given the compact History fixture has <rows> games at <width> by <height>
+    Then the compact History last game and Back control are reachable
+    Examples:
+      | rows | width | height |
+      | 1    | 320   | 640    |
+      | 20   | 360   | 740    |
+      | 100  | 390   | 844    |
+      | 20   | 640   | 360    |
+
+  Scenario Outline: Populated Friends can reach its final comparison
+    Given the compact Friends fixture has <rows> friends at <width> by <height>
+    Then the compact Friends final comparison and Back control are reachable
+    Examples:
+      | rows | width | height |
+      | 1    | 320   | 640    |
+      | 20   | 360   | 740    |
+      | 100  | 390   | 844    |
+      | 20   | 640   | 360    |
