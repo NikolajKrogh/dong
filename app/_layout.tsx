@@ -41,6 +41,7 @@ export default function Layout() {
               options={{ title: "Preferences" }}
             />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="taskOverlay" options={{ presentation: "transparentModal", headerShown: false, animation: "none" }} />
           </Stack>
           <Toast config={toastConfig as any} />
         </PlatformGestureRoot>
