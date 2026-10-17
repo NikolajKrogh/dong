@@ -63,6 +63,13 @@ Then('the compact setup last match and navigation are reachable', async ({ page,
  const boundary = await last.boundingBox();
  if (boundary) { await page.mouse.move(boundary.x + Math.min(20, boundary.width / 2), Math.min(page.viewportSize()!.height - 20, boundary.y + boundary.height / 2)); await page.mouse.wheel(0, 600); }
  await expect(next).toBeInViewport();
+ const scrollOffsets = await page.evaluate(() => Array.from(document.querySelectorAll('*'))
+   .filter((element): element is HTMLElement => element instanceof HTMLElement && /(auto|scroll)/.test(getComputedStyle(element).overflowY) && element.scrollHeight > element.clientHeight + 1)
+   .map(element => ({ testId: element.getAttribute('data-testid'), scrollTop: element.scrollTop, viewport: element.clientHeight, content: element.scrollHeight })));
+ const afterScrollPath = $testInfo.outputPath('compact-setup-after-scroll.png');
+ await page.screenshot({ path: afterScrollPath });
+ await $testInfo.attach('compact-setup-after-scroll', { path: afterScrollPath, contentType: 'image/png' });
+ await writeFile($testInfo.outputPath('scroll-offsets.json'), JSON.stringify({ viewport: page.viewportSize(), scrollOffsets, next: await next.boundingBox() }));
 });
 When('reduced motion is requested in compact setup', async ({ page }) => { await page.emulateMedia({ reducedMotion: 'reduce' }); });
 Then('the compact schedule can expand and collapse', async ({ page }) => {
