@@ -10,6 +10,10 @@ const mockUseWindowDimensions = jest.fn(() => ({
   fontScale: 1,
 }));
 
+let mockReducedMotion = false;
+const mockTiming = jest.fn(() => ({ start: (callback?: () => void) => callback?.() }));
+jest.mock("../../../platform/animation/useReducedMotion", () => ({ useReducedMotion: () => mockReducedMotion }));
+
 class MockAnimatedValue {
   constructor(public value: number) {}
 }
@@ -63,7 +67,7 @@ jest.mock("react-native", () => ({
   Animated: {
     View: "View",
     Value: MockAnimatedValue,
-    timing: () => ({ start: (callback?: () => void) => callback?.() }),
+    timing: (...args: any[]) => (mockTiming as any)(...args),
     parallel: () => ({ start: (callback?: () => void) => callback?.() }),
   },
   useWindowDimensions: () => mockUseWindowDimensions(),
@@ -117,7 +121,7 @@ jest.mock("../../../styles/setupGameStyles", () => ({
   default: () => mockStyles,
 }));
 
-const renderPlayerList = () => {
+const renderPlayerList = (handleRemovePlayer = jest.fn()) => {
   const PlayerList =
     require("../../../components/setupGame/PlayerList").default;
 
@@ -131,7 +135,7 @@ const renderPlayerList = () => {
       setNewPlayerName: jest.fn(),
       handleAddPlayer: jest.fn(),
       handleAddPlayerByName: jest.fn(),
-      handleRemovePlayer: jest.fn(),
+      handleRemovePlayer,
     }),
   );
 };
@@ -139,6 +143,7 @@ const renderPlayerList = () => {
 describe("PlayerList responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockReducedMotion = false;
     mockUsePlayerSuggestions.mockReturnValue({
       playerSuggestions: [],
       hasHistory: false,
@@ -222,4 +227,22 @@ it('names player input and each removal action with its target', () => {
   expect(remove.props.accessibilityLabel).toBe('Remove Alice');
   expect(renderer.root.find((node) => String(node.type) === 'TextInput').props.accessibilityLabel).toBe('Player name');
   TestRenderer.act(() => { row.unmount(); renderer.unmount(); });
+});
+
+it.each([false, true])("uses the reduced-motion policy for individual and bulk player removal (%s)", (reduced) => {
+  mockReducedMotion = reduced;
+  mockTiming.mockClear();
+  const removePlayer = jest.fn();
+  const tree = renderPlayerList(removePlayer);
+  const list = tree.root.find(node => String(node.type) === "FlatList");
+  const row = actCreate(list.props.renderItem({ item: { id: "p1", name: "Alice" }, index: 0 }));
+  TestRenderer.act(() => row.root.findByProps({ accessibilityLabel: "Remove Alice" }).props.onPress());
+  expect(removePlayer).toHaveBeenCalledWith("p1");
+  TestRenderer.act(() => tree.root.findByProps({ accessibilityLabel: "Clear all players" }).props.onPress());
+  expect(removePlayer).toHaveBeenCalledWith("p2");
+  expect(mockTiming.mock.calls.length).toBeGreaterThan(1);
+  for (const call of mockTiming.mock.calls as unknown as [unknown, { duration: number }][]) {
+    expect(call[1].duration).toBe(reduced ? 0 : 300);
+  }
+  TestRenderer.act(() => { row.unmount(); tree.unmount(); });
 });

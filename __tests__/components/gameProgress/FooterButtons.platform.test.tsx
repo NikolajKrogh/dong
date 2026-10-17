@@ -11,6 +11,9 @@ jest.mock("../../../platform/navigation/taskNavigation", () => ({
   }),
 }));
 
+let mockReducedMotion = false;
+jest.mock("../../../platform/animation/useReducedMotion", () => ({ useReducedMotion: () => mockReducedMotion }));
+
 const mockPush = jest.fn();
 let mockGameActionsSheetProps: Record<string, any> = {};
 
@@ -55,6 +58,7 @@ jest.mock("../../../components/gameProgress/GameActionsSheet", () => {
 
 describe("FooterButtons", () => {
   beforeEach(() => {
+    mockReducedMotion = false;
     mockPush.mockClear();
     mockGameActionsSheetProps = {};
   });
@@ -90,6 +94,19 @@ describe("FooterButtons", () => {
       mockGameActionsSheetProps.onOpenChange(false);
     });
     expect(mockGameActionsSheetProps.open).toBe(false);
+  });
+
+  it.each([false, true])("uses the reduced-motion policy for opening and closing (%s)", (reduced) => {
+    mockReducedMotion = reduced;
+    const timing = jest.mocked(Animated.timing);
+    const tree = actCreate(<FooterButtons onBackToSetup={jest.fn()} onEndGame={jest.fn()} />);
+    timing.mockClear();
+    TestRenderer.act(() => tree.root.findByProps({ testID: "GameProgressMenuButton" }).props.onPress());
+    const rotation = timing.mock.calls[0][0];
+    TestRenderer.act(() => mockGameActionsSheetProps.onOpenChange(false));
+    expect(timing.mock.calls.filter(([value]) => value === rotation).map(([, config]) => config.duration))
+      .toEqual(reduced ? [0, 0] : [300, 300]);
+    TestRenderer.act(() => tree.unmount());
   });
 
   it("closes before invoking the end-game callback", () => {

@@ -19,6 +19,7 @@ import {
   type PlayerSuggestion,
   usePlayerSuggestions,
 } from "../../hooks/usePlayerSuggestions";
+import { useReducedMotion } from "../../platform/animation/useReducedMotion";
 import { Player } from "../../store/store";
 import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
 
@@ -260,6 +261,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 }) => {
   const { width } = useWindowDimensions();
   const colors = useColors();
+  const reduceMotion = useReducedMotion();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const isWideLayout = isWideViewport(width);
   const inputRef = useRef<TextInput>(null);
@@ -375,13 +377,13 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
     Animated.timing(anim, {
       toValue: 0,
-      duration: 300,
+      duration: reduceMotion ? 0 : 300,
       useNativeDriver: true,
     }).start(() => {
       handleRemovePlayer(playerId);
       delete fadeAnims.current[playerId];
     });
-  }, [handleRemovePlayer]);
+  }, [handleRemovePlayer, reduceMotion]);
 
   /**
    * Removes all players with a parallel fade-out animation.
@@ -390,7 +392,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     const animations = Object.values(fadeAnims.current).map((anim) =>
       Animated.timing(anim, {
         toValue: 0,
-        duration: 300,
+        duration: reduceMotion ? 0 : 300,
         useNativeDriver: true,
       }),
     );

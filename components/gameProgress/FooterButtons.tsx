@@ -5,6 +5,7 @@ import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 import GameActionsSheet from "./GameActionsSheet";
+import { useReducedMotion } from "../../platform/animation/useReducedMotion";
 import { TaskOverlay } from "../../platform/navigation/taskNavigation";
 
 /**
@@ -43,6 +44,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 }) => {
   const router = useRouter();
   const colors = useColors();
+  const reduceMotion = useReducedMotion();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [sheetPosition, setSheetPosition] = useState(0);
@@ -56,7 +58,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
     Animated.timing(rotation, {
       toValue: nextVisible ? 1 : 0,
-      duration: 300,
+      duration: reduceMotion ? 0 : 300,
       useNativeDriver: true,
     }).start();
 
@@ -68,7 +70,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   const closeMenu = () => {
     Animated.timing(rotation, {
       toValue: 0,
-      duration: 300,
+      duration: reduceMotion ? 0 : 300,
       useNativeDriver: true,
     }).start();
 

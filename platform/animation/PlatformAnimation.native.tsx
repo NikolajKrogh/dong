@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { AccessibilityInfo, Text, View } from "react-native";
+import React from "react";
+import { Text, View } from "react-native";
 
 import { useColors } from "../../styles/theme";
 import type { AnimationKind } from "../types";
 import { getAnimationFallback } from "./fallbacks";
+import { useReducedMotion } from "./useReducedMotion";
 import LottieView from "lottie-react-native";
 
 interface PlatformAnimationProps {
@@ -26,15 +27,7 @@ export const PlatformAnimation: React.FC<PlatformAnimationProps> = ({
   testID,
 }) => {
   const colors = useColors();
-  const [reduceMotion, setReduceMotion] = useState(true);
-  useEffect(() => {
-    let mounted = true;
-    const update = (value: boolean) => { if (mounted) setReduceMotion(value); };
-    let settingChanged = false;
-    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", value => { settingChanged = true; update(value); });
-    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (!settingChanged) update(value); }).catch(() => {});
-    return () => { mounted = false; subscription.remove(); };
-  }, []);
+  const reduceMotion = useReducedMotion();
   const fallbackConfig = getAnimationFallback(kind);
 
   if (reduceMotion || !fallbackConfig.useNativeRenderer || source === undefined) {
