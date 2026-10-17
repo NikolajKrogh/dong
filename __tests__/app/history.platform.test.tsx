@@ -11,9 +11,11 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 const mockGoBack = jest.fn();
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockRefresh = jest.fn();
 const mockCloudState = { accountId: "account-a" as string | null, loading: false, error: null as string | null };
-const mockRouteParams: { friendId?: string | string[] } = {};
+const mockRouteParams: Record<string, string | string[] | undefined> = {};
 const mockFriendPagination = {
   enabled: true,
   id: "account-a",
@@ -83,10 +85,14 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ back: mockGoBack }),
+  useRouter: () => ({ back: mockGoBack, canGoBack: () => true, push: mockPush, replace: mockReplace, setParams: mockReplace }),
+  useNavigation: () => ({ getState: () => ({ routes: [{name:"history",params:{}},{name:"history",params:mockRouteParams}], index: 1 }) }),
   useLocalSearchParams: () => mockRouteParams,
+  useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
+jest.mock("../../utils/navigation/useStoreHydration", () => ({ useStoreHydration: () => true }));
+jest.mock("../../platform/navigation/taskNavigation", () => ({ TaskOverlay: ({open,onClose,children}:any) => children({open,dismiss:onClose,runAfterDismiss:(action:()=>void)=>action()}) }));
 jest.mock("../../features/history/HistoryStatistics", () => (props:unknown) =>
   require("react").createElement(require("../../components/history/OverallStats"),props));
 
@@ -238,7 +244,7 @@ describe("HistoryScreen responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     Object.assign(mockCloudState, { accountId: "account-a", loading: false, error: null });
-    Object.assign(mockRouteParams, { friendId: undefined });
+    for (const key of Object.keys(mockRouteParams)) delete mockRouteParams[key];
     Object.assign(mockFriendPagination, {
       enabled: true,
       id: "account-a",
@@ -486,4 +492,26 @@ it('keeps Stats accessible when personal history is empty',() => {
     expect(renderer.root.findByProps({testID:'OverallStats'}).props.history).toEqual([]);
     TestRenderer.act(() => renderer.unmount());
   } finally {mockHistoryStore.history=original;}
+});
+
+
+describe('History route state', () => {
+ beforeEach(()=>{jest.clearAllMocks();for(const key of Object.keys(mockRouteParams))delete mockRouteParams[key];Object.assign(mockCloudState,{accountId:'account-a',loading:false,error:null});});
+ it('restores tab and sort choices and reflects a router Back update', () => {
+  Object.assign(mockRouteParams,{tab:'stats',sort:'goals',direction:'asc'});const tree=renderHistoryScreen();
+  expect(tree.root.findAllByProps({testID:'OverallStats'})).toHaveLength(1);
+  mockRouteParams.tab='games';TestRenderer.act(()=>tree.update(React.createElement(require('../../app/history').default)));
+  expect(tree.root.findAllByType(FlatList)).toHaveLength(1);expect(tree.root.findByProps({testID:'SortHistoryModal'}).props.sortField).toBe('goals');
+ });
+ it('restores a known local detail ID and closes to its owned list', () => {
+  mockRouteParams.gameId='g1';const tree=renderHistoryScreen();
+  const detail=tree.root.findByProps({testID:'GameDetailsModal'});TestRenderer.act(()=>detail.props.onClose());
+  expect(mockGoBack).toHaveBeenCalledTimes(1);
+ });
+ it('normalizes an unavailable detail without exposing an empty modal', () => {
+  mockRouteParams.gameId='missing-device-game';const tree=renderHistoryScreen();
+  expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(0);
+  expect(mockReplace).toHaveBeenCalledWith({tab:undefined,friendId:undefined,gameId:undefined,sort:undefined,direction:undefined});
+  expect(tree.root.findAllByType(Text).some(node=>String(node.props.children).includes('unavailable on this device'))).toBe(true);
+ });
 });

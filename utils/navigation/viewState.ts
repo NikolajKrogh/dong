@@ -30,7 +30,7 @@ export const parseLobbyStep = (params: RouteParams): LobbyStep => choice(params.
 export function parseHistoryState(params: RouteParams, selfId?: string | null): HistoryRouteState {
   const friend = single(params.friendId);
   const friendId = isAccountId(friend) && friend.toLowerCase() !== selfId?.toLowerCase() ? friend.toLowerCase() : "";
-  const tab = choice(params.tab, ["games", "players", "stats"], params.tab === undefined && friendId ? "stats" : "games");
+  const tab = choice(params.tab, ["games", "players", "stats"], params.tab === undefined && isAccountId(friend) ? "stats" : "games");
   const gameId = single(params.gameId);
   return {
     tab,

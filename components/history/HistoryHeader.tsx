@@ -61,7 +61,7 @@ const HistoryHeader: React.FC<HistoryHeaderProps> = ({
         <AppIcon name="arrow-back" size={24} color={colors.textPrimary} />
       </TouchableOpacity>
 
-      <Text style={styles.headerTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.headerTitle}>{title}</Text>
 
       {showSortButton ? (
         <TouchableOpacity

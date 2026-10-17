@@ -3,7 +3,7 @@ const friendId = '00000000-0000-4000-8000-000000000002';
 it('preserves legacy comparisons while explicit valid tabs take precedence', () => {
  expect(parseHistoryState({friendId})).toMatchObject({tab:'stats',friendId});
  expect(parseHistoryState({friendId,tab:'players',gameId:'g1'})).toMatchObject({tab:'players',friendId:'',gameId:''});
- expect(parseHistoryState({friendId},friendId)).toMatchObject({tab:'games',friendId:''});
+ expect(parseHistoryState({friendId},friendId)).toMatchObject({tab:'stats',friendId:''});
 });
 it('rejects ambiguous, malformed and incompatible view parameters', () => {
  expect(parseHistoryState({tab:['stats','players'],friendId,sort:['goals'],direction:'bad',gameId:'../x'})).toEqual({tab:'games',friendId:'',gameId:'',sort:'date',direction:'desc'});
