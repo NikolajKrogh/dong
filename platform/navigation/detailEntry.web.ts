@@ -29,3 +29,10 @@ export function rememberDetailListParent(gameId: string): () => void {
   frame = window.requestAnimationFrame(remember);
   return () => window.cancelAnimationFrame(frame);
 }
+
+/** Let the existing Router popstate listener consume an owned browser Back after reload. */
+export function backToRememberedDetailList(): boolean {
+  if (!hasDetailListParent()) return false;
+  window.history.back();
+  return true;
+}

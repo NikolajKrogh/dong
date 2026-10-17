@@ -41,7 +41,7 @@ import { useColors } from "../styles/theme";
 import { useStoreHydration } from "../utils/navigation/useStoreHydration";
 import { useNavigationReady } from "../utils/navigation/useNavigationReady";
 import { TaskOverlay } from "../platform/navigation/taskNavigation";
-import { hasDetailListParent, rememberDetailListParent } from "../platform/navigation/detailEntry";
+import { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from "../platform/navigation/detailEntry";
 import { historyParams, parseHistoryState, sameViewParams, withViewParams, type HistoryRouteState, type RouteParams } from "../utils/navigation/viewState";
 
 const TABS = ["Games", "Players", "Stats"];
@@ -349,7 +349,7 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
     const previous = stack?.routes[(stack?.index ?? 0) - 1];
     const previousIsList = previous?.name === "history" && !parseHistoryState((previous.params ?? {}) as RouteParams).gameId;
     if (router.canGoBack() && (openedFromList.current || previousIsList)) router.back();
-    else navigateView({ ...route, gameId: "" }, true);
+    else if (!backToRememberedDetailList()) navigateView({ ...route, gameId: "" }, true);
     openedFromList.current = false;
   }, [navigation, router, route, navigateView]);
   const onBack = useCallback(() => router.canGoBack() ? router.back() : router.replace("/"), [router]);

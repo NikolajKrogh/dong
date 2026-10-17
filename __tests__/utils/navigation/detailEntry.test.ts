@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  * @jest-environment-options {"url":"http://localhost/history?gameId=g1"}
  */
-import { hasDetailListParent, rememberDetailListParent } from '../../../platform/navigation/detailEntry.web';
+import { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from '../../../platform/navigation/detailEntry.web';
 beforeAll(()=>{globalThis.URLSearchParams=require('node:url').URLSearchParams;});
 let callback: FrameRequestCallback;
 let currentId = 'entry-one';
@@ -32,4 +32,12 @@ it('bounds ownership markers and tolerates unavailable storage',()=>{
  expect(JSON.parse(window.sessionStorage.getItem('dong:history-detail-parents')!)).toHaveLength(32);
  jest.spyOn(Storage.prototype,'getItem').mockImplementation(()=>{throw new Error('Unavailable');});
  expect(hasDetailListParent()).toBe(false);expect(()=>rememberDetailListParent('g1')).not.toThrow();
+});
+
+it('uses browser Back only for a marked current entry',()=>{
+ const back=jest.spyOn(window.history,'back').mockImplementation(()=>{});
+ expect(backToRememberedDetailList()).toBe(false);expect(back).not.toHaveBeenCalled();
+ rememberDetailListParent('g1');callback(0);
+ expect(backToRememberedDetailList()).toBe(true);expect(back).toHaveBeenCalledTimes(1);
+ currentId='unowned';expect(backToRememberedDetailList()).toBe(false);expect(back).toHaveBeenCalledTimes(1);
 });

@@ -1,1 +1,1 @@
-export { hasDetailListParent, rememberDetailListParent } from './detailEntry.native';
+export { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from './detailEntry.native';
