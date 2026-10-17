@@ -1015,6 +1015,7 @@ export const useActiveGameRoomSync = () => {
   const pendingRef = useRef<PendingGameplayMutation[]>([]);
   const commandsRef = useRef(new Map<string, GameplayCommand>());
   const generationRef = useRef(0);
+  const mountedRef = useRef(false);
   const refreshInFlightRef = useRef<number | null>(null);
   const guestGrantRef = useRef<GuestRoomSessionGrant | null>(null);
   const lastProviderRefreshAtRef = useRef(0);
@@ -1040,6 +1041,7 @@ export const useActiveGameRoomSync = () => {
   }, [context]);
 
   useEffect(() => {
+    mountedRef.current = true;
     resetRoomRuntimeForIdentity({
       generationRef,
       refreshInFlightRef,
@@ -1052,6 +1054,11 @@ export const useActiveGameRoomSync = () => {
       context: { mode: context.mode },
       accessLost,
     });
+    // Retired screens must not commit in-flight snapshots or commands to the shared store.
+    return () => {
+      mountedRef.current = false;
+      generationRef.current += 1;
+    };
   }, [
     accessLost,
     context.accessKind,
@@ -1095,8 +1102,9 @@ export const useActiveGameRoomSync = () => {
   );
 
   const refresh = useCallback(
-    () =>
-      refreshActiveGameRoom({
+    () => {
+      if (!mountedRef.current) return Promise.resolve(null);
+      return refreshActiveGameRoom({
         contextRef,
         generationRef,
         refreshInFlightRef,
@@ -1111,7 +1119,8 @@ export const useActiveGameRoomSync = () => {
         setAccessLost,
         clearActiveGameContext,
         applySnapshot,
-      }),
+      });
+    },
     [applySnapshot, clearActiveGameContext],
   );
 
@@ -1152,8 +1161,9 @@ export const useActiveGameRoomSync = () => {
   );
 
   const runMutation = useCallback(
-    (mutation: PendingGameplayMutation, command: GameplayCommand) =>
-      runGameplayMutation({
+    async (mutation: PendingGameplayMutation, command: GameplayCommand) => {
+      if (!mountedRef.current) throw new GameplayRpcErrorClass("service_unavailable", "Return to the game before changing it.");
+      return runGameplayMutation({
         mutation,
         command,
         status,
@@ -1167,7 +1177,8 @@ export const useActiveGameRoomSync = () => {
         setStatus,
         setError,
         applyCommandResult,
-      }),
+      });
+    },
     [applyCommandResult, isInteractive, status, updatePending],
   );
 
@@ -1252,8 +1263,9 @@ export const useActiveGameRoomSync = () => {
     snapshot?.state === "in_progress";
 
   const completeGame = useCallback(
-    () =>
-      completeSharedGame({
+    async () => {
+      if (!mountedRef.current) throw new GameplayRpcErrorClass("service_unavailable", "Return to the game before changing it.");
+      return completeSharedGame({
         contextRef,
         completionInFlightRef,
         isHost,
@@ -1261,16 +1273,18 @@ export const useActiveGameRoomSync = () => {
         setStatus,
         setError,
         refresh,
-      }),
+      });
+    },
     [isEditable, isHost, refresh],
   );
 
   const reassignParticipantMatches = useCallback(
-    (
+    async (
       participantId: string,
       matchIds: string[],
-    ): Promise<ReassignParticipantMatchesResponse> =>
-      reassignRoomMatches({
+    ): Promise<ReassignParticipantMatchesResponse> => {
+      if (!mountedRef.current) throw new GameplayRpcErrorClass("service_unavailable", "Return to the game before changing it.");
+      return reassignRoomMatches({
         contextRef,
         isHost,
         isEditable,
@@ -1279,7 +1293,8 @@ export const useActiveGameRoomSync = () => {
         refresh,
         participantId,
         matchIds,
-      }),
+      });
+    },
     [isEditable, isHost, refresh],
   );
 
