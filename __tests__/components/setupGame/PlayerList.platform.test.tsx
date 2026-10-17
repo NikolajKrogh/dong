@@ -210,3 +210,16 @@ describe("PlayerList responsive layout", () => {
     expect(dropdown().props.visible).toBe(true);
   });
 });
+
+
+it('names player input and each removal action with its target', () => {
+  const renderer = renderPlayerList();
+  const list = renderer.root.find((node) => String(node.type) === 'FlatList');
+  const item = list.props.renderItem({ item: { id: 'p1', name: 'Alice' }, index: 0 });
+  const row = actCreate(item);
+  const remove = row.root.find((node) => String(node.type) === 'TouchableOpacity');
+  expect(remove.props.accessibilityRole).toBe('button');
+  expect(remove.props.accessibilityLabel).toBe('Remove Alice');
+  expect(renderer.root.find((node) => String(node.type) === 'TextInput').props.accessibilityLabel).toBe('Player name');
+  TestRenderer.act(() => { row.unmount(); renderer.unmount(); });
+});

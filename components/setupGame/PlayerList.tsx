@@ -144,6 +144,7 @@ const PlayerInputSection = ({
           <TextInput
             ref={inputRef}
             style={styles.playerTextInput}
+            accessibilityLabel="Player name"
             placeholder="Enter player name"
             placeholderTextColor={colors.textPlaceholder}
             value={newPlayerName}
@@ -164,6 +165,7 @@ const PlayerInputSection = ({
       </View>
 
       <TouchableOpacity
+        accessibilityRole="button"
         accessibilityLabel="Add Player"
         testID="SetupAddPlayerButton"
         style={[
@@ -213,6 +215,8 @@ const PlayerListItem = React.memo(function PlayerListItem({
       </LinearGradient>
       <Text style={styles.playerNameText}>{player.name}</Text>
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${player.name}`}
         style={styles.playerRemoveButton}
         onPress={handleRemove}
         hitSlop={playerRemoveHitSlop}
@@ -467,6 +471,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
       {players.length > 0 && (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Clear all players"
           style={styles.playerClearAllButton}
           onPress={handleRemoveAllPlayers}
         >
