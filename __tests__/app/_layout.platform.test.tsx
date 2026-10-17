@@ -1,10 +1,15 @@
 import React from "react";
+import { Platform } from "react-native";
+import { act } from "react-test-renderer";
 
 import { actCreate } from "../../test-utils/render";
+
+const mockUsePathname = jest.fn(() => "/");
 
 jest.mock("../../platform/connectivity", () => ({ subscribeConnectivity: () => () => {} }));
 
 jest.mock("expo-router", () => ({
+  usePathname: () => mockUsePathname(),
   useRootNavigationState: () => ({ key: "root" }),
   useRouter: () => ({ replace: jest.fn() }),
   Stack: Object.assign(
@@ -12,6 +17,8 @@ jest.mock("expo-router", () => ({
     { Screen: () => null }
   ),
 }));
+
+jest.mock("expo-router/head", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => children }));
 
 jest.mock("react-native-toast-message", () => {
   const ReactLocal = require("react");
@@ -68,4 +75,25 @@ describe("Root shell provider regression", () => {
     // The layout still renders (gesture root is present in the tree)
     expect(tree.toJSON()).not.toBeNull();
   });
+});
+
+
+it('updates the browser title when the current route changes', () => {
+  const previousPlatform = Platform.OS;
+  Platform.OS = 'web';
+  try {
+    const Layout = require('../../app/_layout').default;
+    const tree = actCreate(<Layout />);
+    expect(tree.root.findByType('title' as React.ElementType).props.children).toBe('Home · DONG');
+    mockUsePathname.mockReturnValue('/history');
+    act(() => tree.update(<Layout />));
+    expect(tree.root.findByType('title' as React.ElementType).props.children).toBe('History · DONG');
+    mockUsePathname.mockReturnValue('/lobby/room-fixture');
+    act(() => tree.update(<Layout />));
+    expect(tree.root.findByType('title' as React.ElementType).props.children).toBe('Room · DONG');
+    act(() => tree.unmount());
+  } finally {
+    Platform.OS = previousPlatform;
+    mockUsePathname.mockReturnValue('/');
+  }
 });

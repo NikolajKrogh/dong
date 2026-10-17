@@ -48,7 +48,7 @@ const HomeScreen = () => {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const wideLayout = isWideLayout(width);
   const { players, matches, resetState } = useGameStore();
-  const { history, refresh: refreshHistory, accountId: historyAccountId } = useHistory();
+  const { history, refresh: refreshHistory } = useHistory();
   useFocusEffect(useCallback(() => { void refreshHistory(); }, [refreshHistory]));
   const roomActions = useHomeRoomActions();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
@@ -84,18 +84,6 @@ const HomeScreen = () => {
 
   const handleContinueGame = useCallback(() => {
     router.push("/gameProgress");
-  }, [router]);
-
-  const handleStartNewGame = useCallback(() => {
-    router.push("/setupGame");
-  }, [router]);
-
-  const handleOpenHistory = useCallback(() => {
-    router.push("/history");
-  }, [router]);
-
-  const handleOpenPreferences = useCallback(() => {
-    router.push("/userPreferences");
   }, [router]);
 
   const openCancelModal = useCallback(() => {
@@ -144,7 +132,9 @@ const HomeScreen = () => {
                 source={require("../assets/icons/logo_png/dong_logo.png")}
                 style={styles.logo}
                 resizeMode="contain"
+                accessible={false}
               />
+              <Text accessibilityRole="header" style={{ fontSize: 24, fontWeight: "700", color: colors.textPrimary }}>Home</Text>
             </View>
 
             {hasGameInProgress ? (
@@ -154,6 +144,7 @@ const HomeScreen = () => {
                 matchesCount={matches.length}
                 playersCount={players.length}
                 onContinue={handleContinueGame}
+                continueHref="/gameProgress"
                 onCancel={openCancelModal}
               />
             ) : (
@@ -164,7 +155,7 @@ const HomeScreen = () => {
                 icon={
                   <AppIcon name="add-circle" size={22} color={colors.white} />
                 }
-                onPress={handleStartNewGame}
+                href="/setupGame"
                 widthMode={wideLayout ? "wide" : undefined}
                 style={{ marginTop: 16 }}
               />
@@ -177,20 +168,27 @@ const HomeScreen = () => {
                 historyLength={history.length}
                 topDrinkerInfo={topDrinkerInfo}
                 totalDrinks={totalDrinks}
-                onPress={handleOpenHistory}
               />
             )}
 
-            {history.length === 0 && historyAccountId !== null && (
+            <View style={{ marginTop: 16, gap: 12 }}>
               <ShellActionButton
                 variant="surface"
-                label="View History"
-                testID="home-history-button"
-                onPress={handleOpenHistory}
+                label="Friends"
+                href="/friends"
+                testID="home-friends-button"
+                icon={<AppIcon name="people-outline" size={22} color={colors.primary} />}
                 widthMode={wideLayout ? "wide" : undefined}
-                style={{ marginTop: 16 }}
               />
-            )}
+              <ShellActionButton
+                variant="surface"
+                label="History"
+                href="/history"
+                testID="home-history-button"
+                icon={<AppIcon name="time-outline" size={22} color={colors.primary} />}
+                widthMode={wideLayout ? "wide" : undefined}
+              />
+            </View>
 
             <HomeRoomActions actions={roomActions} colors={colors} styles={styles} wideLayout={wideLayout} />
 
@@ -198,6 +196,7 @@ const HomeScreen = () => {
               variant="surface"
               size="small"
               testID="open-preferences-button"
+              accessibilityLabel="Settings"
               widthMode="fit"
               icon={
                 <AppIcon
@@ -206,7 +205,7 @@ const HomeScreen = () => {
                   color={colors.white}
                 />
               }
-              onPress={handleOpenPreferences}
+              href="/userPreferences"
               style={styles.userPreferencesButton}
             />
           </ScrollView>

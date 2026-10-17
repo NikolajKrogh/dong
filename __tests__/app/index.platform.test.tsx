@@ -328,8 +328,8 @@ describe("HomeScreen platform adoption", () => {
     const renderer = actCreate(React.createElement(HomeScreen));
     expect(mockStoreState.history).toEqual([]);
     const card = renderer.root.findByProps({ testID: "home-history-stats-card" });
-    TestRenderer.act(() => card.props.onPress());
-    expect(mockPush).toHaveBeenCalledWith("/history");
+    expect(card.props.onPress).toBeUndefined();
+    expect(renderer.root.findByProps({ testID: "home-history-button" }).props.href).toBe("/history");
     expect(mockRefreshHistory).toHaveBeenCalled();
     TestRenderer.act(() => renderer.unmount());
   });
@@ -339,8 +339,7 @@ describe("HomeScreen platform adoption", () => {
     const HomeScreen = require("../../app/index").default;
     const renderer = actCreate(React.createElement(HomeScreen));
     const button = renderer.root.findByProps({ testID: "home-history-button" });
-    TestRenderer.act(() => button.props.onPress());
-    expect(mockPush).toHaveBeenCalledWith("/history");
+    expect(button.props.href).toBe("/history");
     TestRenderer.act(() => renderer.unmount());
   });
 
@@ -489,4 +488,15 @@ describe("HomeScreen platform adoption", () => {
       renderer.unmount();
     });
   });
+});
+
+
+it.each([null, { id: 'signed-in-account' }])('exposes Friends and local History for account %j', (account) => {
+  mockUseAccountAuth.mockReturnValue({ account });
+  const HomeScreen = require('../../app/index').default;
+  const renderer = actCreate(React.createElement(HomeScreen));
+  expect(renderer.root.findByProps({ testID: 'home-friends-button' }).props).toMatchObject({ label: 'Friends', href: '/friends' });
+  expect(renderer.root.findByProps({ testID: 'home-history-button' }).props).toMatchObject({ label: 'History', href: '/history' });
+  expect(renderer.root.findByProps({ testID: 'open-preferences-button' }).props.accessibilityLabel).toBe('Settings');
+  TestRenderer.act(() => renderer.unmount());
 });

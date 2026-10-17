@@ -13,7 +13,6 @@ interface HistoryStatsCardProps {
   historyLength: number;
   topDrinkerInfo: TopDrinkerInfo | null;
   totalDrinks: number;
-  onPress: () => void;
 }
 
 export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
@@ -22,24 +21,17 @@ export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
   historyLength,
   topDrinkerInfo,
   totalDrinks,
-  onPress,
 }) => {
   return (
     <ShellCard
       elevated
-      onPress={onPress}
       testID="home-history-stats-card"
       style={{ marginTop: 16 }}
     >
       <View style={styles.statsHeader}>
         <View style={styles.titleWithIcon}>
           <Text style={styles.statsTitle}>Game Stats</Text>
-          <AppIcon
-            name="chevron-forward"
-            size={18}
-            color={colors.primary}
-            style={styles.titleChevron}
-          />
+
         </View>
       </View>
 

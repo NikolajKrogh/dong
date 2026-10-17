@@ -1,4 +1,5 @@
 import React from "react";
+import type { Href } from "expo-router";
 import { Text, View } from "react-native";
 
 import AppIcon from "../AppIcon";
@@ -12,6 +13,7 @@ interface CurrentGameCardProps {
   matchesCount: number;
   playersCount: number;
   onContinue: () => void;
+  continueHref?: Href;
   onCancel: () => void;
 }
 
@@ -21,6 +23,7 @@ export const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
   matchesCount,
   playersCount,
   onContinue,
+  continueHref,
   onCancel,
 }) => {
   return (
@@ -45,7 +48,8 @@ export const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
         variant="success"
         label="Continue Game"
         icon={<AppIcon name="play" size={22} color={colors.white} />}
-        onPress={onContinue}
+        href={continueHref}
+        onPress={continueHref ? undefined : onContinue}
       />
 
       <ShellActionButton
