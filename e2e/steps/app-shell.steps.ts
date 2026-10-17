@@ -224,7 +224,7 @@ const completeSetupJourney = async (
     await addSetupPlayer(page, playerName);
   }
 
-  const nextButton = setupWizardNavigation.getByText("Next", { exact: true });
+  const nextButton = setupWizardNavigation.getByRole("button", { name: "Next", exact: true });
   await expect(nextButton).toBeVisible();
   await nextButton.click();
 
@@ -258,7 +258,8 @@ const completeSetupJourney = async (
   await expect(nextButton).toBeVisible();
   await nextButton.click();
 
-  const startGameButton = setupWizardNavigation.getByText("Start Game", {
+  const startGameButton = setupWizardNavigation.getByRole("button", {
+    name: "Start Game",
     exact: true,
   });
 
@@ -425,7 +426,7 @@ When(
 When("the user advances to the matches step", async ({ page }) => {
   const nextButton = page
     .getByTestId("SetupWizardNavigation")
-    .getByText("Next", { exact: true });
+    .getByRole("button", { name: "Next", exact: true });
 
   await expect(nextButton).toBeVisible();
   await nextButton.click();

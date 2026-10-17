@@ -1,9 +1,10 @@
-import { type Page } from "@playwright/test";
+import { type Page, type Route } from "@playwright/test";
 import { createGuestRoomHostFixture } from "../../e2e/fixtures";
 import {
   GUEST_ROOM_SESSION_GRANT_STORAGE_KEY,
   HOME_READY_MARKERS,
   PERSISTED_STORE_KEY,
+  buildHostRoomAccountRow,
   buildGuestRoomJoinResponseFromFixture,
   buildGuestRoomSessionGrantFromFixture,
   buildGuestRoomSnapshotFromFixture,
@@ -11,6 +12,7 @@ import {
   createSetupJourneyDataset,
   createSetupJourneyDatasets,
   dismissOnboardingIfPresent,
+  mockHostRoomServices,
   waitForBrowserFlowReady,
 } from "../../e2e/steps/browser-flow.helpers";
 
@@ -67,6 +69,31 @@ describe("browser-flow.helpers", () => {
     expect(GUEST_ROOM_SESSION_GRANT_STORAGE_KEY).toBe(
       "dong:guest-room-session-grant",
     );
+  });
+
+  it("mocks account bootstrap before authenticated host journeys", async () => {
+    const handlers = new Map<string, (route: Route) => Promise<void>>();
+    const page = {
+      route: jest.fn(async (url: string, handler: (route: Route) => Promise<void>) => {
+        handlers.set(url, handler);
+      }),
+    };
+    await mockHostRoomServices(page as unknown as Page);
+
+    const bootstrap = handlers.get("**/rest/v1/rpc/bootstrap_account");
+    expect(bootstrap).toBeDefined();
+    const fulfill = jest.fn().mockResolvedValue(undefined);
+    await bootstrap!({ fulfill } as unknown as Route);
+
+    expect(fulfill).toHaveBeenCalledWith({
+      status: 200,
+      contentType: "application/json",
+      body: expect.any(String),
+    });
+    expect(JSON.parse(fulfill.mock.calls[0][0].body)).toMatchObject({
+      id: buildHostRoomAccountRow().id,
+      username: buildHostRoomAccountRow().username,
+    });
   });
 
   it("builds a replay-safe guest join response and persisted grant from a room fixture", () => {

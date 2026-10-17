@@ -903,6 +903,14 @@ export const mockHostRoomServices = async (
     });
   });
 
+  await page.route("**/rest/v1/rpc/bootstrap_account", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomAccountRow()),
+    });
+  });
+
   await page.route("**/rest/v1/accounts**", async (route) => {
     await route.fulfill({
       status: 200,
