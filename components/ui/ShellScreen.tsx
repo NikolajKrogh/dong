@@ -57,7 +57,7 @@ export function ShellScreen({
   const insideMain = useContext(MainContentContext);
   return (
     <MainContentContext.Provider value={true}>
-    <ShellScreenFrame {...(Platform.OS === "web" && !insideMain ? { tag: "main" } : {})} {...props}>
+    <ShellScreenFrame {...(Platform.OS === "web" && !insideMain ? { render: "main", role: "main" as const } : {})} {...props}>
       <ShellScreenViewport centered={centerContent}>
         <ShellScreenContent maxWidth={contentMaxWidth} {...contentProps}>
           {children}

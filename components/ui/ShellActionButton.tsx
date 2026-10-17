@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, type Href } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, type Role } from "react-native";
 import { GetProps, Text, XStack, styled } from "tamagui";
 
 const ShellActionButtonFrame = styled(XStack, {
@@ -124,6 +124,7 @@ export function ShellActionButton({
 }: ShellActionButtonProps) {
   const disabled = Boolean(props.disabled || accessibilityState?.disabled);
   const accessibilityProps = Platform.OS === "web" ? {
+    role: props.role ?? (props.accessibilityRole as Role | undefined) ?? (href && !disabled ? "link" as const : "button" as const),
     "aria-label": accessibilityLabel,
     "aria-disabled": disabled,
     "aria-expanded": accessibilityState?.expanded,
@@ -135,7 +136,7 @@ export function ShellActionButton({
     <ShellActionButtonFrame
       {...props}
       variant={variant}
-      {...(Platform.OS === "web" ? { tag: href && !disabled ? "a" : "button" } : {})}
+      {...(Platform.OS === "web" ? { render: href && !disabled ? "a" : "button" } : {})}
       {...(Platform.OS === "web" && (!href || disabled) ? { type: "button" as const } : {})}
       {...accessibilityProps}
       disabled={disabled}

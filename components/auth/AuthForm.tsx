@@ -526,7 +526,8 @@ const AuthCredentialsForm = ({
       <YStack gap="$4">
         <TabContainer>
           <TabPill
-            {...(Platform.OS === "web" ? { tag: "button", type: "button" } : {})}
+            {...(Platform.OS === "web" ? { render: "button", type: "button" } : {})}
+            role="button"
             accessibilityRole="button"
             aria-pressed={mode === "signIn"}
             active={mode === "signIn"}
@@ -541,7 +542,8 @@ const AuthCredentialsForm = ({
             </Text>
           </TabPill>
           <TabPill
-            {...(Platform.OS === "web" ? { tag: "button", type: "button" } : {})}
+            {...(Platform.OS === "web" ? { render: "button", type: "button" } : {})}
+            role="button"
             accessibilityRole="button"
             aria-pressed={mode === "signUp"}
             active={mode === "signUp"}

@@ -53,6 +53,7 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
         </Text>
         <TextInput
           accessibilityLabel="Room Code"
+          aria-describedby={error ? "guest-join-error" : undefined}
           autoComplete="off"
           autoCapitalize="characters"
           autoCorrect={false}
@@ -79,6 +80,7 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
         </Text>
         <TextInput
           accessibilityLabel="Guest Name"
+          aria-describedby={error ? "guest-join-error" : undefined}
           autoComplete="nickname"
           autoCapitalize="words"
           autoCorrect={false}
