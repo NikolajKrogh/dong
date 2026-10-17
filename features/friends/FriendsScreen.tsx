@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, XStack, YStack } from 'tamagui';
 import { ShellActionButton } from '../../components/ui';
 import SettingsPage from '../../components/preferences/SettingsPage';
@@ -8,23 +8,28 @@ import FriendSearchField from './FriendSearchField';
 import PeopleList from './PeopleList';
 import RequestsPanel from './RequestsPanel';
 import { useFriends } from './useFriends';
+import FriendsAccessScreen from './FriendsAccessScreen';
+import { parseFriendsTab, type RouteParams } from '../../utils/navigation/viewState';
 export default function FriendsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams() as RouteParams;
+  const tab = parseFriendsTab(params);
   const friends = useFriends('friends');
   const openShared = useCallback((accountId: string) => {
     router.push({ pathname: '/history', params: { friendId: accountId } });
   }, [router]);
-  const [tab, setTab] = useState<'friends' | 'requests'>('friends');
+  const setTab = (value: 'friends' | 'requests') => router.setParams({ tab: value });
+  const openChild = (pathname: '/friends/search' | '/friends/blocked') => router.push({ pathname, params: { tab } });
   const [menu, setMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const refresh = async () => { setRefreshing(true); try { await friends.refresh(); } finally { setRefreshing(false); } };
-  return <SettingsPage title="Friends" onBack={() => router.replace('/userPreferences/profile')} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void refresh(); }} />}>
-    {!friends.enabled ? <Text color="$textMuted">Sign in and choose a username to manage friends.</Text> : <YStack gap="$4">
+  return <SettingsPage title="Friends" onBack={() => router.canGoBack() ? router.back() : router.replace('/')} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void refresh(); }} />}>
+    {!friends.enabled ? <FriendsAccessScreen returnTo={tab === "requests" ? "/friends?tab=requests" : "/friends"} /> : <YStack gap="$4">
       <XStack gap="$2" alignItems="center">
-        <YStack flex={1}><FriendSearchField onPress={() => router.push('/friends/search' as never)} /></YStack>
+        <YStack flex={1}><FriendSearchField onPress={() => openChild('/friends/search')} /></YStack>
         <ShellActionButton role="button" accessibilityLabel="Friends menu" accessibilityState={{ expanded: menu }} widthMode="fit" variant="surface" label="⋮" onPress={() => setMenu(!menu)} />
       </XStack>
-      {menu ? <ShellActionButton role="button" variant="surface" label="Blocked accounts" onPress={() => { setMenu(false); router.push('/friends/blocked' as never); }} /> : null}
+      {menu ? <ShellActionButton role="button" variant="surface" label="Blocked accounts" onPress={() => { setMenu(false); openChild('/friends/blocked'); }} /> : null}
       <XStack backgroundColor="$surface" borderRadius="$3" borderWidth={1} borderColor="$borderColor" padding="$1" gap="$1">
         {(['friends', 'requests'] as const).map(value => <ShellActionButton key={value} role="tab" accessibilityState={{ selected: tab === value }} flex={1} widthMode="fit" variant="surface" borderWidth={0} backgroundColor={tab === value ? '$primaryLight' : '$surface'} label={value === 'friends' ? 'Friends' : 'Requests'} onPress={() => setTab(value)} />)}
       </XStack>
@@ -38,7 +43,7 @@ export default function FriendsScreen() {
               role="button"
               widthMode="fit"
               label="Find friends"
-              onPress={() => router.push('/friends/search' as never)}
+              onPress={() => openChild('/friends/search')}
             />
           </YStack>
         ) : (
