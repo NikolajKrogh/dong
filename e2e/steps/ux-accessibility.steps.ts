@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
+import { buildHostRoomAccountRow, mockHostRoomServices, seedHostRoomAuthSession } from './browser-flow.helpers';
 const { Given, When, Then } = createBdd();
 
 Given('the accessibility Home fixture is open', async ({ page }) => {
@@ -74,6 +75,13 @@ Then('the accessibility pending command is disabled', async ({ page }) => {
 });
 
 Given('the accessibility page {string} is open', async ({ page }, route: string) => {
+  if (route === '/userPreferences/profile') {
+    await mockHostRoomServices(page);
+    await page.route('**/rest/v1/rpc/bootstrap_account', async (request) => {
+      await request.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...buildHostRoomAccountRow(), username: 'Alice_Host' }) });
+    });
+    await seedHostRoomAuthSession(page);
+  }
   await page.goto(route);
 });
 Then('the accessibility page has one main with heading {string} and title {string}', async ({ page }, heading: string, title: string) => {
