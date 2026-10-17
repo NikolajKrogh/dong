@@ -29,9 +29,9 @@ it('preserves Requests in child fallback and leaves Friends for its actual calle
 });
 it('uses a fixed intended destination for sign-in and supplies direct Home recovery',()=>{
  mockEnabled=false;mockStatus='signedOut';const tree=render('FriendsScreen');
- const actions=tree.root.findAllByType('Action' as React.ElementType); TestRenderer.act(()=>actions.find(a=>a.props.label==='Sign in')!.props.onPress());
- expect(mockRouter.push).toHaveBeenCalledWith('/auth?returnTo=%2Ffriends%3Ftab%3Drequests');
- TestRenderer.act(()=>actions.find(a=>a.props.label==='Home')!.props.onPress());expect(mockRouter.replace).toHaveBeenCalledWith('/');
+ const actions=tree.root.findAllByType('Action' as React.ElementType);
+ expect(actions.find(a=>a.props.label==='Sign in')!.props.href).toBe('/auth?returnTo=%2Ffriends%3Ftab%3Drequests');
+ expect(actions.find(a=>a.props.label==='Home')!.props.href).toBe('/');
 });
 it('does not offer sign-in while account hydration is pending',()=>{
  mockEnabled=false;mockStatus='loading';const tree=render('FriendsScreen');expect(tree.root.findAllByType('Action' as React.ElementType).some(a=>a.props.label==='Sign in')).toBe(false);
