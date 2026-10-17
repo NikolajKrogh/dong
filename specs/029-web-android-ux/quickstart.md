@@ -1,50 +1,93 @@
 # Validation quickstart
 
-This guide describes future implementation validation. No product/tests/runner were implemented or executed during planning.
+Feature 029 implementation is integrated on `web-navigation`; this guide describes the implemented paths and executable checks, not a claim that every runtime gate passed. Reconciled against integration `f4c7547` and current runner source on 2026-10-17. [validation.md](validation.md) owns execution results and acceptance; [tasks.md](tasks.md) owns completion status. The coordinator's final History focus gate is still in progress.
 
 ## Prerequisites
 
-- Read spec.md, contracts/navigation.md, agent-handoff.md and [skills.md](skills.md). Confirm `git branch --show-current` is the intended integration/worker branch and record its SHA.
-- Install existing dependencies with `npm install` when needed; use existing env bootstrap documented in CLAUDE.md. Do not print credentials or commit local fixture secrets.
-- Use controlled local/test room/account fixtures for host, member, guest, solo, completed history and friend/request data; no mutation of observed production games. Seed only with existing approved fixture mechanisms. Record fixture manifest and identity boundaries.
-- Device: `adb devices -l`; unlock/authorize it. If more than one device exists, ask the user which serial to use. ARTEMIS exploration precedes native test authoring; diagnose failures before trial-and-error reruns. Only one owner interacts with the phone at a time.
+- Read spec.md, contracts/navigation.md, agent-handoff.md and [skills.md](skills.md). Record `git branch --show-current` and `git rev-parse HEAD` for every validation run.
+- Reuse installed dependencies and the existing environment bootstrap in CLAUDE.md. Run `npm install` only when dependencies are missing; do not print credentials or commit local fixture secrets.
+- Use approved local/test fixtures for solo, registered host/member, guest, completed History and friend/request data. Browser service mocks are not an Android session seed or hosted permission proof. Do not create or mutate production games or relationships for these checks.
+- Before Android interaction run `adb devices -l`, unlock/authorize the selected device, and ask the user which serial to use if selection is ambiguous. The coordinator serializes phone access and source updates. Follow AGENTS.md ARTEMIS exploration and diagnosis rules before adding native scenarios.
 
-## Automated checks after implementation
+## Implemented journeys
+
+| Area | Current behavior to verify |
+| --- | --- |
+| Active game context | Solo Setup returns to solo configuration. Registered configuration/status uses the existing room route and permissions. Guest status remains read-only inside gameplay, using the current guest grant/snapshot. Ordinary Home navigation preserves the active game/room; Leave/End remain explicit separate actions. |
+| Back and overlays | Web game actions, room status, History sort and default-league panels use the router-owned transparent `/taskOverlay` route. First Back dismisses the panel; Close and Back share its lifecycle. Native retains existing modal/request-close presentation. A stale overlay entry recovers safely when its owner is unavailable. |
+| Task position | Solo and pre-start lobby steps use stable query keys. Meaningful step/tab/target/detail changes create history; normalization and sort replace owned state. Wizard Back uses the owned previous task entry or a safe prior-step fallback. Hydration and navigation readiness precede normalization. |
+| Friends and History | Search/Blocked header Back restores the caller's Friends/Requests tab. Signed-out Friends offers Sign in and Home with a validated return. History tab, comparison, sort and authorized detail resolve from URL state; legacy friendId links and local History still work. Unavailable detail explains recovery within main. |
+| Semantics and Home | Destinations render as links and commands as buttons; shared controls retain native names/states. Affected pages have main/headings/titles; forms expose labels, purpose, password toggles and associated errors. Home has labeled Friends/History shortcuts within its established layout; Game Stats is display-only. |
+| Compact layout | Schedule badges wrap below the title on narrow layouts; selected long team names wrap. Web viewports shorter than 480 CSS pixels use an outer Wizard page scroller so content and navigation remain reachable. Other layouts preserve the existing content scroller and native virtualization. Reduced-motion handling uses existing platform adapters. |
+
+Exact route values and normalization rules remain in [contracts/navigation.md](contracts/navigation.md). These behaviors require the separate checks below; a source implementation or worker commit is not acceptance.
+
+## Automated checks
+
+Run from the checkout being validated:
 
 ```powershell
-npm run test:ci -- --runInBand
+npm run test:ci -- --runInBand --cacheDirectory ./test-results/jest-cache
 npm run typecheck
 npm run lint
 npm run check:unused
 npm run bdd:gen
 npm run test:e2e
+npx react-doctor@latest . --verbose --scope changed --base 2604e1a
 ```
 
-`test:unit` alone excludes `*.platform.test.tsx`; it is not the acceptance gate. Run relevant React Doctor review after React changes. Playwright's configured web server uses controlled fixtures/mocks; report those results separately from deployed/real-account evidence. New BDD stories are listed in tasks.md; retain affected existing game/lobby/guest/auth journeys.
+Use `test:ci`, which supplies the repository's Node/Expo preload and includes platform component suites. Bare Jest bypasses that preload; `test:unit` excludes `*.platform.test.tsx` and is insufficient. Inspect relevant React Doctor findings rather than treating its score as acceptance.
 
-Use installed playwright-best-practices guidance for locators, waits, fixtures, traces and targeted critical-journey repetition while retaining these BDD commands. Use the accessibility skill for rendered names/roles/focus/forms, keyboard, zoom and motion checks on affected screens. Available automated audits supplement manual interaction; they do not prove native TalkBack behavior or accessibility conformance. No new audit dependency/tool is installed implicitly by this guide.
+For the feature's generated BDD files, including the coordinator's new History focus regression, use the existing entry point:
 
-For Android, after the planned runner is implemented, invoke `scripts/android/run-ux-journeys.ps1` with DeviceSerial, Package, Scenario, FixtureManifest and OutputDirectory as defined in agent-handoff.md. Its nonzero failures and unavailable prerequisites are blockers, not skips. `npm run android:dev` supplies the existing USB tunnels/dev-client startup; the installed native client must match required native dependencies. A dev-client run is not packaged release acceptance.
+```powershell
+$env:PLAYWRIGHT_WEB_PORT = '8196'
+npm run test:e2e -- ux- --workers=2
+npm run test:e2e -- ux-route-state.feature --workers=1 --repeat-each=3 --trace=retain-on-failure
+```
 
-## Runtime matrix and expected outcomes
+`npm run test:e2e` runs generation before Playwright. The projects are `chromium-phone` and `chromium-desktop`; the phone project is a Chromium viewport, not an Android browser/device. The config starts or reuses an Expo web server and supplies mock service defaults; use a free dedicated port to avoid reusing a server from another checkout. Existing environment overrides can change those defaults, so record the effective fixture environment without secrets. Preserve affected existing game/lobby/guest/auth journeys alongside the new UX cases.
 
-| Journey | Required evidence |
+Use the installed Playwright skill for role/name locators, explicit state waits, isolation and targeted repetition. Use the accessibility skill for actual rendered DOM names/roles, keyboard focus, labels/errors, main/headings, text enlargement and motion checks. Renderer mocks do not establish actual DOM semantics. No new audit dependency is required. Copy reviewed screenshots/scroll diagnostics to a durable evidence location before another Playwright invocation: its output cleanup can delete previous `test-results` artifacts and caches.
+
+## Android runner: current executable scope
+
+The coordinator owns `scripts/android/run-ux-journeys.ps1`. It observes an already-open approved fixture; it does not install/launch DONG, log in, provision rooms, or grant guest access. Start the matching installed dev client with the existing `npm run android:dev` workflow when needed, then stop source integration/hot refresh during device checks. A dev-client pass is separate from packaged release acceptance.
+
+Example invocation after preparing the selected fixture on Home:
+
+```powershell
+adb devices -l
+.\scripts\android\run-ux-journeys.ps1 `
+  -DeviceSerial '<approved-serial>' `
+  -Package 'com.krogh.dong.dev' `
+  -Scenario 'back-return' `
+  -FixtureManifest 'C:\local\dong-ux\fixture.json' `
+  -OutputDirectory '.\test-results\android-ux-back-return'
+```
+
+Accepted packages are `com.krogh.dong.dev` and `com.krogh.dong`. Scenario values are `game-context`, `back-return`, `route-state`, `accessibility`, `layout-scroll`, `home-shortcuts`, or `all`. See [agent-handoff.md](agent-handoff.md) for manifest fields and exact scenario limits. `all` runs the six implemented checks in sequence; it does not cover the entire acceptance matrix.
+
+The runner checks explicit authorized device, foreground package, read-only manifest approval and scenario prerequisites. It uses fresh UIAutomator name/resource-ID/content-description matches, bounded polling/scrolling and hardware Back. Unsupported state or missing prerequisites produce exit 1 with `results.json` and a failure screenshot where available; they are not passing skips. Successful results describe only the selected scenario. Review screenshots before committing any evidence; raw hierarchy/account data stays local.
+
+## Runtime matrix and remaining acceptance
+
+| Journey | Required evidence beyond implementation/browser fixtures |
 | --- | --- |
-| US1 configuration | Solo same data; registered host/member same room and unchanged permissions; guest stays in guest-authorized status; expired/ended recovery; zero navigation-triggered mutation |
-| US2 Back/return | Game actions, History details/sort, default leagues: first Back dismisses; keyboard dismissal does not leave task; Requests → Search/Blocked → arrow restores Requests, next Back leaves Friends; three Home/resume cycles have no duplicate pages; direct entry/recovery works |
-| US3 route position | Solo/lobby steps, History tabs/target/sort/detail refresh and Back/Forward; pending player once; invalid prerequisites/unknown values normalize; account change/revoked target hides stale content |
-| US4 accessibility | Web keyboard-only Home→setup and forms, named current steps/icons, visible focus, disabled control cannot activate, actual links/main/headings/titles; errors announce once; Android TalkBack/autofill/keyboard submission; hidden goal feedback absent from unrelated announcements |
-| US5 geometry/scroll | Web 320/360/390 widths, 640×360 landscape, 200% text; physical Chrome browser bars/IME; Android portrait/enlarged font/IME; long names and 1/20/100 rows where meaningful; final action reachable, no overlap/horizontal overflow; reduced motion |
-| US6 Home | Signed-in Friends/History each one activation; signed-out Friends recovery returns; local History retained; populated Home shortcuts reachable without Settings |
+| US1 configuration | Same solo data; registered host and member stay in the same room with unchanged edit/start permissions; guest remains guest-authorized; expired/ended recovery; zero navigation-triggered mutation. Current runner configuration checks are solo-only. |
+| US2 Back/return | Overlay dismissal, keyboard-first dismissal, History detail/sort, default leagues, Requests child return, direct entry and repeated Home/resume cycles on Android. Current runner covers a narrower game-actions cycle and Friends search return. |
+| US3 route position | Setup/lobby/History task Back, hydration, invalid prerequisites, refresh/Back/Forward, pending player once, account change and revoked-target privacy. Runner currently checks only History Players-to-Games Back. Final History shared-comparison/detail focus gate remains coordinator work. |
+| US4 accessibility | Native TalkBack, announcements, real autofill and keyboard submission; form/guest flows and hidden feedback. Runner checks named solo controls and IME dismissal only. Automated web checks do not establish accessibility conformance. |
+| US5 geometry/scroll | Physical Chrome expanded/collapsed bars and IME; Android enlarged system font/IME; populated list gesture/boundary behavior and reduced motion. Browser 320/360/390, 640x360, 200% text simulation and 1/20/100-row evidence remain separate. Runner layout coverage is populated Home top/bottom reachability only. |
+| US6 Home | Signed-in and signed-out shortcuts/recovery, local History, populated Home room re-entry on device. Runner Friends return requires the approved signed-in fixture. |
+| Release | Matching packaged Android build plus production web build/runtime checks on approved fixtures; record build IDs, effective viewport/font and evidence separately. Dev-client, mocked browser and unit passes do not satisfy this gate. |
 
-For scroll cases, start swipes over each populated list and at top/bottom boundaries; record which container moves. Bounded dialog scrolling may pass unchanged. Capture top/bottom and keyboard screenshots, effective CSS viewport and native font scale. Static screenshots alone do not prove gesture handoff.
+Registered host/member/guest Android acceptance remains pending unless validation.md explicitly records a completed run for that role/build. Do not infer it from solo or signed-in Friends checks. Retain not-run/blocked labels for unavailable prerequisites and any remaining physical/release checks.
 
-## Evidence and completion
+For scroll cases, begin gestures over each populated list and at top/bottom boundaries; record which container moves, viewport, scroll offset and final-action reachability. Intentional bounded dialog scrolling may pass unchanged. Static screenshots alone do not prove gesture handoff or physical browser-bar behavior.
 
-During implementation create `specs/029-web-android-ux/validation.md` recording build/SHA, platform, test command/scenario, fixtures, expected/actual and pass/fail/not-run, plus reviewed evidence paths. Add newly reproduced defects immediately. Use an ignored/local output directory for raw diagnostics; commit only reviewed relevant artifacts and no credentials/private hierarchy dumps.
+## Evidence and recovery
 
-Every story requires unit/component plus primary web/Android journey coverage and separate runtime evidence before acceptance. Manual TalkBack/autofill checks supplement executable tests. Android device/development/release-build and web fixture/live results are distinct. No fabricated room/data or mocked test turns an unexecuted runtime gate green.
+Record command/scenario, commit/build, platform, fixtures/role, expected/actual result, pass/fail/not-run and reviewed evidence paths in validation.md. The coordinator alone updates shared task checkboxes and acceptance status. Keep fixture/browser, real-account/device, development and release evidence distinct. Do not write credentials or private hierarchy dumps into committed reports.
 
-## Recovery check
-
-After returning Home, confirm the room can be reopened without joining again; no Leave/End command occurred. After malformed route/account changes, confirm safe fallback and no stale private results. If reverting a slice, retain old bare paths and friendId links and never clear membership/history as cleanup.
+After Home, reopen the same context without joining again; verify no Leave/End command occurred. After malformed routes/account changes, verify safe fallback and no stale private results. Reverting a slice must preserve bare paths, legacy friendId links, membership and History; do not clear user state as cleanup.
