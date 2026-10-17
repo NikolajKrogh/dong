@@ -15,6 +15,7 @@ import { useColors } from "../styles/theme";
 import { useGameStore } from "../store/store";
 import { useAppVisibility, useGoalSound } from "../platform";
 import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
+import { useNavigationReady } from "../utils/navigation/useNavigationReady";
 
 const subscribeGameHydration = (onChange: () => void) => {
   const begin = useGameStore.persist.onHydrate(onChange);
@@ -25,6 +26,7 @@ const subscribeGameHydration = (onChange: () => void) => {
 const useGameProgressController = () => {
   const hasHydrated = useSyncExternalStore(subscribeGameHydration, useGameStore.persist.hasHydrated, () => false);
   const router = useRouter();
+  const navigationReady = useNavigationReady();
   const params = useLocalSearchParams<{ gameTab?: string | string[] }>();
   const activeTab = params.gameTab === "players" ? "players" : "matches";
   const [isRoomStatusVisible, setRoomStatusVisible] = useState(false);
@@ -248,10 +250,10 @@ const useGameProgressController = () => {
   );
 
   useEffect(() => {
-    if (params.gameTab !== undefined && params.gameTab !== "players" && params.gameTab !== "matches") {
+    if (navigationReady && params.gameTab !== undefined && params.gameTab !== "players" && params.gameTab !== "matches") {
       router.setParams({ gameTab: undefined });
     }
-  }, [params.gameTab, router]);
+  }, [navigationReady, params.gameTab, router]);
 
   const setActiveTab = useCallback((tab: string) => {
     const gameTab = tab === "players" ? "players" : undefined;

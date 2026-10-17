@@ -21,7 +21,12 @@ jest.mock("../../hooks/useLiveScores", () => ({
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
 const mockSetParams = jest.fn();
+let mockNavigationReady = true;
 let mockGameParams: { gameTab?: string | string[] } = {};
+
+jest.mock("../../utils/navigation/useNavigationReady", () => ({
+  useNavigationReady: () => mockNavigationReady,
+}));
 
 jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockGameParams,
@@ -55,13 +60,14 @@ const renderControllerProbe = () => {
 
   const renderer = actCreate(React.createElement(Probe));
 
-  return { renderer, getLatest: () => latest as Controller };
+  return { renderer, getLatest: () => latest as Controller, rerender: () => renderer.update(React.createElement(Probe)) };
 };
 
 describe("useGameProgressController (integration)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGameParams = {};
+    mockNavigationReady = true;
 
     mockUseLiveScores.mockReturnValue({
       liveMatches: [],
@@ -106,6 +112,18 @@ describe("useGameProgressController (integration)", () => {
       soundEnabled: true,
       commonMatchNotificationsEnabled: true,
     });
+  });
+
+  it("waits for container readiness before normalizing a malformed fresh-tab choice", async () => {
+    mockGameParams = { gameTab: ["players", "matches"] };
+    mockNavigationReady = false;
+    const controller = renderControllerProbe();
+    expect(mockSetParams).not.toHaveBeenCalled();
+    mockNavigationReady = true;
+    TestRenderer.act(() => controller.rerender());
+    expect(mockSetParams).toHaveBeenCalledTimes(1);
+    expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => controller.renderer.unmount());
   });
 
   it("restores the Players tab on remount and normalizes ambiguous route choices", async () => {
