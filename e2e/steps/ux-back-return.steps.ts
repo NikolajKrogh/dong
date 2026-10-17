@@ -1,8 +1,30 @@
 import { expect, type Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
-import { PERSISTED_STORE_KEY, seedSoloGameState } from "./browser-flow.helpers";
+import { PERSISTED_STORE_KEY, seedSoloGameState, mockHostRoomServices, buildHostRoomAccountRow, seedHostRoomAuthSession } from "./browser-flow.helpers";
 
 const { Given, When, Then } = createBdd();
+Given('UX return opens Requests with a safe Home caller', async ({ page }) => {
+  await mockHostRoomServices(page);
+  await page.route('**/rest/v1/rpc/bootstrap_account', route => route.fulfill({ json: { ...buildHostRoomAccountRow(), username: 'Alice_Host' } }));
+  await page.route('**/rest/v1/rpc/list_social_relationships', route => route.fulfill({ json: { items: [], next_cursor: null } }));
+  await seedHostRoomAuthSession(page);
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Friends', exact: true }).click();
+  await page.getByRole('tab', { name: 'Requests', exact: true }).click();
+  await expect(page.getByText('Received', { exact: true })).toBeVisible();
+});
+When('UX return opens friend search then uses its header Back', async ({ page }) => {
+  await page.getByRole('button', { name: 'Search by username', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Find friends', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Back', exact: true }).click();
+});
+Then('UX return restores Requests and can Back to Home', async ({ page }) => {
+  await expect(page.getByRole('tab', { name: 'Requests', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByText('Received', { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
+});
 async function openExternalPage(page: Page) {
   await page.route("**/ux-external", (route) => route.fulfill({
     contentType: "text/html", body: "<html><body><h1>External test page</h1></body></html>",

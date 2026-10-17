@@ -76,9 +76,7 @@ interface HistoryViewState {
 }
 
 type HistoryViewAction =
-  | { type: "openDetails"; game: GameSession }
   | { type: "closeDetails" }
-  | { type: "switchTab"; index: number }
   | { type: "toggleSortModal"; visible: boolean }
   | { type: "changeSort"; field: HistorySortField }
   | { type: "restore"; route: HistoryRouteState; game: GameSession | null };
@@ -100,12 +98,8 @@ const historyViewReducer = (
   switch (action.type) {
     case "restore":
       return { ...state, activeTabIndex: ["games", "players", "stats"].indexOf(action.route.tab), selectedGame: action.game, isDetailVisible: !!action.game, sortField: action.route.sort, sortDirection: action.route.direction };
-    case "openDetails":
-      return { ...state, selectedGame: action.game, isDetailVisible: true };
     case "closeDetails":
       return { ...state, selectedGame: null, isDetailVisible: false };
-    case "switchTab":
-      return { ...state, activeTabIndex: action.index };
     case "toggleSortModal":
       return { ...state, sortModalVisible: action.visible };
     case "changeSort": {
@@ -301,9 +295,6 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
   ]);
 
   const onOpenShared = useCallback((targetId: string) => {
-    dispatch({ type: "closeDetails" });
-    setStatsTargetId(targetId);
-    dispatch({ type: "switchTab", index: 2 });
     navigateView({ ...route, tab: "stats", friendId: targetId === accountId ? "" : targetId, gameId: "" });
   }, [route, navigateView, accountId]);
   const selectedGame = viewState.selectedGame;
@@ -332,7 +323,6 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
     navigateView({ ...route, sort: field, direction: field === sortField ? sortDirection === "desc" ? "asc" : "desc" : "desc" }, true);
   }, [route, sortField, sortDirection, navigateView]);
   const onSwitchTab = useCallback((index: number) => {
-    dispatch({ type: "switchTab", index });
     navigateView({ ...route, tab: ["games", "players", "stats"][index] as HistoryRouteState["tab"], friendId: index === 2 ? statsTargetId : "", gameId: "" });
   }, [route, statsTargetId, navigateView]);
   const onOpenGame = useCallback((game: GameSession) => {
@@ -341,7 +331,6 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
       return;
     }
     openedFromList.current = true;
-    dispatch({ type: "openDetails", game });
     navigateView({ ...route, tab: "games", friendId: "", gameId: game.id });
   }, [route, navigateView]);
   const onCloseDetails = useCallback(() => {

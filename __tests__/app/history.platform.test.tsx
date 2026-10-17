@@ -290,14 +290,16 @@ describe("HistoryScreen responsive layout", () => {
   });
 
   it("clears an open result immediately when the account changes", () => {
+    mockRouteParams.gameId = "g1";
     const renderer = renderHistoryScreen();
-    const list = renderer.root.findByType(FlatList);
-    const row = actCreate(list.props.renderItem({ item: list.props.data[0] }));
-    TestRenderer.act(() => row.root.findByProps({ testID: "GameHistoryItem" }).props.onDetailsPress(mockHistoryStore.history[0]));
     expect(renderer.root.findAllByProps({ testID: "GameDetailsModal" })).toHaveLength(1);
+    const previousHistory = mockHistoryStore.history;
     mockCloudState.accountId = "account-b";
-    TestRenderer.act(() => renderer.update(React.createElement(require("../../app/history").default)));
-    expect(renderer.root.findAllByProps({ testID: "GameDetailsModal" })).toHaveLength(0);
+    mockHistoryStore.history = [];
+    try {
+      TestRenderer.act(() => renderer.update(React.createElement(require("../../app/history").default)));
+      expect(renderer.root.findAllByProps({ testID: "GameDetailsModal" })).toHaveLength(0);
+    } finally { mockHistoryStore.history = previousHistory; }
   });
 
   it("passes the same history to player and overall statistics", () => {
@@ -305,6 +307,10 @@ describe("HistoryScreen responsive layout", () => {
     const pressText = (label: string) => {
       const text = renderer.root.findAllByType(Text).find((node) => node.props.children === label)!;
       TestRenderer.act(() => text.parent!.parent!.props.onPress());
+      const destination = mockPush.mock.lastCall![0];
+      for (const key of Object.keys(mockRouteParams)) delete mockRouteParams[key];
+      Object.assign(mockRouteParams, destination.params);
+      TestRenderer.act(() => renderer.update(React.createElement(require("../../app/history").default)));
     };
     pressText("Players");
     expect(renderer.root.findByProps({ testID: "PlayerStatsList" }).props.history).toBe(mockHistoryStore.history);
@@ -489,6 +495,8 @@ it('keeps Stats accessible when personal history is empty',() => {
   try {
     const renderer=renderHistoryScreen();
     TestRenderer.act(() => renderer.root.findByProps({testID:'HistoryTab-Stats'}).props.onPress());
+    Object.assign(mockRouteParams, mockPush.mock.lastCall![0].params);
+    TestRenderer.act(() => renderer.update(React.createElement(require('../../app/history').default)));
     expect(renderer.root.findByProps({testID:'OverallStats'}).props.history).toEqual([]);
     TestRenderer.act(() => renderer.unmount());
   } finally {mockHistoryStore.history=original;}
@@ -497,6 +505,14 @@ it('keeps Stats accessible when personal history is empty',() => {
 
 describe('History route state', () => {
  beforeEach(()=>{jest.clearAllMocks();for(const key of Object.keys(mockRouteParams))delete mockRouteParams[key];Object.assign(mockCloudState,{accountId:'account-a',loading:false,error:null});});
+ it('keeps the mounted Games list intact while requesting a new Players route', () => {
+  const tree=renderHistoryScreen();
+  TestRenderer.act(()=>tree.root.findByProps({testID:'HistoryTab-Players'}).props.onPress());
+  expect(mockPush).toHaveBeenCalledWith({pathname:'/history',params:{tab:'players'}});
+  expect(tree.root.findByProps({testID:'HistoryTab-Games'}).props.accessibilityState.selected).toBe(true);
+  expect(tree.root.findAllByProps({testID:'PlayerStatsList'})).toHaveLength(0);
+  TestRenderer.act(()=>tree.unmount());
+ });
  it('restores tab and sort choices and reflects a router Back update', () => {
   Object.assign(mockRouteParams,{tab:'stats',sort:'goals',direction:'asc'});const tree=renderHistoryScreen();
   expect(tree.root.findAllByProps({testID:'OverallStats'})).toHaveLength(1);

@@ -1,15 +1,15 @@
-jest.mock("../../../platform/navigation/taskNavigation", () => ({
-  TaskOverlay: ({ open, onClose, children }: any) => children({
-    open, dismiss: onClose, runAfterDismiss: (action: () => void) => { onClose(); action(); },
-  }),
-}));
-
 import React from "react";
 import { Animated } from "react-native";
 import TestRenderer from "react-test-renderer";
 
 import { actCreate } from "../../../test-utils/render";
 import FooterButtons from "../../../components/gameProgress/FooterButtons";
+
+jest.mock("../../../platform/navigation/taskNavigation", () => ({
+  TaskOverlay: ({ open, onClose, children }: any) => children({
+    open, dismiss: onClose, runAfterDismiss: (action: () => void) => { onClose(); action(); },
+  }),
+}));
 
 const mockPush = jest.fn();
 let mockGameActionsSheetProps: Record<string, any> = {};

@@ -2,6 +2,16 @@ import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { buildPersistedBrowserStateFromSetupDataset, createSetupJourneyDataset, mockTeamDataCatalogue } from './browser-flow.helpers';
 const { Given, When, Then } = createBdd();
+When('I open a UX History detail from its Games list without reloading', async ({ page }) => {
+  await page.goto('/history?tab=players');
+  await page.getByRole('tab', { name: /Games/ }).click();
+  await page.getByTestId('HistoryGameItem-ux-local-game').filter({ visible: true }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+Then('UX History shows only its completed game list', async ({ page }) => {
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(page.getByTestId('HistoryGameItem-ux-local-game').filter({ visible: true })).toBeVisible();
+});
 When('I advance UX setup through Matches and Common', async ({ page }) => {
   await page.goto('/setupGame');
   await expect(page.getByTestId('SetupWizardStep-players')).toHaveAttribute('aria-selected', 'true');

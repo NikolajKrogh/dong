@@ -1,4 +1,13 @@
 Feature: Restore task position from meaningful route state
+  Scenario: Closing an ordinary History detail restores the mounted list
+    Given UX route fixtures contain one local completed game
+    When I open a UX History detail from its Games list without reloading
+    And I close the UX game details
+    Then the UX Games History tab is selected
+    And UX History shows only its completed game list
+    When I use browser Back for UX route state
+    Then the UX Players History tab is selected
+
   Scenario: Visible setup Back follows the existing task sequence
     Given UX route fixtures contain a valid saved solo setup
     When I advance UX setup through Matches and Common

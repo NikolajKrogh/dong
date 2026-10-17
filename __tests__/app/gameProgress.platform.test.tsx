@@ -1,7 +1,7 @@
-jest.mock("../../components/gameProgress/RoomStatusModal", () => ({ __esModule: true, default: () => null }));
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
+jest.mock("../../components/gameProgress/RoomStatusModal", () => ({ __esModule: true, default: () => null }));
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,

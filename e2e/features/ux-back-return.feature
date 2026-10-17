@@ -1,5 +1,10 @@
 @ux-back-return
 Feature: Scoped Back and safe game return
+  Scenario: Friends child header restores Requests without a duplicate parent
+    Given UX return opens Requests with a safe Home caller
+    When UX return opens friend search then uses its header Back
+    Then UX return restores Requests and can Back to Home
+
   Scenario: Browser Back and explicit Close share one game overlay lifecycle
     Given UX return opens a solo game after an external page
     And UX return selects the Players tab
