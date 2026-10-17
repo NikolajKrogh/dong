@@ -1,3 +1,9 @@
+jest.mock("../../../platform/navigation/taskNavigation", () => ({
+  TaskOverlay: ({ open, onClose, children }: any) => children({
+    open, dismiss: onClose, runAfterDismiss: (action: () => void) => { onClose(); action(); },
+  }),
+}));
+
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import RoomStatusModal from "../../../components/gameProgress/RoomStatusModal";
@@ -8,6 +14,19 @@ import type { ActiveGameRoomSync } from "../../../hooks/useActiveGameRoomSync";
 jest.mock("../../../components/ui", () => ({ ShellActionButton: "ShellActionButton" }));
 
 describe("read-only room status", () => {
+  it("offers direct Home recovery without granting any edit actions", () => {
+    const onHome = jest.fn();
+    const onClose = jest.fn();
+    const renderer = actCreate(<TamaguiTestProvider><RoomStatusModal
+      visible onClose={onClose} onHome={onHome}
+      activeGame={{ status: "offline", snapshot: null } as ActiveGameRoomSync}
+    /></TamaguiTestProvider>);
+    TestRenderer.act(() => renderer.root.findByProps({ label: "Home" }).props.onPress());
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(onHome).toHaveBeenCalledTimes(1);
+    TestRenderer.act(() => renderer.unmount());
+  });
+
   it.each([
     ["hydrating", "Loading your room status"],
     ["access_lost", "access has expired"],
@@ -21,7 +40,7 @@ describe("read-only room status", () => {
     </TamaguiTestProvider>);
     expect(JSON.stringify(renderer.toJSON())).toContain(message);
     expect(JSON.stringify(renderer.toJSON())).not.toContain("private cached title");
-    renderer.root.findByType("ShellActionButton").props.onPress();
+    renderer.root.findByProps({ label: "Close room status" }).props.onPress();
     expect(onClose).toHaveBeenCalledTimes(1);
     TestRenderer.act(() => renderer.unmount());
   });

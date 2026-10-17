@@ -1,3 +1,9 @@
+jest.mock("../../../platform/navigation/taskNavigation", () => ({
+  TaskOverlay: ({ open, onClose, children }: any) => children({
+    open, dismiss: onClose, runAfterDismiss: (action: () => void) => { onClose(); action(); },
+  }),
+}));
+
 import React from "react";
 import { Animated } from "react-native";
 import TestRenderer from "react-test-renderer";
@@ -9,7 +15,7 @@ const mockPush = jest.fn();
 let mockGameActionsSheetProps: Record<string, any> = {};
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, dismissTo: mockPush }),
 }));
 
 jest.mock("@expo/vector-icons", () => ({

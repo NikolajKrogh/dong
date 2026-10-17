@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
+import { Platform } from "react-native";
 import { Text, YStack } from "tamagui";
 
 import { ShellActionButton, ShellScreen } from "../components/ui";
-import { getTaskOverlay, subscribeTaskOverlays, presentTaskOverlay, finishTaskOverlay } from "../platform/navigation/taskOverlayRegistry";
-import { normalizeOverlayFallback, type TaskOverlayControls, type TaskOverlayProps } from "../platform/navigation/taskNavigation.shared";
+import { getTaskOverlay, subscribeTaskOverlays, presentTaskOverlay } from "../platform/navigation/taskOverlayRegistry";
+import { normalizeOverlayFallback, hasTaskOverlayOwner, type TaskOverlayControls, type TaskOverlayProps } from "../platform/navigation/taskNavigation.shared";
 
 export default function TaskOverlayRoute() {
   const params = useLocalSearchParams<{ overlayId?: string; parent?: string }>();
@@ -13,7 +14,7 @@ export default function TaskOverlayRoute() {
   const router = useRouter();
   const state = useRootNavigationState();
   const entry = useSyncExternalStore(subscribeTaskOverlays, () => getTaskOverlay(id), () => undefined);
-  const available = entry && state.routes.some((route) => route.key === entry.ownerKey);
+  const available = entry && hasTaskOverlayOwner(state, entry.ownerKey);
   const pendingAction = useRef<(() => void) | undefined>(undefined);
   const closing = useRef(false);
 
@@ -27,9 +28,9 @@ export default function TaskOverlayRoute() {
 
   useEffect(() => {
     if (!available) return;
-    presentTaskOverlay(id, dismiss);
+    const finish = presentTaskOverlay(id, dismiss);
     return () => {
-      finishTaskOverlay(id);
+      finish();
       const action = pendingAction.current;
       if (action) queueMicrotask(action);
     };
@@ -38,10 +39,9 @@ export default function TaskOverlayRoute() {
   if (!available) {
     return <ShellScreen centerContent>
       <YStack padding="$5" gap="$4">
-        <Text accessibilityRole="header">This panel is no longer available</Text>
-        <Text>Return to the page and open it again.</Text>
-        <ShellActionButton label="Return to page" onPress={() => router.replace(fallbackHref)} />
-        {fallbackHref !== "/" ? <ShellActionButton label="Home" variant="surface" onPress={() => router.replace("/")} /> : null}
+        <Text {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })}>This panel is no longer available</Text>
+        <Text>Return Home, then open the page again.</Text>
+        <ShellActionButton label="Home" onPress={() => router.dismissTo("/")} />
       </YStack>
     </ShellScreen>;
   }

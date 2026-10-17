@@ -8,6 +8,7 @@ export interface TaskOverlayRegistration {
 interface OverlayLifecycle {
   presented: boolean;
   dismiss?: (action?: () => void) => void;
+  restoreFocus?: () => void;
 }
 const registrations = new Map<string, TaskOverlayRegistration>();
 const lifecycles = new Map<string, OverlayLifecycle>();
@@ -36,16 +37,20 @@ export function unregisterTaskOverlay(id: string) {
   notify();
 }
 export const isTaskOverlayPresented = (id: string) => lifecycles.get(id)?.presented ?? false;
-export function presentTaskOverlay(id: string, dismiss?: (action?: () => void) => void) {
+export function presentTaskOverlay(id: string, dismiss?: (action?: () => void) => void, restoreFocus?: () => void) {
   const lifecycle = lifecycles.get(id);
-  if (lifecycle) lifecycles.set(id, { presented: true, dismiss: dismiss ?? lifecycle.dismiss });
+  if (lifecycle) lifecycles.set(id, { ...lifecycle, presented: true, dismiss: dismiss ?? lifecycle.dismiss, restoreFocus: restoreFocus ?? lifecycle.restoreFocus });
+  const entry = registrations.get(id);
+  return () => finishTaskOverlay(id, entry?.props.onClose, restoreFocus ?? lifecycle?.restoreFocus);
 }
 export function requestTaskOverlayDismiss(id: string) {
   lifecycles.get(id)?.dismiss?.();
 }
-export function finishTaskOverlay(id: string) {
+function finishTaskOverlay(id: string, fallbackClose?: () => void, fallbackFocus?: () => void) {
   const entry = registrations.get(id);
   const lifecycle = lifecycles.get(id);
-  if (lifecycle) lifecycles.set(id, { presented: false });
-  entry?.props.onClose();
+  if (lifecycle) lifecycles.set(id, { presented: false, restoreFocus: lifecycle.restoreFocus });
+  (entry?.props.onClose ?? fallbackClose)?.();
+  const restoreFocus = lifecycle?.restoreFocus ?? fallbackFocus;
+  if (restoreFocus) requestAnimationFrame(restoreFocus);
 }

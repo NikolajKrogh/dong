@@ -28,12 +28,21 @@ export function TaskOverlay(props: TaskOverlayProps) {
 
   useEffect(() => {
     if (props.open && !isTaskOverlayPresented(id)) {
-      presentTaskOverlay(id);
+      const opener = typeof document !== "undefined" ? document.activeElement : null;
+      presentTaskOverlay(id, undefined, () => {
+        if (typeof document === "undefined" || typeof HTMLElement === "undefined") return;
+        const replacement = props.returnFocusId
+          ? document.getElementById(props.returnFocusId)
+            ?? document.querySelector('[data-testid="' + CSS.escape(props.returnFocusId) + '"]')
+          : null;
+        const target = replacement ?? (opener instanceof HTMLElement && opener.isConnected ? opener : null);
+        if (target instanceof HTMLElement && target.isConnected) target.focus();
+      });
       router.push({ pathname: "/taskOverlay", params: { overlayId: id, parent: props.fallbackHref } });
     } else if (!props.open && isTaskOverlayPresented(id)) {
       requestTaskOverlayDismiss(id);
     }
-  }, [id, props.open, props.fallbackHref, router]);
+  }, [id, props.open, props.fallbackHref, props.returnFocusId, router]);
 
   return null;
 }

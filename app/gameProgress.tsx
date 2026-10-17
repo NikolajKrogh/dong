@@ -3,7 +3,7 @@
  * @description Main in-game screen shell: renders tabs, footer, and modals using the game progress controller hook.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, RefreshControl, useWindowDimensions, View } from "react-native";
+import { Modal, RefreshControl, useWindowDimensions, View, Text as RecoveryText } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, YStack } from "tamagui";
 
@@ -26,11 +26,13 @@ import { useGameStore } from "../store/store";
 import { isWideLayout } from "../styles/responsive";
 
 const GameProgressScreen = () => {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const wideLayout = isWideLayout(width);
   const {
     colors,
     styles,
+    hasHydrated,
     activeTab,
     isAlertVisible,
     selectedMatchId,
@@ -90,6 +92,19 @@ const GameProgressScreen = () => {
   const { departurePending, canLeave, setLeaveConfirmVisible } = departure;
   const controlsDisabled = activeGame.isMultiplayer && (!activeGame.isEditable || departurePending);
 
+  if (hasHydrated === false || (!activeGame.isMultiplayer && matches.length === 0)) {
+    return <ShellScreen centerContent>
+      <View style={{ gap: 16, padding: 20 }}>
+        <RecoveryText style={{ color: colors.textPrimary }} accessibilityRole="header">{hasHydrated === false ? "Loading your game..." : "No active game"}</RecoveryText>
+        {hasHydrated !== false ? <>
+          <RecoveryText style={{ color: colors.textPrimary }}>Start a game or return Home to resume an available room.</RecoveryText>
+          <ShellActionButton label="Start New Game" onPress={() => router.replace("/setupGame")} />
+        </> : null}
+        <ShellActionButton label="Home" variant="surface" onPress={() => router.dismissTo("/")} />
+      </View>
+    </ShellScreen>;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ShellScreen
@@ -98,6 +113,9 @@ const GameProgressScreen = () => {
         contentMaxWidth={wideLayout ? 1280 : undefined}
       >
         <View style={styles.container}>
+          <RecoveryText accessibilityRole="header" style={{
+            color: colors.textPrimary, fontSize: 20, fontWeight: "700", paddingHorizontal: 16,
+          }}>Game in progress</RecoveryText>
           <MultiplayerGameStatus
             status={activeGame.status}
             error={activeGame.error}
@@ -197,6 +215,7 @@ const GameProgressScreen = () => {
         visible={isRoomStatusVisible ?? false}
         onClose={closeRoomStatus}
         activeGame={activeGame}
+        onHome={() => router.dismissTo("/")}
       />
 
       <GameDepartureModals departure={departure} isHost={activeGame.isHost} />

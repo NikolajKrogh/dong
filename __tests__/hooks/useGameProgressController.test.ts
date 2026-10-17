@@ -20,9 +20,12 @@ jest.mock("../../hooks/useLiveScores", () => ({
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockSetParams = jest.fn();
+let mockGameParams: { gameTab?: string | string[] } = {};
 
 jest.mock("expo-router", () => ({
-  useRouter: jest.fn(() => ({ push: mockPush, replace: mockReplace })),
+  useLocalSearchParams: () => mockGameParams,
+  useRouter: jest.fn(() => ({ push: mockPush, replace: mockReplace, setParams: mockSetParams })),
 }));
 
 jest.mock("../../platform", () => ({
@@ -58,6 +61,7 @@ const renderControllerProbe = () => {
 describe("useGameProgressController (integration)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGameParams = {};
 
     mockUseLiveScores.mockReturnValue({
       liveMatches: [],
@@ -102,6 +106,20 @@ describe("useGameProgressController (integration)", () => {
       soundEnabled: true,
       commonMatchNotificationsEnabled: true,
     });
+  });
+
+  it("restores the Players tab on remount and normalizes ambiguous route choices", async () => {
+    mockGameParams = { gameTab: "players" };
+    const first = renderControllerProbe();
+    expect(first.getLatest().activeTab).toBe("players");
+    TestRenderer.act(() => first.getLatest().setActiveTab("matches"));
+    expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => first.renderer.unmount());
+    mockGameParams = { gameTab: ["players", "matches"] };
+    const second = renderControllerProbe();
+    expect(second.getLatest().activeTab).toBe("matches");
+    expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => second.renderer.unmount());
   });
 
   it("migrates legacy goals-only matches into homeGoals/awayGoals on mount", async () => {

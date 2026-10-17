@@ -41,6 +41,7 @@ const ActionRow: React.FC<ActionRowProps> = ({
   onPress,
 }) => (
   <Button
+    {...(Platform.OS === "web" ? { "aria-label": label } : { accessibilityRole: "button", accessibilityLabel: label })}
     backgroundColor={danger ? "$dangerLight" : "$backgroundLight"}
     borderRadius="$4"
     borderWidth={0}
@@ -54,7 +55,7 @@ const ActionRow: React.FC<ActionRowProps> = ({
     width="100%"
   >
     <XStack alignItems="center" flex={1} gap="$4">
-      <Ionicons color={iconColor} name={icon} size={24} />
+      <Ionicons color={iconColor} name={icon} size={24} accessible={false} aria-hidden />
       <Text
         color={danger && !disabled ? "$dangerForeground" : "$color"}
         fontSize="$4"
@@ -133,6 +134,7 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
               fontSize="$5"
               fontWeight="700"
               marginBottom="$2"
+              {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })}
               testID="GameActionsSheetTitle"
             >
               Game actions

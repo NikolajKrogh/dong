@@ -1,3 +1,4 @@
+jest.mock("../../components/gameProgress/RoomStatusModal", () => ({ __esModule: true, default: () => null }));
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
@@ -12,6 +13,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 jest.mock("react-native", () => ({
   Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
+  Text: "Text",
   StyleSheet: { create: (styles: unknown) => styles },
   Modal: ({ children, visible }: { children: React.ReactNode; visible: boolean }) => {
     if (!visible) return null;
@@ -78,6 +80,7 @@ const controllerState = {
   selectedMatchId: null,
   isQuickActionsVisible: false,
   refreshing: false,
+  hasHydrated: true,
   players: [{ id: "p1", name: "Alice", drinksTaken: 0 }],
   matches: [
     {
@@ -212,6 +215,25 @@ const renderGameProgressScreen = () => {
 };
 
 describe("GameProgressScreen responsive layout", () => {
+
+  it("offers Home and setup when direct gameplay has no game, without an empty End Game action", () => {
+    mockUseGameProgressController.mockReturnValueOnce({ ...controllerState, matches: [], players: [] });
+    const Screen = require("../../app/gameProgress").default;
+    const renderer = actCreate(React.createElement(Screen));
+    expect(renderer.root.findByProps({ label: "Start New Game" })).toBeDefined();
+    expect(renderer.root.findByProps({ label: "Home" })).toBeDefined();
+    expect(renderer.root.findAllByProps({ testID: "FooterButtons" })).toHaveLength(0);
+    TestRenderer.act(() => renderer.unmount());
+  });
+
+  it("shows hydration rather than incorrectly declaring a saved game missing", () => {
+    mockUseGameProgressController.mockReturnValueOnce({ ...controllerState, hasHydrated: false, matches: [], players: [] });
+    const Screen = require("../../app/gameProgress").default;
+    const renderer = actCreate(React.createElement(Screen));
+    expect(renderer.root.findAllByProps({ label: "Start New Game" })).toHaveLength(0);
+    expect(renderer.root.findAll((node) => node.props.children === "Loading your game...").length).toBeGreaterThan(0);
+    TestRenderer.act(() => renderer.unmount());
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockActiveGameContext = { sessionId: null, participantId: null, accessKind: "registered" };

@@ -12,6 +12,8 @@ import { useGameStore } from "../../store/store";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockSetParams = jest.fn();
+let mockGameParams: { gameTab?: string | string[] } = {};
 
 jest.mock("../../hooks/useActiveGameRoomSync", () => ({
   useActiveGameRoomSync: jest.fn(),
@@ -24,7 +26,8 @@ jest.mock("../../platform", () => ({
   useGoalSound: jest.fn(),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useLocalSearchParams: () => mockGameParams,
+  useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockSetParams }),
 }));
 
 const mockSync = jest.mocked(useActiveGameRoomSync);
@@ -88,6 +91,7 @@ const renderController = () => {
 describe("useGameProgressController multiplayer routing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGameParams = {};
     multiplayerSync.status = "ready";
     multiplayerSync.snapshot = null;
     multiplayerSync.isHost = true;

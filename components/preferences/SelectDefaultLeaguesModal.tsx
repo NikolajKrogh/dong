@@ -23,6 +23,8 @@ import { useLeagueLogo } from "../../hooks/useLeagueLogo";
  * @property currentDefaultLeagues Leagues previously marked as defaults (used to seed local selection on open).
  * @property onSave Persists the provided selection as the new default leagues.
  */
+import { TaskOverlay } from "../../platform/navigation/taskNavigation";
+
 interface SelectDefaultLeaguesModalProps {
   /** Modal visibility flag. */
   visible: boolean;
@@ -153,8 +155,7 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
   /** Persist selected defaults then close. */
   const handleSave = React.useCallback(() => {
     onSave(selectedLeagues);
-    onClose();
-  }, [onClose, onSave, selectedLeagues]);
+  }, [onSave, selectedLeagues]);
   const selectedLeagueCodes = React.useMemo(
     () => new Set(selectedLeagues.map((league) => league.code)),
     [selectedLeagues],
@@ -171,16 +172,19 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
   );
 
   return (
-    <Modal
-      visible={visible}
+    <TaskOverlay open={visible} onClose={onClose} fallbackHref="/userPreferences/leagues" returnFocusId="DefaultLeaguesRow">
+      {({ open, dismiss, runAfterDismiss }) => <Modal
+      visible={open}
       animationType="slide"
       transparent={false}
-      onRequestClose={onClose}
+      onRequestClose={dismiss}
     >
       <SafeAreaView style={selectDefaultLeaguesModalStyles.modalSafeArea}>
         <View style={selectDefaultLeaguesModalStyles.header}>
           <TouchableOpacity
-            onPress={onClose}
+            onPress={dismiss}
+            accessibilityRole="button"
+            accessibilityLabel="Close default leagues"
             style={selectDefaultLeaguesModalStyles.backButton}
           >
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
@@ -231,7 +235,7 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
         {configuredLeagues.length > 0 && (
           <TouchableOpacity
             style={selectDefaultLeaguesModalStyles.saveButton}
-            onPress={handleSave}
+            onPress={() => runAfterDismiss(handleSave)}
           >
             <Text style={selectDefaultLeaguesModalStyles.saveButtonText}>
               Save Defaults ({selectedLeagues.length})
@@ -239,7 +243,8 @@ const SelectDefaultLeaguesModal: React.FC<SelectDefaultLeaguesModalProps> = ({
           </TouchableOpacity>
         )}
       </SafeAreaView>
-    </Modal>
+    </Modal>}
+    </TaskOverlay>
   );
 };
 

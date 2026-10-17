@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { useLiveScores } from "./useLiveScores";
 import { usePersistedTeamLogos } from "./usePersistedTeamLogos";
@@ -16,8 +16,17 @@ import { useGameStore } from "../store/store";
 import { useAppVisibility, useGoalSound } from "../platform";
 import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
 
+const subscribeGameHydration = (onChange: () => void) => {
+  const begin = useGameStore.persist.onHydrate(onChange);
+  const finish = useGameStore.persist.onFinishHydration(onChange);
+  return () => { begin(); finish(); };
+};
+
 const useGameProgressController = () => {
+  const hasHydrated = useSyncExternalStore(subscribeGameHydration, useGameStore.persist.hasHydrated, () => false);
   const router = useRouter();
+  const params = useLocalSearchParams<{ gameTab?: string | string[] }>();
+  const activeTab = params.gameTab === "players" ? "players" : "matches";
   const [isRoomStatusVisible, setRoomStatusVisible] = useState(false);
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
@@ -29,7 +38,6 @@ const useGameProgressController = () => {
     initialGameProgressUiState,
   );
   const {
-    activeTab,
     isAlertVisible,
     selectedMatchId,
     isQuickActionsVisible,
@@ -239,19 +247,24 @@ const useGameProgressController = () => {
     [activeGame, setPlayers],
   );
 
+  useEffect(() => {
+    if (params.gameTab !== undefined && params.gameTab !== "players" && params.gameTab !== "matches") {
+      router.setParams({ gameTab: undefined });
+    }
+  }, [params.gameTab, router]);
+
   const setActiveTab = useCallback((tab: string) => {
-    dispatchUi({
-      type: "setActiveTab",
-      tab: tab === "players" ? "players" : "matches",
-    });
-  }, []);
+    const gameTab = tab === "players" ? "players" : undefined;
+    if (activeTab !== (gameTab ?? "matches")) router.setParams({ gameTab });
+  }, [activeTab, router]);
 
   const handleEndGame = useCallback(() => {
+    if (!activeGame.isMultiplayer && matches.length === 0) return;
     if (activeGame.isMultiplayer && (!activeGame.isHost || !activeGame.isEditable)) {
       return;
     }
     dispatchUi({ type: "setAlertVisible", visible: true });
-  }, [activeGame.isEditable, activeGame.isHost, activeGame.isMultiplayer]);
+  }, [activeGame.isEditable, activeGame.isHost, activeGame.isMultiplayer, matches.length]);
 
   const confirmEndGame = useCallback(() => {
     dispatchUi({ type: "setAlertVisible", visible: false });
@@ -366,6 +379,7 @@ const useGameProgressController = () => {
   return {
     colors,
     styles,
+    hasHydrated,
     activeTab,
     isAlertVisible,
     selectedMatchId,
