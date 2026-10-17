@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -17,6 +17,7 @@ import { isWideLayout } from "../styles/responsive";
 import createSetupGameStyles from "../styles/setupGameStyles";
 import { useColors } from "../styles/theme";
 import { useStoreHydration } from "../utils/navigation/useStoreHydration";
+import { useNavigationReady } from "../utils/navigation/useNavigationReady";
 import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams, type SoloStep, type RouteParams } from "../utils/navigation/viewState";
 
 /**
@@ -27,7 +28,7 @@ import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams,
  */
 const SetupGameScreen = () => {
   const router = useRouter();
-  const navigationReady = !!useRootNavigationState()?.key;
+  const navigationReady = useNavigationReady();
   const params = useLocalSearchParams() as RouteParams;
   const requestedStep = parseSoloStep(params);
   const hydrated = useStoreHydration();

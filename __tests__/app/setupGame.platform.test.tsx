@@ -57,7 +57,7 @@ jest.mock("react-native-toast-message", () => ({
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockReplace }),
   useLocalSearchParams: () => mockParams,
-  useRootNavigationState: () => ({key:"root"}),
+  useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
 }));
 
 jest.mock("../../store/store", () => ({
