@@ -63,6 +63,8 @@ interface SetupWizardProps {
   onBeforeNext?: (currentIndex: number) => boolean;
   activeStepKey?: string;
   onStepChange?: (key: string) => void;
+  /** Distinguish task Back from selecting a new step/history entry. */
+  onStepBack?: (key: string) => void;
 }
 
 /** The wizard defers this long after onBeforeNext claims the advance. */
@@ -83,6 +85,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   onBeforeNext,
   activeStepKey,
   onStepChange,
+  onStepBack,
 }) => {
   const [localStep, setLocalStep] = useState(0);
   const controlled = activeStepKey !== undefined && onStepChange !== undefined;
@@ -236,7 +239,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       </View>
 
       <View style={[styles.wizardMainPanel, scrollsAsPage && { flex: 0, flexGrow: 1 }]}>
-        <Text accessibilityRole="header" style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
+        <Text accessibilityRole="header" aria-level={2} style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
         {/* Step Content - Now scrollable */}
         {scrollsAsPage ? <View>{currentStepContent}</View> : (
           <ScrollView
@@ -264,7 +267,11 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
                 icon: "arrow-back",
                 iconPosition: "leading",
                 testID: "SetupWizardBack",
-                onPress: () => setCurrentStep(Math.max(0, currentStep - 1)),
+                onPress: () => {
+                  const previous = Math.max(0, currentStep - 1);
+                  if (controlled && onStepBack) onStepBack(steps[previous].key);
+                  else setCurrentStep(previous);
+                },
               })}
 
           {isFinalStep

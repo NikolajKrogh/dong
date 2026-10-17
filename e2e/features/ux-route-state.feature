@@ -1,4 +1,12 @@
 Feature: Restore task position from meaningful route state
+  Scenario: Visible setup Back follows the existing task sequence
+    Given UX route fixtures contain a valid saved solo setup
+    When I advance UX setup through Matches and Common
+    And I press the visible UX wizard Back action
+    Then the UX matches step is current
+    When I use browser Back for UX route state
+    Then the UX players step is current
+
   Scenario: Setup position survives refresh and browser navigation
     Given UX route fixtures contain a valid saved solo setup
     When I visit the UX setup matches route

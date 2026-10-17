@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +28,7 @@ import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams,
  */
 const SetupGameScreen = () => {
   const router = useRouter();
+  const navigation = useNavigation();
   const navigationReady = useNavigationReady();
   const params = useLocalSearchParams() as RouteParams;
   const requestedStep = parseSoloStep(params);
@@ -77,6 +78,15 @@ const SetupGameScreen = () => {
     setActiveStep(step);
     setRestoreNotice("");
     router.push({ pathname: "/setupGame", params: withViewParams(params, { step: step === "players" ? undefined : step }) });
+  };
+  const backStep = (key: string) => {
+    const step = resolveStep(key as SoloStep, SOLO_STEPS, [true, players.length > 0, matches.length > 0, matches.length > 0 && matches.some(match => match.id === commonMatchId)]);
+    setActiveStep(step);
+    setRestoreNotice("");
+    const stack = navigation.getState();
+    const previous = stack?.routes[(stack.index ?? 0) - 1];
+    if (router.canGoBack() && previous?.name === "setupGame" && parseSoloStep((previous.params ?? {}) as RouteParams) === step) router.back();
+    else router.setParams({ step: step === "players" ? undefined : step });
   };
   const canStartGame =
     players.length > 0 && matches.length > 0 && commonMatchId !== null;
@@ -260,6 +270,7 @@ const SetupGameScreen = () => {
         <SetupWizard
           activeStepKey={activeStep}
           onStepChange={changeStep}
+          onStepBack={backStep}
           steps={[
             {
               key: "players",

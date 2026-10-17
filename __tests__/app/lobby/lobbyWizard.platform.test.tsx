@@ -16,6 +16,8 @@ import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
+const mockBack = jest.fn();
+let mockPreviousRoute: { name: string; params?: Record<string, string> } | undefined;
 let mockParams: Record<string, string | string[]> = {};
 let mockNavigationReady = true;
 jest.mock("../../../utils/navigation/useNavigationReady", () => ({ useNavigationReady: () => mockNavigationReady }));
@@ -41,7 +43,8 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: jest.fn(), setParams: mockSetParams }),
+  useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: jest.fn(), setParams: mockSetParams, back: mockBack, canGoBack: () => !!mockPreviousRoute }),
+  useNavigation: () => ({ getState: () => ({ index: mockPreviousRoute ? 1 : 0, routes: mockPreviousRoute ? [mockPreviousRoute, { name: "lobby/[sessionId]" }] : [{ name: "lobby/[sessionId]" }] }) }),
   useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "untrusted-id", ...mockParams }),
 }));
 
@@ -214,6 +217,7 @@ describe("pre-start lobby, as the setup wizard", () => {
     mockMembershipError = null;
     mockParams = {};
     mockNavigationReady = true;
+    mockPreviousRoute = undefined;
   });
 
   it("uses server membership instead of the participant query parameter", () => {
@@ -406,6 +410,21 @@ describe("pre-start lobby, as the setup wizard", () => {
     act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
     expect(wizardProps(tree).activeStepKey).toBe("room");
     expect(mockPush).toHaveBeenCalledTimes(1);
+    act(() => tree.unmount());
+  });
+
+  it("pops the owned preceding room step on explicit Back and replaces a direct-entry fallback", () => {
+    mockParams = { step: "common" };
+    mockPreviousRoute = { name: "lobby/[sessionId]", params: { sessionId: "room-1", step: "matches" } };
+    setLobby();
+    const tree = renderLobby();
+    act(() => wizardProps(tree).onStepBack("matches"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalled();
+    mockPreviousRoute = { name: "lobby/[sessionId]", params: { sessionId: "other-room", step: "matches" } };
+    act(() => wizardProps(tree).onStepBack("matches"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockSetParams).toHaveBeenLastCalledWith({ step: "matches" });
     act(() => tree.unmount());
   });
 });

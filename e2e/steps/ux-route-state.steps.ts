@@ -2,6 +2,15 @@ import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
 import { buildPersistedBrowserStateFromSetupDataset, createSetupJourneyDataset, mockTeamDataCatalogue } from './browser-flow.helpers';
 const { Given, When, Then } = createBdd();
+When('I advance UX setup through Matches and Common', async ({ page }) => {
+  await page.goto('/setupGame');
+  await expect(page.getByTestId('SetupWizardStep-players')).toHaveAttribute('aria-selected', 'true');
+  await page.getByTestId('SetupWizardNext').click();
+  await expect(page.getByTestId('SetupWizardStep-matches')).toHaveAttribute('aria-selected', 'true');
+  await page.getByTestId('SetupWizardNext').click();
+  await expect(page.getByTestId('SetupWizardStep-common')).toHaveAttribute('aria-selected', 'true');
+});
+When('I press the visible UX wizard Back action', async ({ page }) => { await page.getByTestId('SetupWizardBack').click(); });
 Given(/^UX route fixtures contain (?:a|an) (valid|empty) saved solo setup$/, async ({ page }, kind: string) => {
   await mockTeamDataCatalogue(page);
   await page.route('**/v1/matches**', route => route.fulfill({ json: [] }));

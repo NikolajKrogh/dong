@@ -38,6 +38,7 @@ jest.mock("react-native-safe-area-context", () => ({
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: mockPush }),
+  useNavigation: () => ({ getState: () => ({ index: 0, routes: [] }) }),
   useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "p1" }),
 }));
 

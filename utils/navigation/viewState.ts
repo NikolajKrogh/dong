@@ -6,8 +6,8 @@ export const LOBBY_STEPS = ["room", "matches", "common", "assign"] as const;
 export type SoloStep = typeof SOLO_STEPS[number];
 export type LobbyStep = typeof LOBBY_STEPS[number];
 export type FriendsTab = "friends" | "requests";
-export type HistoryTab = "games" | "players" | "stats";
-export type HistorySort = "date" | "players" | "drinks" | "goals" | "matches";
+type HistoryTab = "games" | "players" | "stats";
+type HistorySort = "date" | "players" | "drinks" | "goals" | "matches";
 export interface HistoryRouteState {
   tab: HistoryTab;
   friendId: string;

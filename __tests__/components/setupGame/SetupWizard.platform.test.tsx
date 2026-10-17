@@ -291,6 +291,13 @@ describe("SetupWizard responsive layout", () => {
 
 
 describe('controlled route steps', () => {
+ it('distinguishes explicit Back from choosing a new step', () => {
+  const onStepChange=jest.fn(); const onStepBack=jest.fn();
+  const tree=renderSetupWizard({activeStepKey:'common',onStepChange,onStepBack});
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizardBack'}).props.onPress());
+  expect(onStepBack).toHaveBeenCalledWith('matches');expect(onStepChange).not.toHaveBeenCalled();
+  TestRenderer.act(()=>tree.unmount());
+ });
  it('requests a new key while keeping the caller selected step', () => {
   const onStepChange=jest.fn(); const tree=renderSetupWizard({activeStepKey:'matches',onStepChange});
   expect(tree.root.findByProps({testID:'SetupWizardStep-matches'}).props.accessibilityState.selected).toBe(true);

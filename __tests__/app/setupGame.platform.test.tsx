@@ -12,6 +12,8 @@ const mockUseWindowDimensions = jest.fn(() => ({
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockBack = jest.fn();
+let mockPreviousRoute: { name: string; params?: Record<string, string> } | undefined;
 let mockParams: Record<string, string | string[]> = {};
 
 const mockStoreState = {
@@ -55,7 +57,8 @@ jest.mock("react-native-toast-message", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockReplace }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockReplace, back: mockBack, canGoBack: () => !!mockPreviousRoute }),
+  useNavigation: () => ({ getState: () => ({ index: mockPreviousRoute ? 1 : 0, routes: mockPreviousRoute ? [mockPreviousRoute, { name: "setupGame" }] : [{ name: "setupGame" }] }) }),
   useLocalSearchParams: () => mockParams,
   useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
 }));
@@ -179,7 +182,17 @@ describe("SetupGameScreen responsive layout", () => {
 
 
 describe('solo route restoration', () => {
- beforeEach(()=>{jest.clearAllMocks();mockParams={};});
+ beforeEach(()=>{jest.clearAllMocks();mockParams={};mockPreviousRoute=undefined;});
+ it('pops an owned preceding step on Back without pushing a forward entry', () => {
+  mockParams={step:'common'};mockPreviousRoute={name:'setupGame',params:{step:'matches'}};
+  const tree=renderSetupGameScreen();
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepBack('matches'));
+  expect(mockBack).toHaveBeenCalledTimes(1);expect(mockPush).not.toHaveBeenCalled();
+  mockPreviousRoute=undefined;
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepBack('matches'));
+  expect(mockReplace).toHaveBeenLastCalledWith({step:'matches'});expect(mockBack).toHaveBeenCalledTimes(1);
+  TestRenderer.act(()=>tree.unmount());
+ });
  it('restores a valid requested key and pushes only changed step choices', () => {
   mockParams={step:'assign'};const tree=renderSetupGameScreen();
   expect(tree.root.findByProps({testID:'SetupWizard'}).props.activeStepKey).toBe('assign');

@@ -10,7 +10,7 @@
  * gameplay store and redirects to /gameProgress once the room transitions to
  * `in_progress`. Closed/expired rooms return the viewer home.
  */
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -609,6 +609,7 @@ function RoomLobbyWizard({
   onHome: () => void;
 }) {
   const router = useRouter();
+  const navigation = useNavigation();
   const navigationReady = useNavigationReady();
   const params = useLocalSearchParams() as RouteParams;
   const requestedStep = parseLobbyStep(params);
@@ -697,6 +698,16 @@ function RoomLobbyWizard({
     setRestoreNotice("");
     router.push({ pathname: "/lobby/[sessionId]", params: { ...withViewParams(params, { step: step === "room" ? undefined : step }), sessionId: snapshot.sessionId } });
   };
+  const backStep = (key: string) => {
+    const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
+    setActiveStep(step);
+    setRestoreNotice("");
+    const stack = navigation.getState();
+    const previous = stack?.routes[(stack.index ?? 0) - 1];
+    const previousParams = (previous?.params ?? {}) as RouteParams;
+    if (router.canGoBack() && previous?.name === "lobby/[sessionId]" && previousParams.sessionId === snapshot.sessionId && parseLobbyStep(previousParams) === step) router.back();
+    else router.setParams({ step: step === "room" ? undefined : step });
+  };
   const firstSlotAction = {
     label: isHost ? "Leave Room" : "Leave",
     icon: "exit-outline" as const,
@@ -720,7 +731,7 @@ function RoomLobbyWizard({
   return <YStack flex={1}>
     <ShellActionButton label="Home" variant="surface" testID="lobby-home" onPress={onHome} />
     {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
-    <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} firstSlotAction={firstSlotAction} finalAction={finalAction} />
+    <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} onStepBack={backStep} firstSlotAction={firstSlotAction} finalAction={finalAction} />
   </YStack>;
 }
 
