@@ -8,6 +8,7 @@ Given('the accessibility Home fixture is open', async ({ page }) => {
 });
 Then('the accessibility Home exposes one main and a descriptive title', async ({ page }) => {
   await expect(page.getByRole('main')).toHaveCount(1);
+  await expect(page.getByRole('main')).toHaveCSS('font-family', 'system-ui');
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible();
   await expect(page).toHaveTitle('Home · DONG');
   await expect(page.getByRole('main').getByRole('main')).toHaveCount(0);

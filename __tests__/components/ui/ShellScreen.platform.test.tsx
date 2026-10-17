@@ -65,7 +65,7 @@ it('adds one web main landmark even when shells are nested', () => {
   try {
     const { ShellScreen } = require('../../../components/ui/ShellScreen');
     const renderer = actCreate(<ShellScreen><ShellScreen>Nested content</ShellScreen></ShellScreen>);
-    expect(renderer.root.findAll((node) => String(node.type) === 'View' && node.props.render === 'main')).toHaveLength(1);
+    expect(renderer.root.findAll((node) => String(node.type) === 'View' && node.props.render?.type === 'main')).toHaveLength(1);
     require('react-test-renderer').act(() => renderer.unmount());
   } finally { Platform.OS = original; }
 });
