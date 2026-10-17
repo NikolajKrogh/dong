@@ -563,6 +563,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     wizardNavigation: {
       flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
       justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 16,

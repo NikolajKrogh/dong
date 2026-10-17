@@ -63,6 +63,41 @@ Then('the compact setup last match and navigation are reachable', async ({ page,
  const boundary = await last.boundingBox();
  if (boundary) { await page.mouse.move(boundary.x + Math.min(20, boundary.width / 2), Math.min(page.viewportSize()!.height - 20, boundary.y + boundary.height / 2)); await page.mouse.wheel(0, 600); }
  await expect(next).toBeInViewport();
+ const navigation = page.getByTestId('SetupWizardNavigation');
+ await expect(navigation.getByText('Back', { exact: true })).toBeVisible();
+ await expect(navigation.getByText('Next', { exact: true })).toBeVisible();
+ const navigationGeometry = await navigation.evaluate(bar => {
+   const rect = (element: Element) => { const { x, y, width, height } = element.getBoundingClientRect(); return { x, y, width, height }; };
+   return { bar: rect(bar), clientWidth: bar.clientWidth, scrollWidth: bar.scrollWidth,
+     actions: Array.from(bar.querySelectorAll('[role="button"]')).map(button => ({
+       name: button.getAttribute('aria-label'), bounds: rect(button),
+       contents: Array.from(button.querySelectorAll('*')).map(element => ({ tag: element.tagName, text: element.textContent, visible: element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }), bounds: rect(element) })),
+     })) };
+ });
+ await writeFile($testInfo.outputPath('navigation-bounds.json'), JSON.stringify(navigationGeometry, null, 2));
+ expect(navigationGeometry.actions.map(action => action.name)).toEqual(['Back', 'Next']);
+ expect(navigationGeometry.scrollWidth).toBeLessThanOrEqual(navigationGeometry.clientWidth + 1);
+ for (const action of navigationGeometry.actions) {
+   expect(action.bounds.x).toBeGreaterThanOrEqual(0);
+   expect(action.bounds.y).toBeGreaterThanOrEqual(0);
+   expect(action.bounds.x + action.bounds.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+   expect(action.bounds.y + action.bounds.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+   expect(action.bounds.x).toBeGreaterThanOrEqual(navigationGeometry.bar.x);
+   expect(action.bounds.x + action.bounds.width).toBeLessThanOrEqual(navigationGeometry.bar.x + navigationGeometry.bar.width);
+   expect(action.contents.length).toBeGreaterThanOrEqual(2);
+   for (const content of action.contents) {
+     expect(content.visible).toBe(true);
+     expect(content.bounds.width).toBeGreaterThan(0);
+     expect(content.bounds.height).toBeGreaterThan(0);
+     expect(content.bounds.y).toBeGreaterThanOrEqual(action.bounds.y);
+     expect(content.bounds.y + content.bounds.height).toBeLessThanOrEqual(action.bounds.y + action.bounds.height);
+     expect(content.bounds.x).toBeGreaterThanOrEqual(action.bounds.x);
+     expect(content.bounds.x + content.bounds.width).toBeLessThanOrEqual(action.bounds.x + action.bounds.width);
+   }
+ }
+ const [backBounds, nextBounds] = navigationGeometry.actions.map(action => action.bounds);
+ const gap = Math.max(nextBounds.x - backBounds.x - backBounds.width, nextBounds.y - backBounds.y - backBounds.height);
+ expect(gap).toBeGreaterThanOrEqual(8);
  const scrollOffsets = await page.evaluate(() => Array.from(document.querySelectorAll('*'))
    .filter((element): element is HTMLElement => element instanceof HTMLElement && /(auto|scroll)/.test(getComputedStyle(element).overflowY) && element.scrollHeight > element.clientHeight + 1)
    .map(element => ({ testId: element.getAttribute('data-testid'), scrollTop: element.scrollTop, viewport: element.clientHeight, content: element.scrollHeight })));
