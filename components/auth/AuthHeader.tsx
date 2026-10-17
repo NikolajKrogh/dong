@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Platform, Text, TouchableOpacity, View } from "react-native";
+import { Platform, TouchableOpacity, View } from "react-native";
+import { ScreenReaderHeading } from "../ui/ScreenReaderHeading";
 
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
@@ -36,7 +37,7 @@ const AuthHeader: React.FC<{ title?: string }> = ({ title = "Sign in or create a
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={handleBack} style={{ padding: 8 }}>
         <Ionicons name="arrow-back" size={24} color={colors.primary} />
       </TouchableOpacity>
-      <Text accessibilityRole="header" style={{ flex: 1, fontSize: 20, fontWeight: "700", color: colors.textPrimary }}>{title}</Text>
+      <ScreenReaderHeading>{title}</ScreenReaderHeading>
     </View>
   );
 };

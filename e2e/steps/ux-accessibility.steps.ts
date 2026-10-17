@@ -96,3 +96,11 @@ Then('the accessibility History recovery is inside main', async ({ page }) => {
   await expect(main.getByRole('alert')).toHaveText('This game is unavailable on this device or account.');
   await expect(main.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute('href', '/');
 });
+
+Then('the screen heading {string} is available without a visible title banner', async ({ page }, name: string) => {
+  const heading = page.getByRole('main').getByRole('heading', { name, exact: true, level: 1 });
+  await expect(heading).toHaveCSS('position', 'absolute');
+  await expect(heading).toHaveCSS('clip-path', 'inset(50%)');
+  await expect(heading).toHaveCSS('width', '1px');
+  await expect(heading).toHaveCSS('height', '1px');
+});

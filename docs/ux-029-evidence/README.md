@@ -17,5 +17,6 @@ Implementation and acceptance details: [validation ledger](../../specs/029-web-a
 | `physical-landscape-blank-control.json` | Inconclusive environment control: a blank page without DONG reports a viewport taller than the physical rotated screen. It is not a passing landscape result or evidence of a DONG source defect. |
 | `physical-chrome-empty-next-once.json` | After actual empty-list Next activation: Matches route and exactly one pending player persisted. |
 | `web-export-runtime.json` | Selected final production-export smoke metadata for `7f40c70`:7/7 checks, binary icon-font responses, no browser errors and owned processes stopped. Loopback runtime only. |
+| `native-home-no-added-title.png` | Later user-requested correction: fresh Android development-client reload after removing the added visible screen titles. Home shows the logo and game card without the extra Home label. Earlier images remain historical. |
 
 Native snapshots use disposable local identities. No passwords, tokens, guest grants or private hierarchy dumps are included. Full transient logs, local fixture helpers and credentials remain ignored under `test-results/`.

@@ -48,7 +48,7 @@ Affected screen inventory for semantic heading/title checks: Home, solo setup, g
 
 Home uses labeled Friends and History shortcuts within its existing layout. Reconcile Game Stats click destination/label rather than adding two competing History links. Preserve current-game and room re-entry. Signed-out Friends uses recovery; History keeps local support.
 
-Web destinations are real links; commands are buttons, with no nested interactive targets. Native gets roles/names/current/disabled states and full touch targets. One main landmark per screen; visible/accessible headings and descriptive titles. Account autofill purpose differs between sign-in and registration. Errors announce on relevant change; hidden goal UI must not enter unrelated accessible output.
+Web destinations are real links; commands are buttons, with no nested interactive targets. Native gets roles/names/current/disabled states and full touch targets. One main landmark per screen; meaningful headings and descriptive browser titles. Keep existing visible titles, but do not add redundant screen-title banners. Home, solo setup, gameplay and the account header use web-only visually hidden screen headings; Android adds no title node or spacing. This follows the user's 2026-10-17 design correction. Account autofill purpose differs between sign-in and registration. Errors announce on relevant change; hidden goal UI must not enter unrelated accessible output.
 
 ## Visibility/scroll matrix
 

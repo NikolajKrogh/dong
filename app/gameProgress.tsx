@@ -11,6 +11,7 @@ import EndGameModal from "../components/gameProgress/EndGameModal";
 import RoomStatusModal from "../components/gameProgress/RoomStatusModal";
 import { SuccessorChooserModal } from "../components/lobby/SuccessorChooserModal";
 import { ShellActionButton, ShellScreen } from "../components/ui";
+import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import FooterButtons from "../components/gameProgress/FooterButtons";
 import { MultiplayerGameStatus } from "../components/gameProgress/MultiplayerGameStatus";
 import { ReassignmentControl } from "../components/gameProgress/ReassignmentControl";
@@ -113,9 +114,7 @@ const GameProgressScreen = () => {
         contentMaxWidth={wideLayout ? 1280 : undefined}
       >
         <View style={styles.container}>
-          <RecoveryText accessibilityRole="header" style={{
-            color: colors.textPrimary, fontSize: 20, fontWeight: "700", paddingHorizontal: 16,
-          }}>Game in progress</RecoveryText>
+          <ScreenReaderHeading>Game in progress</ScreenReaderHeading>
           <MultiplayerGameStatus
             status={activeGame.status}
             error={activeGame.error}

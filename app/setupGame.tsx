@@ -11,6 +11,7 @@ import {
   SetupWizard,
 } from "../components";
 import { ShellScreen } from "../components/ui";
+import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import { Player, useGameStore } from "../store/store";
 import { createRandomAssignments } from "../utils/setupGameAssignments";
 import { isWideLayout } from "../styles/responsive";
@@ -266,7 +267,7 @@ const SetupGameScreen = () => {
         centerContent={wideLayout}
         contentMaxWidth={wideLayout ? 1120 : undefined}
       >
-        <Text accessibilityRole="header" style={styles.currentStepLabel}>Set up game</Text>
+        <ScreenReaderHeading>Set up game</ScreenReaderHeading>
         {!hydrated ? <Text>Loading your saved setup…</Text> : <>
         {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
         <SetupWizard

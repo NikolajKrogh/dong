@@ -36,3 +36,17 @@ Feature: Operate primary controls and account forms accessibly
   Scenario: Unavailable History recovery remains in the main landmark
     Given the accessibility page "/history?gameId=missing-on-this-device" is open
     Then the accessibility History recovery is inside main
+
+  Scenario Outline: Screen identification does not add a visible title banner
+    Given the accessibility page "<route>" is open
+    Then the screen heading "<heading>" is available without a visible title banner
+    Examples:
+      | route                | heading                   |
+      | /                    | Home                      |
+      | /setupGame           | Set up game               |
+      | /auth                | Sign in or create account |
+      | /auth/reset-password | Reset password            |
+
+  Scenario: Gameplay keeps its screen identification without a title banner
+    Given UX context starts a "solo" game with controlled services
+    Then the screen heading "Game in progress" is available without a visible title banner

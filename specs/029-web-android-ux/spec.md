@@ -128,7 +128,7 @@ As a user, I can find social/history destinations without discovering them insid
 - **FR-011**: Icons/steps MUST have meaningful names and relevant current/selected state on web/Android. (US4)
 - **FR-012**: Account fields MUST have associated names and explicit autofill purposes, preserving visibility and keyboard submission. (US4)
 - **FR-013**: Submission errors MUST be announced/associated; unrelated updates MUST not steal focus or announce hidden game feedback. (US4)
-- **FR-014**: Affected web screens MUST expose main content, meaningful headings and page titles. (US4)
+- **FR-014**: Affected web screens MUST expose main content, meaningful headings and page titles. Preserve existing visible titles; do not add redundant visible screen-title banners. Web-only visually hidden headings may identify screens without changing the Android layout. (US4; user correction 2026-10-17)
 - **FR-015**: Compact setup headings/badges/steps MUST fit the declared widths/text sizes without overlap or horizontal page overflow. (US5)
 - **FR-016**: Required inputs/errors/completion/exit controls MUST remain reachable under keyboard/browser bars/enlarged text/web landscape. (US5)
 - **FR-017**: Ordinary mobile web content MUST have an understandable main scroll path; correct proven competing-scroll defects while retaining useful bounded dialogs/native virtualization. (US5)

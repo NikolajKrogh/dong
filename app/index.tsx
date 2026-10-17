@@ -21,6 +21,7 @@ import { JoinRoomModal } from "../components/home/JoinRoomModal";
 import { GuestJoinModal } from "../components/guestJoin/GuestJoinModal";
 import OnboardingScreen from "../components/OnboardingScreen";
 import { ShellActionButton, ShellScreen } from "../components/ui";
+import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import { useHomeRoomActions } from "../hooks/useHomeRoomActions";
 import { useHistory } from "../features/history";
 import { useGameStore } from "../store/store";
@@ -134,7 +135,7 @@ const HomeScreen = () => {
                 resizeMode="contain"
                 accessible={false}
               />
-              <Text accessibilityRole="header" style={{ fontSize: 24, fontWeight: "700", color: colors.textPrimary }}>Home</Text>
+              <ScreenReaderHeading>Home</ScreenReaderHeading>
             </View>
 
             {hasGameInProgress ? (
