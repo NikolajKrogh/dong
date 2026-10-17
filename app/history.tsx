@@ -40,6 +40,7 @@ import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";
 import { useStoreHydration } from "../utils/navigation/useStoreHydration";
 import { useNavigationReady } from "../utils/navigation/useNavigationReady";
+import { useRouteFocused } from "../utils/navigation/useRouteFocused";
 import { TaskOverlay } from "../platform/navigation/taskNavigation";
 import { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from "../platform/navigation/detailEntry";
 import { historyParams, parseHistoryState, sameViewParams, withViewParams, type HistoryRouteState, type RouteParams } from "../utils/navigation/viewState";
@@ -184,6 +185,7 @@ interface HistoryContentProps extends HistoryScreenState {
 }
 
 const HistoryContent = ({ initialTarget, route, params, ...historyState }: HistoryContentProps) => {
+  const routeFocused = useRouteFocused();
   const router = useRouter();
   const navigationReady = useNavigationReady();
   const navigation = useNavigation();
@@ -402,7 +404,7 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
       recovery={unavailableGame ? <View><Text accessibilityRole="alert">This game is unavailable on this device or account.</Text><ShellActionButton label="Home" href="/" /></View> : null}
       data={data}
       layout={layout}
-      state={viewState}
+      state={{ ...viewState, isDetailVisible: viewState.isDetailVisible && routeFocused }}
       actions={actions}
       selectedResult={selectedResult}
     />

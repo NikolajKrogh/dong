@@ -16,6 +16,8 @@ const mockReplace = jest.fn();
 const mockRefresh = jest.fn();
 const mockCloudState = { accountId: "account-a" as string | null, loading: false, error: null as string | null };
 const mockRouteParams: Record<string, string | string[] | undefined> = {};
+let mockHistoryFocused = true;
+jest.mock('../../utils/navigation/useRouteFocused', () => ({ useRouteFocused: () => mockHistoryFocused }));
 const mockFriendPagination = {
   enabled: true,
   id: "account-a",
@@ -512,6 +514,17 @@ describe('History route state', () => {
   expect(tree.root.findByProps({testID:'HistoryTab-Games'}).props.accessibilityState.selected).toBe(true);
   expect(tree.root.findAllByProps({testID:'PlayerStatsList'})).toHaveLength(0);
   TestRenderer.act(()=>tree.unmount());
+ });
+ it('hides a detail portal when its route blurs and restores it on Back focus', () => {
+  mockRouteParams.gameId='g1';
+  const tree=renderHistoryScreen();
+  expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(1);
+  try {
+   mockHistoryFocused=false;TestRenderer.act(()=>tree.update(React.createElement(require('../../app/history').default)));
+   expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(0);
+   mockHistoryFocused=true;TestRenderer.act(()=>tree.update(React.createElement(require('../../app/history').default)));
+   expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(1);
+  } finally {mockHistoryFocused=true;TestRenderer.act(()=>tree.unmount());}
  });
  it('restores tab and sort choices and reflects a router Back update', () => {
   Object.assign(mockRouteParams,{tab:'stats',sort:'goals',direction:'asc'});const tree=renderHistoryScreen();
