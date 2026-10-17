@@ -5,12 +5,12 @@ const { Given, When, Then } = createBdd();
 When('I advance UX setup through Matches and Common', async ({ page }) => {
   await page.goto('/setupGame');
   await expect(page.getByTestId('SetupWizardStep-players')).toHaveAttribute('aria-selected', 'true');
-  await page.getByTestId('SetupWizardNext').click();
-  await expect(page.getByTestId('SetupWizardStep-matches')).toHaveAttribute('aria-selected', 'true');
-  await page.getByTestId('SetupWizardNext').click();
-  await expect(page.getByTestId('SetupWizardStep-common')).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Matches, step 2 of 4', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: 'Next', exact: true }).click();
+  await expect(page.getByRole('tab', { name: 'Common, step 3 of 4', exact: true })).toHaveAttribute('aria-selected', 'true');
 });
-When('I press the visible UX wizard Back action', async ({ page }) => { await page.getByTestId('SetupWizardBack').click(); });
+When('I press the visible UX wizard Back action', async ({ page }) => { await page.getByRole('button', { name: 'Back', exact: true }).click(); });
 Given(/^UX route fixtures contain (?:a|an) (valid|empty) saved solo setup$/, async ({ page }, kind: string) => {
   await mockTeamDataCatalogue(page);
   await page.route('**/v1/matches**', route => route.fulfill({ json: [] }));
@@ -31,7 +31,11 @@ Given('UX route fixtures contain one local completed game', async ({ page }) => 
 });
 When('I visit the UX setup matches route', async ({ page }) => { await page.goto('/setupGame?step=matches'); await expect(page.getByTestId('SetupWizardStep-matches')).toHaveAttribute('aria-selected', 'true'); });
 When('I choose the UX common step and refresh', async ({ page }) => { await page.getByTestId('SetupWizardStep-common').click(); await expect(page).toHaveURL(/step=common/); await page.reload(); });
-Then('the UX {word} step is current', async ({ page }, key: string) => { await expect(page.getByTestId('SetupWizardStep-' + key)).toHaveAttribute('aria-selected', 'true'); });
+Then('the UX {word} step is current', async ({ page }, key: string) => {
+  const keys = ['players', 'matches', 'common', 'assign'];
+  const name = key[0].toUpperCase() + key.slice(1) + `, step ${keys.indexOf(key) + 1} of 4`;
+  await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true');
+});
 When('I use browser Back for UX route state', async ({ page }) => { await page.goBack(); });
 When('I use browser Forward for UX route state', async ({ page }) => { await page.goForward(); });
 When('I visit an inaccessible UX assignment route', async ({ page }) => { await page.goto('/setupGame?step=assign'); });

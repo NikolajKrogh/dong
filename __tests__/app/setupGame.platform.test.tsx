@@ -60,6 +60,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockReplace, back: mockBack, canGoBack: () => !!mockPreviousRoute }),
   useNavigation: () => ({ getState: () => ({ index: mockPreviousRoute ? 1 : 0, routes: mockPreviousRoute ? [mockPreviousRoute, { name: "setupGame" }] : [{ name: "setupGame" }] }) }),
   useLocalSearchParams: () => mockParams,
+  useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
   useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
 }));
 

@@ -46,6 +46,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: jest.fn(), setParams: mockSetParams, back: mockBack, canGoBack: () => !!mockPreviousRoute }),
   useNavigation: () => ({ getState: () => ({ index: mockPreviousRoute ? 1 : 0, routes: mockPreviousRoute ? [mockPreviousRoute, { name: "lobby/[sessionId]" }] : [{ name: "lobby/[sessionId]" }] }) }),
   useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "untrusted-id", ...mockParams }),
+  useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
 }));
 
 // The wizard is stubbed so the steps array it is handed can be inspected

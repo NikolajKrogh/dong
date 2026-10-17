@@ -10,7 +10,7 @@
  * gameplay store and redirects to /gameProgress once the room transitions to
  * `in_progress`. Closed/expired rooms return the viewer home.
  */
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -18,7 +18,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Modal, ScrollView, useWindowDimensions } from "react-native";
+import { Modal, Platform, ScrollView, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Text, YStack } from "tamagui";
@@ -616,6 +616,8 @@ function RoomLobbyWizard({
   const [activeStep, setActiveStep] = useState<LobbyStep>("room");
   const [restoreNotice, setRestoreNotice] = useState("");
   const restoredRequest = useRef<string | null>(null);
+  const pendingStep = useRef<string | null>(null);
+  useFocusEffect(useCallback(() => { pendingStep.current = null; }, []));
   const colors = useColors();
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -683,6 +685,7 @@ function RoomLobbyWizard({
   useEffect(() => {
     if (!navigationReady || restoredRequest.current === routeRequest) return;
     restoredRequest.current = routeRequest;
+    pendingStep.current = null;
     const step = resolveStep(requestedStep, LOBBY_STEPS, [true, true, canEnterCommon, canEnterAssign]);
     // Restore external route requests once; polling must not move an active editor.
     setActiveStep(step);
@@ -693,14 +696,13 @@ function RoomLobbyWizard({
   }, [navigationReady, routeRequest, requestedStep, canEnterCommon, canEnterAssign, params, router]);
   const changeStep = (key: string) => {
     const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
-    if (step === activeStep) return;
-    setActiveStep(step);
+    if (step === activeStep || step === pendingStep.current) return;
+    pendingStep.current = step;
     setRestoreNotice("");
     router.push({ pathname: "/lobby/[sessionId]", params: { ...withViewParams(params, { step: step === "room" ? undefined : step }), sessionId: snapshot.sessionId } });
   };
   const backStep = (key: string) => {
     const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
-    setActiveStep(step);
     setRestoreNotice("");
     const stack = navigation.getState();
     const previous = stack?.routes[(stack.index ?? 0) - 1];
@@ -746,7 +748,7 @@ function LobbyIdentityStepContent({
 }) {
   return (
     <YStack gap="$4" padding="$4">
-      <Text color="$color" fontSize={22} fontWeight="700">Room Lobby</Text>
+      <Text {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })} color="$color" fontSize={22} fontWeight="700">Room Lobby</Text>
       <RoomIdentityPanel
         joinCode={lobby.joinCode}
         participants={assignment.participants}
@@ -1015,7 +1017,7 @@ function LobbyPostStartState({
 
   return (
     <YStack gap="$4" testID="lobby-in-progress">
-      <Text color="$color" fontSize={28} fontWeight="700">
+      <Text {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })} color="$color" fontSize={28} fontWeight="700">
         Game in progress
       </Text>
       <Text color="$colorMuted" fontSize={14}>

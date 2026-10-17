@@ -39,6 +39,7 @@ jest.mock("react-native-safe-area-context", () => ({
 jest.mock("expo-router", () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: mockPush }),
   useNavigation: () => ({ getState: () => ({ index: 0, routes: [] }) }),
+  useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
   useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "p1" }),
 }));
 
