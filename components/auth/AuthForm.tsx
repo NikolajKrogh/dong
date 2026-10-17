@@ -527,8 +527,7 @@ const AuthCredentialsForm = ({
         <TabContainer>
           <TabPill
             {...(Platform.OS === "web" ? { render: "button", type: "button" } : {})}
-            role="button"
-            accessibilityRole="button"
+            {...(Platform.OS === "web" ? { role: "button" as const } : { accessibilityRole: "button" as const })}
             aria-pressed={mode === "signIn"}
             active={mode === "signIn"}
             onPress={() => onModeChange("signIn")}
@@ -543,8 +542,7 @@ const AuthCredentialsForm = ({
           </TabPill>
           <TabPill
             {...(Platform.OS === "web" ? { render: "button", type: "button" } : {})}
-            role="button"
-            accessibilityRole="button"
+            {...(Platform.OS === "web" ? { role: "button" as const } : { accessibilityRole: "button" as const })}
             aria-pressed={mode === "signUp"}
             active={mode === "signUp"}
             onPress={() => onModeChange("signUp")}

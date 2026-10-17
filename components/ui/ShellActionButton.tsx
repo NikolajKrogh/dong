@@ -120,23 +120,24 @@ export function ShellActionButton({
   variant,
   accessibilityLabel,
   accessibilityState,
+  accessibilityRole,
   ...props
 }: ShellActionButtonProps) {
   const disabled = Boolean(props.disabled || accessibilityState?.disabled);
   const accessibilityProps = Platform.OS === "web" ? {
-    role: props.role ?? (props.accessibilityRole as Role | undefined) ?? (href && !disabled ? "link" as const : "button" as const),
+    role: props.role ?? (accessibilityRole as Role | undefined) ?? (href && !disabled ? "link" as const : "button" as const),
     "aria-label": accessibilityLabel,
     "aria-disabled": disabled,
     "aria-expanded": accessibilityState?.expanded,
     "aria-selected": accessibilityState?.selected,
     "aria-checked": accessibilityState?.checked,
     "aria-busy": accessibilityState?.busy,
-  } : { accessibilityLabel, accessibilityRole: href ? "link" as const : "button" as const, accessibilityState: disabled ? { ...accessibilityState, disabled: true } : accessibilityState };
+  } : { accessibilityLabel, accessibilityRole: accessibilityRole ?? (href ? "link" as const : "button" as const), accessibilityState: disabled ? { ...accessibilityState, disabled: true } : accessibilityState };
   const button = (
     <ShellActionButtonFrame
       {...props}
       variant={variant}
-      {...(Platform.OS === "web" ? { render: href && !disabled ? "a" : "button" } : {})}
+      {...(Platform.OS === "web" ? { render: href && !disabled ? <a style={{ textDecoration: "none" }} /> : <button type="button" /> } : {})}
       {...(Platform.OS === "web" && (!href || disabled) ? { type: "button" as const } : {})}
       {...accessibilityProps}
       disabled={disabled}
@@ -144,7 +145,7 @@ export function ShellActionButton({
     >
       {icon ? <XStack aria-hidden={Platform.OS === "web" ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
       {label ? (
-        <ShellActionButtonLabel surfaceText={variant === "surface"}>
+        <ShellActionButtonLabel fontFamily={Platform.OS === "web" ? "system-ui" : undefined} surfaceText={variant === "surface"}>
           {label}
         </ShellActionButtonLabel>
       ) : null}

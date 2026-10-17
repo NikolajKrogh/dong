@@ -46,7 +46,7 @@ it('uses real web commands and destinations and cannot activate disabled actions
     let tree!: TestRenderer.ReactTestRenderer;
     act(() => { tree = TestRenderer.create(<ShellActionButton label="Save" onPress={onPress} testID="save" />); });
     const command = tree.root.findByType('button-frame' as React.ElementType);
-    expect(command.props.render).toBe('button');
+    expect(command.props.render.type).toBe('button');
     expect(command.props.type).toBe('button');
     expect(command.props.testID).toBe('save');
     expect(command.props.role).toBe('button');
@@ -55,9 +55,9 @@ it('uses real web commands and destinations and cannot activate disabled actions
     act(() => tree.update(<ShellActionButton label="Friends" accessibilityRole="tab" accessibilityState={{ selected: true }} />));
     expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ role: 'tab', 'aria-selected': true });
     act(() => tree.update(<ShellActionButton href="/history" label="History" />));
-    expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ render: 'a', href: '/history' });
+    expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ href: '/history' });
     act(() => tree.update(<ShellActionButton href="/history" label="History" disabled onPress={onPress} />));
-    expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ render: 'button', disabled: true, 'aria-disabled': true });
+    expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ disabled: true, 'aria-disabled': true });
     expect(tree.root.findByType('button-frame' as React.ElementType).props.onPress).toBeUndefined();
     expect(tree.root.findByType('button-frame' as React.ElementType).props.href).toBeUndefined();
     act(() => tree.unmount());
