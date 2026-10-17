@@ -246,3 +246,17 @@ it.each([false, true])("uses the reduced-motion policy for individual and bulk p
   }
   TestRenderer.act(() => { row.unmount(); tree.unmount(); });
 });
+
+it('allows web touch gestures through the unbounded player list while retaining native scroll policy', () => {
+  const { Platform } = require('react-native');
+  const previous = Platform.OS;
+  try {
+    for (const platform of ['web', 'android']) {
+      Platform.OS = platform;
+      const renderer = renderPlayerList();
+      const list = renderer.root.findByProps({ testID: 'SetupPlayersList' });
+      expect(list.props.scrollEnabled).toBe(platform === 'web');
+      TestRenderer.act(() => renderer.unmount());
+    }
+  } finally { Platform.OS = previous; }
+});

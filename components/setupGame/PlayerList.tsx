@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
+  Platform,
   type ListRenderItemInfo,
   Text,
   TextInput,
@@ -453,6 +454,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
       />
 
       <FlatList
+        testID="SetupPlayersList"
         key={isWideLayout ? "players-wide" : "players-compact"}
         data={players}
         keyExtractor={playerKeyExtractor}
@@ -464,7 +466,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
             iconColor={colors.neutralGray}
           />
         }
-        scrollEnabled={false}
+        scrollEnabled={Platform.OS === "web"}
         contentContainerStyle={styles.playersListContent}
         columnWrapperStyle={
           isWideLayout ? styles.playersListWideRow : undefined

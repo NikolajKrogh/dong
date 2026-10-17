@@ -9,3 +9,15 @@ Feature: Touch entry preserves the pending player while the keyboard changes vie
       | entry  |
       | direct |
       | Home   |
+
+
+  Scenario Outline: Keyboard scrolling hands off through empty and populated player lists
+    Given an empty solo setup is open in a touch browser through direct
+    And the touch setup player list contains <players> saved players
+    When I tap the touch player input and type a pending name
+    And the touch keyboard reduces only the visual viewport
+    Then trusted touch drags over the player list reveal Next without losing the input
+    Examples:
+      | players |
+      | 0       |
+      | 20      |

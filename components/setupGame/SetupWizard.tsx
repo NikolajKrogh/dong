@@ -100,6 +100,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     else setLocalStep(index);
   };
   const { width, height } = useWindowDimensions();
+  const pageScrollRef = useRef<ScrollView>(null);
+  const [pageTop, setPageTop] = useState(0);
+  const measurePageTop = React.useCallback(() => {
+    pageScrollRef.current?.getNativeScrollRef()?.measureInWindow((_x, y) => setPageTop(y));
+  }, []);
+  useEffect(() => {
+    if (Platform.OS === "web") measurePageTop();
+  }, [height, width, measurePageTop]);
   const scrollsAsPage = Platform.OS === "web" && height < 480;
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -300,8 +308,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   // Only the active scroll owner changes; switching wrappers would blur/remount it.
   return Platform.OS === "web" ? (
     <ScrollView
+      ref={pageScrollRef}
+      onLayout={measurePageTop}
       testID="SetupWizardPageScroll"
-      style={[{ flex: 1 }, !scrollsAsPage && { overflow: "hidden" }]}
+      style={[{ flex: 1 }, scrollsAsPage && { maxHeight: Math.max(0, height - pageTop) }, !scrollsAsPage && { overflow: "hidden" }]}
       contentContainerStyle={scrollsAsPage ? { flexGrow: 1 } : { flex: 1 }}
       keyboardShouldPersistTaps="handled"
     >
