@@ -315,7 +315,7 @@ describe('controlled route steps', () => {
 });
 
 
-it('uses one page scroller only on short web viewports, retaining native panel scrolling', () => {
+it('retains the native content scroller and gives short web pages natural content height', () => {
   const { Platform } = require('react-native');
   const previous = Platform.OS;
   mockUseWindowDimensions.mockReturnValue({ width: 640, height: 360, scale: 1, fontScale: 2 });
@@ -324,8 +324,31 @@ it('uses one page scroller only on short web viewports, retaining native panel s
       Platform.OS = platform;
       const tree = renderSetupWizard();
       expect(tree.root.findAllByProps({ testID: 'SetupWizardPageScroll' })).toHaveLength(platform === 'web' ? 1 : 0);
-      expect(tree.root.findAllByProps({ testID: 'SetupWizardContent' })).toHaveLength(platform === 'web' ? 0 : 1);
+      expect(tree.root.findAllByProps({ testID: 'SetupWizardContent' })).toHaveLength(1);
+      expect(tree.root.findByProps({ testID: 'SetupWizardContent' }).props.style).toEqual([mockStyles.stepContentScroll, platform === 'web' ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', overflow: 'visible' } : false]);
       TestRenderer.act(() => tree.unmount());
     }
   } finally { Platform.OS = previous; }
+});
+
+
+it('keeps step content mounted while keyboard resizing changes the web scroll owner', () => {
+  const mounted = jest.fn();
+  const unmounted = jest.fn();
+  const InputProbe = () => {
+    React.useEffect(() => { mounted(); return unmounted; }, []);
+    return React.createElement('TextInput');
+  };
+  mockUseWindowDimensions.mockReturnValue({ width: 360, height: 623, scale: 1, fontScale: 1 });
+  const tree = renderSetupWizard({ steps: [{ ...step('players', 'Players'), content: React.createElement(InputProbe) }] });
+  const SetupWizard = require('../../../components/setupGame/SetupWizard').default;
+  const props = tree.root.findByType(SetupWizard).props;
+  for (const height of [360, 623]) {
+    mockUseWindowDimensions.mockReturnValue({ width: 360, height, scale: 1, fontScale: 1 });
+    TestRenderer.act(() => tree.update(React.createElement(SetupWizard, props)));
+    expect(mounted).toHaveBeenCalledTimes(1);
+    expect(unmounted).not.toHaveBeenCalled();
+  }
+  TestRenderer.act(() => tree.unmount());
+  expect(unmounted).toHaveBeenCalledTimes(1);
 });

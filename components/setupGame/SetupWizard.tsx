@@ -241,16 +241,14 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       <View style={[styles.wizardMainPanel, scrollsAsPage && { flex: 0, flexGrow: 1 }]}>
         <Text accessibilityRole="header" aria-level={2} style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
         {/* Step Content - Now scrollable */}
-        {scrollsAsPage ? <View>{currentStepContent}</View> : (
-          <ScrollView
-            testID="SetupWizardContent"
-            style={styles.stepContentScroll}
-            showsVerticalScrollIndicator={true}
-            keyboardShouldPersistTaps="handled"
-          >
-            {currentStepContent}
-          </ScrollView>
-        )}
+        <ScrollView
+          testID="SetupWizardContent"
+          style={[styles.stepContentScroll, scrollsAsPage && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", overflow: "visible" }]}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
+          {currentStepContent}
+        </ScrollView>
 
         {/* Navigation Buttons */}
         <View
@@ -298,9 +296,15 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       </View>
     </View>
   );
-  // A fixed footer can consume the whole content viewport in web landscape with enlarged text.
-  return scrollsAsPage ? (
-    <ScrollView testID="SetupWizardPageScroll" style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+  // Keep input ancestry stable when a web keyboard shrinks the viewport.
+  // Only the active scroll owner changes; switching wrappers would blur/remount it.
+  return Platform.OS === "web" ? (
+    <ScrollView
+      testID="SetupWizardPageScroll"
+      style={[{ flex: 1 }, !scrollsAsPage && { overflow: "hidden" }]}
+      contentContainerStyle={scrollsAsPage ? { flexGrow: 1 } : { flex: 1 }}
+      keyboardShouldPersistTaps="handled"
+    >
       {wizard}
     </ScrollView>
   ) : wizard;
