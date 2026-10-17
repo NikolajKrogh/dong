@@ -654,7 +654,7 @@ const AuthForm = ({ returnTo, confirmationCode }: AuthFormProps) => {
 
   useEffect(() => {
     if (status === "ready") {
-      router.replace((normalizedReturnTo ?? "/") as Href);
+      router.dismissTo((normalizedReturnTo ?? "/") as Href);
     }
     if (status === "needsUsername") {
       router.replace(

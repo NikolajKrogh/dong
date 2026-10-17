@@ -5,6 +5,10 @@ import { actCreate } from "../../../test-utils/render";
 import UsernameOnboardingForm from "../../../components/auth/UsernameOnboardingForm";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
+let mockAuthStatus = "needsUsername";
+const mockDismissTo = jest.fn();
+const mockReplace = jest.fn();
+
 const TestSubject: typeof UsernameOnboardingForm = (props) =>
   React.createElement(TamaguiTestProvider, null, React.createElement(UsernameOnboardingForm, props));
 
@@ -43,7 +47,8 @@ jest.mock("../../../styles/theme", () => ({
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
-    replace: jest.fn(),
+    replace: mockReplace,
+    dismissTo: mockDismissTo,
   }),
 }));
 
@@ -62,7 +67,7 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       requestPasswordReset: jest.fn(),
       session: { user: { id: "host-1" } },
       sessionNotice: null,
-      status: "needsUsername",
+      status: mockAuthStatus,
       user: { id: "host-1" },
     }),
   };
@@ -92,6 +97,15 @@ jest.mock("../../../components/ui", () => ({
 }));
 
 describe("UsernameOnboardingForm", () => {
+  beforeEach(() => { mockAuthStatus = "needsUsername"; jest.clearAllMocks(); });
+
+  it("returns to the existing caller when username onboarding is complete", () => {
+    mockAuthStatus = "ready";
+    actCreate(React.createElement(TestSubject, { returnTo: "/friends?tab=requests" }));
+    expect(mockDismissTo).toHaveBeenCalledWith("/friends?tab=requests");
+    expect(mockReplace).not.toHaveBeenCalled();
+
+  });
   it("renders the required username onboarding form", () => {
     const tree = actCreate(
       React.createElement(TestSubject),
@@ -103,7 +117,5 @@ describe("UsernameOnboardingForm", () => {
 
     expect(textContents).toContain("Choose your username");
     expect(textContents).toContain("Save username");
-
-    tree.unmount();
   });
 });

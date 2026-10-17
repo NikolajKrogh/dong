@@ -3,6 +3,10 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
+let mockAuthStatus = "signedOut";
+const mockDismissTo = jest.fn();
+const mockReplace = jest.fn();
+
 type ExchangeCodeForSessionResult = {
   data: { session: null };
   error: null;
@@ -41,7 +45,8 @@ jest.mock("../../../styles/theme", () => ({
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: jest.fn(),
-    replace: jest.fn(),
+    replace: mockReplace,
+    dismissTo: mockDismissTo,
   }),
 }));
 
@@ -118,7 +123,7 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       verifySignupOtp: jest.fn(),
       requestPasswordReset: jest.fn(),
       session: null,
-      status: "signedOut",
+      status: mockAuthStatus,
       user: null,
     }),
   };
@@ -132,6 +137,23 @@ const TestSubject = (props: any) =>
 describe("AuthForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuthStatus = "signedOut";
+  });
+
+  it.each(["/friends?tab=requests", null])("returns through an existing destination after sign-in (%s)", (returnTo) => {
+    mockAuthStatus = "ready";
+    actCreate(React.createElement(TestSubject, { returnTo }));
+    expect(mockDismissTo).toHaveBeenCalledWith(returnTo ?? "/");
+    expect(mockReplace).not.toHaveBeenCalled();
+
+  });
+
+  it("keeps username onboarding and its intended return target", () => {
+    mockAuthStatus = "needsUsername";
+    actCreate(React.createElement(TestSubject, { returnTo: "/friends?tab=requests" }));
+    expect(mockReplace).toHaveBeenCalledWith("/auth/onboarding?returnTo=%2Ffriends%3Ftab%3Drequests");
+    expect(mockDismissTo).not.toHaveBeenCalled();
+
   });
 
   it("renders the sign-in form by default", () => {
@@ -142,8 +164,6 @@ describe("AuthForm", () => {
 
     expect(textContents).toContain("Sign in");
     expect(textContents).toContain("Create account");
-
-    tree.unmount();
   });
 
   it("exchanges a confirmation code from the email link", async () => {
@@ -152,7 +172,7 @@ describe("AuthForm", () => {
       error: null,
     });
 
-    const tree = actCreate(
+    actCreate(
       React.createElement(TestSubject, {
         confirmationCode: "confirmation-code-123",
       }),
@@ -165,8 +185,6 @@ describe("AuthForm", () => {
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith(
       "confirmation-code-123",
     );
-
-    tree.unmount();
   });
 });
 

@@ -48,7 +48,7 @@ const UsernameOnboardingForm = ({
 
   useEffect(() => {
     if (status === "ready") {
-      router.replace((normalizedReturnTo ?? "/") as never);
+      router.dismissTo((normalizedReturnTo ?? "/") as never);
     }
     if (status === "signedOut") {
       router.replace(
@@ -72,7 +72,7 @@ const UsernameOnboardingForm = ({
 
     try {
       await saveUsername(username);
-      router.replace((normalizedReturnTo ?? "/") as never);
+      router.dismissTo((normalizedReturnTo ?? "/") as never);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Unable to save the name.",
