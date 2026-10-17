@@ -1023,7 +1023,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     expandableCardTitle: {
       ...makeBaseSectionTitle(colors),
       fontSize: 16, // Keep specific
-      flexShrink: 1,
       fontWeight: "600", // Bolder
       color: colors.textSecondary,
       marginLeft: 10,
