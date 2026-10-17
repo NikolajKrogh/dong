@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, useWindowDimensions } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  ReduceMotion,
 } from "react-native-reanimated";
 
 import AppIcon from "../AppIcon";
+import { isWideLayout } from "../../styles/responsive";
 import { MatchData } from "../../utils/matchUtils";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -364,6 +366,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   const [isStartTimePickerOpen, setIsStartTimePickerOpen] = useState(false);
   const [isEndTimePickerOpen, setIsEndTimePickerOpen] = useState(false);
   const rotateProgress = useSharedValue(0);
+  const { width } = useWindowDimensions();
 
   const indicatorStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotateProgress.value * 180}deg` }],
@@ -372,7 +375,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   const toggleExpand = () => {
     const newState = !showTimeFilter;
     setShowTimeFilter(newState);
-    rotateProgress.value = withTiming(newState ? 1 : 0, { duration: 250 });
+    rotateProgress.value = withTiming(newState ? 1 : 0, { duration: 250, reduceMotion: ReduceMotion.System });
   };
 
   const localDateFilterActive = isDateFilterActive || selectedDate.length > 0;
@@ -391,21 +394,24 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
     <View style={styles.filterCard}>
       <TouchableOpacity
         testID="SetupMatchScheduleToggle"
+        accessibilityRole="button"
+        accessibilityLabel="Match schedule"
+        accessibilityState={{ expanded: showTimeFilter }}
         style={styles.filterCardHeader}
         onPress={toggleExpand}
         activeOpacity={0.7}
       >
-        <View style={styles.filterCardContent}>
+        <View style={[styles.filterCardContent, isWideLayout(width) && styles.filterCardContentWide]}>
           <View style={styles.filterTitleContainer}>
             <AppIcon
               name="options-outline"
               size={22}
               color={colors.primaryFocus}
             />
-            <Text style={styles.filterTitle}>Match Schedule</Text>
+            <Text testID="SetupMatchScheduleTitle" style={styles.filterTitle}>Match Schedule</Text>
           </View>
 
-          <View style={styles.filterBadgesSection}>
+          <View testID="SetupMatchScheduleBadges" style={styles.filterBadgesSection}>
             <View style={styles.filterBadgesContainer}>
                 {localDateFilterActive && (
                   <View style={styles.filterBadge}>
@@ -414,7 +420,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                       size={16}
                       color={colors.primaryFocus}
                     />
-                    <Text style={styles.filterBadgeText} numberOfLines={1}>
+                    <Text style={styles.filterBadgeText}>
                       {formattedDate}
                     </Text>
                   </View>
@@ -426,7 +432,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
                       size={16}
                       color={colors.primaryFocus}
                     />
-                    <Text style={styles.filterBadgeText} numberOfLines={1}>
+                    <Text style={styles.filterBadgeText}>
                       {startTime.substring(0, 5)} - {endTime.substring(0, 5)}
                     </Text>
                   </View>

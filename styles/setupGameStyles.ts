@@ -500,10 +500,11 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     stepButton: {
       minHeight: 48,
       minWidth: 48,
+      width: 48,
       justifyContent: "center",
       alignItems: "center",
       paddingVertical: 8,
-      paddingHorizontal: 16,
+      paddingHorizontal: 0,
       borderRadius: 20,
       backgroundColor: colors.backgroundSubtle,
     },
@@ -1022,6 +1023,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     expandableCardTitle: {
       ...makeBaseSectionTitle(colors),
       fontSize: 16, // Keep specific
+      flexShrink: 1,
       fontWeight: "600", // Bolder
       color: colors.textSecondary,
       marginLeft: 10,
@@ -1220,18 +1222,24 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.surface, // Explicit for header part
     },
     filterCardContent: {
+      gap: 8,
+      alignItems: "stretch",
+      minWidth: 0,
+    },
+    filterCardContentWide: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
     },
     filterTitleContainer: {
       flexDirection: "row",
       alignItems: "center",
-      minWidth: "25%", // Layout specific
+      minWidth: 0,
+      flexShrink: 1,
     },
     filterTitle: {
       ...makeBaseSectionTitle(colors),
       fontSize: 16, // Keep specific
+      flexShrink: 1,
       fontWeight: "600", // Bolder
       marginLeft: 10,
       color: colors.textSecondary,
@@ -1240,8 +1248,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     filterBadgesSection: {
       flexDirection: "row",
       alignItems: "center",
-      flex: 1,
-      justifyContent: "flex-end",
+      minWidth: 0,
+      justifyContent: "space-between",
     },
     filterBadgesScroll: {
       // For horizontal scroll of badges
@@ -1249,23 +1257,27 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     filterBadgesContainer: {
       flexDirection: "row",
-      flexWrap: "wrap", // Allow badges to wrap if too many
-      justifyContent: "flex-end",
+      flexWrap: "wrap",
+      flex: 1,
+      minWidth: 0,
+      gap: 6,
     },
     filterBadge: {
       backgroundColor: colors.backgroundSubtle,
       borderRadius: 12,
       paddingHorizontal: 6,
       paddingVertical: 5,
-      marginLeft: 6,
+      marginLeft: 0,
       marginBottom: 4, // For wrapping
       flexDirection: "row",
       alignItems: "center",
       borderWidth: 1,
       borderColor: colors.borderSubtle,
-      maxWidth: 110, // Prevent very long badges
+      maxWidth: "100%",
     },
     filterBadgeText: {
+      flexShrink: 1,
+      minWidth: 0,
       fontSize: 11,
       color: colors.textSecondary,
       marginLeft: 3,
@@ -1562,10 +1574,20 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     playerInputRow: {
       alignItems: "flex-start",
     },
+    teamSelectionRowCompact: {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 8,
+    },
     teamInputWrapper: {
-      flex: 1, // Allow inputs to take available space
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
     },
     teamSearchField: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.backgroundLight,
@@ -1573,7 +1595,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderColor: colors.border,
       borderRadius: 10,
       paddingHorizontal: 10,
-      height: 50,
+      minHeight: 50,
+      paddingVertical: 10,
     },
     teamSearchFieldSelected: {
       borderColor: colors.primaryFocus,
@@ -1584,6 +1607,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     teamSearchText: {
       flex: 1,
+      minWidth: 0,
       fontSize: 14,
       color: colors.textSecondary, // Default color
     },
@@ -1595,7 +1619,10 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       fontWeight: "500",
     },
     teamClearButton: {
-      paddingLeft: 8, // Add some padding for easier touch
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
     vsText: {
       fontWeight: "bold",

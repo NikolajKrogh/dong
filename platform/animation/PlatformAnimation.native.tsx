@@ -1,5 +1,5 @@
-import React from "react";
-import { Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { AccessibilityInfo, Text, View } from "react-native";
 
 import { useColors } from "../../styles/theme";
 import type { AnimationKind } from "../types";
@@ -26,9 +26,17 @@ export const PlatformAnimation: React.FC<PlatformAnimationProps> = ({
   testID,
 }) => {
   const colors = useColors();
+  const [reduceMotion, setReduceMotion] = useState(true);
+  useEffect(() => {
+    let mounted = true;
+    const update = (value: boolean) => { if (mounted) setReduceMotion(value); };
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", update);
+    void AccessibilityInfo.isReduceMotionEnabled().then(update).catch(() => {});
+    return () => { mounted = false; subscription.remove(); };
+  }, []);
   const fallbackConfig = getAnimationFallback(kind);
 
-  if (!fallbackConfig.useNativeRenderer || source === undefined) {
+  if (reduceMotion || !fallbackConfig.useNativeRenderer || source === undefined) {
     return (
       <View
         accessibilityRole="image"

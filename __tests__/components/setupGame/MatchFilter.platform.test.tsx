@@ -73,7 +73,9 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 
 describe("MatchFilter platform adoption", () => {
-  it("uses the shared date and time picker adapters", () => {
+  it("uses shared pickers and system motion policy while expanding", () => {
+    const Reanimated = require("react-native-reanimated");
+    const timing = jest.spyOn(Reanimated, "withTiming");
     const MatchFilter =
       require("../../../components/setupGame/MatchFilter").default;
 
@@ -101,6 +103,8 @@ describe("MatchFilter platform adoption", () => {
       buttons[0].props.onPress();
     });
 
+    expect(timing).toHaveBeenCalledWith(1, { duration: 250, reduceMotion: Reanimated.ReduceMotion.System });
+    timing.mockRestore();
     expect(mockPlatformDatePicker).toHaveBeenCalledTimes(1);
     expect(mockPlatformTimePicker).toHaveBeenCalledTimes(2);
   });

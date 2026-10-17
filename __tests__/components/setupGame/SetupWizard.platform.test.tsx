@@ -306,3 +306,19 @@ describe('controlled route steps', () => {
   TestRenderer.act(()=>tree.unmount());TestRenderer.act(()=>jest.runAllTimers());expect(onStepChange).not.toHaveBeenCalled();jest.useRealTimers();
  });
 });
+
+
+it('uses one page scroller only on short web viewports, retaining native panel scrolling', () => {
+  const { Platform } = require('react-native');
+  const previous = Platform.OS;
+  mockUseWindowDimensions.mockReturnValue({ width: 640, height: 360, scale: 1, fontScale: 2 });
+  try {
+    for (const platform of ['web', 'android']) {
+      Platform.OS = platform;
+      const tree = renderSetupWizard();
+      expect(tree.root.findAllByProps({ testID: 'SetupWizardPageScroll' })).toHaveLength(platform === 'web' ? 1 : 0);
+      expect(tree.root.findAllByProps({ testID: 'SetupWizardContent' })).toHaveLength(platform === 'web' ? 0 : 1);
+      TestRenderer.act(() => tree.unmount());
+    }
+  } finally { Platform.OS = previous; }
+});

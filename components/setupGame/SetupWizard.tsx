@@ -96,7 +96,8 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     if (controlled) onStepChange(steps[index].key);
     else setLocalStep(index);
   };
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
+  const scrollsAsPage = Platform.OS === "web" && height < 480;
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const wideLayout = isWideLayout(width);
@@ -167,10 +168,10 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     </TouchableOpacity>
   );
 
-  return (
+  const wizard = (
     <View
       testID="SetupWizardRoot"
-      style={[styles.wizardContainer, wideLayout && styles.wizardWideLayout]}
+      style={[styles.wizardContainer, wideLayout && styles.wizardWideLayout, scrollsAsPage && { flex: 0, flexGrow: 1 }]}
     >
       {/* Progress Indicator */}
       <View
@@ -234,16 +235,19 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         ))}
       </View>
 
-      <View style={styles.wizardMainPanel}>
+      <View style={[styles.wizardMainPanel, scrollsAsPage && { flex: 0, flexGrow: 1 }]}>
         <Text accessibilityRole="header" style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
         {/* Step Content - Now scrollable */}
-        <ScrollView
-          style={styles.stepContentScroll}
-          showsVerticalScrollIndicator={true}
-          keyboardShouldPersistTaps="handled"
-        >
-          {currentStepContent}
-        </ScrollView>
+        {scrollsAsPage ? <View>{currentStepContent}</View> : (
+          <ScrollView
+            testID="SetupWizardContent"
+            style={styles.stepContentScroll}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+          >
+            {currentStepContent}
+          </ScrollView>
+        )}
 
         {/* Navigation Buttons */}
         <View
@@ -287,6 +291,12 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       </View>
     </View>
   );
+  // A fixed footer can consume the whole content viewport in web landscape with enlarged text.
+  return scrollsAsPage ? (
+    <ScrollView testID="SetupWizardPageScroll" style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      {wizard}
+    </ScrollView>
+  ) : wizard;
 };
 
 export default SetupWizard;
