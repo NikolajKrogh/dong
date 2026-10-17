@@ -3,7 +3,7 @@ Feature: Find Friends and History from Home
   Scenario: Signed-out Home supports ordinary destination links and local History
     Given the Home shortcuts fixture is signed out
     Then the Home shortcuts are named destination links
-    When I keyboard open History from the Home shortcut
+    When I keyboard open History from the Game Stats card
     Then local History is available from the shortcut
 
   Scenario: Signed-in Home exposes the same shortcuts with room actions intact

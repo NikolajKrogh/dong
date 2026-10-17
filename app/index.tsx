@@ -162,15 +162,13 @@ const HomeScreen = () => {
               />
             )}
 
-            {history.length > 0 && (
-              <HistoryStatsCard
-                colors={colors}
-                styles={styles}
-                historyLength={history.length}
-                topDrinkerInfo={topDrinkerInfo}
-                totalDrinks={totalDrinks}
-              />
-            )}
+            <HistoryStatsCard
+              colors={colors}
+              styles={styles}
+              historyLength={history.length}
+              topDrinkerInfo={topDrinkerInfo}
+              totalDrinks={totalDrinks}
+            />
 
             <View style={{ marginTop: 16, gap: 12 }}>
               <ShellActionButton
@@ -179,14 +177,6 @@ const HomeScreen = () => {
                 href="/friends"
                 testID="home-friends-button"
                 icon={<AppIcon name="people-outline" size={22} color={colors.primary} />}
-                widthMode={wideLayout ? "wide" : undefined}
-              />
-              <ShellActionButton
-                variant="surface"
-                label="History"
-                href="/history"
-                testID="home-history-button"
-                icon={<AppIcon name="time-outline" size={22} color={colors.primary} />}
                 widthMode={wideLayout ? "wide" : undefined}
               />
             </View>

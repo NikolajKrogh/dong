@@ -108,6 +108,8 @@ jest.mock("../../hooks/useRoomExit", () => ({
 }));
 
 jest.mock("expo-router", () => ({
+  Link: ({ children, href }: { children: React.ReactElement; href: string }) =>
+    require("react").cloneElement(children, { href, onPress: () => mockPush(href) }),
   useFocusEffect: (callback: () => void) => {
     require("react").useEffect(callback, [callback]);
   },
@@ -328,8 +330,10 @@ describe("HomeScreen platform adoption", () => {
     const renderer = actCreate(React.createElement(HomeScreen));
     expect(mockStoreState.history).toEqual([]);
     const card = renderer.root.findByProps({ testID: "home-history-stats-card" });
-    expect(card.props.onPress).toBeUndefined();
-    expect(renderer.root.findByProps({ testID: "home-history-button" }).props.href).toBe("/history");
+    expect(card.props.href).toBe("/history");
+    TestRenderer.act(() => card.props.onPress());
+    expect(mockPush).toHaveBeenCalledWith("/history");
+    expect(renderer.root.findAllByProps({ testID: "home-history-button" })).toHaveLength(0);
     expect(mockRefreshHistory).toHaveBeenCalled();
     TestRenderer.act(() => renderer.unmount());
   });
@@ -338,8 +342,8 @@ describe("HomeScreen platform adoption", () => {
     mockUseHistory.mockReturnValue({ history: [], refresh: mockRefreshHistory, accountId: "host" });
     const HomeScreen = require("../../app/index").default;
     const renderer = actCreate(React.createElement(HomeScreen));
-    const button = renderer.root.findByProps({ testID: "home-history-button" });
-    expect(button.props.href).toBe("/history");
+    const card = renderer.root.findByProps({ testID: "home-history-stats-card" });
+    expect(card.props.href).toBe("/history");
     TestRenderer.act(() => renderer.unmount());
   });
 
@@ -496,7 +500,8 @@ it.each([null, { id: 'signed-in-account' }])('exposes Friends and local History 
   const HomeScreen = require('../../app/index').default;
   const renderer = actCreate(React.createElement(HomeScreen));
   expect(renderer.root.findByProps({ testID: 'home-friends-button' }).props).toMatchObject({ label: 'Friends', href: '/friends' });
-  expect(renderer.root.findByProps({ testID: 'home-history-button' }).props).toMatchObject({ label: 'History', href: '/history' });
+  expect(renderer.root.findByProps({ testID: 'home-history-stats-card' }).props).toMatchObject({ href: '/history', 'aria-label': 'Game Stats, view history' });
+  expect(renderer.root.findAllByProps({ testID: 'home-history-button' })).toHaveLength(0);
   expect(renderer.root.findByProps({ testID: 'open-preferences-button' }).props.accessibilityLabel).toBe('Settings');
   TestRenderer.act(() => renderer.unmount());
 });

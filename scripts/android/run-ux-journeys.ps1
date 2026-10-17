@@ -291,8 +291,8 @@ function Test-GameContext {
 
 function Open-History {
     Assert-Home
-    Scroll-ToControl 'home-history-button'
-    Press-Control 'home-history-button'
+    Scroll-ToControl 'home-history-stats-card'
+    Press-Control 'home-history-stats-card'
     Wait-Control 'HistoryTab-Games' | Out-Null
 }
 
@@ -324,8 +324,8 @@ function Test-Accessibility {
 
 function Test-LayoutScroll {
     Assert-Home
+    Scroll-ToControl 'home-history-stats-card'
     Scroll-ToControl 'home-friends-button'
-    Wait-Control 'home-history-button' | Out-Null
     Scroll-ToControl 'open-preferences-button'
     Save-Evidence 'populated-home-bottom'
     Assert-Home

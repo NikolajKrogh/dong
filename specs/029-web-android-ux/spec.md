@@ -94,11 +94,11 @@ As a phone user, I can read labels and reach required content/actions with limit
 As a user, I can find social/history destinations without discovering them inside profile editing.
 
 **Why this priority**: Friends is buried behind Settings, profile editing and scrolling.
-**Independent Test**: Activate labeled Friends/History shortcuts from settled Home; verify signed-in and signed-out outcomes.
+**Independent Test**: Activate the Friends shortcut and Game Stats card from settled Home; verify signed-in and signed-out outcomes.
 
 **Acceptance Scenarios**:
 
-1. **Given** signed-in Home, **When** navigation appears, **Then** labeled Friends and History shortcuts use the existing layout, each reaching its destination in one activation. Reconcile existing Game Stats so History has no competing duplicate destination.
+1. **Given** signed-in Home, **When** navigation appears, **Then** the Friends shortcut and clickable Game Stats card use the existing layout, each reaching its destination in one activation. Game Stats opens History with its original chevron; no separate History button competes with it. Keep the card available with zero games, including signed-out Home.
 2. **Given** signed-out Home, **When** I open Friends, **Then** sign-in recovery preserves the intended destination; History retains its existing local/signed-out capabilities.
 3. **Given** populated compact Home, **When** game/stats content grows, **Then** shortcuts remain clearly labeled and reachable by page scrolling; all Home content need not fit above the fold.
 
@@ -133,7 +133,7 @@ As a user, I can find social/history destinations without discovering them insid
 - **FR-016**: Required inputs/errors/completion/exit controls MUST remain reachable under keyboard/browser bars/enlarged text/web landscape. (US5)
 - **FR-017**: Ordinary mobile web content MUST have an understandable main scroll path; correct proven competing-scroll defects while retaining useful bounded dialogs/native virtualization. (US5)
 - **FR-018**: Affected nonessential animations MUST honor reduced-motion preferences. (US5)
-- **FR-019**: Home MUST expose labeled Friends/History in its current layout, appropriate signed-out behavior and no competing History destination. (US6)
+- **FR-019**: Home MUST expose a Friends shortcut and clickable Game Stats card opening History in its current layout, with appropriate signed-out behavior. Keep Game Stats available with zero games and omit a separate History button. (US6)
 - **FR-020**: View changes MUST preserve shared-state authorization, immutable history and account/guest isolation; changing screens alone MUST NOT issue leave/end/scoring/friendship commands. (All)
 
 ### Platform, auth, shared-state and migration impact
@@ -179,6 +179,7 @@ Every story requires unit/component tests for new behavior. Substantial UI chang
 ### Session 2026-10-17
 
 - Q: Home shortcuts or persistent navigation? → A: Home shortcuts using the existing layout.
+- Q: Separate History button or the original clickable Game Stats card? → A: Restore the clickable Game Stats card from `multiplayer`, including its chevron; remove the separate History button (2026-10-17 correction).
 - Q: Include terms content/link or defer? → A: Defer the terms document/link to a separate follow-up.
 
 ## Audit traceability

@@ -88,7 +88,7 @@ Owner C after B releases Wizard/History/styles. Each discovery case records pass
 Owner C after shared semantic action API is stable. FR-019, FR-006, FR-020; SC-006.
 
 - [x] T042 [P] [US6] Add signed-in/out and populated Home shortcut tests in __tests__/app/index.platform.test.tsx with one activation to Friends/History and preserved room entry.
-- [x] T043 [US6] Expose labeled Friends/History destinations in app/index.tsx using existing layout; reconcile Game Stats entry and existing components/home/ display, with signed-out Friends recovery and local History.
+- [x] T043 [US6] Expose a Friends shortcut and clickable Game Stats card opening History in app/index.tsx using existing layout; preserve the card chevron and zero-game access, omit a separate History button, and retain signed-out Friends recovery and local History.
 - [x] T044 [US6] Add Home shortcut primary journey in e2e/features/ux-home-shortcuts.feature and e2e/steps/ux-home-shortcuts.steps.ts; cover keyboard activation and account recovery return.
 - [x] T045 [US6] Add verified home-shortcuts Android scenarios through coordinator edits to scripts/android/run-ux-journeys.ps1 and record compact populated Home evidence in specs/029-web-android-ux/validation.md.
 

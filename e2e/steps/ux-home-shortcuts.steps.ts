@@ -17,13 +17,18 @@ Given('the Home shortcuts fixture is signed in', async ({ page }) => {
 });
 Then('the Home shortcuts are named destination links', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Friends', exact: true })).toHaveAttribute('href', '/friends');
-  await expect(page.getByRole('link', { name: 'History', exact: true })).toHaveAttribute('href', '/history');
+  await expect(page.getByRole('link', { name: 'Game Stats, view history', exact: true })).toHaveAttribute('href', '/history');
+  await expect(page.getByRole('link', { name: 'Game Stats, view history', exact: true }).getByText('Game Stats', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Game Stats, view history', exact: true }).getByText('Games Played', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'History', exact: true })).toHaveCount(0);
   await expect(page.locator('a[href="/history"]')).toHaveCount(1);
   await expect(page.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute('href', '/userPreferences');
 });
-When('I keyboard open History from the Home shortcut', async ({ page }) => {
-  const link = page.getByRole('link', { name: 'History', exact: true });
+When('I keyboard open History from the Game Stats card', async ({ page }) => {
+  const link = page.getByRole('link', { name: 'Game Stats, view history', exact: true });
   await link.focus();
+  await expect(link).toHaveCSS('outline-style', 'solid');
+  await expect(link).toHaveCSS('outline-width', '2px');
   await page.keyboard.press('Enter');
 });
 Then('local History is available from the shortcut', async ({ page }) => {
