@@ -121,6 +121,50 @@ const snapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
   ...overrides,
 });
 
+const createStrictRealtimeClient = () => {
+  const channels = new Map<string, any>();
+  const created: any[] = [];
+  let finishRemoval: (() => void) | null = null;
+  let deferRemoval = false;
+  let failRemoval = false;
+  const client = {
+    channel: jest.fn((topic: string, options: unknown) => {
+      if (channels.has(topic)) return channels.get(topic);
+      let subscribed = false;
+      const handlers = new Map<string, () => void>();
+      const channel: any = {
+        topic: `realtime:${topic}`, options, handlers,
+        on: jest.fn((type: string, filter: { event: string }, callback: () => void) => {
+          if (subscribed && type === "presence") throw new Error(`cannot add ${type} callbacks after subscribe()`);
+          handlers.set(filter.event, callback);
+          return channel;
+        }),
+        subscribe: jest.fn((callback: (status: string) => void) => {
+          subscribed = true;
+          channel.status = callback;
+          callback("SUBSCRIBED");
+          return channel;
+        }),
+        track: jest.fn().mockResolvedValue("ok"),
+        presenceState: jest.fn(() => ({ participant: [{}] })),
+        teardown: jest.fn(),
+      };
+      channels.set(topic, channel);
+      created.push(channel);
+      return channel;
+    }),
+    getChannels: () => [...channels.values()],
+    removeChannel: jest.fn(async (channel: any) => {
+      if (deferRemoval) await new Promise<void>(resolve => { finishRemoval = resolve; });
+      if (failRemoval) throw new Error("transport closed");
+      channels.delete(channel.topic.replace(/^realtime:/, ""));
+      return "ok";
+    }),
+  };
+  return { client, created, defer: () => { deferRemoval = true; },
+    fail: () => { failRemoval = true; }, finish: () => { deferRemoval = false; finishRemoval?.(); } };
+};
+
 describe("active room sync composition", () => {
   beforeEach(() => {
     useGameStore.setState({ endedGuestSessionId: null });
@@ -917,4 +961,137 @@ describe("active room sync composition", () => {
     expect(latest!.status).toBe("ready");
     await TestRenderer.act(async () => renderer!.unmount());
   });
+  it("shares an already-subscribed room between mounted game screens until the last screen leaves", async () => {
+    const strict = createStrictRealtimeClient();
+    const original = getSupabaseClient.getMockImplementation();
+    getSupabaseClient.mockReturnValue(strict.client);
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    useGameStore.setState({ activeGameContext: {
+      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
+    } });
+    function Probe() { useActiveGameRoomSync(); return null; }
+    let first!: TestRenderer.ReactTestRenderer;
+    let second!: TestRenderer.ReactTestRenderer;
+    try {
+      await TestRenderer.act(async () => { first = TestRenderer.create(React.createElement(Probe)); });
+      await TestRenderer.act(async () => { second = TestRenderer.create(React.createElement(Probe)); });
+      expect(strict.client.channel).toHaveBeenCalledTimes(1);
+      const before = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("room_changed")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(before + 2);
+      await TestRenderer.act(async () => first.unmount());
+      expect(strict.client.removeChannel).not.toHaveBeenCalled();
+      const remaining = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("sync")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(remaining + 1);
+      await TestRenderer.act(async () => second.unmount());
+      expect(strict.client.removeChannel).toHaveBeenCalledTimes(1);
+    } finally {
+      await TestRenderer.act(async () => { first?.unmount(); second?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it("waits for asynchronous removal before remount and ignores late callbacks and failed tracking", async () => {
+    const strict = createStrictRealtimeClient();
+    const original = getSupabaseClient.getMockImplementation();
+    getSupabaseClient.mockReturnValue(strict.client);
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    useGameStore.setState({ activeGameContext: {
+      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
+    } });
+    function Probe() { useActiveGameRoomSync(); return null; }
+    let first!: TestRenderer.ReactTestRenderer;
+    let second!: TestRenderer.ReactTestRenderer;
+    try {
+      await TestRenderer.act(async () => { first = TestRenderer.create(React.createElement(Probe)); });
+      strict.defer();
+      await TestRenderer.act(async () => first.unmount());
+      await TestRenderer.act(async () => { second = TestRenderer.create(React.createElement(Probe)); });
+      expect(strict.created).toHaveLength(1);
+      const calls = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("room_changed")(); strict.created[0].status("SUBSCRIBED"); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(calls);
+      expect(strict.created[0].track).toHaveBeenCalledTimes(1);
+      await TestRenderer.act(async () => strict.finish());
+      expect(strict.created).toHaveLength(2);
+      expect(strict.created[1].options).toEqual({ config: { private: true, presence: { key: "participant-1" } } });
+      strict.created[1].track.mockRejectedValueOnce(new Error("offline"));
+      await TestRenderer.act(async () => { strict.created[1].status("CHANNEL_ERROR"); strict.created[1].status("SUBSCRIBED"); });
+      await TestRenderer.act(async () => { strict.created[1].handlers.get("room_changed")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(calls + 1);
+    } finally {
+      await TestRenderer.act(async () => { strict.finish(); first?.unmount(); second?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it("replaces a room subscription when the registered participant identity changes", async () => {
+    const strict = createStrictRealtimeClient();
+    const original = getSupabaseClient.getMockImplementation();
+    getSupabaseClient.mockReturnValue(strict.client);
+    const getRoomSnapshot = jest.fn(async () => snapshot({ participants: [
+      { ...snapshot().participants[0], id: useGameStore.getState().activeGameContext.participantId! },
+    ] }));
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    useGameStore.setState({ activeGameContext: {
+      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
+    } });
+    function Probe() { useActiveGameRoomSync(); return null; }
+    let tree!: TestRenderer.ReactTestRenderer;
+    try {
+      await TestRenderer.act(async () => { tree = TestRenderer.create(React.createElement(Probe)); });
+      strict.defer();
+      await TestRenderer.act(async () => { useGameStore.setState({ activeGameContext: {
+        mode: "multiplayer", sessionId: "session-1", participantId: "participant-2", accessKind: "registered", lastAppliedSequence: 10,
+      } }); });
+      expect(strict.created).toHaveLength(1);
+      const calls = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("room_changed")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(calls);
+      await TestRenderer.act(async () => strict.finish());
+      expect(strict.created).toHaveLength(2);
+      expect(strict.created[1].options).toEqual({ config: { private: true, presence: { key: "participant-2" } } });
+    } finally {
+      await TestRenderer.act(async () => { strict.finish(); tree?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it("does not create a channel for a consumer destroyed while an earlier removal is pending", async () => {
+    const strict = createStrictRealtimeClient();
+    const original = getSupabaseClient.getMockImplementation();
+    getSupabaseClient.mockReturnValue(strict.client);
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot: jest.fn(async () => snapshot()) });
+    useGameStore.setState({ activeGameContext: {
+      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
+    } });
+    function Probe() { useActiveGameRoomSync(); return null; }
+    let first!: TestRenderer.ReactTestRenderer;
+    let second!: TestRenderer.ReactTestRenderer;
+    try {
+      await TestRenderer.act(async () => { first = TestRenderer.create(React.createElement(Probe)); });
+      strict.defer();
+      await TestRenderer.act(async () => first.unmount());
+      await TestRenderer.act(async () => { second = TestRenderer.create(React.createElement(Probe)); });
+      await TestRenderer.act(async () => second.unmount());
+      await TestRenderer.act(async () => strict.finish());
+      expect(strict.created).toHaveLength(1);
+      expect(strict.client.removeChannel).toHaveBeenCalledTimes(1);
+      strict.fail();
+      await TestRenderer.act(async () => { second = TestRenderer.create(React.createElement(Probe)); });
+      expect(strict.created).toHaveLength(2);
+      await TestRenderer.act(async () => second.unmount());
+      expect(strict.created[1].teardown).toHaveBeenCalledTimes(1);
+      await TestRenderer.act(async () => { second = TestRenderer.create(React.createElement(Probe)); });
+      expect(strict.created).toHaveLength(2);
+      expect(strict.client.channel).toHaveBeenCalledTimes(2);
+    } finally {
+      await TestRenderer.act(async () => { strict.finish(); first?.unmount(); second?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
 });
