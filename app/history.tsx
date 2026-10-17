@@ -229,9 +229,10 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
     else router.push(target);
   }, [params, router]);
   useEffect(() => {
-    if (!navigationReady || loading || error) return;
+    if (!navigationReady || loading) return;
     const game = route.gameId ? history.find(item => item.id === route.gameId) ?? null : null;
-    const next = route.gameId && !game ? { ...route, gameId: "" } : route;
+    const next = route.gameId && !game && !error ? { ...route, gameId: "" } : route;
+    const resolutionKey = JSON.stringify([routeKey, Boolean(game), Boolean(error)]);
     if (game && anchoredDetail.current !== route.gameId) {
       anchoredDetail.current = route.gameId;
       const stack = navigation.getState();
@@ -245,13 +246,13 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
         return;
       }
     }
-    if (restoredRoute.current !== routeKey) {
-      restoredRoute.current = routeKey;
+    if (restoredRoute.current !== resolutionKey) {
+      restoredRoute.current = resolutionKey;
       setStatsTargetId(route.friendId);
       dispatch({ type: "restore", route: next, game });
       // Keep recovery visible after replacing an unavailable external route.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (route.gameId && !game) setUnavailableGame(true);
+      if (route.gameId && !game && !error) setUnavailableGame(true);
       if (!route.gameId) openedFromList.current = false;
     }
     navigateView(next, true);
@@ -408,16 +409,14 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
   );
 
   return (
-    <>
-      {unavailableGame ? <View><Text accessibilityRole="alert">This game is unavailable on this device or account.</Text><ShellActionButton role="button" label="Home" onPress={() => router.replace("/")} /></View> : null}
     <HistoryContentView
+      recovery={unavailableGame ? <View><Text accessibilityRole="alert">This game is unavailable on this device or account.</Text><ShellActionButton label="Home" href="/" /></View> : null}
       data={data}
       layout={layout}
       state={viewState}
       actions={actions}
       selectedResult={selectedResult}
     />
-    </>
   );
 };
 
@@ -458,12 +457,14 @@ function sortHistory(
 }
 
 function HistoryContentView({
+  recovery,
   data,
   layout,
   state,
   actions,
   selectedResult,
 }: {
+  recovery?: React.ReactNode;
   data: HistoryContentData;
   layout: HistoryLayout;
   state: HistoryViewState;
@@ -471,15 +472,16 @@ function HistoryContentView({
   selectedResult: GameSession | undefined;
 }) {
   return data.history.length === 0 && state.activeTabIndex === 0
-    ? <HistoryEmptyScreen data={data} layout={layout} actions={actions} />
-    : <HistoryPage data={data} layout={layout} state={state} actions={actions} selectedResult={selectedResult} />;
+    ? <HistoryEmptyScreen recovery={recovery} data={data} layout={layout} actions={actions} />
+    : <HistoryPage recovery={recovery} data={data} layout={layout} state={state} actions={actions} selectedResult={selectedResult} />;
 }
 
 function HistoryEmptyScreen({
+  recovery,
   data,
   layout,
   actions,
-}: Pick<Parameters<typeof HistoryContentView>[0], "data" | "layout" | "actions">) {
+}: Pick<Parameters<typeof HistoryContentView>[0], "recovery" | "data" | "layout" | "actions">) {
   const cloudStatus = <HistoryCloudStatus data={data} colors={layout.colors} onRetry={actions.onRetry} />;
   return (
     <SafeAreaView style={layout.styles.safeArea}>
@@ -490,6 +492,7 @@ function HistoryEmptyScreen({
         contentProps={centeredContentProps}
       >
         <HistoryHeader title="History" onBack={actions.onBack} showSortButton={false} sortDirection="desc" onOpenSortModal={noop} />
+        {recovery}
         {cloudStatus}
         <HistoryTabBar activeTabIndex={0} styles={layout.styles} colors={layout.colors}
           wideLayout={layout.wideLayout} onSwitchTab={actions.onSwitchTab} />
@@ -505,12 +508,14 @@ function HistoryEmptyScreen({
 }
 
 function HistoryPage({
+  recovery,
   data,
   layout,
   state,
   actions,
   selectedResult,
 }: {
+  recovery?: React.ReactNode;
   data: HistoryContentData;
   layout: HistoryLayout;
   state: HistoryViewState;
@@ -532,6 +537,7 @@ function HistoryPage({
           sortDirection={state.sortDirection}
           onOpenSortModal={actions.onOpenSort}
         />
+        {recovery}
         <HistoryCloudStatus data={data} colors={layout.colors} onRetry={actions.onRetry} />
         <TaskOverlay open={state.sortModalVisible} onClose={actions.onCloseSort} fallbackHref="/history">
           {({ open, dismiss, runAfterDismiss }) => <SortHistoryModal

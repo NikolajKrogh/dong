@@ -512,6 +512,40 @@ describe('History route state', () => {
   mockRouteParams.gameId='missing-device-game';const tree=renderHistoryScreen();
   expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(0);
   expect(mockReplace).toHaveBeenCalledWith({tab:undefined,friendId:undefined,gameId:undefined,sort:undefined,direction:undefined});
-  expect(tree.root.findAllByType(Text).some(node=>String(node.props.children).includes('unavailable on this device'))).toBe(true);
+  const shell = tree.root.findByProps({ testID: 'ShellScreen' });
+  expect(shell.findAllByType(Text).some(node=>String(node.props.children).includes('unavailable on this device'))).toBe(true);
+  expect(shell.findAll(node => node.props.label === 'Home' && node.props.href === '/').length).toBeGreaterThan(0);
+ });
+});
+
+
+describe('History restoration during a cloud fetch failure', () => {
+ beforeEach(() => {
+  jest.clearAllMocks();
+  for (const key of Object.keys(mockRouteParams)) delete mockRouteParams[key];
+  Object.assign(mockCloudState, { accountId: 'account-a', loading: false, error: 'Could not load cloud history' });
+ });
+ it('opens an available local detail despite the cloud error', () => {
+  mockRouteParams.gameId = 'g1';
+  const tree = renderHistoryScreen();
+  expect(tree.root.findAllByProps({ testID: 'GameDetailsModal' })).toHaveLength(1);
+  TestRenderer.act(() => tree.unmount());
+ });
+ it('keeps an unresolved ID until a successful fetch establishes availability', () => {
+  mockRouteParams.gameId = 'later-cloud-game';
+  const tree = renderHistoryScreen();
+  expect(tree.root.findAllByProps({ testID: 'GameDetailsModal' })).toHaveLength(0);
+  expect(tree.root.findAllByType(Text).some(node => String(node.props.children).includes('unavailable on this device'))).toBe(false);
+  expect(mockReplace).not.toHaveBeenCalledWith(expect.objectContaining({ gameId: undefined }));
+  const original = mockHistoryStore.history;
+  try {
+   mockHistoryStore.history = [...original, { ...original[0], id: 'later-cloud-game' }];
+   mockCloudState.error = null;
+   TestRenderer.act(() => tree.update(React.createElement(require('../../app/history').default)));
+   expect(tree.root.findAllByProps({ testID: 'GameDetailsModal' })).toHaveLength(1);
+  } finally {
+   mockHistoryStore.history = original;
+   TestRenderer.act(() => tree.unmount());
+  }
  });
 });
