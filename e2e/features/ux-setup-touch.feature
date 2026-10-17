@@ -15,9 +15,13 @@ Feature: Touch entry preserves the pending player while the keyboard changes vie
     Given an empty solo setup is open in a touch browser through direct
     And the touch setup player list contains <players> saved players
     When I tap the touch player input and type a pending name
-    And the touch keyboard reduces only the visual viewport
+    And the touch keyboard reduces only the visual viewport at offset <offset>
     Then trusted touch drags over the player list reveal Next without losing the input
     Examples:
-      | players |
-      | 0       |
-      | 20      |
+      | players | offset |
+      | 0       | 0      |
+      | 20      | 0      |
+      | 0       | 140    |
+      | 20      | 140    |
+      | 0       | 319    |
+      | 20      | 319    |

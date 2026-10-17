@@ -88,20 +88,27 @@ Given('the touch setup player list contains {int} saved players', async ({ page 
   await mobile.reload();
   await expect(mobile.getByRole('textbox', { name: 'Player name', exact: true })).toBeVisible();
 });
-When('the touch keyboard reduces only the visual viewport', async ({ page }) => {
+When('the touch keyboard reduces only the visual viewport at offset {int}', async ({ page }, offset: number) => {
   const mobile = touchPage(page);
   await mobile.evaluate(() => {
     if (!window.visualViewport) throw new Error('Visual viewport is unavailable');
     Object.defineProperty(window.visualViewport, 'height', { configurable: true, get: () => 304 });
+    Object.defineProperty(window.visualViewport, 'offsetTop', { configurable: true, get: () => 0 });
     window.visualViewport.dispatchEvent(new Event('resize'));
   });
   await expect(mobile.getByTestId('SetupWizardContent')).toHaveCSS('overflow-y', 'visible');
+  // Chrome can pan without another resize once the keyboard is open.
+  await mobile.evaluate(offset => {
+    Object.defineProperty(window.visualViewport, 'offsetTop', { configurable: true, get: () => offset });
+    window.visualViewport?.dispatchEvent(new Event('scroll'));
+  }, offset);
   await expect(mobile.getByRole('textbox', { name: 'Player name', exact: true })).toBeFocused();
   expect(await mobile.evaluate(() => innerHeight)).toBe(623);
   await expect.poll(async () => {
     const box = await mobile.getByTestId('SetupWizardPageScroll').boundingBox();
     return box ? box.y + box.height : Infinity;
-  }).toBeLessThanOrEqual(304);
+  }).toBeLessThanOrEqual(offset + 304);
+  await expect.poll(async () => (await mobile.getByTestId('SetupWizardPageScroll').boundingBox())?.y ?? -Infinity).toBeGreaterThanOrEqual(offset);
 });
 Then('trusted touch drags over the player list reveal Next without losing the input', async ({ page, $testInfo }) => {
   const mobile = touchPage(page);
@@ -112,6 +119,8 @@ Then('trusted touch drags over the player list reveal Next without losing the in
   }, { capture: true }));
   const session = await mobile.context().newCDPSession(mobile);
   const trace: object[] = [];
+  const visualTop = await mobile.evaluate(() => visualViewport?.offsetTop ?? 0);
+  const visualBottom = visualTop + 304;
   try {
     // Reveal the list with a real drag over the outer scrollport's unoccupied edge.
     const outerBox = await outer.boundingBox();
@@ -138,22 +147,23 @@ Then('trusted touch drags over the player list reveal Next without losing the in
       const after = await outer.evaluate(element => element.scrollTop);
       trace.push({ attempt, start, before, after });
       const next = await mobile.getByRole('button', { name: 'Next', exact: true }).boundingBox();
-      if (next && next.y >= 0 && next.y + next.height <= 304) break;
+      if (next && next.y >= visualTop && next.y + next.height <= visualBottom) break;
     }
     await expect(list).toHaveAttribute('data-ux-trusted-drag', 'true');
     const next = mobile.getByRole('button', { name: 'Next', exact: true });
     await expect(next).toBeInViewport({ ratio: 1 });
     const nextBox = await next.boundingBox();
-    expect(nextBox!.y + nextBox!.height).toBeLessThanOrEqual(304);
+    expect(nextBox!.y).toBeGreaterThanOrEqual(visualTop);
+    expect(nextBox!.y + nextBox!.height).toBeLessThanOrEqual(visualBottom);
     const input = mobile.getByRole('textbox', { name: 'Player name', exact: true });
     await expect(input).toHaveAttribute('data-ux-original-input', 'true');
     await expect(input).toBeFocused();
     await expect(input).toHaveValue('Touch pending player');
-    const evidence = { trace, innerHeight: await mobile.evaluate(() => innerHeight), visualHeight: await mobile.evaluate(() => visualViewport?.height), scrollOwner: await outer.evaluate(element => ({ top: element.scrollTop, clientHeight: element.clientHeight, contentHeight: element.scrollHeight })), next: nextBox };
+    const evidence = { trace, innerHeight: await mobile.evaluate(() => innerHeight), visualHeight: await mobile.evaluate(() => visualViewport?.height), visualTop, scrollOwner: await outer.evaluate(element => ({ top: element.scrollTop, clientHeight: element.clientHeight, contentHeight: element.scrollHeight })), next: nextBox };
     await writeFile($testInfo.outputPath('trusted-touch-scroll.json'), JSON.stringify(evidence));
     await $testInfo.attach('trusted-touch-scroll', { body: JSON.stringify(evidence), contentType: 'application/json' });
     const screenshot = $testInfo.outputPath('touch-scroll-next.png');
-    await mobile.screenshot({ path: screenshot });
+    await mobile.screenshot({ path: screenshot, clip: { x: 0, y: visualTop, width: 360, height: 304 }, scale: 'css' });
     await $testInfo.attach('touch-scroll-next', { path: screenshot, contentType: 'image/png' });
   } finally { await session.detach(); }
 });

@@ -100,14 +100,27 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     else setLocalStep(index);
   };
   const { width, height } = useWindowDimensions();
-  const pageScrollRef = useRef<ScrollView>(null);
+  const pageFrameRef = useRef<View>(null);
   const [pageTop, setPageTop] = useState(0);
+  const [viewportTop, setViewportTop] = useState(0);
   const measurePageTop = React.useCallback(() => {
-    pageScrollRef.current?.getNativeScrollRef()?.measureInWindow((_x, y) => setPageTop(y));
+    pageFrameRef.current?.measureInWindow((_x, y) => setPageTop(y));
   }, []);
   useEffect(() => {
     if (Platform.OS === "web") measurePageTop();
   }, [height, width, measurePageTop]);
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined" || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const updateOrigin = () => setViewportTop(Math.max(0, viewport.offsetTop));
+    updateOrigin();
+    viewport.addEventListener("resize", updateOrigin);
+    viewport.addEventListener("scroll", updateOrigin);
+    return () => {
+      viewport.removeEventListener("resize", updateOrigin);
+      viewport.removeEventListener("scroll", updateOrigin);
+    };
+  }, []);
   const scrollsAsPage = Platform.OS === "web" && height < 480;
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -307,16 +320,23 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   // Keep input ancestry stable when a web keyboard shrinks the viewport.
   // Only the active scroll owner changes; switching wrappers would blur/remount it.
   return Platform.OS === "web" ? (
-    <ScrollView
-      ref={pageScrollRef}
-      onLayout={measurePageTop}
-      testID="SetupWizardPageScroll"
-      style={[{ flex: 1 }, scrollsAsPage && { maxHeight: Math.max(0, height - pageTop) }, !scrollsAsPage && { overflow: "hidden" }]}
-      contentContainerStyle={scrollsAsPage ? { flexGrow: 1 } : { flex: 1 }}
-      keyboardShouldPersistTaps="handled"
-    >
-      {wizard}
-    </ScrollView>
+    <View ref={pageFrameRef} onLayout={measurePageTop} style={{ flex: 1 }}>
+      <ScrollView
+        testID="SetupWizardPageScroll"
+        style={[
+          { flex: 1 },
+          scrollsAsPage && {
+            marginTop: Math.max(0, viewportTop - pageTop),
+            maxHeight: Math.max(0, height - Math.max(0, pageTop - viewportTop)),
+          },
+          !scrollsAsPage && { overflow: "hidden" },
+        ]}
+        contentContainerStyle={scrollsAsPage ? { flexGrow: 1 } : { flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {wizard}
+      </ScrollView>
+    </View>
   ) : wizard;
 };
 
