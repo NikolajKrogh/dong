@@ -13,6 +13,7 @@ interface GameActionsSheetProps {
   onOpenChange: (open: boolean) => void;
   onHome: () => void;
   onBackToSetup: () => void;
+  configurationLabel?: string;
   onEndGame: () => void;
   onLeaveGame?: () => void;
   showLeaveGame?: boolean;
@@ -72,6 +73,7 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
   onOpenChange,
   onHome,
   onBackToSetup,
+  configurationLabel = "Setup",
   onEndGame,
   onLeaveGame,
   showLeaveGame,
@@ -146,7 +148,7 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
             <ActionRow
               icon="settings-outline"
               iconColor={colors.textMuted}
-              label="Setup"
+              label={configurationLabel}
               onPress={onBackToSetup}
               testID="FooterSetupButton"
             />

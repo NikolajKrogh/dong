@@ -330,6 +330,9 @@ describe("useGameProgressController (integration)", () => {
       getLatest().handleBackToSetup();
     });
     expect(mockPush).toHaveBeenCalledWith("/setupGame");
+    expect(getLatest().configurationLabel).toBe("Setup");
+    expect(getLatest().players).toHaveLength(2);
+    expect(getLatest().matches).toHaveLength(1);
 
     await TestRenderer.act(async () => {
       getLatest().openQuickActions("m1");

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 
 import { useLiveScores } from "./useLiveScores";
@@ -18,6 +18,7 @@ import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
 
 const useGameProgressController = () => {
   const router = useRouter();
+  const [isRoomStatusVisible, setRoomStatusVisible] = useState(false);
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
 
@@ -270,12 +271,24 @@ const useGameProgressController = () => {
     dispatchUi({ type: "setAlertVisible", visible: false });
   }, []);
 
+  const isMultiplayerContext = activeGameContext.mode === "multiplayer" || activeGame.isMultiplayer;
+  const configurationLabel = !isMultiplayerContext ? "Setup"
+    : activeGameContext.accessKind === "guest" ? "Room status" : "Room & configuration";
+
   const handleBackToSetup = useCallback(() => {
-    if (activeGame.isMultiplayer) {
-      clearActiveGameContext();
+    if (!isMultiplayerContext) {
+      router.push("/setupGame");
+      return;
     }
-    router.push("/setupGame");
-  }, [activeGame.isMultiplayer, clearActiveGameContext, router]);
+    if (activeGameContext.accessKind === "registered" && activeGameContext.sessionId
+      && activeGame.status !== "ended" && activeGame.status !== "access_lost") {
+      router.push({ pathname: "/lobby/[sessionId]", params: { sessionId: activeGameContext.sessionId } });
+      return;
+    }
+    setRoomStatusVisible(true);
+  }, [activeGame.status, activeGameContext.accessKind, activeGameContext.sessionId, isMultiplayerContext, router]);
+
+  const closeRoomStatus = useCallback(() => setRoomStatusVisible(false), []);
 
   const handleGoHome = useCallback(() => {
     const isTerminalRoom =
@@ -358,6 +371,9 @@ const useGameProgressController = () => {
     selectedMatchId,
     isQuickActionsVisible,
     refreshing,
+    configurationLabel,
+    isRoomStatusVisible,
+    closeRoomStatus,
     players,
     matches,
     commonMatchId: commonMatchId ?? "",

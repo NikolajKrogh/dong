@@ -8,6 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, YStack } from "tamagui";
 
 import EndGameModal from "../components/gameProgress/EndGameModal";
+import RoomStatusModal from "../components/gameProgress/RoomStatusModal";
 import { SuccessorChooserModal } from "../components/lobby/SuccessorChooserModal";
 import { ShellActionButton, ShellScreen } from "../components/ui";
 import FooterButtons from "../components/gameProgress/FooterButtons";
@@ -55,6 +56,9 @@ const GameProgressScreen = () => {
     handleGoalDecrement,
     cancelEndGame,
     confirmEndGame,
+    configurationLabel,
+    isRoomStatusVisible,
+    closeRoomStatus,
     activeGame: activeGameFromController,
   } = useGameProgressController();
   // Keep the route resilient to older test harnesses and persisted solo state
@@ -155,6 +159,7 @@ const GameProgressScreen = () => {
             <FooterButtons
               onHome={handleGoHome}
               onBackToSetup={handleBackToSetup}
+              configurationLabel={configurationLabel}
               onEndGame={handleEndGame}
               onLeaveGame={() => setLeaveConfirmVisible(true)}
               showLeaveGame={canLeave}
@@ -186,6 +191,12 @@ const GameProgressScreen = () => {
         isVisible={isAlertVisible}
         onCancel={cancelEndGame}
         onConfirm={confirmEndGame}
+      />
+
+      <RoomStatusModal
+        visible={isRoomStatusVisible ?? false}
+        onClose={closeRoomStatus}
+        activeGame={activeGame}
       />
 
       <GameDepartureModals departure={departure} isHost={activeGame.isHost} />

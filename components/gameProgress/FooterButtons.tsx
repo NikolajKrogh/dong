@@ -11,10 +11,11 @@ import GameActionsSheet from "./GameActionsSheet";
  * @interface
  */
 interface FooterButtonsProps {
-  /** Invoked before navigating Home so active multiplayer context is cleared. */
+  /** Invoked before navigating Home without ending participation. */
   onHome?: () => void;
   /** Invoked when user selects Back to Setup. */
   onBackToSetup: () => void;
+  configurationLabel?: string;
   /** Invoked when user selects End Game. */
   onEndGame: () => void;
   onLeaveGame?: () => void;
@@ -33,6 +34,7 @@ interface FooterButtonsProps {
 const FooterButtons: React.FC<FooterButtonsProps> = ({
   onHome,
   onBackToSetup,
+  configurationLabel = "Setup",
   onEndGame,
   onLeaveGame,
   showLeaveGame = false,
@@ -119,6 +121,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
     <View style={styles.container}>
       <GameActionsSheet
         onBackToSetup={goToSetup}
+        configurationLabel={configurationLabel}
         onEndGame={endGame}
         onLeaveGame={leaveGame}
         showLeaveGame={showLeaveGame}
