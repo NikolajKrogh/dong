@@ -3,6 +3,8 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { Platform } from 'react-native';
 import { ShellActionButton } from '../../../components/ui/ShellActionButton';
 
+jest.mock('expo-router', () => ({ Link: ({ children, href }: any) => require('react').cloneElement(children, { href }) }));
+
 jest.mock('tamagui', () => {
   const React = require('react');
   return {
@@ -32,5 +34,29 @@ it('maps accessibility props to ARIA on web and preserves native props on Androi
       }
       act(() => tree.unmount());
     }
+  } finally { Platform.OS = original; }
+});
+
+
+it('uses real web commands and destinations and cannot activate disabled actions', () => {
+  const original = Platform.OS;
+  Platform.OS = 'web';
+  try {
+    const onPress = jest.fn();
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => { tree = TestRenderer.create(<ShellActionButton label="Save" onPress={onPress} testID="save" />); });
+    const command = tree.root.findByType('button-frame' as React.ElementType);
+    expect(command.props.tag).toBe('button');
+    expect(command.props.type).toBe('button');
+    expect(command.props.testID).toBe('save');
+    act(() => command.props.onPress());
+    expect(onPress).toHaveBeenCalledTimes(1);
+    act(() => tree.update(<ShellActionButton href="/history" label="History" />));
+    expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ tag: 'a', href: '/history' });
+    act(() => tree.update(<ShellActionButton href="/history" label="History" disabled onPress={onPress} />));
+    expect(tree.root.findByType('button-frame' as React.ElementType).props).toMatchObject({ tag: 'button', disabled: true, 'aria-disabled': true });
+    expect(tree.root.findByType('button-frame' as React.ElementType).props.onPress).toBeUndefined();
+    expect(tree.root.findByType('button-frame' as React.ElementType).props.href).toBeUndefined();
+    act(() => tree.unmount());
   } finally { Platform.OS = original; }
 });

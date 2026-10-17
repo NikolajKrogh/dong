@@ -30,10 +30,10 @@ const Header: React.FC<HeaderProps> = ({ title, onBack }) => {
   return (
     <View style={{ backgroundColor: colors.surface }}>
       <View style={headerStyles.header}>
-        <TouchableOpacity onPress={onBack} style={headerStyles.backButton}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} style={headerStyles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.primary} />
         </TouchableOpacity>
-        <Text style={headerStyles.headerTitle}>{title}</Text>
+        <Text accessibilityRole="header" style={headerStyles.headerTitle}>{title}</Text>
       </View>
     </View>
   );

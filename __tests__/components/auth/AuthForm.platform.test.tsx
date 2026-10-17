@@ -86,8 +86,8 @@ jest.mock("tamagui", () => {
   const actual = jest.requireActual("tamagui") as object;
   return {
     ...actual,
-    Text: ({ children, onPress, testID }: any) =>
-      ReactLocal.createElement(RN.Text, { onPress, testID }, children),
+    Text: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.Text, props, children),
     XStack: ({ children, onPress, testID }: any) =>
       ReactLocal.createElement(RN.View, { onPress, testID }, children),
     YStack: ({ children, onPress, testID }: any) =>
@@ -168,4 +168,36 @@ describe("AuthForm", () => {
 
     tree.unmount();
   });
+});
+
+
+it('names fields and distinguishes sign-in from registration autofill', () => {
+  const tree = actCreate(React.createElement(TestSubject));
+  const { TextInput } = require('react-native');
+  let inputs = tree.root.findAllByType(TextInput);
+  expect(inputs.map((node) => node.props.accessibilityLabel)).toEqual(['Email address', 'Password']);
+  expect(inputs.map((node) => node.props.autoComplete)).toEqual(['username', 'current-password']);
+  const createTab = tree.root.findAll((node) => node.props.active === false && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => createTab.props.onPress());
+  inputs = tree.root.findAllByType(TextInput);
+  expect(inputs.map((node) => node.props.accessibilityLabel)).toEqual(['Display name', 'Email address', 'Password', 'Confirm password']);
+  expect(inputs.map((node) => node.props.autoComplete)).toEqual(['nickname', 'email', 'new-password', 'new-password']);
+  const toggle = tree.root.findAll((node) => node.props.accessibilityLabel === 'Show password' && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => toggle.props.onPress());
+  expect(tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Password')?.props.secureTextEntry).toBe(false);
+  TestRenderer.act(() => tree.unmount());
+});
+
+it('announces password mismatch and associates it with confirmation', () => {
+  const tree = actCreate(React.createElement(TestSubject));
+  const createTab = tree.root.findAll((node) => node.props.active === false && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => createTab.props.onPress());
+  const { TextInput } = require('react-native');
+  const password = tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Password')!;
+  TestRenderer.act(() => password.props.onChangeText('one-password'));
+  const submit = tree.root.findAll((node) => typeof node.props.label === 'string' && node.props.label.startsWith('Create account') && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => submit.props.onPress());
+  expect(tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Confirm password')?.props).toMatchObject({ 'aria-invalid': true, 'aria-describedby': 'auth-form-error' });
+  expect(tree.root.findAll((node) => node.props.nativeID === 'auth-form-error' && node.props.role === 'alert').length).toBeGreaterThan(0);
+  TestRenderer.act(() => tree.unmount());
 });

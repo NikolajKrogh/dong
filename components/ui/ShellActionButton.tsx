@@ -1,4 +1,5 @@
 import React from "react";
+import { Link, type Href } from "expo-router";
 import { Platform } from "react-native";
 import { GetProps, Text, XStack, styled } from "tamagui";
 
@@ -7,7 +8,16 @@ const ShellActionButtonFrame = styled(XStack, {
   justifyContent: "center",
   gap: "$2",
   width: "100%",
-  minWidth: 0,
+  minWidth: 44,
+  minHeight: 44,
+  borderWidth: 0,
+  cursor: "pointer",
+  focusVisibleStyle: {
+    outlineWidth: 2,
+    outlineStyle: "solid",
+    outlineColor: "$primaryFocus",
+    outlineOffset: 3,
+  },
   paddingVertical: "$3",
   paddingHorizontal: "$4",
   borderRadius: "$3",
@@ -99,28 +109,39 @@ type ShellActionButtonProps = GetProps<typeof ShellActionButtonFrame> & {
   label?: string;
   icon?: React.ReactNode;
   onPress?: () => void;
+  href?: Href;
 };
 
 export function ShellActionButton({
   label,
   icon,
   onPress,
+  href,
   variant,
   accessibilityLabel,
   accessibilityState,
   ...props
 }: ShellActionButtonProps) {
+  const disabled = Boolean(props.disabled || accessibilityState?.disabled);
   const accessibilityProps = Platform.OS === "web" ? {
     "aria-label": accessibilityLabel,
-    "aria-disabled": accessibilityState?.disabled ?? props.disabled,
+    "aria-disabled": disabled,
     "aria-expanded": accessibilityState?.expanded,
     "aria-selected": accessibilityState?.selected,
     "aria-checked": accessibilityState?.checked,
     "aria-busy": accessibilityState?.busy,
-  } : { accessibilityLabel, accessibilityState };
-  return (
-    <ShellActionButtonFrame variant={variant} onPress={onPress} {...props} {...accessibilityProps}>
-      {icon}
+  } : { accessibilityLabel, accessibilityRole: href ? "link" as const : "button" as const, accessibilityState: disabled ? { ...accessibilityState, disabled: true } : accessibilityState };
+  const button = (
+    <ShellActionButtonFrame
+      {...props}
+      variant={variant}
+      {...(Platform.OS === "web" ? { tag: href && !disabled ? "a" : "button" } : {})}
+      {...(Platform.OS === "web" && (!href || disabled) ? { type: "button" as const } : {})}
+      {...accessibilityProps}
+      disabled={disabled}
+      onPress={disabled ? undefined : onPress}
+    >
+      {icon ? <XStack aria-hidden={Platform.OS === "web" ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
       {label ? (
         <ShellActionButtonLabel surfaceText={variant === "surface"}>
           {label}
@@ -128,4 +149,5 @@ export function ShellActionButton({
       ) : null}
     </ShellActionButtonFrame>
   );
+  return href && !disabled ? <Link href={href} asChild>{button}</Link> : button;
 }

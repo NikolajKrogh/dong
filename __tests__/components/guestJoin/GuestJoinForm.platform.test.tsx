@@ -47,6 +47,7 @@ describe("GuestJoinForm", () => {
     expect(textContents).toContain("Guest Name");
     expect(textContents).toContain("Join Room");
     expect(inputs).toHaveLength(2);
+    expect(inputs.map((node: any) => node.props.autoComplete)).toEqual(["off", "nickname"]);
 
     tree.unmount();
   });
@@ -80,6 +81,7 @@ describe("GuestJoinForm", () => {
     button.props.onPress();
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAll((node: any) => node.props.nativeID === "guest-join-error" && node.props.role === "alert").length).toBeGreaterThan(0);
     expect(textContents).toContain(
       "We couldn't find that room. Check the code and try again.",
     );

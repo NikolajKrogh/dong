@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { type Href, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -41,6 +42,9 @@ const TabPill = styled(XStack, {
   borderRadius: "$3",
   pressStyle: { opacity: 0.8 },
   cursor: "pointer",
+  minHeight: 44,
+  borderWidth: 0,
+  focusVisibleStyle: { outlineWidth: 2, outlineStyle: "solid", outlineColor: "$primaryFocus", outlineOffset: 2 },
   variants: {
     active: {
       true: {
@@ -71,7 +75,7 @@ const AuthStatusCard = ({
   <ShellCard elevated>
     <YStack gap="$4">
       <YStack gap="$2">
-        <Text fontSize={22} fontWeight="700" color="$textPrimary">
+        <Text accessibilityRole="header" fontSize={22} fontWeight="700" color="$textPrimary">
           {title}
         </Text>
         <Text fontSize={15} color="$textSecondary">
@@ -140,6 +144,11 @@ const SignupVerificationPanel = ({
         </Text>
         <TextInput
           ref={otpInputRef}
+          accessibilityLabel="Verification code"
+          autoComplete="one-time-code"
+          textContentType="oneTimeCode"
+          aria-describedby={errorMessage ? "auth-verification-error" : undefined}
+          aria-invalid={Boolean(errorMessage)}
           autoFocus
           keyboardType="number-pad"
           maxLength={6}
@@ -154,7 +163,7 @@ const SignupVerificationPanel = ({
       </YStack>
 
       {errorMessage ? (
-        <Text fontSize={14} color="$danger">
+        <Text nativeID="auth-verification-error" role="alert" accessibilityLiveRegion="polite" fontSize={14} color="$danger">
           {errorMessage}
         </Text>
       ) : null}
@@ -167,26 +176,10 @@ const SignupVerificationPanel = ({
       />
 
       <YStack gap="$2" alignItems="center">
-        <Text
-          fontSize={14}
-          color="$primary"
-          fontWeight="600"
-          pressStyle={{ opacity: 0.7 }}
-          onPress={() => {
-            if (!isSubmitting) onResend();
-          }}
-        >
-          Didn&apos;t receive it? Resend
-        </Text>
-        <Text
-          fontSize={14}
-          color="$primary"
-          fontWeight="600"
-          pressStyle={{ opacity: 0.7 }}
-          onPress={onUseDifferentEmail}
-        >
-          Use a different email?
-        </Text>
+        <ShellActionButton variant="surface" size="small" widthMode="fit"
+          disabled={isSubmitting} label="Didn't receive it? Resend" onPress={onResend} />
+        <ShellActionButton variant="surface" size="small" widthMode="fit"
+          label="Use a different email?" onPress={onUseDifferentEmail} />
       </YStack>
     </AuthStatusCard>
   );
@@ -247,6 +240,9 @@ const DisplayNameField = ({
       </XStack>
       <TextInput
         ref={inputRef}
+        accessibilityLabel="Display name"
+        autoComplete="nickname"
+        textContentType="nickname"
         autoCapitalize="words"
         autoCorrect={false}
         placeholder="Your name"
@@ -262,6 +258,8 @@ const DisplayNameField = ({
 };
 
 const EmailAddressField = ({
+  mode,
+  errorMessage,
   value,
   onChange,
   onSubmitEditing,
@@ -269,6 +267,8 @@ const EmailAddressField = ({
   colors,
   inputStyle,
 }: AuthFieldProps & {
+  mode: AuthMode;
+  errorMessage: string | null;
   value: string;
   onChange: (value: string) => void;
   onSubmitEditing: () => void;
@@ -283,6 +283,10 @@ const EmailAddressField = ({
     </XStack>
     <TextInput
       ref={inputRef}
+      accessibilityLabel="Email address"
+      autoComplete={mode === "signIn" ? "username" : "email"}
+      textContentType={mode === "signIn" ? "username" : "emailAddress"}
+      aria-describedby={errorMessage ? "auth-form-error" : undefined}
       autoCapitalize="none"
       autoCorrect={false}
       keyboardType="email-address"
@@ -299,6 +303,7 @@ const EmailAddressField = ({
 
 const PasswordField = ({
   mode,
+  errorMessage,
   value,
   onChange,
   visible,
@@ -311,6 +316,7 @@ const PasswordField = ({
   inputStyle,
 }: AuthFieldProps & {
   mode: AuthMode;
+  errorMessage: string | null;
   value: string;
   onChange: (value: string) => void;
   visible: boolean;
@@ -333,20 +339,17 @@ const PasswordField = ({
         </Text>
       </XStack>
       {mode === "signIn" ? (
-        <Text
-          fontSize={13}
-          color="$primary"
-          fontWeight="600"
-          pressStyle={{ opacity: 0.7 }}
-          onPress={onForgotPassword}
-        >
-          Forgot yours?
-        </Text>
+        <ShellActionButton variant="surface" size="small" widthMode="fit"
+          label="Forgot yours?" onPress={onForgotPassword} />
       ) : null}
     </XStack>
     <XStack position="relative" alignItems="center">
       <TextInput
         ref={inputRef}
+        accessibilityLabel="Password"
+        autoComplete={mode === "signIn" ? "current-password" : "new-password"}
+        textContentType={mode === "signIn" ? "password" : "newPassword"}
+        aria-describedby={errorMessage ? "auth-form-error" : undefined}
         autoCapitalize="none"
         autoCorrect={false}
         placeholder={mode === "signUp" ? "Create a password" : "Enter your password"}
@@ -365,8 +368,10 @@ const PasswordField = ({
         }}
       />
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={visible ? "Hide password" : "Show password"}
         onPress={onToggleVisibility}
-        style={{ position: "absolute", right: 12 }}
+        style={{ position: "absolute", right: 0, minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}
       >
         <Ionicons
           name={visible ? "eye-off-outline" : "eye-outline"}
@@ -379,6 +384,7 @@ const PasswordField = ({
 );
 
 const ConfirmPasswordField = ({
+  errorMessage,
   visible,
   value,
   onChange,
@@ -389,6 +395,7 @@ const ConfirmPasswordField = ({
   colors,
   inputStyle,
 }: AuthFieldProps & {
+  errorMessage: string | null;
   visible: boolean;
   value: string;
   onChange: (value: string) => void;
@@ -414,6 +421,11 @@ const ConfirmPasswordField = ({
       <XStack position="relative" alignItems="center">
         <TextInput
           ref={inputRef}
+          accessibilityLabel="Confirm password"
+          autoComplete="new-password"
+          textContentType="newPassword"
+          aria-describedby={errorMessage ? "auth-form-error" : undefined}
+          aria-invalid={errorMessage === "Passwords don't match."}
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="Re-enter password"
@@ -426,8 +438,10 @@ const ConfirmPasswordField = ({
           onSubmitEditing={onSubmit}
         />
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={passwordVisible ? "Hide confirm password" : "Show confirm password"}
           onPress={onToggleVisibility}
-          style={{ position: "absolute", right: 12 }}
+          style={{ position: "absolute", right: 0, minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}
         >
           <Ionicons
             name={passwordVisible ? "eye-off-outline" : "eye-outline"}
@@ -449,7 +463,7 @@ const AuthFormFeedback = ({
 }) => (
   <>
     {errorMessage ? (
-      <Text fontSize={14} color="$danger">
+      <Text nativeID="auth-form-error" role="alert" accessibilityLiveRegion="polite" fontSize={14} color="$danger">
         {errorMessage}
       </Text>
     ) : null}
@@ -512,6 +526,9 @@ const AuthCredentialsForm = ({
       <YStack gap="$4">
         <TabContainer>
           <TabPill
+            {...(Platform.OS === "web" ? { tag: "button", type: "button" } : {})}
+            accessibilityRole="button"
+            aria-pressed={mode === "signIn"}
             active={mode === "signIn"}
             onPress={() => onModeChange("signIn")}
           >
@@ -524,6 +541,9 @@ const AuthCredentialsForm = ({
             </Text>
           </TabPill>
           <TabPill
+            {...(Platform.OS === "web" ? { tag: "button", type: "button" } : {})}
+            accessibilityRole="button"
+            aria-pressed={mode === "signUp"}
             active={mode === "signUp"}
             onPress={() => onModeChange("signUp")}
           >
@@ -552,6 +572,8 @@ const AuthCredentialsForm = ({
         />
 
         <EmailAddressField
+          mode={mode}
+          errorMessage={errorMessage}
           value={email}
           onChange={setEmail}
           onSubmitEditing={() => passwordInputRef.current?.focus()}
@@ -562,6 +584,7 @@ const AuthCredentialsForm = ({
 
         <PasswordField
           mode={mode}
+          errorMessage={errorMessage}
           value={password}
           onChange={setPassword}
           visible={showPassword}
@@ -575,6 +598,7 @@ const AuthCredentialsForm = ({
         />
 
         <ConfirmPasswordField
+          errorMessage={errorMessage}
           visible={mode === "signUp"}
           value={confirmPassword}
           onChange={setConfirmPassword}

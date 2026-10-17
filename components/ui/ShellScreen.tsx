@@ -1,5 +1,9 @@
-import React from "react";
+import React, { createContext, useContext } from "react";
+import { Platform } from "react-native";
+
 import { GetProps, YStack, styled } from "tamagui";
+
+const MainContentContext = createContext(false);
 
 const ShellScreenFrame = styled(YStack, {
   flex: 1,
@@ -50,13 +54,16 @@ export function ShellScreen({
   contentProps,
   ...props
 }: ShellScreenProps) {
+  const insideMain = useContext(MainContentContext);
   return (
-    <ShellScreenFrame {...props}>
+    <MainContentContext.Provider value={true}>
+    <ShellScreenFrame {...(Platform.OS === "web" && !insideMain ? { tag: "main" } : {})} {...props}>
       <ShellScreenViewport centered={centerContent}>
         <ShellScreenContent maxWidth={contentMaxWidth} {...contentProps}>
           {children}
         </ShellScreenContent>
       </ShellScreenViewport>
     </ShellScreenFrame>
+    </MainContentContext.Provider>
   );
 }
