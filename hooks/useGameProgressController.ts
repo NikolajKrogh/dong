@@ -287,8 +287,10 @@ const useGameProgressController = () => {
   }, []);
 
   const isMultiplayerContext = activeGameContext.mode === "multiplayer" || activeGame.isMultiplayer;
-  const configurationLabel = !isMultiplayerContext ? "Setup"
-    : activeGameContext.accessKind === "guest" ? "Room status" : "Room & configuration";
+  let configurationLabel = "Setup";
+  if (isMultiplayerContext) {
+    configurationLabel = activeGameContext.accessKind === "guest" ? "Room status" : "Room & configuration";
+  }
 
   const handleBackToSetup = useCallback(() => {
     if (!isMultiplayerContext) {

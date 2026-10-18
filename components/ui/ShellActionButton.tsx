@@ -124,8 +124,10 @@ export function ShellActionButton({
   ...props
 }: ShellActionButtonProps) {
   const disabled = Boolean(props.disabled || accessibilityState?.disabled);
-  const accessibilityProps = Platform.OS === "web" ? {
-    role: props.role ?? (accessibilityRole as Role | undefined) ?? (href && !disabled ? "link" as const : "button" as const),
+  const isWeb = Platform.OS === "web";
+  const linkHref = disabled ? undefined : href;
+  const accessibilityProps = isWeb ? {
+    role: props.role ?? (accessibilityRole as Role | undefined) ?? (linkHref ? "link" as const : "button" as const),
     "aria-label": accessibilityLabel,
     "aria-disabled": disabled,
     "aria-expanded": accessibilityState?.expanded,
@@ -137,19 +139,19 @@ export function ShellActionButton({
     <ShellActionButtonFrame
       {...props}
       variant={variant}
-      {...(Platform.OS === "web" ? { render: href && !disabled ? <a style={{ textDecoration: "none" }} /> : <button type="button" /> } : {})}
-      {...(Platform.OS === "web" && (!href || disabled) ? { type: "button" as const } : {})}
+      {...(isWeb ? { render: linkHref ? <a style={{ textDecoration: "none" }} /> : <button type="button" /> } : {})}
+      {...(isWeb && !linkHref ? { type: "button" as const } : {})}
       {...accessibilityProps}
       disabled={disabled}
       onPress={disabled ? undefined : onPress}
     >
-      {icon ? <XStack aria-hidden={Platform.OS === "web" ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
+      {icon ? <XStack aria-hidden={isWeb ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
       {label ? (
-        <ShellActionButtonLabel fontFamily={Platform.OS === "web" ? "system-ui" : undefined} surfaceText={variant === "surface"}>
+        <ShellActionButtonLabel fontFamily={isWeb ? "system-ui" : undefined} surfaceText={variant === "surface"}>
           {label}
         </ShellActionButtonLabel>
       ) : null}
     </ShellActionButtonFrame>
   );
-  return href && !disabled ? <Link href={href} asChild>{button}</Link> : button;
+  return linkHref ? <Link href={linkHref} asChild>{button}</Link> : button;
 }

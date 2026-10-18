@@ -6,7 +6,7 @@ import { actCreate } from "../../../test-utils/render";
 import { TaskOverlay as WebOverlay } from "../../../platform/navigation/TaskOverlay.web";
 import { TaskOverlay as NativeOverlay } from "../../../platform/navigation/TaskOverlay.native";
 import { getTaskOverlay } from "../../../platform/navigation/taskOverlayRegistry";
-import { returnToParent, hasTaskOverlayOwner } from "../../../platform/navigation/taskNavigation.shared";
+import { hasTaskOverlayOwner } from "../../../platform/navigation/taskNavigation.shared";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 import TaskOverlayRoute from "../../../app/taskOverlay";
 
@@ -38,14 +38,6 @@ describe("focused task navigation", () => {
   it("finds a caller inside Expo's root wrapper instead of treating it as an expired panel", () => {
     expect(hasTaskOverlayOwner({ routes: [{ key: "__root", state: { routes: [{ key: "game" }] } }] }, "game")).toBe(true);
     expect(hasTaskOverlayOwner({ routes: [{ key: "__root", state: { routes: [{ key: "other" }] } }] }, "game")).toBe(false);
-  });
-
-  it("uses only the in-app stack for explicit parent return", () => {
-    returnToParent(mockRouter, "/history");
-    expect(mockRouter.back).toHaveBeenCalledTimes(1);
-    mockRouter.canGoBack.mockReturnValue(false);
-    returnToParent(mockRouter, "/history");
-    expect(mockRouter.replace).toHaveBeenCalledWith("/history");
   });
 
   it("keeps the caller and current closure while the router owns Back, Close and Forward", async () => {

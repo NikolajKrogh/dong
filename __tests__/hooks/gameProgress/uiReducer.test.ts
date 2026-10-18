@@ -7,15 +7,6 @@ import {
 } from "../../../hooks/gameProgress/uiReducer";
 
 describe("gameProgressUiReducer", () => {
-  it("setActiveTab switches the active tab", () => {
-    const next = gameProgressUiReducer(initialGameProgressUiState, {
-      type: "setActiveTab",
-      tab: "players",
-    });
-
-    expect(next.activeTab).toBe("players");
-  });
-
   it("setAlertVisible toggles the alert flag", () => {
     const next = gameProgressUiReducer(initialGameProgressUiState, {
       type: "setAlertVisible",

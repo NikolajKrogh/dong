@@ -1,7 +1,7 @@
 /**
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
-import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -40,7 +40,6 @@ import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";
 import { useStoreHydration } from "../utils/navigation/useStoreHydration";
 import { useNavigationReady } from "../utils/navigation/useNavigationReady";
-import { useRouteFocused } from "../utils/navigation/useRouteFocused";
 import { TaskOverlay } from "../platform/navigation/taskNavigation";
 import { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from "../platform/navigation/detailEntry";
 import { historyParams, parseHistoryState, sameViewParams, withViewParams, type HistoryRouteState, type RouteParams } from "../utils/navigation/viewState";
@@ -185,7 +184,7 @@ interface HistoryContentProps extends HistoryScreenState {
 }
 
 const HistoryContent = ({ initialTarget, route, params, ...historyState }: HistoryContentProps) => {
-  const routeFocused = useRouteFocused();
+  const routeFocused = useIsFocused();
   const router = useRouter();
   const navigationReady = useNavigationReady();
   const navigation = useNavigation();
@@ -322,7 +321,8 @@ const HistoryContent = ({ initialTarget, route, params, ...historyState }: Histo
 
   const onSortChange = useCallback((field: HistorySortField) => {
     dispatch({ type: "changeSort", field });
-    navigateView({ ...route, sort: field, direction: field === sortField ? sortDirection === "desc" ? "asc" : "desc" : "desc" }, true);
+    const direction = field === sortField && sortDirection === "desc" ? "asc" : "desc";
+    navigateView({ ...route, sort: field, direction }, true);
   }, [route, sortField, sortDirection, navigateView]);
   const onSwitchTab = useCallback((index: number) => {
     navigateView({ ...route, tab: ["games", "players", "stats"][index] as HistoryRouteState["tab"], friendId: index === 2 ? statsTargetId : "", gameId: "" });

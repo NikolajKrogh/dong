@@ -1,4 +1,3 @@
-import type { Href, useRouter } from "expo-router";
 import type { ReactNode } from "react";
 
 export type TaskOverlayFallback = "/" | "/history" | "/gameProgress" | "/userPreferences/leagues";
@@ -13,11 +12,6 @@ export interface TaskOverlayProps {
   fallbackHref: TaskOverlayFallback;
   returnFocusId?: string;
   children: (controls: TaskOverlayControls) => ReactNode;
-}
-
-export function returnToParent(router: Pick<ReturnType<typeof useRouter>, "canGoBack" | "back" | "replace">, fallback: Href) {
-  if (router.canGoBack()) router.back();
-  else router.replace(fallback);
 }
 
 export function normalizeOverlayFallback(value: unknown): TaskOverlayFallback {

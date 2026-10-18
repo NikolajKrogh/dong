@@ -1,7 +1,4 @@
-type GameProgressTab = "matches" | "players";
-
 export interface GameProgressUiState {
-  activeTab: GameProgressTab;
   isAlertVisible: boolean;
   selectedMatchId: string | null;
   isQuickActionsVisible: boolean;
@@ -9,14 +6,12 @@ export interface GameProgressUiState {
 }
 
 export type GameProgressUiAction =
-  | { type: "setActiveTab"; tab: GameProgressTab }
   | { type: "setAlertVisible"; visible: boolean }
   | { type: "openQuickActions"; matchId: string }
   | { type: "closeQuickActions" }
   | { type: "setRefreshing"; refreshing: boolean };
 
 export const initialGameProgressUiState: GameProgressUiState = {
-  activeTab: "matches",
   isAlertVisible: false,
   selectedMatchId: null,
   isQuickActionsVisible: false,
@@ -28,8 +23,6 @@ export const gameProgressUiReducer = (
   action: GameProgressUiAction,
 ): GameProgressUiState => {
   switch (action.type) {
-    case "setActiveTab":
-      return { ...state, activeTab: action.tab };
     case "setAlertVisible":
       return { ...state, isAlertVisible: action.visible };
     case "openQuickActions":

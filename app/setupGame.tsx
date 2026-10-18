@@ -63,28 +63,36 @@ const SetupGameScreen = () => {
   const canAdvanceToMatches = players.length > 0 || !!newPlayerName.trim();
   const canAdvanceToCommonMatch = matches.length > 0;
   const canAdvanceToAssign = matches.length >= 1 && commonMatchId !== null;
+  const resolveSetupStep = React.useCallback((requested: SoloStep): SoloStep => {
+    return resolveStep(requested, SOLO_STEPS, [
+      true,
+      players.length > 0,
+      matches.length > 0,
+      matches.length > 0 && matches.some(match => match.id === commonMatchId),
+    ]);
+  }, [players.length, matches, commonMatchId]);
   const routeRequest = JSON.stringify(params.step ?? null);
   useEffect(() => {
     if (!navigationReady || !hydrated || restoredRequest.current === routeRequest) return;
     restoredRequest.current = routeRequest;
     pendingStep.current = null;
-    const step = resolveStep(requestedStep, SOLO_STEPS, [true, players.length > 0, matches.length > 0, matches.length > 0 && matches.some(match => match.id === commonMatchId)]);
+    const step = resolveSetupStep(requestedStep);
     setActiveStep(step);
     // Route restoration is an external navigation event, independent of live prerequisites.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (step !== requestedStep) setRestoreNotice("Complete this step before continuing your setup.");
     const canonical = withViewParams(params, { step: step === "players" ? undefined : step });
     if (!sameViewParams(params, canonical)) router.setParams({ step: step === "players" ? undefined : step });
-  }, [navigationReady, hydrated, routeRequest, requestedStep, params, players.length, matches, commonMatchId, router]);
+  }, [navigationReady, hydrated, routeRequest, requestedStep, params, resolveSetupStep, router]);
   const changeStep = (key: string) => {
-    const step = resolveStep(key as SoloStep, SOLO_STEPS, [true, players.length > 0, matches.length > 0, matches.length > 0 && matches.some(match => match.id === commonMatchId)]);
+    const step = resolveSetupStep(key as SoloStep);
     if (step === activeStep || step === pendingStep.current) return;
     pendingStep.current = step;
     setRestoreNotice("");
     router.push({ pathname: "/setupGame", params: withViewParams(params, { step: step === "players" ? undefined : step }) });
   };
   const backStep = (key: string) => {
-    const step = resolveStep(key as SoloStep, SOLO_STEPS, [true, players.length > 0, matches.length > 0, matches.length > 0 && matches.some(match => match.id === commonMatchId)]);
+    const step = resolveSetupStep(key as SoloStep);
     setRestoreNotice("");
     const stack = navigation.getState();
     const previous = stack?.routes[(stack.index ?? 0) - 1];

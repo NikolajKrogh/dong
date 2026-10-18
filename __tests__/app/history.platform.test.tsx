@@ -17,7 +17,6 @@ const mockRefresh = jest.fn();
 const mockCloudState = { accountId: "account-a" as string | null, loading: false, error: null as string | null };
 const mockRouteParams: Record<string, string | string[] | undefined> = {};
 let mockHistoryFocused = true;
-jest.mock('../../utils/navigation/useRouteFocused', () => ({ useRouteFocused: () => mockHistoryFocused }));
 const mockFriendPagination = {
   enabled: true,
   id: "account-a",
@@ -87,6 +86,7 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 jest.mock("expo-router", () => ({
+  useIsFocused: () => mockHistoryFocused,
   useRouter: () => ({ back: mockGoBack, canGoBack: () => true, push: mockPush, replace: mockReplace, setParams: mockReplace }),
   useNavigation: () => ({ getState: () => ({ routes: [{name:"history",params:{}},{name:"history",params:mockRouteParams}], index: 1 }) }),
   useLocalSearchParams: () => mockRouteParams,
