@@ -49,8 +49,6 @@ Feature: Application Shell Launch
     And the "Appearance" action should be visible
     And the "Sound & notifications" action should be visible
     And the "Leagues" action should be visible
-    And the "History import" action should be visible
-    And the "View onboarding" action should be visible
 
   Scenario: Setup flow stays usable on a phone-sized viewport
     Given the browser viewport is phone-sized

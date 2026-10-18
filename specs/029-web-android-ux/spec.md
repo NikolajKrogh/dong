@@ -8,7 +8,7 @@
 
 ## Context and scope
 
-The [mobile web audit](../../docs/mobile-web-ux-audit-2026-10-16.md) and [navigation audit](../../docs/navigation-audit-2026-10-16.md) record inconsistent Back behavior, lost task position, game-mode changes during navigation, inaccessible controls, compact-screen overlap and hidden destinations. Their evidence distinctions remain authoritative: source-only risks are not runtime-confirmed failures; a general scroll trap is not yet proven.
+The initial audit identified inconsistent Back behavior, lost task position, game-mode changes during navigation, inaccessible controls, compact-screen overlap and hidden destinations. The user subsequently requested removing the new audit documents and screenshots from `docs/`. Validation history and remaining acceptance limitations are recorded in `validation.md`; source-only risks are not runtime-confirmed failures.
 
 Six independently testable stories fit within the five proposed delivery changes. Web and Android share outcomes; web additionally requires meaningful addresses and refresh/Back/Forward behavior. Native iOS release work is excluded; mobile website responsiveness is not restricted to Android browsers.
 

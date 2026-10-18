@@ -29,7 +29,7 @@ Owner A. Independent outcome: configuration/status navigation preserves solo/reg
 - [x] T006 [US1] Extend __tests__/hooks/useGameProgressController.multiplayer.test.ts and __tests__/hooks/useGameProgressController.test.ts for solo/host/member/guest, hydration/ended/access-lost destinations and absence of navigation-triggered mutations.
 - [x] T007 [US1] Correct context-aware configuration/status behavior in hooks/useGameProgressController.ts without clearing a live multiplayer context or changing guest authorization.
 - [x] T008 [US1] Wire accurate labels and guest read-only status through app/gameProgress.tsx and components/gameProgress/GameActionsSheet.tsx; extend __tests__/components/gameProgress/GameActionsSheet.platform.test.tsx for permission/status states.
-- [x] T009 [US1] Add the primary mode-preservation BDD journey in e2e/features/ux-game-context.feature and e2e/steps/ux-game-context.steps.ts using existing fixture helpers and unique steps.
+- [x] T009 [US1] Retain mode-preservation unit/component tests; the core solo configuration browser journey is in e2e/features/web-navigation.feature. The broad role E2E matrix was removed at the user's request.
 - [x] T010 [US1] Add verified game-context Android scenarios to scripts/android/run-ux-journeys.ps1 through coordinator-owned integration; record web/native evidence in specs/029-web-android-ux/validation.md.
 
 ## Phase 4: US2 — Back, child return and recovery
@@ -43,7 +43,7 @@ B can implement Friends-only work alongside A US1 and C shared US4. A owns adapt
 - [x] T015 [US2] Integrate Game actions/empty-game recovery and safe Home/resume behavior in components/gameProgress/FooterButtons.tsx and app/gameProgress.tsx; extend __tests__/components/gameProgress/FooterButtons.platform.test.tsx and controller coverage.
 - [x] T016 [US2] Add explicit non-destructive lobby Home distinct from terminal goHome in app/lobby/[sessionId].tsx; extend __tests__/app/lobby/lobbyInProgress.platform.test.tsx to preserve re-entry, start discrimination and no leave/end commands.
 - [x] T017 [US2] Coordinator integrates B-owned History and A-owned default-league overlay close/fallback behavior in components/history/HistoryModalFrame.tsx, app/history.tsx and components/preferences/SelectDefaultLeaguesModal.tsx and app/userPreferences/leagues.tsx; extend __tests__/components/history/HistoryModalWeb.test.tsx and relevant preferences tests, after A adapter handoff.
-- [x] T018 [US2] Add primary Back/Requests/direct-entry/Home-cycle web coverage in e2e/features/ux-back-return.feature and e2e/steps/ux-back-return.steps.ts; assert three cycles and browser exit behavior.
+- [x] T018 [US2] Retain navigation adapter and Friends return unit/component coverage; keep only the core browser Back journey in e2e/features/web-navigation.feature. Remove repeated Home cycles and recovery E2E permutations.
 - [x] T019 [US2] Add verified back-return Android scenarios through coordinator edits to scripts/android/run-ux-journeys.ps1; record signed-in/out and native/web overlay evidence in specs/029-web-android-ux/validation.md.
 
 ## Phase 5: US3 — Route-backed task position
@@ -56,7 +56,7 @@ Owner B; coordinator alone updates lobby caller after A releases it. B owns all 
 - [x] T023 [US3] Integrate solo step route state in app/setupGame.tsx and __tests__/app/setupGame.platform.test.tsx with hydration-safe prerequisite recovery and at-most-once pending player advancement.
 - [x] T024 [US3] Integrate History tab/target/sort/detail route state in app/history.tsx and __tests__/app/history.platform.test.tsx; preserve identity remount/privacy fencing and safe unavailable/local-only detail recovery.
 - [x] T025 [US3] After A/B commits integrate, coordinator wires lobby step route state in app/lobby/[sessionId].tsx and __tests__/app/lobby/lobbyWizard.platform.test.tsx; preserve in-progress status and no polling-forced jumps.
-- [x] T026 [US3] Add refresh/Back/Forward/malformed-route/account-boundary BDD journeys in e2e/features/ux-route-state.feature and e2e/steps/ux-route-state.steps.ts.
+- [x] T026 [US3] Retain route parsing, view-state and detail-entry unit/component tests; cover Back/refresh only through the core browser journey in e2e/features/web-navigation.feature.
 - [x] T027 [US3] Add verified route-state Android scenarios through coordinator edits to scripts/android/run-ux-journeys.ps1; record evidence and release Wizard/History/styles ownership in specs/029-web-android-ux/validation.md.
 
 ## Phase 6: US4 — Accessible controls and forms
@@ -69,7 +69,7 @@ Owner C. Shared controls/forms can start with A/B. Screen-level Wizard/History s
 - [x] T031 [US4] Correct field labels/purposes/error announcements in components/auth/AuthForm.tsx and components/guestJoin/GuestJoinForm.tsx without changing auth flow, keyboard submit or deferred terms scope.
 - [x] T032 [US4] Name Back/remove controls in components/preferences/Header.tsx and components/setupGame/PlayerList.tsx with targeted tests; preserve caller contracts and coordinate overlapping solo changes.
 - [x] T033 [US4] After B handoff, integrate affected screen headings/titles and hidden-goal accessibility handling in app/_layout.tsx, app/history.tsx and components/gameProgress/GoalToast.tsx; retain Wizard semantics from B and avoid nested main landmarks.
-- [x] T034 [US4] Add actual rendered DOM keyboard/link/focus/label/error/heading coverage in e2e/features/ux-accessibility.feature and e2e/steps/ux-accessibility.steps.ts; browser semantics cannot be established by component mocks alone.
+- [x] T034 [US4] Retain shared control, form and heading unit/component tests. Keep core keyboard destination activation in e2e/features/web-navigation.feature; remove the per-screen DOM E2E matrix.
 - [x] T035 [US4] Add verified accessibility Android smoke to scripts/android/run-ux-journeys.ps1 through coordinator; record TalkBack/autofill/IME manual acceptance separately in specs/029-web-android-ux/validation.md.
 
 ## Phase 7: US5 — Compact layout and evidence-led scrolling
@@ -77,7 +77,7 @@ Owner C. Shared controls/forms can start with A/B. Screen-level Wizard/History s
 Owner C after B releases Wizard/History/styles. Each discovery case records pass unchanged or a reproducible defect; do not assume every ScrollView is wrong. FR-015–FR-018, FR-020; SC-005.
 
 - [x] T036 [US5] Record populated scroll owners, boundary handoff, browser bars/IME, long names, 1/20/100 rows and reduced-motion behavior in specs/029-web-android-ux/validation.md using controlled fixtures; distinguish actual clipping from reachable content.
-- [x] T037 [US5] Add geometry/reachability/scroll assertions for confirmed defects in e2e/features/ux-mobile-layout.feature and e2e/steps/ux-mobile-layout.steps.ts at 320/360/390, 640x360 and enlarged text; use actual bounds and final-action reachability.
+- [x] T037 [US5] Keep compact geometry and scrolling verification as manual browser/device acceptance; retain existing setup E2E and unit/component coverage. The expanded viewport and touch E2E matrices were removed at the user's request.
 - [x] T038 [US5] Fix schedule title/badge/team-label layout in components/setupGame/MatchFilter.tsx, components/setupGame/TeamSelectionRow.tsx and styles/setupGameStyles.ts; retain B's step API/connector fit and add relevant component regression coverage.
 - [x] T039 [US5] Correct only reproduced web competing-scroll or IME reachability defects in components/setupGame/SetupWizard.tsx, components/history/HistoryModalFrame.tsx and affected screen styles identified in validation.md; preserve native virtualization and documented intentional modal scrollers.
 - [x] T040 [US5] Implement affected reduced-motion handling through existing platform/animation adapters and components/setupGame/MatchFilter.tsx; add policy/interaction coverage under __tests__/platform/ and __tests__/components/setupGame/.
@@ -89,7 +89,7 @@ Owner C after shared semantic action API is stable. FR-019, FR-006, FR-020; SC-0
 
 - [x] T042 [P] [US6] Add signed-in/out and populated Home shortcut tests in __tests__/app/index.platform.test.tsx with one activation to Friends/History and preserved room entry.
 - [x] T043 [US6] Expose a Friends shortcut and clickable Game Stats card opening History in app/index.tsx using existing layout; preserve the card chevron and zero-game access, omit a separate History button, and retain signed-out Friends recovery and local History.
-- [x] T044 [US6] Add Home shortcut primary journey in e2e/features/ux-home-shortcuts.feature and e2e/steps/ux-home-shortcuts.steps.ts; cover keyboard activation and account recovery return.
+- [x] T044 [US6] Cover Home Game Stats/Friends keyboard navigation and browser Back in e2e/features/web-navigation.feature and e2e/steps/web-navigation.steps.ts. Account recovery permutations remain unit/component coverage.
 - [x] T045 [US6] Add verified home-shortcuts Android scenarios through coordinator edits to scripts/android/run-ux-journeys.ps1 and record compact populated Home evidence in specs/029-web-android-ux/validation.md.
 
 ## Phase 9: Integration and acceptance

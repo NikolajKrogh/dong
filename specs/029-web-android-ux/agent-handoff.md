@@ -6,7 +6,7 @@ Implementation was authorized on 2026-10-17 and worker slices are integrated on 
 
 1. `AGENTS.md`, `CLAUDE.md`, `.specify/memory/constitution.md`.
 2. `specs/029-web-android-ux/{spec,plan,research,data-model,tasks,quickstart}.md` and `contracts/navigation.md`.
-3. Both `docs/*audit-2026-10-16.md` reports and relevant evidence; keep confirmed/source/unverified distinctions.
+3. `validation.md` for historical evidence and remaining acceptance limitations. The user removed the new `docs/` reports/screenshots and reduced E2E coverage to two core journeys.
 4. This file, [skills.md](skills.md) and the assigned task IDs. Follow the role-specific and conditional skill requirements; CodeGraph before indexed source exploration.
 
 Skill names, source links, triggers, repository compatibility limits and reviewer requirements are defined in [skills.md](skills.md). Load the actual installed skill before use. This guide does not authorize backend redesign or new dependencies.
@@ -44,7 +44,7 @@ A also owns `components/preferences/SelectDefaultLeaguesModal.tsx` and `app/user
 | B | T011–T012, T020–T024, T026; History contribution to T017; Friends/route portion of T018 | Friends first; adapter before overlay integration; release Wizard/History/styles before C integration |
 | C | T028–T034, T036–T040, T042–T044 | Shared controls/forms first; wait for B before Wizard/History/layout changes |
 
-T010/T019/T027/T035/T041/T045 pair the respective story owner with the coordinator: worker supplies verified scenario/evidence and coordinator edits/runs the single native runner. T018 has one coordinator-designated writer for `ux-back-return.feature`/steps, collecting A/B scenarios; workers do not both edit it concurrently. All other BDD source files belong to their story worker.
+T010/T019/T027/T035/T041/T045 pair the respective story owner with the coordinator: worker supplies verified scenario/evidence and coordinator edits/runs the single native runner. The original per-story BDD files were consolidated after implementation into `web-navigation.feature` and its steps. Keep only its two core browser journeys; use unit/component tests for permutations.
 
 Each worker owns uniquely named BDD feature/steps files listed in tasks.md. Coordinator alone updates shared step helpers/fixtures or root Playwright config. Do not duplicate existing step regex phrases. Generated `.features-gen/` output is not a hand-edited source.
 
@@ -86,7 +86,7 @@ The actual skill requirements and source links remain in skills.md. Workers appl
 
 Read actual installed skills before use. When an installed skill is absent in an older managed checkout, the current canonical `C:/src/dong/.agents/skills` directory was used read-only. The user removed the incompatible project RNTL skill: keep the installed Jest/renderer harness and do not add RNTL. Tamagui CLI prompt generation was unavailable; actual project configuration and installed package source established the supported API, without installation or committed generated config artifacts.
 
-Run the exact commands in quickstart.md. `npm run test:ci -- --runInBand --cacheDirectory ./test-results/jest-cache` includes platform suites and the repository's Node/Expo preload. `npm run test:e2e -- ux- --workers=2` runs BDD generation and the feature's generated browser files; retain full existing regression checks too. The route-state feature does not require a shared tag to be selected by filename. Record the review base for React Doctor, and do not combine its current `--scope changed` option with the deprecated `--diff` alias. Results, reviewed findings and limitations belong in validation.md; command examples are not pass records.
+Run the exact commands in quickstart.md. `npm run test:ci -- --runInBand --cacheDirectory ./test-results/jest-cache` includes platform suites and the repository's Node/Expo preload. `npm run test:e2e -- web-navigation.feature --workers=2 --output=test-results/web-navigation` runs the two core browser journeys on phone and desktop projects. Preserve existing setup/gameplay E2E coverage. Record the review base for React Doctor, and do not combine its current `--scope changed` option with the deprecated `--diff` alias. Results, reviewed findings and limitations belong in validation.md; command examples are not pass records.
 
 Workers return only their own scoped commits, not imported dependency or integration merge commits. The coordinator serially integrates, verifies current source and updates task/validation metadata. No worker pushes, opens a PR, deletes a worktree or drives the shared phone without assignment. Documentation-only reconciliation does not invoke the speckit-converge task-appending workflow; convergence findings/tasks remain coordinator-owned.
 

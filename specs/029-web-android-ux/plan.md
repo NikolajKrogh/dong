@@ -118,7 +118,7 @@ Only the coordinator merges/cherry-picks completed worker commits into `web-navi
 
 - Unit/component: `npm run test:ci -- --runInBand`; `test:unit` alone excludes platform component tests and is insufficient.
 - Static: `npm run typecheck`, `npm run lint`, `npm run check:unused`; relevant React Doctor review after React changes.
-- Web: `npm run bdd:gen`, `npm run test:e2e` with unique story tags and all affected existing journeys. Record real base URL/build and effective viewport; fixtures/mocks are labeled.
+- Web: retain existing setup/gameplay journeys and only two added core journeys in `web-navigation.feature`: Home keyboard navigation and preserving a running game across configuration/Back/refresh. Use unit/component tests for route, recovery, accessibility-property and state permutations. No per-screen or large viewport E2E matrices. Record real base URL/build and effective viewport; fixtures/mocks are labeled.
 - Android: ARTEMIS exploration followed by `scripts/android/run-ux-journeys.ps1` with explicit serial/package/fixture manifest, dynamic IDs/text then verified coordinate fallback, explicit state waits and nonzero failure. Do not invent fixture credentials or depend silently on live production data.
 - Runtime: mobile Chrome and native Android checks in quickstart.md, including TalkBack/autofill, IME, enlarged text, populated scrolls and owner/member/guest re-entry. Shared phone access is serialized.
 - Completion: every FR has tests/evidence, each story accepted independently, no unverified path silently passed. See validation.md for implemented coverage and remaining runtime/release acceptance.

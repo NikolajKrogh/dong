@@ -39,17 +39,16 @@ npx react-doctor@latest . --verbose --scope changed --base 2604e1a
 
 Use `test:ci`, which supplies the repository's Node/Expo preload and includes platform component suites. Bare Jest bypasses that preload; `test:unit` excludes `*.platform.test.tsx` and is insufficient. Inspect relevant React Doctor findings rather than treating its score as acceptance.
 
-For the feature's generated BDD files, including the coordinator's new History focus regression, use the existing entry point:
+For the two core browser navigation journeys, use the existing entry point:
 
 ```powershell
 $env:PLAYWRIGHT_WEB_PORT = '8196'
-npm run test:e2e -- ux- --workers=2 --output=test-results/ux-browser-final
-npm run test:e2e -- ux-route-state.feature --workers=1 --repeat-each=3 --trace=retain-on-failure --output=test-results/ux-route-repeat
+npm run test:e2e -- web-navigation.feature --workers=2 --output=test-results/web-navigation
 ```
 
 `npm run test:e2e` runs generation before Playwright. The projects are `chromium-phone` and `chromium-desktop`; the phone project is a Chromium viewport, not an Android browser/device. The config starts or reuses an Expo web server and supplies mock service defaults; use a free dedicated port to avoid reusing a server from another checkout. Existing environment overrides can change those defaults, so record the effective fixture environment without secrets. Preserve affected existing game/lobby/guest/auth journeys alongside the new UX cases.
 
-Use the installed Playwright skill for role/name locators, explicit state waits, isolation and targeted repetition. Use the accessibility skill for actual rendered DOM names/roles, keyboard focus, labels/errors, main/headings, text enlargement and motion checks. Renderer mocks do not establish actual DOM semantics. No new audit dependency is required. Copy reviewed screenshots/scroll diagnostics to a durable evidence location before another Playwright invocation: its output cleanup can delete previous `test-results` artifacts and caches.
+Keep browser coverage focused on core user journeys. Route parsing, recovery permutations, control properties and other isolated behavior belong in the existing unit/component suites; do not restore the removed per-screen and viewport E2E matrices. Browser/device checks remain useful for layout, gestures and keyboard behavior that component mocks cannot establish. Keep transient screenshots under ignored `test-results/`, with a distinct output subdirectory per run. Do not add audit screenshots or reports under `docs/`.
 
 ## Android runner: current executable scope
 
