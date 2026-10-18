@@ -59,7 +59,7 @@ describe("GameActionsSheet", () => {
     const action = renderer.root.findAllByProps({ testID: "FooterSetupButton" })
       .find((node) => node.props.onPress);
     expect(action).toBeDefined();
-    expect(JSON.stringify(renderer.toJSON())).toContain(configurationLabel.replaceAll("&", "&"));
+    expect(JSON.stringify(renderer.toJSON())).toContain(configurationLabel);
     TestRenderer.act(() => renderer.unmount());
   });
 

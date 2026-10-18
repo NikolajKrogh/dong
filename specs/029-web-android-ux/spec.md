@@ -144,7 +144,7 @@ Reuse existing sign-in/username onboarding, member and guest permissions. Naviga
 
 ### Required automated coverage
 
-Every story requires unit/component tests for new behavior. Substantial UI changes require primary Playwright BDD journeys and executable Android journey coverage using a supported runner and device-verified interactions. Explore through ARTEMIS before writing Android interaction tests. Browser mocks do not establish physical Android or hosted authorization acceptance; unavailable runtime gates remain incomplete.
+Use unit/component tests for isolated logic and state permutations. Retain the two core Playwright BDD journeys in `web-navigation.feature`, alongside existing setup/gameplay coverage; do not create per-screen or viewport E2E matrices. Choose checks proportionate to the changed behavior and reuse passing results unless new evidence warrants repeating them. Explore through ARTEMIS before writing Android interaction tests. Browser mocks do not establish physical Android or hosted authorization acceptance; unavailable runtime gates remain incomplete.
 
 ### Key Entities
 

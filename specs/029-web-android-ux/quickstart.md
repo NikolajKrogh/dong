@@ -24,20 +24,18 @@ Exact route values and normalization rules remain in [contracts/navigation.md](c
 
 ## Automated checks
 
-Run from the checkout being validated:
+Choose the smallest checks that cover the changed behavior. The commands below are available checks, not a requirement to run every suite after each edit. Reuse passing results unless the code or relevant evidence changes. Run from the checkout being validated:
 
 ```powershell
-npm run test:ci -- --runInBand --cacheDirectory ./test-results/jest-cache
+npm run test:ci -- --runInBand --cacheDirectory ./test-results/jest-cache <affected-test-files>
 npm run typecheck
 npm run lint
 npm run check:unused
-npm run bdd:gen
-npm run test:e2e
 pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/android/test-ux-journey-guards.ps1
 npx react-doctor@latest . --verbose --scope changed --base 2604e1a
 ```
 
-Use `test:ci`, which supplies the repository's Node/Expo preload and includes platform component suites. Bare Jest bypasses that preload; `test:unit` excludes `*.platform.test.tsx` and is insufficient. Inspect relevant React Doctor findings rather than treating its score as acceptance.
+Use `test:ci`, which supplies the repository's Node/Expo preload and includes platform component suites. Replace `<affected-test-files>` with the relevant paths; omit it only when a full-suite run is warranted. Bare Jest bypasses the preload; `test:unit` excludes `*.platform.test.tsx`. Inspect relevant React Doctor findings rather than treating its score as acceptance.
 
 For the two core browser navigation journeys, use the existing entry point:
 

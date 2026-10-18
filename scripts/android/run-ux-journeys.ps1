@@ -92,16 +92,6 @@ function Scroll-ToControl {
     throw "Control remains unreachable after bounded scrolling: $Name"
 }
 
-function Wait-ControlGone {
-    param([string]$Name)
-    $timer = [Diagnostics.Stopwatch]::StartNew()
-    do {
-        if (-not (Find-Control (Read-Window) $Name)) { return }
-        Start-Sleep -Milliseconds 250
-    } while ($timer.Elapsed.TotalSeconds -lt 10)
-    throw "Control remained visible: $Name"
-}
-
 function Wait-Keyboard {
     param([bool]$Visible)
     $timer = [Diagnostics.Stopwatch]::StartNew()

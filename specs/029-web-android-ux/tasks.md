@@ -2,6 +2,7 @@
 
 **Input**: [plan.md](plan.md), [spec.md](spec.md), research.md, data-model.md, contracts/navigation.md and agent-handoff.md.
 **State**: Implementation authorized 2026-10-17; coordinator records completed gates and worker integration here.
+**Maintenance**: Completed tasks describe the original delivery, not checks to repeat after every edit. Use the proportional verification policy in quickstart.md; the retained E2E scope is two core browser journeys.
 **Tests**: Required under constitution V. ARTEMIS exploration before Android test authoring. No backend changes, so no new pgTAP work expected.
 **Skills**: Read [skills.md](skills.md) before assigned tasks; apply the common/role-specific skills and triggered domain skills. Record actual use and checks in each handoff. No new test dependency is authorized merely by a skill example.
 **Installed additions**: `playwright-best-practices` applies to T009/T018/T026/T034/T037/T044 and their fixture/review work; `accessibility` applies to relevant US2/US3 control/focus behavior and US4–US6 implementation/acceptance. Exact owner/task mappings are in skills.md. These are execution requirements within the original 49 tasks (three runtime-led convergence tasks were appended), not extra feature scope.
@@ -17,7 +18,7 @@ Coordinator. Common starting point recorded before authorized worker dispatch; i
 
 ## Phase 2: Foundational Android acceptance infrastructure
 
-Coordinator. Required by all six stories for executable Android journey coverage. Explore before authoring test code; preserve one-device-at-a-time access.
+The existing runner supports manual/device acceptance work; it does not require automating every story permutation. Explore before authoring interactions and preserve one-device-at-a-time access.
 
 - [x] T004 Explore the current Android client with ARTEMIS using approved fixtures and record verified locators, transitions, keyboard/Back behavior and coordinate fallback conditions in specs/029-web-android-ux/validation.md.
 - [x] T005 Implement shared explicit state waits, dynamic UIAutomator lookup, verified fallback, foreground/device guards, diagnostics and failure exits in scripts/android/run-ux-journeys.ps1; use the parameter contract in agent-handoff.md without adding a native testing framework.

@@ -170,16 +170,15 @@ const HomeScreen = () => {
               totalDrinks={totalDrinks}
             />
 
-            <View style={{ marginTop: 16, gap: 12 }}>
-              <ShellActionButton
-                variant="surface"
-                label="Friends"
-                href="/friends"
-                testID="home-friends-button"
-                icon={<AppIcon name="people-outline" size={22} color={colors.primary} />}
-                widthMode={wideLayout ? "wide" : undefined}
-              />
-            </View>
+            <ShellActionButton
+              variant="surface"
+              label="Friends"
+              href="/friends"
+              testID="home-friends-button"
+              icon={<AppIcon name="people-outline" size={22} color={colors.primary} />}
+              widthMode={wideLayout ? "wide" : undefined}
+              style={{ marginTop: 16 }}
+            />
 
             <HomeRoomActions actions={roomActions} colors={colors} styles={styles} wideLayout={wideLayout} />
 

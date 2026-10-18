@@ -165,6 +165,18 @@ const createStrictRealtimeClient = () => {
     fail: () => { failRemoval = true; }, finish: () => { deferRemoval = false; finishRemoval?.(); } };
 };
 
+function activateRegisteredRoom(lastAppliedSequence: number): void {
+  useGameStore.setState({
+    activeGameContext: {
+      mode: "multiplayer",
+      sessionId: "session-1",
+      participantId: "participant-1",
+      accessKind: "registered",
+      lastAppliedSequence,
+    },
+  });
+}
+
 describe("active room sync composition", () => {
   beforeEach(() => {
     useGameStore.setState({ endedGuestSessionId: null });
@@ -967,9 +979,7 @@ describe("active room sync composition", () => {
     getSupabaseClient.mockReturnValue(strict.client);
     const getRoomSnapshot = jest.fn(async () => snapshot());
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
-    } });
+    activateRegisteredRoom(10);
     function Probe() { useActiveGameRoomSync(); return null; }
     let first!: TestRenderer.ReactTestRenderer;
     let second!: TestRenderer.ReactTestRenderer;
@@ -999,9 +1009,7 @@ describe("active room sync composition", () => {
     getSupabaseClient.mockReturnValue(strict.client);
     const getRoomSnapshot = jest.fn(async () => snapshot());
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
-    } });
+    activateRegisteredRoom(10);
     function Probe() { useActiveGameRoomSync(); return null; }
     let first!: TestRenderer.ReactTestRenderer;
     let second!: TestRenderer.ReactTestRenderer;
@@ -1036,9 +1044,7 @@ describe("active room sync composition", () => {
       { ...snapshot().participants[0], id: useGameStore.getState().activeGameContext.participantId! },
     ] }));
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
-    } });
+    activateRegisteredRoom(10);
     function Probe() { useActiveGameRoomSync(); return null; }
     let tree!: TestRenderer.ReactTestRenderer;
     try {
@@ -1065,9 +1071,7 @@ describe("active room sync composition", () => {
     const original = getSupabaseClient.getMockImplementation();
     getSupabaseClient.mockReturnValue(strict.client);
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot: jest.fn(async () => snapshot()) });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 10,
-    } });
+    activateRegisteredRoom(10);
     function Probe() { useActiveGameRoomSync(); return null; }
     let first!: TestRenderer.ReactTestRenderer;
     let second!: TestRenderer.ReactTestRenderer;
@@ -1100,9 +1104,7 @@ describe("active room sync composition", () => {
     const request = new Promise<RoomSnapshot>((resolve, reject) => { resolveRoomA = resolve; rejectRoomA = reject; });
     const getRoomSnapshot = jest.fn(() => request);
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 0,
-    } });
+    activateRegisteredRoom(0);
     function Probe() { useActiveGameRoomSync(); return null; }
     let tree!: TestRenderer.ReactTestRenderer;
     await TestRenderer.act(async () => { tree = TestRenderer.create(React.createElement(Probe)); });
@@ -1124,9 +1126,7 @@ describe("active room sync composition", () => {
     let completeMutation!: (value: unknown) => void;
     const changeManualScore = jest.fn(() => new Promise(resolve => { completeMutation = resolve; }));
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot: jest.fn(async () => snapshot()), changeManualScore });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 0,
-    } });
+    activateRegisteredRoom(0);
     let latest!: ReturnType<typeof useActiveGameRoomSync>;
     function Probe() {
       const value = useActiveGameRoomSync();
@@ -1152,9 +1152,7 @@ describe("active room sync composition", () => {
   it("hydrates a fresh generation when StrictMode restarts effects", async () => {
     const getRoomSnapshot = jest.fn(async () => snapshot());
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 0,
-    } });
+    activateRegisteredRoom(0);
     let latest!: ReturnType<typeof useActiveGameRoomSync>;
     function Probe() {
       const value = useActiveGameRoomSync();
@@ -1176,9 +1174,7 @@ describe("active room sync composition", () => {
     const reassignParticipantMatches = jest.fn(() => request);
     const getRoomSnapshot = jest.fn(async () => snapshot());
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot, endGameSession, reassignParticipantMatches });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 0,
-    } });
+    activateRegisteredRoom(0);
     let latest!: ReturnType<typeof useActiveGameRoomSync>;
     function Probe() {
       const value = useActiveGameRoomSync();
@@ -1209,9 +1205,7 @@ describe("active room sync composition", () => {
     const changeManualScore = jest.fn().mockRejectedValue(new Error("network request failed"));
     const getRoomSnapshot = jest.fn(async () => snapshot());
     getRoomRpcClient.mockReturnValue({ getRoomSnapshot, changeManualScore });
-    useGameStore.setState({ activeGameContext: {
-      mode: "multiplayer", sessionId: "session-1", participantId: "participant-1", accessKind: "registered", lastAppliedSequence: 0,
-    } });
+    activateRegisteredRoom(0);
     let latest!: ReturnType<typeof useActiveGameRoomSync>;
     function Probe() {
       const value = useActiveGameRoomSync();

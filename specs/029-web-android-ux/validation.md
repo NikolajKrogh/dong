@@ -1,209 +1,59 @@
-# Implementation validation ledger
+# Validation record
 
-Started: 2026-10-17. Integration branch: `web-navigation`. Original source baseline: `3750010e50d38c9a5f05330993d75cc6e4462845`.
+Feature 029 is integrated on `web-navigation` in PR #205 against `multiplayer` (`3750010`). The implementation started from planning commit `2604e1a`. No dependency, application schema or remote migration change was introduced. Unrelated local skill changes remain outside the PR.
 
-## Current status
+## Current verification policy
 
-User-directed scope reduction on 2026-10-18: all 43 files added under `docs/` are removed. Nine new E2E feature/step pairs are replaced by `e2e/features/web-navigation.feature` and its steps, containing two core journeys (four cases across the existing phone/desktop projects): Home keyboard navigation/Back, and preserving an existing solo game through configuration/Back/refresh. Unit/component tests remain the primary coverage for route parsing, recovery permutations, forms and shared controls. The detailed browser matrices and their results below are historical, not tests or checked-in evidence that remain in this PR. Existing setup/gameplay E2E coverage is retained. Two obsolete Settings smoke assertions were removed: History import is absent, and onboarding is native-only in the unchanged base screen.
+Unit/component tests cover isolated logic and permutations. The PR adds one browser feature with two core journeys, run on phone and desktop: Home keyboard navigation/Back, and preserving a running solo game through configuration/Back/refresh. Existing setup/gameplay E2E coverage remains. Nine expanded E2E pairs and all 43 new `docs/` audit/screenshot files were removed at the user's request. Historical broad-browser results below describe earlier builds, not retained test coverage.
 
-Cleanup validation: nine focused Jest suites / 55 tests pass, along with TypeScript, ESLint and Knip. The final host browser run passes eight cases: the two new journeys plus existing launch and Settings smoke scenarios, each on phone and desktop (`test-results/ux-reduced-final.log`, exit 0). Initial replacement-test selectors were corrected to target the History heading and the setup player list; no application behavior changed. Two restricted browser runs stalled and were stopped, so neither is counted as a complete pass. The full client/browser suites and physical device checks were not repeated for this test/documentation-only cleanup.
+Select checks by changed behavior and reuse passing results. No full-suite, export or device result is implied for later cleanup commits. Transient logs, fixtures and credentials stay under ignored `test-results/`; some earlier artifacts were removed by Playwright cleanup, so those records are historical rather than durable deliverables.
 
-Simplification review on 2026-10-18: use Expo Router's existing focus hook instead of a duplicate subscription hook; remove the unused parent-return helper and obsolete reducer tab state; consolidate setup prerequisites and shared button link conditions; replace nested status/sort expressions with explicit branches. The overlay render boundary remains because inlining it triggers React's ref-analysis warning. Keyboard viewport handling and Realtime lifecycle safeguards remain tied to observed failures. Nine affected unit suites / 78 tests, TypeScript and targeted ESLint pass. Changed-scope React Doctor reports no issues (86/100). No new tests or broad E2E/device runs were added for this behavior-preserving cleanup; logs are `test-results/ux-simplify-*`.
+## Recorded automated results
 
-The initial implementation was validated at `7f40c70`; the later user-requested title correction is recorded below. Those initial full client gates pass: 141 Jest suites / 910 assertions (process exit 0), 130 UX browser cases (0 failed/skipped), TypeScript, ESLint and unused-code checks. Changed-source React Doctor exits 0 at 84/100 with 11 reviewed warnings and no blocking finding. The final generated web export at `7f40c70` also passes all seven runtime smoke checks; physical keyboard/list evidence is recorded below.
-
-The Huawei development client passes the six solo/signed-in smoke scenarios, registered owner/member and guest in-progress configuration/status and safe Home/resume cycles. Pre-start owner/member and guest journeys preserve local room invariants. Physical Chrome passes empty/20-player IME gesture checks and a 100-friend read-only scroll. Physical landscape is inconclusive because Chrome reproduces incorrect viewport dimensions on a blank control page. Packaged Android, deployed web, TalkBack and actual autofill remain separate acceptance gates; automated or development-client passes do not imply release acceptance.
-
-Three isolated implementation workers and a fresh independent reviewer contributed. All source was reviewed and integrated serially into this branch. Existing user skill changes remain outside feature commits. No push, PR, deployment, new dependency or application schema change was made.
-
-## Baseline and ownership
-
-The user authorized implementation with three isolated subagents. Coordinator owns integration, shared exports/configuration and serialized Android checks. Workers follow spec.md, plan.md, contracts/navigation.md, agent-handoff.md, skills.md and assigned task IDs.
-
-Planning baseline commit includes feature 029 artifacts, managed plan references and the two audit reports/evidence. Existing skill installation changes (deleted project RNTL skill, skills-lock.json and new accessibility/Playwright/web-guidelines directories) are preserved outside the scoped planning commit. Workers use the current skill catalog/canonical `C:/src/dong/.agents/skills` when an uncommitted skill is absent in their worktree; do not restore removed skills or install dependencies.
-
-Required checklist: requirements.md 16/16 complete. Spec Kit prerequisites resolve feature 029. Optional whole-tree auto-commit hooks are not used; scoped commits preserve unrelated changes.
-
-## Initial environment and runtime gates (historical)
-
-- ADB outside restricted shell sees Huawei CLT-L29 `WCR0218C11000221` authorized. The user unlocked it; ARTEMIS diagnosis/probe is ready. No credentials requested or entered.
-- Current Android read-only exploration completed for populated Home/game actions and Friends Requests/search return. Previous audit evidence remains useful but does not establish new-code acceptance.
-- Browser fixture helpers and existing Jest/component tests will be reused; mocked hosted/auth evidence is labeled as such. No production game/relationship mutation is authorized for fixtures.
-- Worker slices are integrated serially below. Native coverage is partial; packaged release gates remain not run.
-
-## Results
-
-Record exact commands, build/commit, fixture versus live platform, expected/actual behavior, reviewed evidence paths and pass/fail/not-run here as implementation progresses.
-
-### Initial baseline
-
-- Planning/audit commit: `2604e1a`; workers A/B/C start from this exact commit on separate `ux/game-navigation`, `ux/return-routes`, `ux/accessibility-layout` branches in managed worktrees.
-- Existing six focused Jest suites (controller solo/multiplayer, FooterButtons, SetupWizard, History, Home): 55/55 tests pass. First run failed before executing any tests due sandbox temporary-cache rename EPERM; workspace-local `--cacheDirectory ./test-results/jest-baseline-cache` resolved it. This is tooling evidence, not a DONG regression.
-- `npm run typecheck`: passes on baseline.
-- Current web fixtures: existing browser-flow helpers intercept local mock Supabase/API origins; host/guest/solo/history fixture mechanisms exist. These are browser fixtures, not an Android auth/session seed or hosted permission proof.
-- Current phone remains PIN-locked; ARTEMIS observation complete but interactive app exploration/new-test authoring gate remains pending unlock.
-- New installed accessibility/Playwright skill guidance applies from the current canonical skill catalog. No removed RNTL skill restored and no new testing dependency installed.
-
-### First integration slices
-
-- Full original baseline: 130 suites / 817 tests pass, JSON at ignored `test-results/ux-baseline-jest.json`.
-- A `18dea8e` integrated as `4ef2500`: preserve solo/registered/guest configuration identity and add read-only room status. C `e5d634e` integrated as `aefe748`: shared controls/forms semantics. Independent combined check: 8 suites / 41 tests pass. Review identified malformed status-copy characters; correction assigned back to A before final acceptance.
-- B `b6fb923` integrated as `7147e3a`: Friends caller return/recovery and pure route parsers. Independent check: 2 suites / 9 tests pass. Full route/History/Wizard integration still in progress.
-- Existing BDD generation failed on two non-destructured fixture callbacks in player-picked-two-devices.steps.ts. Minimal compatible destructuring fix committed as `024a222`; `npm run bdd:gen` and focused ESLint pass. No existing scenario behavior changed.
-- Phone unlocked and current ARTEMIS/ADB exploration reconfirmed populated Home → Continue Game → Game actions → hardware Back returning Home on the baseline, without a game mutation. ARTEMIS diagnosis/probe ready. Prior audit explored the same source baseline and supports regression authoring; new native behavior still requires acceptance.
-- Native read-only runner foundation added with explicit device/package/fixture guard, dynamic locators, bounded waits and a single calibrated fallback. First execution was inconclusive during Metro hot refresh while integration advanced. Keep device runs and integration changes serialized; do not count this as accepted runtime coverage.
-
-### Overlay design decision
-
-The web history-sentinel prototype was rejected before implementation because scoped cleanup could not remove stale entries after arbitrary route-away. Use an actual router-owned transparent taskOverlay route with bounded in-memory owner registration, graceful unavailable-owner fallback and serialized dismissal/navigation. Native retains existing modal/request-close behavior. A owns route/adapter, coordinator wires root Stack.Screen/export; B consumes it for transient History sort. Browser lifecycle tests are required before acceptance.
-
-### Browser-led integration corrections
-
-- C `67fcf5d` → `0915ae8` corrects Tamagui 2.7 actual `render` semantics (the older `tag` prop did not produce the intended DOM) and route titles. C `e85d1f1` → `7b4a721`, `9b87643` → `6cf28f7`, `73f1b19` → `a0ca359`: Home shortcuts, named player controls/hidden toast, link typography and native/web role forwarding. Worker rendered browser checks: 10 cases at phone/desktop passed; combined coordinator six suites/34 tests pass using `npm run test:ci`.
-- B `9cdbd86` → `ced5cc1`, `f821dc2` → `8cc990a`: optional controlled Wizard and solo route state; actual navigation-container readiness prevents direct-entry normalization before Root Layout mounts. Initial raw `npx jest` invocation exited 1 after passing assertions because it bypassed the repository's Node/Expo CI preload; the supported CI command exits 0. No test configuration changed.
-- A `daffeb3` → `271cd97`: separate safe lobby Home from terminal cleanup, use dismissTo for Home/game re-entry. Coordinator now owns lobby route-step integration.
-- Native current-source exploration: populated Home scroll reaches Friends/History and room actions; Friends → Requests → Find friends → header Back returns Received/Sent on Requests. These were real signed-in native reads; no game or relationship mutations performed.
-- Real Expo web Back reconstruction may remount gameplay, so optional `gameTab=players` (matches default) is approved as incidental route state to retain the underlying selection; public contract updated. Stale transient overlay Forward/refresh must show safe unavailable-owner recovery rather than retaining dead closures.
-
-## Integrated implementation and review
-
-All three implementation workers used isolated worktrees from `2604e1a`, GPT-6.1 Sol with high reasoning, and the role-specific skills in skills.md. The coordinator reviewed and cherry-picked each slice into `web-navigation`; a fourth independent reviewer checked combined behavior after handoffs. No worker merged independently or controlled the phone concurrently. User skill installation/removal changes remain outside feature commits. No dependency, application schema or remote migration change was introduced.
-
-| Area | Material integration commits and result |
-| --- | --- |
-| Game context, safe Home, task overlays | `4ef2500`, `baa9f70`, `078f738`, `271cd97`, `231515b`, `44b6089`; scoped Back, room identity, read-only guest status and explanatory recovery |
-| Friends and meaningful route state | `7147e3a`, `ced5cc1`, `8cc990a`, `91d14bc`, `3e63258`, `4212351`, `671486e`, `2866579`; validated route parameters, caller return and controlled Wizard |
-| Actual web semantics, forms and Home | `aefe748`, `0915ae8`, `7b4a721`, `6cf28f7`, `a0ca359`, `f50aa07`, `e6e3806`; rendered DOM, labels, headings, titles and destinations |
-| Compact layout and motion | `1f7060d`, `4ac965a`, `b56cb6a`, `5540521`; narrow labels, short-height scroll ownership and live reduced-motion preference |
-| Integration defects found by review/runtime | `5326e7d` allows available local detail during cloud failure; `5627e44` preserves each mounted setup route rather than optimistically overwriting its predecessor; `a0fd107` applies the same correction to History; `983d541` gates the body-portal detail presentation on route focus while preserving its selected game |
-| Browser regressions and fixture compatibility | `024a222`, `c21b08b`, `6d48a75`, `fbb9023`, `d486f91`, `d9fc85f`, `74dad43`, `50b0c31`, `f4c7547`; existing BDD helpers use supported fixture callbacks and visible accessible actions |
-
-Independent review found no remaining blocking source finding after the History focus gate. The subsequent FR-018 reconciliation identified unconditional game-menu/player-removal animations; `5540521` extends the existing native policy through a shared platform hook and adds web media-query subscription. Native initial preference remains conservative, newer events win over a delayed initial read, and subscriptions clean up.
-
-Meaningful setup/History navigation changes state only after the destination route commits. A pending-step guard prevents duplicate advancement. Explicit Wizard Back pops an owned preceding step and otherwise replaces safely. History detail ownership stores bounded opaque browser-entry IDs, never private result data. If session storage is unavailable or its marker has been evicted, recovery conservatively may add an extra Games entry on reload; safe Close/Back still work. Transient overlay refresh/Forward uses explanatory Home recovery because its in-memory owner cannot be resurrected safely.
-
-### Runtime-led corrections and final review
-
-- `36bad02` removes duplicate Friends parents after sign-in/username completion through normalized `dismissTo`. Four browser cases failed before/passed after. Live native Friends recovery also passes: sign in as the local member, open Requests, then one header Back returns Home without another Friends screen.
-- `c99975a` wraps setup navigation actions at 320px/200% text. The original action area had client width 318 and scroll width 345; corrected button, label and icon bounds remain visible.
-- `c95d151` fixes a real private-room Realtime collision during retained gameplay/re-entry. The installed SDK returns the same cached channel for the same topic and rejects adding presence handlers after subscription. A client/topic registry shares leases for the same participant, retires old identities, and serializes replacement after asynchronous cleanup. Failed/unowned cached channels fall back to existing polling; private topic and authorization boundaries are unchanged.
-- `a9ce096` and `99d6b70` fence unmounted room work and retry entry before it can overwrite another room's pending state. Realistic SDK and delayed-RPC tests cover concurrent leases, last cleanup, remount/identity changes, failed teardown, stale snapshots/errors/completion/reassignment and retry callbacks. Independent source review found no remaining blocking finding after these corrections.
-- `2519cf1` preserves the actual web input and ancestor nodes through keyboard resize; switching wrapper types had remounted and blurred the focused player input. `5655d69` removes the web-only `touch-action:none` caused by disabling the PlayerList FlatList, preserving native behavior. Trusted drag tests replace programmatic scrolling as evidence for this defect.
-- Physical Chrome then exposed a second condition: layout height 623, visual height 304, `offsetTop=319`. A height-only scroll cap left the entire scroll area above the visible window. C `4dabfc5` integrates as `7f40c70`: an independent stable frame anchors the local scroll area inside the panned visual viewport. Scoped resize/scroll observers clean up; there is no global viewport/meta, focus or scroll mutation. The independent reviewer checked the source and 319-offset traces/images without a blocking finding. Final BDD covers offsets 0/140/319 with empty and 20-player lists.
-
-The `5655d69` cherry-pick conflict in PlayerList tests retained both reduced-motion cases and the new platform scroll-policy case; focused integration then passed 48 tests. All later viewport source integrated cleanly. Reviews were performed by the separate reviewer and reported to the coordinator; they are source assessments, not additional executed device checks.
-
-Final Spec Kit analysis found 20 FRs, 7 SCs, six stories and 52 unique tasks, all mapped, with no constitution conflict or missing implementation task. One medium documentation ambiguity (Friends child query vocabulary) and two low progress/index inconsistencies were reconciled in the contract/task ledger. Optional whole-tree commit hooks were omitted to preserve scoped ownership.
-
-## Automated evidence
-
-These browser runs use intercepted service/auth fixtures at local Metro URLs. They establish rendered behavior, not hosted authorization or physical Android acceptance.
-
-| Gate | Command / evidence | Result |
+| Source / change | Executed result | Local evidence |
 | --- | --- | --- |
-| Full Jest, final source `7f40c70` | `npm run test:ci -- --runInBand --json --outputFile=test-results/ux-final-candidate-jest.json` | 141 suites, 910 assertions pass, exit 0; log `test-results/ux-final-candidate-jest.log` |
-| Integrated motion correction | Same CI entry point, FooterButtons/PlayerList/useReducedMotion and animationReducedMotion suites | 4 suites / 15 tests pass across `ux-motion-integration-jest.log` and `ux-motion-adapter-jest-host.log` |
-| TypeScript, lint, unused code, `7f40c70` | `npm run typecheck`, `npm run lint`, `npm run check:unused` | All exit 0; logs `ux-final-typecheck.log`, `ux-final-lint.log`, `ux-final-check-unused.log` |
-| Complete UX BDD, `7f40c70` | Port 8301; `npm run test:e2e -- ux- --workers=2 --output=test-results/ux-final-candidate-browser --reporter=line` | 130/130 pass, 0 failed/skipped, exit 0, 3.1 minutes; includes all following feature subsets and offset-aware trusted drags |
-| Tagged UX browser cases | `PLAYWRIGHT_WEB_PORT=8295`; installed Playwright CLI `test --grep '@ux-' --output=test-results/ux-final-combined-browser --reporter=line` | 88/88 pass, phone + desktop; log `ux-final-combined-browser.log` |
-| Route cases without tags | Port 8296; `test ux-route-state.feature --output=test-results/ux-final-route-browser --reporter=line` | 22/22 pass; log `ux-final-route-browser.log`; 110 distinct feature cases total with tagged run |
-| History detail → shared Stats → Back | Port 8294; `test --grep '@ux-history-focus' --output=test-results/ux-history-focus-browser-host` | 2/2 pass; old body portal hidden, shared page usable, original game restored |
-| Affected existing setup/host/guest BDD | Scoped existing configure/start, room create/resume, guest join/re-entry and empty guards | 16 distinct cases pass, logs `test-results/a-existing-bdd/fixed-run.log` and `configure-run.log` |
-| React Doctor, `7f40c70` | `npx react-doctor@latest . --verbose --scope changed --base 2604e1a` | 99 changed files, 84/100, zero errors, 11 reviewed warnings, exit 0; `ux-final-candidate-react-doctor.log` |
-| Native runner guard self-check | `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/android/test-ux-journey-guards.ps1` | 22 mocked assertions pass; no device action. Includes failed-before/passed-after stale XML and clipped-control scrolling regressions |
-| Production web export, `7f40c70` | `npx expo export --platform web --output-dir test-results/ux-export-web-final`; local public environment process-only, `EXPO_NO_DOTENV=1` | Exit 0; `test-results/ux-web-export-final.log`. No deployment/configuration mutation. |
-| Final export runtime | `node test-results/ux-export-smoke-final/run-export-smoke.cjs` | 7/7 pass, exit 0; `results.json` and three reviewed screenshots in that folder. Home→Setup, touch focus, player add, direct route/refresh, actual Ionicons fonts 200/font/ttf/binary, missing assets404/traversal rejected. Zero page/console errors or external requests. Owned Chromium and loopback8490 server stopped. |
+| Integrated source `7f40c70` | 141 Jest suites / 910 tests; TypeScript, ESLint and Knip pass. 130 historical UX browser cases pass. Production web export and seven local runtime smoke checks pass. | `ux-final-candidate-jest.log`, `ux-final-candidate-browser.log`, `ux-web-export-final.log`, `ux-export-smoke-final/` |
+| Visible-title correction `9b27da2` | 34 focused tests and 92 historical browser cases pass; TypeScript, ESLint and Knip pass. | `ux-remove-titles-*` |
+| Game Stats correction `d5cacf9` | 11 Home tests, 76 historical browser cases and six final Home cases pass; static checks pass. | `ux-restore-stats-*` |
+| Coverage/docs reduction `29fc195` | 55 focused tests and eight browser cases (new navigation plus existing launch/Settings, each at phone/desktop) pass; TypeScript, ESLint and Knip pass. | `ux-reduced-final.log`, `ux-reduced-jest.log` |
+| First simplification `74e3c90` | 78 affected unit tests, TypeScript and targeted ESLint pass; React Doctor reports no issues (86/100). No new tests or broad E2E/device run. | `ux-simplify-*` |
+| Full-PR simplification, based on `74e3c90` | All 113 PR files reviewed. Consolidated overlay records and repeated test fixtures; removed unused code and shortened duplicated planning notes. 52 affected unit tests, four core browser cases, 22 runner guard assertions, TypeScript and targeted ESLint pass; changed-scope React Doctor reports no issues (100/100). No new tests, full-suite or device run. | `ux-simplify-final-*`; local review inventory under `ux-simplify-review/` |
 
-React Doctor warnings concern existing large/complex controllers and route synchronization. Shared dynamic `render` button/anchor label warnings were checked against actual DOM roles, names and hrefs in BDD. History/lobby restoration effects and task-overlay synchronization have explicit regression coverage; no broad refactor was made solely to alter the score.
+These browser runs used intercepted service/auth fixtures at local Metro URLs. They do not establish hosted authorization or physical Android behavior. Full Jest passed but took several minutes to release asynchronous work; no `forceExit` was used. Bare Jest bypasses the repository's Node/Expo preload; use `test:ci`. Restricted-runner cache/browser failures were checked separately from product defects. The existing shell suite had stale Settings, statistics wording and guest-toast expectations reproduced on the baseline; the obsolete Settings assertions were subsequently removed. Stalled/failed preliminary runs were not counted as passes.
 
-Full Jest finishes assertions but can retain asynchronous work for several minutes before exiting; focused suites exit normally. An earlier detectOpenHandles run eventually exited 0 without a handle trace. Do not describe assertions alone as a timely clean process shutdown or hide the delay using forceExit. The supported CI preload avoids an unrelated Expo fetch teardown error from bare Jest.
+React Doctor's earlier dynamic Tamagui anchor/label warnings were reviewed against actual rendered roles, names, hrefs and children; no suppression or score-driven refactor was added. The overlay render boundary remains because inlining it triggers React's ref-analysis warning.
 
-The broader existing BDD run exposed stale Settings History-import/onboarding, Overall Statistics wording and guest departure-toast expectations. The same failures were reproduced at planning baseline `2604e1a`; they are not counted as new UX regressions or silently passed. Browser startup/cache and restricted-host Chromium failures were rerun using the installed host browser. Every subsequent Playwright invocation uses its own output subdirectory: default cleanup previously removed older ignored artifacts, including baseline JSON, so those original files are historical results rather than durable deliverables.
+## Runtime findings and corrections
 
-## Device and disposable local environment
+- Game configuration and safe Home retain solo data or current registered/guest identity. Leave/End retain their existing explicit commands and confirmations. Registered members do not gain owner controls; guests use read-only status rather than the registered lobby.
+- Router-owned task overlays replaced a rejected browser-history-sentinel prototype. Setup and History commit meaningful route changes without mutating their mounted predecessor. Hydration/readiness precede normalization, and History details hide on route blur. Bounded opaque browser-entry markers support detail Close after reload; unavailable session storage may conservatively add a Games entry, without exposing private data.
+- Auth/username return uses normalized `dismissTo` after a live sign-in exposed a duplicate Friends parent (`36bad02`).
+- Same-topic private Realtime channels collided during retained gameplay/re-entry. Shared participant leases and serialized removal fixed that SDK constraint (`c95d151`); unmount-generation and retained-retry guards prevent old work overwriting another room (`a9ce096`, `99d6b70`). Failed/unowned channels fall back to existing polling.
+- Changing the web Wizard wrapper remounted/blurred the focused input; stable ancestry fixes it (`2519cf1`). A disabled web FlatList also blocked ancestor touch gestures; its web scroll policy was corrected without changing native behavior (`5655d69`).
+- Real Chrome's keyboard kept layout height 623 while reducing visible height to 304 and panning by 319. The stable frame aligns the scrollport within that visual viewport (`7f40c70`). At 320px/200% text, navigation wrapping fixes the measured horizontal overflow (`c99975a`).
 
-The user reconnected/unlocked Huawei CLT-L29 `WCR0218C11000221` (Android 10, 1080×2240, default font scale 1), granted exclusive use, and subsequently authorized disposable account/room changes after starting Docker. ARTEMIS diagnosis and real screenshot/hierarchy probe pass. The installed native target is `com.krogh.dong.dev/.MainActivity`, served by the current Expo development bundle; it is not a packaged release build.
+## Physical device evidence and limits
 
-The old local stack had existing schema/history drift; its attempted pending-migration transaction rolled back. Rather than repair/reset that history, a separate `dong-ux029` stack applied all 61 existing migrations cleanly. Other DONG/TrackMate stacks were preserved. API 47321, DB 47322; a loopback-only gateway on 47325 forwards API/Realtime and supplies the existing guest ingress's trusted local caller address. No application authorization was bypassed. Existing RPC/Edge checks confirm registered/guest snapshots, Realtime heartbeat, member `not_host`, running-owner `room_not_joinable`, cross-room rejection and forbidden direct guest RPC.
+Testing used Huawei CLT-L29, Android 10, 1080x2240, default font scale 1, with the installed development client `com.krogh.dong.dev` and Chrome 155. Disposable local fixtures used isolated Supabase stack `dong-ux029` with the existing migrations; the old stack/history was preserved. Public environment and private fixture helpers remain ignored under `test-results/android-ux-local/`. The Java API was intentionally unavailable, so native Start was not verified.
 
-Reproducible preparation, public environment, role manifest and instructions are ignored under `test-results/android-ux-local/`; credentials/grants stay in fixture-secrets.json and are never committed. Stack sources are nested under node_modules so copied Deno functions do not enter the client TypeScript scan. Native Metro uses that local public environment with USB reverse mappings for 8081 and 47325. The command API is pinned to unused local 48080 to avoid remote fixture commands; a prepared running room supplies navigation/status checks. This does not prove the native Start button against Java.
-
-The checked-in `scripts/android/run-ux-journeys.ps1` uses an explicit serial/package/approved manifest, package-scoped dynamic UIAutomator selectors, bounded readiness/keyboard/scroll checks, foreground guards, screenshots and nonzero failure exits. Only Open game actions has one device/font-calibrated coordinate fallback; unavailable/unstable hierarchy output is rejected. Its six scenarios are deliberately narrower than the full acceptance matrix.
-
-Current native results: solo game-context and scoped Back/three safe Home-resume cycles passed on `5627e44`; the route-state smoke then reproduced mounted History Players-state corruption. After `a0fd107`, a fresh local-device route-state run passes (`test-results/android-ux/final-local/route-state/results.json`). An all-scenario run from a scrolled Home missed its first Continue activation; a separate inspected activation succeeded. The fresh run on `5540521` passes all six scenarios (`test-results/android-ux/final-local/six-scenarios-retry/results.json`), including named controls/IME Back and shortcut return. The live sign-in journey exposed an extra Friends parent after auth return; `36bad02` uses normalized `dismissTo` on auth/username completion, with failed-before and four passing phone/desktop browser regressions. These failures are retained separately from accepted results.
-
-| Additional native journey | Source / result / local evidence |
+| Verified scope | Build / result |
 | --- | --- |
-| Registered owner in-progress configuration | `c95d151`, pass; `test-results/android-ux/local-owner-running/context-normalized/results.json`. Same three participant identities, owner End control, no solo input, safe Return to game/Home. |
-| Registered owner overlay Back + three Home/resume cycles | `a9ce096`, pass; `test-results/android-ux/local-owner-running/back-return/results.json`. No private-channel collision after the lifecycle correction. |
-| Registered member in-progress configuration | `5655d69`, pass; `test-results/android-ux/local-member-running/context/results.json`. Same three identities, no owner-only End control, no solo input. |
-| Registered member overlay Back + three Home/resume cycles | `7f40c70`, pass; `test-results/android-ux/local-member-running/back-return/results.json`. |
-| Pre-start registered owner | `7f40c70`, actual ARTEMIS/ADB exploration passes Room → Next/Matches → hardware Back/Room → Home → Return to room. Join code visible to owner. Match discovery reports the intentionally unavailable local command API; this does not establish native Start-button acceptance. |
-| Pre-start registered member | `7f40c70`, same step/Back/Home path passes; join code absent and Matches says the host picks the six room matches. |
-| Native guest pre-start | `7f40c70`, joined through the actual Room Code/Guest Name form as a disposable guest. App-created SecureStore grant, four participant identities, final Leave Guest Room action reachable by scrolling. Back/Close → Home → Return to Guest Room preserves identity and joinable status. |
-| Native guest in-progress | `7f40c70`, game-context and three Back/Home/resume cycles pass; `test-results/android-ux/local-guest/game-context/results.json` and `back-return/results.json`. Read-only status shows four players/six matches; End Game is disabled. Existing polling observes fixture start and enters gameplay. |
-| Native 130% system text | `7f40c70`, Home counts/shortcuts/Settings and guest status's complete Close/Home actions reachable and visually reviewed. `test-results/android-ux/local-guest/font130-*.png`; original font scale 1.0 restored and read back. |
-| Native auth return | After `36bad02`, local member sign-in via Friends recovery → Requests → header Back returns Home in one transition. Subsequent owner/member fixture sign-ins use the same existing form; credentials remain local. |
+| Solo and signed-in navigation | Six runner scenarios pass at `5540521`; the History route-state fix passes at `a0fd107`. The final guest Home layout check passes after runner guards. |
+| Registered owner/member | In-progress configuration, expected participant identities/role controls, overlay Back and three Home/resume cycles pass across `c95d151` through `7f40c70`. Pre-start Room -> Matches -> Back -> Home/re-entry passes at `7f40c70`; the join code is owner-only. |
+| Guest | Actual join form creates the local guest grant. Pre-start re-entry and in-progress read-only status/disabled End/Back/Home cycles pass at `7f40c70`. Four players/six matches and native Close/Home remain reachable at 130% system text; original font size restored. |
+| Navigation invariants | Read-only before/after comparisons for owner/member/guest and pre-start fixtures preserve room state, membership, scores, assignments, event sequences and command counts. Deliberate fixture joins/start were captured before navigation baselines. No navigation command row was created. |
+| Chrome keyboard/scroll | Empty and 20-player lists: real touch, focused original input and pending name survive swipes; Next is fully visible at y564..606 in the panned viewport y319..623. Actual empty-list Next commits the pending player once. A 100-friend fixture loads two server pages and reaches the final row/action through real swipes. |
+| User-requested presentation | At `9b27da2`/`d5cacf9`, fresh native Home confirms no added title; tapping the restored Game Stats card opens History and header Back returns Home. Final native layout-scroll and 22 mocked runner guard assertions pass. |
 
-Room data comparisons use read-only repeatable-read snapshots, excluding only operational activity timestamps and guest credential rotation. Owner `owner-running-fixed-before` → `owner-cycles-after`, member `member-running-before` → `member-running-after`, lobby `lobby-owner-before/after`, `lobby-member-before/after` and guest `guest-joined-before/after` all compare unchanged. State/owner/config, membership/leftAt/roles/drinks, scores, match/assignment identity, immutable event sequences and command counts are included. Snapshot files and the reusable capture/compare helper are ignored under `test-results/android-ux-local/invariants/`. These are paired UI/data checks, not a hosted two-device gameplay test.
+Screenshots alone were not treated as gesture proof. The runner rejects stale XML, clipped bounds, missing identity prerequisites and unstable UIAutomator observations. Initial dev-client readiness and later optional UIAutomator-idle failures were inconclusive, not passing navigation checks.
 
-Fixture setup intentionally adds the native guest and starts that disposable lobby with the existing owner RPC. Baselines are captured after each intentional setup mutation, so setup events are not confused with navigation mutations. Before joining, that lobby had three participants/nine events; after joining four/ten; after starting four/twelve. No gameplay or room command row was created by the navigation checks.
+## Outstanding acceptance
 
-The runner now supports the explored role paths and a separate 22-assertion guard self-check. It rejects blank locators, malformed/out-of-display bounds and invalid identity fixtures. Independent runner review reproduced stale XML consumption when a dump failed without replacing its prior file; deleting only the owned temporary XML before every dump fixes it, with a failed-before/passed-after mocked regression. A missing new dump can no longer reuse a previous screen's bounds. Enlarged text exposed a second runner edge: a partially off-screen Continue Game node prematurely stopped scroll discovery. Scroll discovery now continues until its complete bounds fit the display; only the bounds-validation exception is caught, while ADB/display-discovery failures propagate. Both regressions failed before and pass after; no destructive action was added.
+T041 and T048 remain open; 50/52 implementation tasks are complete. Source implementation and previous automated passes do not close these gates:
 
-Guest `guest-running-before` → `guest-running-after` also compares unchanged after the in-progress status and all three Home/resume cycles. Both disposable rooms retain their post-setup membership, scores, assignments, event sequences and zero command rows.
+- Physical Chrome landscape and collapsed browser bars. A blank HTML control reproduced the rotated viewport mismatch, so landscape is inconclusive; no application workaround was added. Original rotation settings were restored.
+- TalkBack, real autofill and native error announcements.
+- Packaged Android and deployed-web acceptance, including native Start against the real Java API.
+- Complete real-service ended/expired/revoked recovery matrix.
 
-After the final runner guard changes, a fresh native guest `layout-scroll` run passes at default text size (`test-results/android-ux/local-guest/final-layout-scroll-ready/results.json`): Friends/History/Settings and full Continue Game are reachable. The first attempt ran immediately after opening the dev client, before its prepared Home fixture was ready, and correctly failed; it is not counted as a product regression or a pass.
-
-## Physical Chrome follow-up
-
-Chrome 155.0.8059.39 on the same Huawei uses the local Metro build `7f40c70`, with ADB reverse and CDP only for fixture preparation/DOM measurements. Real input, keyboard, swipes and the final empty-list Next activation are executed on the phone. A full local-tab reload precedes the final checks, avoiding stale hot-refresh evidence.
-
-| Case | Actual result / evidence |
-| --- | --- |
-| Trusted input + IME | Pass. Same input node stays focused; layout height 623, visual height 304. `test-results/android-ux/physical-chrome/final-7f40c70-focus.log`. |
-| Empty list + keyboard + page pan | Pass. Real swipes move the outer owner from 0 → 150.33 → 372.33. At visual offset 319 the scrollport is exactly 319..623 and Next is 564..606, completely visible above the IME. Physical Next advances to Matches and commits exactly one `PhysicalWebFinal` player. `final-7f40c70-after-list-swipes.json/.png`, `final-7f40c70-once.json`. |
-| 20-player list + keyboard | Pass. Twenty disposable local names were prepared through existing controls. Real list gestures produce 29 trusted touchmove events, outer scrollTop 1765.33/clientHeight 304/contentHeight 2069. Same focused input retains `PhysicalPending21`; saved count stays 20 and Next remains 564..606 at offset 319. `final-7f40c70-20-scroll.json/.png`. |
-| 100 authenticated friends | Pass. Existing owner sign-in recovery loads 50 actual local friends; physical swipes reach Load more and then the second page's final row/action. 100 rendered names, 639 trusted touchmove events, scrollTop 12185.33/clientHeight 564/contentHeight 12749. Friend100 row y459.17..478.17 and complete action y490.67..535.67 fit the 360×623 visible viewport. No friendship action is sent. `final-7f40c70-friends100.json/.png`. Final room invariants remain unchanged. |
-| Physical landscape | Inconclusive environment result, not accepted. Rotated screen reports 747×360 CSS pixels, but Chrome's outer/inner viewport reports approximately 680×623 and crops below the physical screen. A new blank HTML page with only a viewport meta tag reproduces the identical mismatch without DONG code (`landscape-blank-control.json`). Reload, fresh local tab, process restart and clearing a possible metrics override did not resolve it. Do not claim the cause was Playwright screenshots: installed screenshot code has no explicit metrics override, and a Chromium side effect is unproven. No app workaround was introduced. Original accelerometer rotation 1/user rotation 0 restored and read back. |
-
-The intentionally unused command API produces a development error overlay after entering Matches. It intercepted a diagnostic Back click; browser Back and a Players reload cleared that development-only obstacle before preparing the 20-player fixture. This is distinct from the successful real Next transition and does not establish native/web match-discovery service acceptance.
-
-## Visual evidence and requirement disposition
-
-Reviewed screenshots and selected diagnostics were originally retained under `docs/ux-029-evidence/`, then removed with the new audit documents at the user's request on 2026-10-18. Historical checks included 320px/200% text, simulated landscape final actions, long team names, 100-item History/Friends fixtures, native role/status and physical Chrome keyboard/list checks. Physical testing confirmed a specific disabled-FlatList touch blockade and keyboard viewport/ancestry defects. Useful bounded lists and native virtualization remain; there was no blanket removal of scroll containers.
-
-| Requirements | Implementation and remaining acceptance |
-| --- | --- |
-| FR-001–002 / SC-001 | Context-specific configuration/status and recovery implemented; native solo/owner/member/guest primary paths pass. Ended/expired/revoked recovery has automated coverage; full real-service negative-state matrix remains separate. |
-| FR-003–006 / SC-002 | Scoped overlays, caller return, safe Home and direct/auth recovery implemented. Native primary overlay/Home cycles, Friends child return and sign-in recovery pass; broader release matrix remains separate. |
-| FR-007–009 / SC-003 | Route parsing, hydration/readiness, Wizard/History restoration, missing data and account fences implemented; native History/lobby step Back passes. Real-service permission-revocation acceptance separate. |
-| FR-010–014 / SC-004 | Actual DOM actions/links/focus, names, forms/errors, hidden feedback, main/headings/titles implemented and browser covered; real TalkBack, autofill and native announcements pending |
-| FR-015–018 / SC-005 | Compact/landscape/200%-text and reduced motion automated checks pass; real IME empty/20-list gestures, 100 Friends and native 130% text pass. Physical landscape inconclusive and collapsed browser bars not established. |
-| FR-019 / SC-006 | Home shortcuts, signed-in native return and signed-out native/web recovery pass; local History retained. |
-| FR-020 | Navigation preserves authorization/history/identity boundaries. Real local owner/member/guest navigation leaves state, membership, scores, assignments, events and command counts unchanged. No schema/policy change. |
-| SC-007 | Not fully accepted until separately listed runtime/release gates pass; automated tests are not substituted for them |
-
-Audit disposition: N01 context, N02/W04 route position, N03–N07/N09 recovery/Back/caller/Home, N08 discovery, W01/W05/W06/W08/W09 semantics/forms/names/feedback and W02/W03 compact geometry have implementation and regressions. W07 Terms document/link is deferred by explicit user decision. Runtime-led T050–T052 additionally fix verified Realtime lifetime and web touch/IME defects.
-
-Remaining acceptance: physical Chrome landscape on a browser/device with correct viewport reporting and collapsed browser bars; TalkBack/autofill/error announcements; packaged Android and deployed web; full real-service ended/expired/revoked recovery matrix. Native Start against the local Java API is not run. No story is labeled fully accepted merely because its implementation task is checked. No push, PR, remote deployment or release occurred.
-
-Task reconciliation: 50 of 52 tasks complete. T041 retains the inconclusive/unestablished physical viewport matrix; T048 retains the separate manual and packaged-release acceptance gates above. T049 reconciliation is complete without promoting those checks to accepted. The final client source remains `7f40c70`; later runner/documentation/evidence commits do not change the tested client bundle. All three Spec Kit analysis findings were rechecked as resolved, with 100% FR/SC task mapping and no remaining critical/high artifact conflict.
-
-Rollback requires no data migration/backfill: revert the affected delivery slice, rerun cross-story navigation, keep legacy bare paths/friendId compatibility, and never clear authoritative membership/history or revoke a guest grant as a navigation rollback.
-
-## User correction: remove added visible screen titles
-
-On 2026-10-17 the user rejected the newly visible Home title and corresponding additions on other screens. They had been added for screen identification during accessibility work; visible banners were unnecessary. Home, solo setup, gameplay and the shared account header now use a web-only visually hidden heading. Android renders no additional title node or spacing. Existing Settings/Friends/History/lobby titles, recovery messages and browser tab titles remain. The spec and navigation contract record this design constraint.
-
-Validation after this correction: five focused Jest suites/34 tests pass (including web heading layout and absence of an Android title node); TypeScript, ESLint and unused-code checks pass. The affected accessibility, mobile-layout, game-context and trusted-touch BDD features pass 92/92 cases, including 10 new cases confirming the screen headings remain in the accessibility tree without a visible banner. Logs: `test-results/ux-remove-titles-{jest,types,lint,unused,browser,react-doctor}.log`. React Doctor reports no issues in this changed scope (93/100). These targeted results do not relabel the previous full-suite/export results as a new build.
-
-A fresh native development-client reload visually confirms Home has no added label or space. The reviewed screenshot is `docs/ux-029-evidence/native-home-no-added-title.png`. A subsequent optional native gameplay-navigation probe could not obtain an idle UIAutomator hierarchy and is not counted as a passing check; the runner rejected it without consuming cached coordinates. Older evidence images retain their original build/presentation and are historical. No new release/export/deployment was performed for this correction.
-
-## User correction: restore Game Stats navigation
-
-On 2026-10-17 the user preferred the original `multiplayer` Home interaction. The entire Game Stats card again opens History and shows its original chevron; the separate History button is removed. Friends remains a shortcut. The card is also available with zero games so signed-out/local History and cloud History before loading stay reachable. Web uses a real named anchor with a visible keyboard focus outline; Android supports tapping the card. The spec, navigation contract, quickstart, task and agent handoff now reflect this correction.
-
-Validation: Home Jest suite passes 11 tests; TypeScript, ESLint and Knip pass. Home-shortcuts, accessibility and compact-layout BDD features pass 76/76 cases. After adding an explicit anchor destination, the six Home cases pass again; final content assertions also confirm the rendered link contains the visible Game Stats heading and Games Played label. On Huawei CLT-L29, ARTEMIS observed the restored card and History destination; a dynamic-locator tap opens History and header Back restores Home. The updated native `layout-scroll` journey passes with the guest fixture, and all 22 runner guard assertions pass. Transient evidence is under `test-results/ux-restore-stats-*` and `test-results/android-ux/restore-game-stats-layout/`.
-
-React Doctor completes at 90/100 with two reviewed false-positive warnings on the Tamagui `render` anchor template (missing label/content). Tamagui supplies the card children and accessible label to that anchor; the browser cases verify both in the actual DOM, including keyboard activation. No suppression or unrelated refactor was added. Initial restricted-runner Jest cache permissions and Playwright browser-cache discovery failures were resolved using a workspace Jest cache and the existing installed browsers. The stalled restricted React Doctor run was stopped; the completed scan ran outside that restriction. These focused checks do not replace earlier full-suite/export evidence or outstanding release acceptance. No deployment occurred.
+W07 Terms content/link remains a separate user-deferred follow-up. Rollback requires no migration: revert the relevant slice while preserving legacy routes, membership/history, guest grants and unrelated user data.

@@ -8,7 +8,7 @@
 
 1. Read this file with agent-handoff.md before starting assigned task IDs. Resolve skills from the active session catalog; repository links below are relative to this document and work in each worktree.
 2. Load the actual SKILL.md before applying it. Load additional skill references only for the work at hand. Announce first use concisely; record skill name, task IDs and relevant findings/checks in the handoff.
-3. Apply the common skills below and the role-specific matrix. Conditional skills become required when their trigger occurs; they are not reasons to expand scope.
+3. Select skills relevant to the actual edit from the guide below; do not execute every listed workflow for every change. Conditional skills apply when triggered and do not expand scope or justify extra testing.
 4. User decisions, repository instructions, constitution, feature contract and task ownership govern the work. Generic skill examples must be adapted to the installed packages and available tools. Report a material conflict or missing capability; do not invent APIs or silently skip acceptance gates.
 
 For indexed source exploration, follow AGENTS.md directly: use the available `codegraph_explore` MCP tool or `codegraph explore` CLI before raw indexed-code searches. This is a repository instruction, not an additional skill requirement. Do not reindex or upgrade the repository as part of this feature.

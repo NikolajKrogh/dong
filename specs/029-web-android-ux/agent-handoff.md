@@ -1,100 +1,33 @@
-# Agent execution and integration contract
+# Integration handoff
 
-Implementation was authorized on 2026-10-17 and worker slices are integrated on `web-navigation`. Reconciled against client source `7f40c70` and runner `c12cf8d`. This file records interfaces, ownership and remaining execution boundaries; it does not authorize additional workers/worktrees or mark acceptance complete. Results belong in validation.md and task progress belongs in tasks.md.
+Feature 029 is integrated on `web-navigation` in PR #205. The original workers started from `2604e1a`; A handled game context/overlays, B handled caller return and route state, and C handled shared controls/compact layout. Their work is complete. This document does not authorize restarting workers or changing release status.
 
-## Required reading for every worker
+## Sources of truth
 
-1. `AGENTS.md`, `CLAUDE.md`, `.specify/memory/constitution.md`.
-2. `specs/029-web-android-ux/{spec,plan,research,data-model,tasks,quickstart}.md` and `contracts/navigation.md`.
-3. `validation.md` for historical evidence and remaining acceptance limitations. The user removed the new `docs/` reports/screenshots and reduced E2E coverage to two core journeys.
-4. This file, [skills.md](skills.md) and the assigned task IDs. Follow the role-specific and conditional skill requirements; CodeGraph before indexed source exploration.
+- [spec.md](spec.md): requirements and user decisions.
+- [contracts/navigation.md](contracts/navigation.md): routes, dismissal, roles and presentation behavior.
+- [tasks.md](tasks.md): task status and requirement mapping.
+- [skills.md](skills.md): relevant skills and tooling compatibility.
+- [quickstart.md](quickstart.md): commands and runtime checks.
+- [validation.md](validation.md): build-specific results and outstanding acceptance.
 
-Skill names, source links, triggers, repository compatibility limits and reviewer requirements are defined in [skills.md](skills.md). Load the actual installed skill before use. This guide does not authorize backend redesign or new dependencies.
+## Maintenance boundaries
 
-`playwright-best-practices` is required when writing/debugging/reviewing the assigned web BDD journeys. `accessibility` is required for C's affected UI work and each worker's relevant focus/control semantics; the coordinator/reviewer validates rendered outcomes. See skills.md for exact task mappings, selected references and native/web evidence boundaries.
+Preserve unrelated dirty work. If work is delegated again, record the starting commit and give each shared path one writer; integrate changes serially. Only one controller may use a shared Android device at a time. Read `AGENTS.md`, `CLAUDE.md` and the constitution before working.
 
-## Common invariants
+Navigation must preserve room membership, guest grants, private-data fences and immutable game history. Home is distinct from Leave/End. Do not add backend writes, dependencies or a second history manager to update a view.
 
-- Branch to integrate into: `web-navigation`; never reset/overwrite unrelated dirty work.
-- Worktree start is the explicit approved committed integration baseline, not the remote default branch. A new worktree does not automatically contain current uncommitted plans/audit evidence. Coordinator records baseline SHA and included paths before dispatch.
-- Existing permissions/game events/guest grants/private-cache fences remain canonical. No leaving, ending, scoring, friendship mutation or production test fixture creation merely to navigate/test.
-- Query vocabulary, overlay lifecycle and Home behavior come from contracts/navigation.md. Change the contract centrally before divergent implementations.
-- One writer per path at a time, including tests/configuration. Agent ownership is temporal; notify coordinator before crossing a boundary.
-- Never label tests/runtimes passed without executing them. Tests using fixture mocks and physical device/hosted results have distinct labels.
+`TaskOverlay` uses a router-owned transparent web route and native modal content. Keep owner lifetime, idempotent dismissal, deferred destination actions and focus restoration together. A refreshed transient panel cannot revive an unmounted owner. `SetupWizard` supports controlled stable step keys while retaining its local mode; preserve prerequisites, deferred input and Back without duplicate entries. Polling must not move an active editor.
 
-## Roles and file ownership
+Tamagui 2 uses `render` for web elements. Keep real links/buttons, caller roles, disabled suppression and one main landmark. Do not restore redundant visible titles or a separate History button: Home uses Friends and the clickable Game Stats card. Preserve the stable input ancestry and panned visual-viewport handling that fix the observed keyboard/scroll defects.
 
-| Owner | First assignment | Exclusive paths until handoff | Next assignment |
-| --- | --- | --- | --- |
-| Coordinator | Baseline, device runner/fixture contract, shared contract freeze, integration | `platform/index.ts`; root configs/package/lock files; planning artifacts; `scripts/android/`; shared e2e fixture/helpers; all merge operations | Lobby route-step integration and final regression/runtime acceptance |
-| A: game/navigation | US1, then US2 game/lobby/overlay slice | `hooks/useGameProgressController.ts`; `components/gameProgress/{FooterButtons,GameActionsSheet}.tsx`; `app/gameProgress.tsx`; `app/lobby/[sessionId].tsx`; new `platform/navigation/` adapters; associated exact tests | Release lobby to coordinator, and adapter API to B; help controlled runtime verification |
-| B: return/routes | US2 Friends child return/recovery first; US3 after adapter/wizard contract gate | `features/friends/*Screen.tsx`; later `app/{setupGame,history}.tsx`; `components/setupGame/SetupWizard.tsx`; `utils/navigation/`; History overlay integration and associated tests | Release Wizard, History and layout-facing props to C; coordinator handles lobby caller integration |
-| C: presentation | US4 shared controls/forms/headings first | `components/ui/`; `components/auth/`; `components/preferences/Header.tsx`; `components/guestJoin/GuestJoinForm.tsx`; `app/_layout.tsx`; related tests | US6 `app/index.tsx`/Home display and US5 compact/scroll work after B handoff |
+Use unit/component tests for permutations and keep only the two added browser journeys in `web-navigation.feature`. Choose checks for the changed behavior; do not repeat the full suite after each edit. Browser fixtures and development-client results do not establish physical, hosted or packaged-release acceptance. Keep transient artifacts and credentials out of commits.
 
-Exceptions to broad folders: A retains `__tests__/components/gameProgress/*`; B retains Wizard, History and Friends semantics until handoff. C must not edit Wizard/History screens concurrently for heading/layout polish; submit requirements to B or wait. C's PlayerList icon naming waits for B's solo caller changes to merge if their interfaces overlap. Shared `styles/setupGameStyles.ts` is owned by B for step connectors until its Wizard handoff, then C for schedule/other compact layout. Coordinator performs `platform/index.ts` export wiring from A's requested exports.
+## Android runner
 
-A also owns `components/preferences/SelectDefaultLeaguesModal.tsx` and `app/userPreferences/leagues.tsx` for dismissal integration; C owns the separate preferences Header file. T017 is a coordinator integration task combining A's default-league changes with B's History changes after adapter handoff; it is not assigned as one parallel cross-owner edit.
+`scripts/android/run-ux-journeys.ps1` observes an already-open fixture. It does not install/launch the app, authenticate or create rooms. Required arguments are `DeviceSerial`, `Package`, `Scenario`, and `FixtureManifest`; `OutputDirectory` is optional. Packages are `com.krogh.dong.dev` and `com.krogh.dong`. Follow the ARTEMIS exploration/diagnosis rules in `AGENTS.md` before adding interactions.
 
-## Concrete task allocation
-
-| Owner | Assigned task IDs | Dependencies/handoffs |
-| --- | --- | --- |
-| Coordinator | T001–T005, T017, T025, T046–T049; native-runner edits within T010/T019/T027/T035/T041/T045 | Record approved baseline, own shared fixtures/exports, serialize integration/device access |
-| A | T006–T009, T013–T016; default-league contribution to T017; game portion of T018 | US1 before game/lobby US2; release adapter API and lobby before T025 |
-| B | T011–T012, T020–T024, T026; History contribution to T017; Friends/route portion of T018 | Friends first; adapter before overlay integration; release Wizard/History/styles before C integration |
-| C | T028–T034, T036–T040, T042–T044 | Shared controls/forms first; wait for B before Wizard/History/layout changes |
-
-T010/T019/T027/T035/T041/T045 pair the respective story owner with the coordinator: worker supplies verified scenario/evidence and coordinator edits/runs the single native runner. The original per-story BDD files were consolidated after implementation into `web-navigation.feature` and its steps. Keep only its two core browser journeys; use unit/component tests for permutations.
-
-Each worker owns uniquely named BDD feature/steps files listed in tasks.md. Coordinator alone updates shared step helpers/fixtures or root Playwright config. Do not duplicate existing step regex phrases. Generated `.features-gen/` output is not a hand-edited source.
-
-## Implemented handoffs and scheduling
-
-The approved worker baseline was `2604e1a`, on isolated `ux/game-navigation`, `ux/return-routes` and `ux/accessibility-layout` branches. A released the overlay API and lobby; B released Wizard/History/styles; C completed shared presentation/Home/compact work after those handoffs. The coordinator now owns Wizard Back behavior and solo/lobby callers, final History focus integration, shared runner/configuration and acceptance. A new edit needs an explicit current path owner; the allocation below is the original execution sequence, not permission to restart parallel edits.
-
-1. Coordinator records baseline/fixtures and contract before dispatch. Implementation authorization was granted; preserve the recorded baseline and serial integration history.
-2. Batch 1: A US1; B Friends-only US2 work; C shared US4 work. These paths are disjoint. Each runs relevant tests and returns commit IDs.
-3. Coordinator integrates these serially and runs focused combined tests. A continues game/lobby Back/overlay work; B waits for adapter API before History overlays, but can prepare pure parsers/route tests. C can prepare Home work without editing active B/A paths.
-4. A hands off lobby and finalized overlay API. B completes US3 solo/History/Wizard. Coordinator alone wires the lobby controlled-step caller after A and B merge. Do not merge a future interface call before its provider exists.
-5. B hands off Wizard/History/styles. C completes remaining US4 screen integration and US5 geometry/scroll work; retain the controlled Wizard API and tests.
-6. Coordinator integrates, runs full gates and serial physical journeys. At most three workers plus coordinator; use fewer when dependencies leave no independent work.
-
-The five delivery changes can be committed/reviewed as slices on one integration branch and eventually one PR. A story is not accepted simply because a worker committed it; the coordinator verifies it after integration.
-
-## Per-worker handoff format
-
-- Assigned story/task IDs and completed IDs; actual baseline SHA and worktree path.
-- Commit IDs, changed paths and any new exported interfaces.
-- Tests/commands with results; fixture/mock versus live evidence; screenshots/log paths where relevant.
-- Skills actually read/applied, associated task IDs, adaptations for installed tooling and incomplete checks (see skills.md).
-- Remaining limitations, contract changes needed, shared-path handoff state.
-- No automatic push, PR, merge into `web-navigation`, or worktree deletion by workers. Coordinator integrates one worker at a time and retains recoverable work until verification.
-
-Workers report task completion to the coordinator; coordinator alone updates the shared tasks.md checkboxes to avoid merges over progress metadata.
-
-## Implemented interfaces and preservation rules
-
-- `TaskOverlay` is exported through `platform/index.ts`. Its props are `open`, `onClose`, `fallbackHref`, optional `returnFocusId`, and render-function children receiving `open`, `dismiss`, `runAfterDismiss`. Web uses the actual transparent `/taskOverlay` route with bounded owner registration; native renders the existing modal content in place. Destination actions wait for dismissal. Do not introduce raw browser history sentinels or global Back interception. Missing/stale owner recovery and focus restoration require rendered browser checks; the History focus gate and shared-comparison Back regressions pass.
-- `SetupWizard` supports optional `activeStepKey`/`onStepChange(key)` and `onStepBack(key)`. The first pair enables controlled stable-key state; absent props preserve local behavior. Task Back must not push a new duplicate previous-step entry. Preserve canEnter, hydration/readiness handling and at-most-once deferred pending-player advance. Coordinator owns current Wizard/caller changes.
-- Route parsers remain in `utils/navigation/`; the public vocabulary/defaults are in contracts/navigation.md. Meaningful state transitions push, sort/normalization replace owned keys, and data remains in the existing stores/services. Preserve legacy links and account/target remount/privacy fences. Known authorized local History details may resolve despite an unrelated cloud error; incomplete fetch failure must not prove a missing target unavailable.
-- `ShellActionButton` accepts destination `href` while retaining action/native props, caller roles and disabled suppression. Installed Tamagui 2 uses `render` to select actual web button/anchor elements; an old `tag` prop did not establish semantics. Shared main structure uses system typography and avoids nested main landmarks. Do not replace real rendered DOM assertions with renderer-only mock assertions.
-- Compact Wizard page scrolling applies only to web height below 480 CSS pixels. Keep other content scrolling and native virtualization. Home uses a Friends shortcut and clickable Game Stats card opening History within the existing design, without a separate History button or persistent navigation. Default-league/game/History actions retain their explicit destructive-action boundaries.
-
-## Skills and validation handoff
-
-The actual skill requirements and source links remain in skills.md. Workers applied scoped Spec Kit implementation, Ponytail, systematic debugging, relevant Tamagui/web-design guidance, Playwright and accessibility skills; C additionally used UI Taste polish/craft for the existing design. React Doctor review supplements tests. Conditional Supabase guidance applies to auth/guest/private-cache work; no service redesign or new dependency was authorized.
-
-Read actual installed skills before use. When an installed skill is absent in an older managed checkout, the current canonical `C:/src/dong/.agents/skills` directory was used read-only. The user removed the incompatible project RNTL skill: keep the installed Jest/renderer harness and do not add RNTL. Tamagui CLI prompt generation was unavailable; actual project configuration and installed package source established the supported API, without installation or committed generated config artifacts.
-
-Run the exact commands in quickstart.md. `npm run test:ci -- --runInBand --cacheDirectory ./test-results/jest-cache` includes platform suites and the repository's Node/Expo preload. `npm run test:e2e -- web-navigation.feature --workers=2 --output=test-results/web-navigation` runs the two core browser journeys on phone and desktop projects. Preserve existing setup/gameplay E2E coverage. Record the review base for React Doctor, and do not combine its current `--scope changed` option with the deprecated `--diff` alias. Results, reviewed findings and limitations belong in validation.md; command examples are not pass records.
-
-Workers return only their own scoped commits, not imported dependency or integration merge commits. The coordinator serially integrates, verifies current source and updates task/validation metadata. No worker pushes, opens a PR, deletes a worktree or drives the shared phone without assignment. Documentation-only reconciliation does not invoke the speckit-converge task-appending workflow; convergence findings/tasks remain coordinator-owned.
-
-## Android runner contract: implemented scope
-
-`scripts/android/run-ux-journeys.ps1` exists and is coordinator-owned. Required parameters: `-DeviceSerial`, `-Package`, `-Scenario`, `-FixtureManifest`; optional `-OutputDirectory` defaults to `test-results/android-ux` relative to the script's repository. Package accepts only `com.krogh.dong` or `com.krogh.dong.dev`. Scenario accepts `game-context`, `back-return`, `route-state`, `accessibility`, `layout-scroll`, `home-shortcuts`, `all`.
-
-Prepare an approved, already-authenticated fixture and open DONG on populated Home with Continue Game before invoking the runner. It does not launch/install the app, authenticate, seed a room or establish permissions. Example local manifest shape (replace placeholders and list only approved scenarios):
+Minimal local manifest:
 
 ```json
 {
@@ -103,34 +36,22 @@ Prepare an approved, already-authenticated fixture and open DONG on populated Ho
   "approvedForReadOnlyNavigation": true,
   "gameMode": "solo",
   "accountState": "signedIn",
-  "scenarios": ["game-context", "back-return", "route-state", "accessibility", "layout-scroll", "home-shortcuts"],
-  "homePlayerCountText": "<exact observed optional count label>",
-  "homeMatchCountText": "<exact observed optional count label>"
+  "scenarios": ["back-return"],
+  "homePlayerCountText": "<observed count>",
+  "homeMatchCountText": "<observed count>"
 }
 ```
 
-The two count fields are optional for solo fixtures and required for registered/guest configuration checks; always use exact observed UI labels. Registered fixtures additionally need gameRole=owner|member and at least two distinct roomParticipantNames. For pre-start checks set gamePhase=joinable, with optional roomJoinCode and roomMatchSummary expectations. Guest fixtures use gameMode=guest and a required guestStatusCountText. The manifest records expectations/approval, never credentials. Top-level names matching password/secret/token are rejected. Preserve any separate local fixture identity/build notes without publishing private account data.
+The count labels are optional for solo and required for registered/guest configuration checks. Registered fixtures need `gameMode=registered`, `gameRole=owner|member`, and at least two distinct `roomParticipantNames`. Pre-start fixtures set `gamePhase=joinable` and may supply `roomJoinCode`/`roomMatchSummary`. Guest fixtures need `gameMode=guest` and `guestStatusCountText`. Expectations must match observed UI; no credentials belong in the manifest.
 
-| Scenario | Current assertions and prerequisites |
+| Scenario | Scope |
 | --- | --- |
-| game-context | Solo: Setup and safe re-entry. Registered owner/member: same room participants and owner-only End action. With gamePhase=joinable: Room -> Matches -> hardware Back -> Home/re-entry, caller-role summary and owner-only join code. Guest: disabled End Game, read-only room status/counts, Back and safe Home. Prepare the corresponding explored fixture on Home; no scoring/ending. |
-| back-return | Home -> gameplay -> actions -> hardware Back stays in gameplay; actions -> Home; two further resume/Home cycles. Requires populated Continue Game fixture. |
-| route-state | Home -> History -> Players -> hardware Back restores Games sort control -> header Back Home. Does not exercise the full setup/lobby/detail/account-boundary matrix. |
-| accessibility | Requires solo fixture. Names Player name/Add Player/Players step, opens IME, hardware Back dismisses IME while setup stays open, returns Home. Does not automate TalkBack, autofill or submission. |
-| layout-scroll | Populated Home scrolls to Friends/History/Settings and back to Continue Game; saves top/bottom screenshots. Does not establish other list, enlarged-font, landscape or physical browser-bar acceptance. |
-| home-shortcuts | Requires approved signedIn fixture. Home Friends -> Requests -> search -> header Back returns Received; hardware Back Home; History -> header Back Home. No friend/request mutation. |
-| all | Runs the six checks above in order and requires every listed prerequisite. It is not shorthand for all roles or release acceptance. |
+| game-context | Solo setup, registered owner/member configuration or pre-start Room/Matches/Back, or guest read-only status; same identities and role controls, no game mutation |
+| back-return | Actions -> hardware Back retains gameplay; three Home/resume cycles retain the game |
+| route-state | History Players -> hardware Back returns Games; header Back returns Home |
+| accessibility | Solo control names and keyboard-first Back; excludes TalkBack/autofill |
+| layout-scroll | Populated Home reaches Game Stats/Friends/Settings and returns to Continue Game |
+| home-shortcuts | Signed-in Friends Requests -> search -> caller return, then History and Home |
+| all | The six scenarios above with all fixture prerequisites; not all roles or release acceptance |
 
-Invocation is shown in quickstart.md. Run `adb devices -l` first, obtain user device choice if ambiguous, and follow AGENTS.md ARTEMIS diagnosis/exploration rules. The runner checks that the selected serial is attached/authorized, DONG is foreground, manifest package/device/read-only approval matches, and each scenario is allowed. UIAutomator observations are fresh; labels/resource IDs/content descriptions are exact and package-scoped. Control readiness polls every 250 ms, up to 30 seconds by default/10 seconds before a press; IME/disappearance waits are bounded. Scroll discovery uses the observed scrollable control bounds and a maximum of eight attempts.
-
-Only the Open game actions control has a calibrated absolute fallback, limited to the explored Huawei 1080x2240/default-font gameplay layout with no size override and expected Players/Matches controls. Do not generalize those coordinates to other devices/font sizes or new scenarios without fresh exploration. No fixed delay substitutes for a readiness assertion.
-
-On success the runner writes scenario results to `results.json` and exits 0; each scenario's scope is the table above. Missing prerequisites, unsupported screen state and failed assertions exit 1, retain completed results plus failure, and attempt a foreground-only `failure.png`. Selected scenarios also save reviewed-context screenshots. Hierarchies are read on device and the temporary XML is removed; do not commit raw private dumps or credentials. Use a distinct local output folder per build/scenario to avoid confusing stale artifacts with current evidence.
-
-## Pending acceptance and current ownership
-
-The coordinator owns integrated gates and physical acceptance. History shared-comparison/detail focus checks pass on both browser viewports; the meaningful detail remains available on Back while its portal hides on route blur. Read validation.md for exact results and remaining gates.
-
-Native solo/owner/member/guest primary journeys and local room invariants pass within the build scopes in validation.md. Real Chrome empty/20-player IME and100-friend gestures, native130% text and final local production export runtime also pass. Physical landscape remains inconclusive (blank control reproduces incorrect browser dimensions). TalkBack/autofill/announcements, collapsed bars, packaged Android/deployed web and full real-service negative-state recovery remain separate acceptance items.
-
-Keep unavailable checks not-run/blocked with the reason and next required fixture/build. Use approved disposable fixtures and keep credentials/grants in ignored files. The user authorized local account/room changes; role acceptance still requires exercising the real UI and authorization paths. Changes to tasks.md, validation.md, plan.md, the navigation contract and runner remain coordinator-only unless reassigned.
+The runner validates device/foreground/manifest approval, reads fresh package-scoped UIAutomator state and uses bounded waits/scrolls. The one coordinate fallback is calibrated only for the recorded Huawei/default-font gameplay surface; retain its device/display guards. Unstable or stale observations must fail rather than supply tap coordinates. Success exits 0; failed prerequisites/assertions exit 1 with results and a failure screenshot when available. Use distinct output folders and keep raw private hierarchies local.

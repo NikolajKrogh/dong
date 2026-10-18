@@ -35,8 +35,7 @@ When("I open Friends using the keyboard", async ({ page }) => {
 
 Then("signed-out Friends offers sign-in and browser Back returns Home", async ({ page }) => {
   await expect(page).toHaveURL(/\/friends$/);
-  await expect(page.getByRole("link", { name: "Sign in", exact: true })
-    .or(page.getByRole("button", { name: "Sign in", exact: true }))).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
 });
