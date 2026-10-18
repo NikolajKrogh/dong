@@ -126,32 +126,59 @@ export function ShellActionButton({
   const disabled = Boolean(props.disabled || accessibilityState?.disabled);
   const isWeb = Platform.OS === "web";
   const linkHref = disabled ? undefined : href;
-  const accessibilityProps = isWeb ? {
-    role: props.role ?? (accessibilityRole as Role | undefined) ?? (linkHref ? "link" as const : "button" as const),
-    "aria-label": accessibilityLabel,
-    "aria-disabled": disabled,
-    "aria-expanded": accessibilityState?.expanded,
-    "aria-selected": accessibilityState?.selected,
-    "aria-checked": accessibilityState?.checked,
-    "aria-busy": accessibilityState?.busy,
-  } : { accessibilityLabel, accessibilityRole: accessibilityRole ?? (href ? "link" as const : "button" as const), accessibilityState: disabled ? { ...accessibilityState, disabled: true } : accessibilityState };
+  const accessibilityProps = getAccessibilityProps({
+    role: props.role, accessibilityRole, accessibilityLabel, accessibilityState,
+  }, disabled, Boolean(linkHref));
+  const controlLabel = accessibilityLabel ?? label;
   const button = (
     <ShellActionButtonFrame
       {...props}
       variant={variant}
-      {...(isWeb ? { render: linkHref ? <a style={{ textDecoration: "none" }} /> : <button type="button" /> } : {})}
+      {...(isWeb ? { render: linkHref ? <a href={Link.resolveHref(linkHref)} aria-label={controlLabel} style={{ textDecoration: "none" }} /> : <button type="button" aria-label={controlLabel} /> } : {})}
       {...(isWeb && !linkHref ? { type: "button" as const } : {})}
       {...accessibilityProps}
       disabled={disabled}
       onPress={disabled ? undefined : onPress}
     >
+      <ShellActionContent icon={icon} label={label} variant={variant} />
+    </ShellActionButtonFrame>
+  );
+  return linkHref ? <Link href={linkHref} asChild>{button}</Link> : button;
+}
+
+function getAccessibilityProps(
+  { role, accessibilityRole, accessibilityLabel, accessibilityState }: Pick<ShellActionButtonProps,
+    "role" | "accessibilityRole" | "accessibilityLabel" | "accessibilityState">,
+  disabled: boolean,
+  isLink: boolean,
+) {
+  const defaultRole = isLink ? "link" : "button";
+  if (Platform.OS === "web") {
+    return {
+      role: role ?? (accessibilityRole as Role | undefined) ?? defaultRole,
+      "aria-label": accessibilityLabel,
+      "aria-disabled": disabled,
+      "aria-expanded": accessibilityState?.expanded,
+      "aria-selected": accessibilityState?.selected,
+      "aria-checked": accessibilityState?.checked,
+      "aria-busy": accessibilityState?.busy,
+    };
+  }
+  return {
+    accessibilityLabel,
+    accessibilityRole: accessibilityRole ?? defaultRole,
+    accessibilityState: disabled ? { ...accessibilityState, disabled: true } : accessibilityState,
+  };
+}
+
+function ShellActionContent({ icon, label, variant }: Pick<ShellActionButtonProps, "icon" | "label" | "variant">): React.JSX.Element {
+  const isWeb = Platform.OS === "web";
+  return <>
       {icon ? <XStack aria-hidden={isWeb ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
       {label ? (
         <ShellActionButtonLabel fontFamily={isWeb ? "system-ui" : undefined} surfaceText={variant === "surface"}>
           {label}
         </ShellActionButtonLabel>
       ) : null}
-    </ShellActionButtonFrame>
-  );
-  return linkHref ? <Link href={linkHref} asChild>{button}</Link> : button;
+  </>;
 }

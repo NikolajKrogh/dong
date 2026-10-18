@@ -87,6 +87,111 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
   onStepChange,
   onStepBack,
 }) => {
+  const { currentStep, setCurrentStep, handleNextPress, handleBackPress, canAdvanceFromCurrentStep } = useWizardSteps({
+    steps, activeStepKey, onStepChange, onStepBack, onBeforeNext,
+  });
+  const { width, height } = useWindowDimensions();
+  const { pageFrameRef, pageTop, viewportTop, measurePageTop, scrollsAsPage } = useWizardViewport(width, height);
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const wideLayout = isWideLayout(width);
+
+  const lastStepIndex = Math.max(0, steps.length - 1);
+  const isFirstStep = currentStep === 0;
+  const isFinalStep = currentStep === lastStepIndex;
+  const currentStepContent = steps[currentStep]?.content;
+
+  const renderAction = (action: WizardAction) => (
+    <WizardActionButton action={action} styles={styles} colors={colors} wideLayout={wideLayout} />
+  );
+
+  const wizard = (
+    <View
+      testID="SetupWizardRoot"
+      style={[styles.wizardContainer, wideLayout && styles.wizardWideLayout, scrollsAsPage && { flex: 0, flexGrow: 1 }]}
+    >
+      <WizardStepIndicator steps={steps} currentStep={currentStep} setCurrentStep={setCurrentStep}
+        styles={styles} colors={colors} wideLayout={wideLayout} />
+
+      <View style={[styles.wizardMainPanel, scrollsAsPage && { flex: 0, flexGrow: 1 }]}>
+        <Text accessibilityRole="header" aria-level={2} style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
+        {/* Step Content - Now scrollable */}
+        <ScrollView
+          testID="SetupWizardContent"
+          style={[styles.stepContentScroll, scrollsAsPage && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", overflow: "visible" }]}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
+          {currentStepContent}
+        </ScrollView>
+
+        {/* Navigation Buttons */}
+        <View
+          testID="SetupWizardNavigation"
+          style={[
+            styles.wizardNavigation,
+            wideLayout && styles.wizardNavigationWide,
+          ]}
+        >
+          {isFirstStep
+            ? renderAction({ iconPosition: "leading", ...firstSlotAction })
+            : renderAction({
+                label: "Back",
+                icon: "arrow-back",
+                iconPosition: "leading",
+                testID: "SetupWizardBack",
+                onPress: handleBackPress,
+              })}
+
+          {isFinalStep
+            ? renderAction(
+                finalAction ?? {
+                  // No final action for this viewer — a room member cannot start
+                  // the game. A disabled placeholder keeps the bar's two slots.
+                  label: "Waiting for host",
+                  icon: "time-outline",
+                  testID: "SetupWizardFinalDisabled",
+                  onPress: () => {},
+                  disabled: true,
+                  backgroundColor: colors.secondary,
+                },
+              )
+            : renderAction({
+                label: "Next",
+                icon: "arrow-forward",
+                testID: "SetupWizardNext",
+                onPress: handleNextPress,
+                disabled: !canAdvanceFromCurrentStep,
+              })}
+        </View>
+      </View>
+    </View>
+  );
+  // Keep input ancestry stable when a web keyboard shrinks the viewport.
+  // Only the active scroll owner changes; switching wrappers would blur/remount it.
+  return Platform.OS === "web" ? (
+    <View ref={pageFrameRef} onLayout={measurePageTop} style={{ flex: 1 }}>
+      <ScrollView
+        testID="SetupWizardPageScroll"
+        style={[
+          { flex: 1 },
+          scrollsAsPage && {
+            marginTop: Math.max(0, viewportTop - pageTop),
+            maxHeight: Math.max(0, height - Math.max(0, pageTop - viewportTop)),
+          },
+          !scrollsAsPage && { overflow: "hidden" },
+        ]}
+        contentContainerStyle={scrollsAsPage ? { flexGrow: 1 } : { flex: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        {wizard}
+      </ScrollView>
+    </View>
+  ) : wizard;
+};
+
+function useWizardSteps({ steps, activeStepKey, onStepChange, onStepBack, onBeforeNext }: Pick<SetupWizardProps,
+  "steps" | "activeStepKey" | "onStepChange" | "onStepBack" | "onBeforeNext">) {
   const [localStep, setLocalStep] = useState(0);
   const controlled = activeStepKey !== undefined && onStepChange !== undefined;
   const currentStep = controlled ? Math.max(0, steps.findIndex(step => step.key === activeStepKey)) : localStep;
@@ -99,39 +204,7 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     if (controlled) onStepChange(steps[index].key);
     else setLocalStep(index);
   };
-  const { width, height } = useWindowDimensions();
-  const pageFrameRef = useRef<View>(null);
-  const [pageTop, setPageTop] = useState(0);
-  const [viewportTop, setViewportTop] = useState(0);
-  const measurePageTop = React.useCallback(() => {
-    pageFrameRef.current?.measureInWindow((_x, y) => setPageTop(y));
-  }, []);
-  useEffect(() => {
-    if (Platform.OS === "web") measurePageTop();
-  }, [height, width, measurePageTop]);
-  useEffect(() => {
-    if (Platform.OS !== "web" || typeof window === "undefined" || !window.visualViewport) return;
-    const viewport = window.visualViewport;
-    const updateOrigin = () => setViewportTop(Math.max(0, viewport.offsetTop));
-    updateOrigin();
-    viewport.addEventListener("resize", updateOrigin);
-    viewport.addEventListener("scroll", updateOrigin);
-    return () => {
-      viewport.removeEventListener("resize", updateOrigin);
-      viewport.removeEventListener("scroll", updateOrigin);
-    };
-  }, []);
-  const scrollsAsPage = Platform.OS === "web" && height < 480;
-  const colors = useColors();
-  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
-  const wideLayout = isWideLayout(width);
-
-  const lastStepIndex = Math.max(0, steps.length - 1);
   const canAdvanceFromCurrentStep = steps[currentStep + 1]?.canEnter ?? true;
-  const isFirstStep = currentStep === 0;
-  const isFinalStep = currentStep === lastStepIndex;
-  const currentStepContent = steps[currentStep]?.content ?? null;
-
   const handleNextPress = React.useCallback(() => {
     if (pendingAdvance.current !== null) return;
     const startKey = steps[currentStep]?.key;
@@ -149,11 +222,91 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
     } else if (canAdvanceFromCurrentStep) advance();
   }, [steps, currentStep, onBeforeNext, canAdvanceFromCurrentStep]);
 
-  /**
-   * Renders a nav-bar button. Kept local so Home/Leave, Back, Next and
-   * Start/placeholder all share one shape.
-   */
-  const renderAction = (action: WizardAction) => (
+  const handleBackPress = () => {
+    const previous = Math.max(0, currentStep - 1);
+    if (controlled && onStepBack) onStepBack(steps[previous].key);
+    else setCurrentStep(previous);
+  };
+  return { currentStep, setCurrentStep, handleNextPress, handleBackPress, canAdvanceFromCurrentStep };
+}
+
+function WizardStepIndicator({ steps, currentStep, setCurrentStep, styles, colors, wideLayout }: {
+  steps: WizardStep[];
+  currentStep: number;
+  setCurrentStep: (index: number) => void;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  colors: ReturnType<typeof useColors>;
+  wideLayout: boolean;
+}): React.ReactElement {
+  const lastStepIndex = Math.max(0, steps.length - 1);
+  return (
+      <View
+        accessibilityRole="tablist"
+        testID="SetupWizardSteps"
+        style={[
+          styles.stepIndicatorContainer,
+          wideLayout && styles.stepIndicatorWide,
+        ]}
+      >
+        {steps.map((step, index) => (
+          <React.Fragment key={step.key}>
+            <TouchableOpacity
+              accessibilityRole="tab"
+              accessibilityLabel={`${step.name}, step ${index + 1} of ${steps.length}`}
+              accessibilityState={{ selected: currentStep === index, disabled: !step.canEnter }}
+              {...(Platform.OS === "web" ? { "aria-current": currentStep === index ? "step" as const : undefined, "aria-selected": currentStep === index, "aria-disabled": !step.canEnter } : {})}
+              testID={`SetupWizardStep-${step.key}`}
+              style={[
+                styles.stepButton,
+                wideLayout && styles.stepButtonWide,
+                currentStep >= index && styles.activeStepButton,
+              ]}
+              onPress={() => setCurrentStep(index)}
+              disabled={!step.canEnter}
+            >
+              <AppIcon
+                name={step.icon}
+                size={24}
+                color={
+                  currentStep >= index ? colors.textLight : colors.textMuted
+                }
+              />
+              {wideLayout ? (
+                <Text
+                  style={[
+                    styles.stepButtonLabel,
+                    currentStep >= index && styles.stepButtonLabelActive,
+                  ]}
+                >
+                  {step.name}
+                </Text>
+              ) : null}
+            </TouchableOpacity>
+
+            {/* Render connector lines between steps */}
+            {index < lastStepIndex && (
+              <View
+                style={[
+                  styles.stepConnector,
+                  wideLayout && styles.stepConnectorWide,
+                  currentStep > index && styles.activeStepConnector, // Connector color changes if the step is passed
+                ]}
+              />
+            )}
+          </React.Fragment>
+        ))}
+      </View>
+
+  );
+}
+
+function WizardActionButton({ action, styles, colors, wideLayout }: {
+  action: WizardAction;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  colors: ReturnType<typeof useColors>;
+  wideLayout: boolean;
+}): React.ReactElement {
+  return (
     <TouchableOpacity
       accessibilityRole="button"
       accessibilityLabel={action.label}
@@ -191,153 +344,31 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
       </View>
     </TouchableOpacity>
   );
+}
 
-  const wizard = (
-    <View
-      testID="SetupWizardRoot"
-      style={[styles.wizardContainer, wideLayout && styles.wizardWideLayout, scrollsAsPage && { flex: 0, flexGrow: 1 }]}
-    >
-      {/* Progress Indicator */}
-      <View
-        accessibilityRole="tablist"
-        testID="SetupWizardSteps"
-        style={[
-          styles.stepIndicatorContainer,
-          wideLayout && styles.stepIndicatorWide,
-        ]}
-      >
-        {steps.map((step, index) => (
-          <React.Fragment key={step.key}>
-            <TouchableOpacity
-              accessibilityRole="tab"
-              accessibilityLabel={`${step.name}, step ${index + 1} of ${steps.length}`}
-              accessibilityState={{ selected: currentStep === index, disabled: !step.canEnter }}
-              {...(Platform.OS === "web" ? { "aria-current": currentStep === index ? "step" as const : undefined, "aria-selected": currentStep === index, "aria-disabled": !step.canEnter } : {})}
-              testID={`SetupWizardStep-${step.key}`}
-              style={[
-                styles.stepButton,
-                wideLayout && styles.stepButtonWide,
-                currentStep >= index && styles.activeStepButton,
-              ]}
-              onPress={() => {
-                if (step.canEnter) {
-                  setCurrentStep(index);
-                }
-              }}
-              disabled={!step.canEnter}
-            >
-              <AppIcon
-                name={step.icon}
-                size={24}
-                color={
-                  currentStep >= index ? colors.textLight : colors.textMuted
-                }
-              />
-              {wideLayout ? (
-                <Text
-                  style={[
-                    styles.stepButtonLabel,
-                    currentStep >= index && styles.stepButtonLabelActive,
-                  ]}
-                >
-                  {step.name}
-                </Text>
-              ) : null}
-            </TouchableOpacity>
-
-            {/* Render connector lines between steps */}
-            {index < lastStepIndex && (
-              <View
-                style={[
-                  styles.stepConnector,
-                  wideLayout && styles.stepConnectorWide,
-                  currentStep > index && styles.activeStepConnector, // Connector color changes if the step is passed
-                ]}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </View>
-
-      <View style={[styles.wizardMainPanel, scrollsAsPage && { flex: 0, flexGrow: 1 }]}>
-        <Text accessibilityRole="header" aria-level={2} style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
-        {/* Step Content - Now scrollable */}
-        <ScrollView
-          testID="SetupWizardContent"
-          style={[styles.stepContentScroll, scrollsAsPage && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", overflow: "visible" }]}
-          showsVerticalScrollIndicator={true}
-          keyboardShouldPersistTaps="handled"
-        >
-          {currentStepContent}
-        </ScrollView>
-
-        {/* Navigation Buttons */}
-        <View
-          testID="SetupWizardNavigation"
-          style={[
-            styles.wizardNavigation,
-            wideLayout && styles.wizardNavigationWide,
-          ]}
-        >
-          {isFirstStep
-            ? renderAction({ iconPosition: "leading", ...firstSlotAction })
-            : renderAction({
-                label: "Back",
-                icon: "arrow-back",
-                iconPosition: "leading",
-                testID: "SetupWizardBack",
-                onPress: () => {
-                  const previous = Math.max(0, currentStep - 1);
-                  if (controlled && onStepBack) onStepBack(steps[previous].key);
-                  else setCurrentStep(previous);
-                },
-              })}
-
-          {isFinalStep
-            ? renderAction(
-                finalAction ?? {
-                  // No final action for this viewer — a room member cannot start
-                  // the game. A disabled placeholder keeps the bar's two slots.
-                  label: "Waiting for host",
-                  icon: "time-outline",
-                  testID: "SetupWizardFinalDisabled",
-                  onPress: () => {},
-                  disabled: true,
-                  backgroundColor: colors.secondary,
-                },
-              )
-            : renderAction({ // eslint-disable-line react-hooks/refs -- This helper forwards the event callback; it never calls it while rendering.
-                label: "Next",
-                icon: "arrow-forward",
-                testID: "SetupWizardNext",
-                onPress: handleNextPress,
-                disabled: !canAdvanceFromCurrentStep,
-              })}
-        </View>
-      </View>
-    </View>
-  );
-  // Keep input ancestry stable when a web keyboard shrinks the viewport.
-  // Only the active scroll owner changes; switching wrappers would blur/remount it.
-  return Platform.OS === "web" ? (
-    <View ref={pageFrameRef} onLayout={measurePageTop} style={{ flex: 1 }}>
-      <ScrollView
-        testID="SetupWizardPageScroll"
-        style={[
-          { flex: 1 },
-          scrollsAsPage && {
-            marginTop: Math.max(0, viewportTop - pageTop),
-            maxHeight: Math.max(0, height - Math.max(0, pageTop - viewportTop)),
-          },
-          !scrollsAsPage && { overflow: "hidden" },
-        ]}
-        contentContainerStyle={scrollsAsPage ? { flexGrow: 1 } : { flex: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {wizard}
-      </ScrollView>
-    </View>
-  ) : wizard;
-};
+function useWizardViewport(width: number, height: number) {
+  const pageFrameRef = useRef<View>(null);
+  const [pageTop, setPageTop] = useState(0);
+  const [viewportTop, setViewportTop] = useState(0);
+  const measurePageTop = React.useCallback(() => {
+    pageFrameRef.current?.measureInWindow((_x, y) => setPageTop(y));
+  }, []);
+  useEffect(() => {
+    if (Platform.OS === "web") measurePageTop();
+  }, [height, width, measurePageTop]);
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined" || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const updateOrigin = () => setViewportTop(Math.max(0, viewport.offsetTop));
+    updateOrigin();
+    viewport.addEventListener("resize", updateOrigin);
+    viewport.addEventListener("scroll", updateOrigin);
+    return () => {
+      viewport.removeEventListener("resize", updateOrigin);
+      viewport.removeEventListener("scroll", updateOrigin);
+    };
+  }, []);
+  return { pageFrameRef, pageTop, viewportTop, measurePageTop, scrollsAsPage: Platform.OS === "web" && height < 480 };
+}
 
 export default SetupWizard;

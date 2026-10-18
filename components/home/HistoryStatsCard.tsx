@@ -29,7 +29,7 @@ export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
         elevated
         {...(Platform.OS === "web"
           ? {
-              render: <a href="/history" style={{ textDecoration: "none" }} />,
+              render: <a href="/history" aria-label="Game Stats, view history" style={{ textDecoration: "none" }} />,
               role: "link",
               "aria-label": "Game Stats, view history",
             }

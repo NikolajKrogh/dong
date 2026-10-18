@@ -57,7 +57,6 @@ const SetupGameScreen = () => {
     setCommonMatchId: setGlobalCommonMatchId,
     setPlayerAssignments: setGlobalPlayerAssignments,
     setMatchesPerPlayer,
-    clearActiveGameContext,
   } = useGameStore();
 
   const canAdvanceToMatches = players.length > 0 || !!newPlayerName.trim();
@@ -195,78 +194,9 @@ const SetupGameScreen = () => {
     );
   };
 
-  const handleStartGame = () => {
-    if (players.length === 0) {
-      Toast.show({
-        type: "themedWarning",
-        text1: "No Players",
-        text2: "Please add at least one player to start the game.",
-        position: "bottom",
-      });
-      return;
-    }
+  const handleStartGame = useStartGame();
 
-    if (matches.length === 0) {
-      Toast.show({
-        type: "themedWarning",
-        text1: "No Matches",
-        text2: "Please add at least one match to start the game.",
-        position: "bottom",
-      });
-      return;
-    }
-
-    if (!commonMatchId) {
-      Toast.show({
-        type: "themedWarning",
-        text1: "No Common Match",
-        text2: "Please select a common match that all players will drink for.",
-        position: "bottom",
-      });
-      return;
-    }
-
-    const assignedMatchIds = new Set(Object.values(playerAssignments).flat());
-    const filteredMatches = matches.filter(
-      (match) =>
-        assignedMatchIds.has(match.id) ||
-        (commonMatchId && match.id === commonMatchId),
-    );
-    setGlobalMatches(filteredMatches);
-    clearActiveGameContext();
-
-    router.push("/gameProgress");
-  };
-
-  const handleRandomAssignment = (numMatches: number) => {
-    try {
-      const newAssignments = createRandomAssignments(
-        players,
-        matches,
-        commonMatchId,
-        numMatches,
-      );
-
-      setGlobalPlayerAssignments(newAssignments);
-      Toast.show({
-        type: "themedSuccess",
-        text1: "Matches assigned",
-        text2: `Each player has ${numMatches} additional matches plus the common match.`,
-        position: "bottom",
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error.";
-
-      Toast.show({
-        type: "themedWarning",
-        text1: "Failed",
-        text2: errorMessage,
-        position: "bottom",
-      });
-      console.error(error);
-    }
-  };
+  const handleRandomAssignment = useRandomAssignment();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -377,5 +307,89 @@ const SetupGameScreen = () => {
     </SafeAreaView>
   );
 };
+
+function useStartGame(): () => void {
+  const router = useRouter();
+  const { players, matches, commonMatchId, playerAssignments,
+    setMatches: setGlobalMatches, clearActiveGameContext } = useGameStore();
+  const handleStartGame = () => {
+    if (players.length === 0) {
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Players",
+        text2: "Please add at least one player to start the game.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    if (matches.length === 0) {
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Matches",
+        text2: "Please add at least one match to start the game.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    if (!commonMatchId) {
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Common Match",
+        text2: "Please select a common match that all players will drink for.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    const assignedMatchIds = new Set(Object.values(playerAssignments).flat());
+    const filteredMatches = matches.filter(
+      (match) =>
+        assignedMatchIds.has(match.id) ||
+        (commonMatchId && match.id === commonMatchId),
+    );
+    setGlobalMatches(filteredMatches);
+    clearActiveGameContext();
+
+    router.push("/gameProgress");
+  };
+
+  return handleStartGame;
+}
+
+function useRandomAssignment(): (numMatches: number) => void {
+  const { players, matches, commonMatchId, setPlayerAssignments: setGlobalPlayerAssignments } = useGameStore();
+  const handleRandomAssignment = (numMatches: number) => {
+    try {
+      const newAssignments = createRandomAssignments(
+        players,
+        matches,
+        commonMatchId,
+        numMatches,
+      );
+
+      setGlobalPlayerAssignments(newAssignments);
+      Toast.show({
+        type: "themedSuccess",
+        text1: "Matches assigned",
+        text2: `Each player has ${numMatches} additional matches plus the common match.`,
+        position: "bottom",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error.";
+
+      Toast.show({
+        type: "themedWarning",
+        text1: "Failed",
+        text2: errorMessage,
+        position: "bottom",
+      });
+      console.error(error);
+    }
+  };
+  return handleRandomAssignment;
+}
 
 export default SetupGameScreen;

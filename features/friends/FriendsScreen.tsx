@@ -34,7 +34,17 @@ export default function FriendsScreen() {
         {(['friends', 'requests'] as const).map(value => <ShellActionButton key={value} role="tab" accessibilityState={{ selected: tab === value }} flex={1} widthMode="fit" variant="surface" borderWidth={0} backgroundColor={tab === value ? '$primaryLight' : '$surface'} label={value === 'friends' ? 'Friends' : 'Requests'} onPress={() => setTab(value)} />)}
       </XStack>
       {friends.actionError ? <Text color="$danger" accessibilityRole="alert">{friends.actionError}</Text> : null}
-      {tab === 'requests' ? <RequestsPanel /> : <YStack gap="$3">
+      {tab === 'requests' ? <RequestsPanel /> : <FriendsList friends={friends} openShared={openShared} onSearch={() => openChild('/friends/search')} />}
+    </YStack>}
+  </SettingsPage>;
+}
+
+function FriendsList({ friends, openShared, onSearch }: {
+  friends: ReturnType<typeof useFriends>;
+  openShared: (accountId: string) => void;
+  onSearch: () => void;
+}): React.JSX.Element {
+  return <YStack gap="$3">
         {!friends.list.isFetching && !friends.list.error && friends.items.length === 0 ? (
           <YStack alignItems="center" gap="$3" paddingVertical="$6">
             <Text color="$textPrimary" fontSize={22} fontWeight="700" textAlign="center">Better games with friends</Text>
@@ -43,7 +53,7 @@ export default function FriendsScreen() {
               role="button"
               widthMode="fit"
               label="Find friends"
-              onPress={() => openChild('/friends/search')}
+              onPress={onSearch}
             />
           </YStack>
         ) : (
@@ -64,7 +74,5 @@ export default function FriendsScreen() {
           </>
         )}
         <Text color="$textMuted" textAlign="center" fontSize={13} paddingTop="$4">Pull down to refresh</Text>
-      </YStack>}
-    </YStack>}
-  </SettingsPage>;
+      </YStack>;
 }

@@ -3,7 +3,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { Platform } from 'react-native';
 import { ShellActionButton } from '../../../components/ui/ShellActionButton';
 
-jest.mock('expo-router', () => ({ Link: ({ children, href }: any) => require('react').cloneElement(children, { href }) }));
+jest.mock('expo-router', () => ({ Link: Object.assign(({ children, href }: any) => require('react').cloneElement(children, { href }), { resolveHref: (href: string) => href }) }));
 
 jest.mock('tamagui', () => {
   const React = require('react');

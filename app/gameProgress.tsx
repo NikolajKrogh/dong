@@ -94,16 +94,7 @@ const GameProgressScreen = () => {
   const controlsDisabled = activeGame.isMultiplayer && (!activeGame.isEditable || departurePending);
 
   if (hasHydrated === false || (!activeGame.isMultiplayer && matches.length === 0)) {
-    return <ShellScreen centerContent>
-      <View style={{ gap: 16, padding: 20 }}>
-        <RecoveryText style={{ color: colors.textPrimary }} accessibilityRole="header">{hasHydrated === false ? "Loading your game..." : "No active game"}</RecoveryText>
-        {hasHydrated !== false ? <>
-          <RecoveryText style={{ color: colors.textPrimary }}>Start a game or return Home to resume an available room.</RecoveryText>
-          <ShellActionButton label="Start New Game" onPress={() => router.replace("/setupGame")} />
-        </> : null}
-        <ShellActionButton label="Home" variant="surface" onPress={() => router.dismissTo("/")} />
-      </View>
-    </ShellScreen>;
+    return <GameRecovery loading={hasHydrated === false} textColor={colors.textPrimary} />;
   }
 
   return (
@@ -221,6 +212,20 @@ const GameProgressScreen = () => {
     </SafeAreaView>
   );
 };
+
+function GameRecovery({ loading, textColor }: { loading: boolean; textColor: string }): React.JSX.Element {
+  const router = useRouter();
+    return <ShellScreen centerContent>
+      <View style={{ gap: 16, padding: 20 }}>
+        <RecoveryText style={{ color: textColor }} accessibilityRole="header">{loading ? "Loading your game..." : "No active game"}</RecoveryText>
+        {!loading ? <>
+          <RecoveryText style={{ color: textColor }}>Start a game or return Home to resume an available room.</RecoveryText>
+          <ShellActionButton label="Start New Game" onPress={() => router.replace("/setupGame")} />
+        </> : null}
+        <ShellActionButton label="Home" variant="surface" onPress={() => router.dismissTo("/")} />
+      </View>
+    </ShellScreen>;
+}
 
 function useGameDeparture(activeGame: NonNullable<ReturnType<typeof useGameProgressController>["activeGame"]>) {
   const router = useRouter();

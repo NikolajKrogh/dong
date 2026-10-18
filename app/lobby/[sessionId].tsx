@@ -613,8 +613,13 @@ function RoomLobbyWizard({
   const navigationReady = useNavigationReady();
   const params = useLocalSearchParams() as RouteParams;
   const requestedStep = parseLobbyStep(params);
-  const [activeStep, setActiveStep] = useState<LobbyStep>("room");
-  const [restoreNotice, setRestoreNotice] = useState("");
+  const [{ activeStep, restoreNotice }, updateRoute] = React.useReducer(
+    (state: { activeStep: LobbyStep; restoreNotice: string }, action: { step?: LobbyStep; notice?: string }) => ({
+      activeStep: action.step ?? state.activeStep,
+      restoreNotice: action.notice ?? state.restoreNotice,
+    }),
+    { activeStep: "room", restoreNotice: "" },
+  );
   const restoredRequest = useRef<string | null>(null);
   const pendingStep = useRef<string | null>(null);
   useFocusEffect(useCallback(() => { pendingStep.current = null; }, []));
@@ -682,15 +687,14 @@ function RoomLobbyWizard({
     },
   ];
   const routeRequest = JSON.stringify([snapshot.sessionId, params.step ?? null]);
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!navigationReady || restoredRequest.current === routeRequest) return;
     restoredRequest.current = routeRequest;
     pendingStep.current = null;
     const step = resolveStep(requestedStep, LOBBY_STEPS, [true, true, canEnterCommon, canEnterAssign]);
-    // Restore external route requests once; polling must not move an active editor.
-    setActiveStep(step);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Normalize an external route request only once, never on snapshot polls.
-    if (step !== requestedStep) setRestoreNotice("Complete this step before continuing your room setup.");
+    // Restore before paint; polling must not move an active editor.
+    updateRoute({ step, notice: step !== requestedStep
+      ? "Complete this step before continuing your room setup." : undefined });
     const canonical = withViewParams(params, { step: step === "room" ? undefined : step });
     if (!sameViewParams(params, canonical)) router.setParams({ step: step === "room" ? undefined : step });
   }, [navigationReady, routeRequest, requestedStep, canEnterCommon, canEnterAssign, params, router]);
@@ -698,12 +702,12 @@ function RoomLobbyWizard({
     const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
     if (step === activeStep || step === pendingStep.current) return;
     pendingStep.current = step;
-    setRestoreNotice("");
+    updateRoute({ notice: "" });
     router.push({ pathname: "/lobby/[sessionId]", params: { ...withViewParams(params, { step: step === "room" ? undefined : step }), sessionId: snapshot.sessionId } });
   };
   const backStep = (key: string) => {
     const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
-    setRestoreNotice("");
+    updateRoute({ notice: "" });
     const stack = navigation.getState();
     const previous = stack?.routes[(stack.index ?? 0) - 1];
     const previousParams = (previous?.params ?? {}) as RouteParams;
