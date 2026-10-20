@@ -182,7 +182,6 @@ const MatchList: FC<MatchListProps> = ({
   const {
     isLoading: isTeamLoading,
     isError: isTeamError,
-    errorMessage: teamErrorMessage,
     teamsData: allTeamsData,
   } = useTeamData();
   const {
@@ -209,7 +208,6 @@ const MatchList: FC<MatchListProps> = ({
   const {
     isLoading: isMatchLoading,
     isError: isMatchError,
-    errorMessage: matchErrorMessage,
     teamsData: matchTeamsData,
     apiData,
     availableLeagues,
@@ -368,7 +366,6 @@ const MatchList: FC<MatchListProps> = ({
 
   const isLoading = isMatchLoading || isTeamLoading;
   const isError = isMatchError || isTeamError;
-  const errorMessage = matchErrorMessage || teamErrorMessage;
   const teamSelection = (
     <TeamSelectionRow
       homeTeam={homeTeam}
@@ -404,7 +401,7 @@ const MatchList: FC<MatchListProps> = ({
     feedback = (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText} accessibilityRole="alert">
-          {errorMessage || "Error loading data."} You can still add matches manually.
+          Scheduled matches are unavailable right now. Choose or enter a home and away team to add a match manually.
         </Text>
       </View>
     );
