@@ -181,7 +181,6 @@ const MatchList: FC<MatchListProps> = ({
   const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore();
   const {
     isLoading: isTeamLoading,
-    isError: isTeamError,
     teamsData: allTeamsData,
   } = useTeamData();
   const {
@@ -207,7 +206,6 @@ const MatchList: FC<MatchListProps> = ({
 
   const {
     isLoading: isMatchLoading,
-    isError: isMatchError,
     teamsData: matchTeamsData,
     apiData,
     availableLeagues,
@@ -365,7 +363,6 @@ const MatchList: FC<MatchListProps> = ({
   );
 
   const isLoading = isMatchLoading || isTeamLoading;
-  const isError = isMatchError || isTeamError;
   const teamSelection = (
     <TeamSelectionRow
       homeTeam={homeTeam}
@@ -395,14 +392,6 @@ const MatchList: FC<MatchListProps> = ({
           }
         />
         <Text style={styles.loadingText}>Loading matches and teams...</Text>
-      </View>
-    );
-  } else if (isError) {
-    feedback = (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText} accessibilityRole="alert">
-          Scheduled matches are unavailable right now. Choose or enter a home and away team to add a match manually.
-        </Text>
       </View>
     );
   }
