@@ -114,7 +114,6 @@ const SetupWizard: React.FC<SetupWizardProps> = ({
         styles={styles} colors={colors} wideLayout={wideLayout} />
 
       <View style={[styles.wizardMainPanel, scrollsAsPage && { flex: 0, flexGrow: 1 }]}>
-        <Text accessibilityRole="header" aria-level={2} style={styles.currentStepLabel}>{`Step ${currentStep + 1} of ${steps.length}: ${steps[currentStep]?.name ?? "Setup"}`}</Text>
         {/* Step Content - Now scrollable */}
         <ScrollView
           testID="SetupWizardContent"

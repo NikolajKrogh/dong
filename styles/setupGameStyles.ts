@@ -489,14 +489,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderColor: colors.borderLight,
       overflow: "hidden",
     },
-    currentStepLabel: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: colors.textPrimary,
-      textAlign: "center",
-      marginTop: 8,
-      marginBottom: 16,
-    },
     stepButton: {
       minHeight: 48,
       minWidth: 48,
