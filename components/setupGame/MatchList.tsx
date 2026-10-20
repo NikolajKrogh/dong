@@ -369,7 +369,7 @@ const MatchList: FC<MatchListProps> = ({
   const isLoading = isMatchLoading || isTeamLoading;
   const isError = isMatchError || isTeamError;
   const errorMessage = matchErrorMessage || teamErrorMessage;
-  let content = (
+  const teamSelection = (
     <TeamSelectionRow
       homeTeam={homeTeam}
       awayTeam={awayTeam}
@@ -383,8 +383,9 @@ const MatchList: FC<MatchListProps> = ({
     />
   );
 
+  let feedback: React.ReactNode = null;
   if (isLoading) {
-    content = (
+    feedback = (
       <View style={styles.loadingContainer}>
         <PlatformAnimation
           kind="loading"
@@ -400,10 +401,10 @@ const MatchList: FC<MatchListProps> = ({
       </View>
     );
   } else if (isError) {
-    content = (
+    feedback = (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          {errorMessage || "Error loading data."}
+        <Text style={styles.errorText} accessibilityRole="alert">
+          {errorMessage || "Error loading data."} You can still add matches manually.
         </Text>
       </View>
     );
@@ -415,7 +416,7 @@ const MatchList: FC<MatchListProps> = ({
       poolMatchIds={poolMatchIds}
       disableSelection={disableSelection}
       showSectionTitle={showSectionTitle}
-      content={content}
+      content={<>{teamSelection}{feedback}</>}
       processingState={processingState}
       leagueFilterProps={{
         availableLeagues,

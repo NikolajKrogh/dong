@@ -230,6 +230,8 @@ describe("MatchList platform adoption", () => {
       fontScale: 1,
     });
     mockMatchDataState.isLoading = true;
+    mockMatchDataState.isError = false;
+    mockMatchDataState.errorMessage = "";
   });
 
   it("uses the shared animation adapter for loading feedback", () => {
@@ -249,6 +251,27 @@ describe("MatchList platform adoption", () => {
         renderer.unmount();
       });
     });
+  });
+
+  it.each(["loading", "failed"])("allows manual matches while backend data is %s", (status) => {
+    mockMatchDataState.isLoading = status === "loading";
+    mockMatchDataState.isError = status === "failed";
+    mockMatchDataState.errorMessage = status === "failed" ? "Failed to fetch" : "";
+    const setGlobalMatches = jest.fn();
+    const setHomeTeam = jest.fn();
+    const setAwayTeam = jest.fn();
+    const renderer = renderMatchList({ matches: [], setGlobalMatches, setHomeTeam, setAwayTeam });
+
+    TestRenderer.act(() => {
+      renderer.root.findByProps({ testID: "TeamSelectionRow" }).props.handleAddMatchAndClear();
+    });
+
+    expect(setGlobalMatches).toHaveBeenCalledWith([
+      expect.objectContaining({ homeTeam: "Arsenal", awayTeam: "Chelsea", homeGoals: 0, awayGoals: 0 }),
+    ]);
+    expect(setHomeTeam).toHaveBeenCalledWith("");
+    expect(setAwayTeam).toHaveBeenCalledWith("");
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("keeps a single-column layout on phone-sized viewports", () => {
