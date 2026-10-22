@@ -28,6 +28,7 @@ interface PlayerPickPanelProps {
   /** True while a submission and its follow-up refresh are in flight. */
   isBusy?: boolean;
   testID?: string;
+  title?: string;
 }
 
 /**
@@ -57,6 +58,7 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   onSetPicks,
   isBusy = false,
   testID = "lobby-player-pick-panel",
+  title = "Your matches",
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [localPicks, setLocalPicks] = useState<string[]>(myPicks);
@@ -112,7 +114,7 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   return (
     <YStack testID={testID} gap="$2">
       <MatchSelectionCard
-        title="Your matches"
+        title={title}
         selectedCount={localPicks.length}
         totalCount={cap}
         collapsed={collapsed}

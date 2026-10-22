@@ -221,6 +221,42 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       fontWeight: "500",
       color: colors.textSecondary,
     },
+    assignmentCounterLabel: {
+      flex: 1,
+      marginRight: 8,
+    },
+    assignmentDescription: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+    assignmentModeTabs: {
+      flexDirection: "row",
+      padding: 4,
+      gap: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.backgroundLight,
+    },
+    assignmentModeTab: {
+      flex: 1,
+      minHeight: 44,
+      justifyContent: "center",
+      alignItems: "center",
+      borderRadius: 7,
+      paddingHorizontal: 2,
+    },
+    assignmentModeLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    assignmentPendingLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
     matchItemWrapper: {
       // Used for layout, no specific visual style from palette
       marginBottom: 8,

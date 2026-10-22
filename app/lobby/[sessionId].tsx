@@ -35,7 +35,7 @@ import {
   AssignmentRequirementLine,
   AssignmentSettingsPanel,
 } from "../../components/lobby/AssignmentSettingsPanel";
-import { HostAllocationGrid } from "../../components/lobby/HostAllocationGrid";
+import { RoomAssignmentPlayers } from "../../components/lobby/RoomAssignmentPlayers";
 import { ParticipantList } from "../../components/lobby/ParticipantList";
 import { RoomIdentityPanel } from "../../components/lobby/RoomIdentityPanel";
 import { StartGameWarnings } from "../../components/lobby/StartGameWarnings";
@@ -190,6 +190,7 @@ function useLobbyAssignmentController(
 
   return {
     assignmentMode,
+    participantId,
     automaticMinimum,
     canPick,
     commonMatchId,
@@ -201,6 +202,7 @@ function useLobbyAssignmentController(
     participants,
     pendingModeSwitch,
     pickProgress,
+    picks,
     pickableMatches,
     plan,
     poolAsSelectable,
@@ -674,7 +676,6 @@ function RoomLobbyWizard({
       canEnter: canEnterAssign,
       content: (
         <LobbyAssignmentStepContent
-          snapshot={snapshot}
           configure={configure}
           assignment={assignment}
           isHost={isHost}
@@ -842,13 +843,11 @@ function LobbyCommonStepContent({
 }
 
 function LobbyAssignmentStepContent({
-  snapshot,
   configure,
   assignment,
   isHost,
   onSelectMode,
 }: {
-  snapshot: RoomLobbySnapshot;
   configure: RoomLobbyConfigure;
   assignment: LobbyAssignmentController;
   isHost: boolean;
@@ -856,6 +855,7 @@ function LobbyAssignmentStepContent({
 }) {
   const pickPanel = assignment.canPick ? (
     <PlayerPickPanel
+      title={assignment.participants.find(player => player.id === assignment.participantId)?.displayName ?? "Your matches"}
       matches={assignment.pickableMatches}
       myPicks={assignment.myPicks}
       cap={assignment.plan.matchesPerPlayer}
@@ -867,7 +867,6 @@ function LobbyAssignmentStepContent({
     <YStack gap="$4" padding="$4">
       {isHost ? (
         <HostAssignmentContent
-          snapshot={snapshot}
           configure={configure}
           assignment={assignment}
           pickPanel={pickPanel}
@@ -881,13 +880,11 @@ function LobbyAssignmentStepContent({
 }
 
 function HostAssignmentContent({
-  snapshot,
   configure,
   assignment,
   pickPanel,
   onSelectMode,
 }: {
-  snapshot: RoomLobbySnapshot;
   configure: RoomLobbyConfigure;
   assignment: LobbyAssignmentController;
   pickPanel: React.ReactNode;
@@ -898,19 +895,9 @@ function HostAssignmentContent({
   return (
     <>
       <AssignmentModeSelector assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy} onSelectMode={onSelectMode} />
-      {pickPanel}
-      {assignment.assignmentMode === "host_assigned" ? (
-        <HostAllocationGrid
-          participants={assignment.participants}
-          matches={snapshot.matches}
-          commonMatchId={assignment.commonMatchId}
-          matchesPerPlayer={assignment.plan.matchesPerPlayer}
-          additionalMatchIdsFor={assignment.additionalMatchIdsFor}
-          isBusy={configure.isBusy}
-          onToggleAllocation={assignment.toggleAllocation}
-        />
-      ) : null}
-      <AssignmentSettingsPanel plan={assignment.plan} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
+      <AssignmentSettingsPanel plan={assignment.plan} mode={assignment.assignmentMode} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
+      <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} isBusy={configure.isBusy} isHost />
+      <AssignmentRequirementLine plan={assignment.plan} />
       <StartGameWarnings
         plan={assignment.plan}
         shortParticipants={assignment.shortParticipants}
@@ -940,10 +927,28 @@ function MemberAssignmentContent({
       <Text testID="lobby-assignment-mode-readonly" color="$colorMuted" fontSize={13}>
         Assignment mode: {ASSIGNMENT_MODE_LABELS[assignment.assignmentMode]}
       </Text>
-      {pickPanel}
+      <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} isBusy={false} isHost={false} />
       <AssignmentRequirementLine plan={assignment.plan} />
     </>
   );
+}
+
+function LobbyAssignmentPlayers({ assignment, pickPanel, isBusy, isHost }: {
+  assignment: LobbyAssignmentController;
+  pickPanel: React.ReactNode;
+  isBusy: boolean;
+  isHost: boolean;
+}) {
+  const isPicking = assignment.assignmentMode === "player_picked";
+  const participants = pickPanel
+    ? assignment.participants.filter(player => player.id !== assignment.participantId)
+    : assignment.participants;
+  return <RoomAssignmentPlayers participants={participants} matches={assignment.pickableMatches}
+    matchesPerPlayer={assignment.plan.matchesPerPlayer} isBusy={isBusy} ownPicks={pickPanel}
+    pending={assignment.assignmentMode === "automatic"}
+    selectedMatchIdsFor={id => isPicking
+      ? assignment.picks.filter(pick => pick.participantId === id).map(pick => pick.matchId) : assignment.additionalMatchIdsFor(id)}
+    onToggleAllocation={isHost && assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined} />;
 }
 
 function LobbyPostStartContent({

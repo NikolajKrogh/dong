@@ -1,4 +1,5 @@
 import React from "react";
+import TestRenderer from "react-test-renderer";
 
 import { actCreate } from "../../../test-utils/render";
 
@@ -233,5 +234,44 @@ describe("AssignmentSection progress badge", () => {
       .map((node) => node.props.children.join(""));
 
     expect(badges).toEqual(expect.arrayContaining(["2/3", "0/3"]));
+  });
+});
+
+
+describe("shared solo and room assignment controls", () => {
+  it("preserves both server settings when either shared counter changes", () => {
+    const { AssignmentSettingsPanel } = require("../../../components/lobby/AssignmentSettingsPanel");
+    const onChange = jest.fn();
+    const tree = actCreate(React.createElement(AssignmentSettingsPanel, {
+      plan: { matchesPerPlayer: 2, sharedMatchesPerPair: 1 }, mode: "automatic", isBusy: false, onChange,
+    }));
+    TestRenderer.act(() => tree.root.findByProps({ testID: "lobby-matches-per-player-increment" }).props.onPress());
+    expect(onChange).toHaveBeenLastCalledWith({ matchesPerPlayer: 3, sharedMatchesPerPair: 1 });
+    expect(tree.root.findAllByProps({ testID: "lobby-shared-matches-per-pair-decrement" })).toHaveLength(0);
+    TestRenderer.act(() => tree.root.findByProps({ testID: "lobby-shared-matches-toggle" }).props.onPress());
+    TestRenderer.act(() => tree.root.findByProps({ testID: "lobby-shared-matches-per-pair-decrement" }).props.onPress());
+    expect(onChange).toHaveBeenLastCalledWith({ matchesPerPlayer: 2, sharedMatchesPerPair: 0 });
+  });
+
+  it("uses the solo card and match list for host allocation with busy-write protection", () => {
+    const { RoomAssignmentPlayers } = require("../../../components/lobby/RoomAssignmentPlayers");
+    const { MatchSelectionCard } = require("../../../components/matchSelection/MatchSelectionCard");
+    const { SelectableMatchList } = require("../../../components/matchSelection/SelectableMatchList");
+    const onToggleAllocation = jest.fn();
+    const tree = actCreate(React.createElement(RoomAssignmentPlayers, {
+      participants: [{ id: "p1", displayName: "Alice" }],
+      matches: [{ id: "m2", homeTeam: "Liverpool", awayTeam: "Spurs" }],
+      matchesPerPlayer: 2, selectedMatchIdsFor: () => ["m2"], isBusy: true, onToggleAllocation,
+    }));
+    const card = tree.root.findByType(MatchSelectionCard);
+    expect(card.props.selectedCount).toBe(1);
+    expect(card.props.totalCount).toBe(2);
+    TestRenderer.act(() => card.props.onToggleCollapsed());
+    const list = tree.root.findByType(SelectableMatchList);
+    expect(list.props.selectedMatchIds).toEqual(["m2"]);
+    expect(list.props.disabledMatchIds).toEqual(["m2"]);
+    // Verify the adapter preserves both ids; disabled interaction is owned by the shared list.
+    list.props.onToggleMatch("m2");
+    expect(onToggleAllocation).toHaveBeenCalledWith("p1", "m2");
   });
 });
