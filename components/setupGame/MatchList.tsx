@@ -408,24 +408,10 @@ const MatchList: FC<MatchListProps> = ({
     );
   }
 
-  const displayMatches = useMemo(() => {
-    const byId = new Map<string, Match>();
-    for (const match of filteredMatches) {
-      byId.set(match.id, {
-        id: match.id,
-        homeTeam: match.team1,
-        awayTeam: match.team2,
-        homeGoals: 0,
-        awayGoals: 0,
-        startTime: match.time,
-        kickoffAt: match.startDateTime,
-        sourceLeagueCode: match.leagueCode,
-      });
-    }
-    // Preserve selected scores and keep added matches visible when filters change.
-    for (const match of matches) byId.set(match.id, match);
-    return [...byId.values()];
-  }, [filteredMatches, matches]);
+  const displayMatches = useMemo(
+    () => mergeDiscoveredMatches(filteredMatches, matches),
+    [filteredMatches, matches],
+  );
 
   function toggleMatch(id: string): void {
     if (disableSelection) return;
@@ -472,5 +458,24 @@ const MatchList: FC<MatchListProps> = ({
     />
   );
 };
+
+function mergeDiscoveredMatches(discovered: MatchData[], selected: Match[]): Match[] {
+  const byId = new Map<string, Match>();
+  for (const match of discovered) {
+    byId.set(match.id, {
+      id: match.id,
+      homeTeam: match.team1,
+      awayTeam: match.team2,
+      homeGoals: 0,
+      awayGoals: 0,
+      startTime: match.time,
+      kickoffAt: match.startDateTime,
+      sourceLeagueCode: match.leagueCode,
+    });
+  }
+  // Preserve selected scores and keep added matches visible when filters change.
+  for (const match of selected) byId.set(match.id, match);
+  return [...byId.values()];
+}
 
 export default MatchList;
