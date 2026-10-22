@@ -34,6 +34,16 @@ export function RoomAssignmentPlayers({
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const disabledMatchIds = isBusy
+    ? matches.map((match) => match.id)
+    : undefined;
+
+  function toggleExpanded(participantId: string): void {
+    setExpanded((previous) => ({
+      ...previous,
+      [participantId]: !previous[participantId],
+    }));
+  }
   return (
     <View testID="lobby-assignment-players" style={styles.assignmentSection}>
       <View style={styles.sectionHeader}>
@@ -54,20 +64,14 @@ export function RoomAssignmentPlayers({
             collapsed={!expanded[participant.id]}
             onToggleCollapsed={
               onToggleAllocation
-                ? () =>
-                    setExpanded((previous) => ({
-                      ...previous,
-                      [participant.id]: !previous[participant.id],
-                    }))
+                ? () => toggleExpanded(participant.id)
                 : undefined
             }
           >
             <SelectableMatchList
               matches={matches}
               selectedMatchIds={selected}
-              disabledMatchIds={
-                isBusy ? matches.map((match) => match.id) : undefined
-              }
+              disabledMatchIds={disabledMatchIds}
               testIDPrefix={`lobby-allocate-${participant.id}`}
               onToggleMatch={(id) => onToggleAllocation?.(participant.id, id)}
             />

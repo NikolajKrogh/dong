@@ -896,7 +896,12 @@ function HostAssignmentContent({
     <>
       <AssignmentModeSelector assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy} onSelectMode={onSelectMode} />
       <AssignmentSettingsPanel plan={assignment.plan} mode={assignment.assignmentMode} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
-      <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} isBusy={configure.isBusy} isHost />
+      <LobbyAssignmentPlayers
+        assignment={assignment}
+        pickPanel={pickPanel}
+        isBusy={configure.isBusy}
+        onToggleAllocation={assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
+      />
       <AssignmentRequirementLine plan={assignment.plan} />
       <StartGameWarnings
         plan={assignment.plan}
@@ -927,28 +932,48 @@ function MemberAssignmentContent({
       <Text testID="lobby-assignment-mode-readonly" color="$colorMuted" fontSize={13}>
         Assignment mode: {ASSIGNMENT_MODE_LABELS[assignment.assignmentMode]}
       </Text>
-      <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} isBusy={false} isHost={false} />
+      <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} />
       <AssignmentRequirementLine plan={assignment.plan} />
     </>
   );
 }
 
-function LobbyAssignmentPlayers({ assignment, pickPanel, isBusy, isHost }: {
+function LobbyAssignmentPlayers({
+  assignment,
+  pickPanel,
+  isBusy = false,
+  onToggleAllocation,
+}: {
   assignment: LobbyAssignmentController;
   pickPanel: React.ReactNode;
-  isBusy: boolean;
-  isHost: boolean;
-}) {
-  const isPicking = assignment.assignmentMode === "player_picked";
+  isBusy?: boolean;
+  onToggleAllocation?: (participantId: string, matchId: string) => void;
+}): React.JSX.Element {
   const participants = pickPanel
     ? assignment.participants.filter(player => player.id !== assignment.participantId)
     : assignment.participants;
-  return <RoomAssignmentPlayers participants={participants} matches={assignment.pickableMatches}
-    matchesPerPlayer={assignment.plan.matchesPerPlayer} isBusy={isBusy} ownPicks={pickPanel}
-    pending={assignment.assignmentMode === "automatic"}
-    selectedMatchIdsFor={id => isPicking
-      ? assignment.picks.filter(pick => pick.participantId === id).map(pick => pick.matchId) : assignment.additionalMatchIdsFor(id)}
-    onToggleAllocation={isHost && assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined} />;
+
+  function selectedMatchIdsFor(participantId: string): string[] {
+    if (assignment.assignmentMode === "player_picked") {
+      return assignment.picks
+        .filter(pick => pick.participantId === participantId)
+        .map(pick => pick.matchId);
+    }
+    return assignment.additionalMatchIdsFor(participantId);
+  }
+
+  return (
+    <RoomAssignmentPlayers
+      participants={participants}
+      matches={assignment.pickableMatches}
+      matchesPerPlayer={assignment.plan.matchesPerPlayer}
+      isBusy={isBusy}
+      ownPicks={pickPanel}
+      pending={assignment.assignmentMode === "automatic"}
+      selectedMatchIdsFor={selectedMatchIdsFor}
+      onToggleAllocation={onToggleAllocation}
+    />
+  );
 }
 
 function LobbyPostStartContent({

@@ -54,7 +54,7 @@ interface RandomAssignmentSectionProps {
   colors: ReturnType<typeof useColors>;
 }
 
-const RandomAssignmentSection = ({
+function RandomAssignmentSection({
   playerCount,
   matchCount,
   commonMatchId,
@@ -63,23 +63,31 @@ const RandomAssignmentSection = ({
   onRandomAssignment,
   styles,
   colors,
-}: RandomAssignmentSectionProps) => {
+}: RandomAssignmentSectionProps): React.JSX.Element | null {
   if (playerCount === 0 || matchCount === 0 || !commonMatchId) return null;
 
   return (
-    <AssignmentPanel title="Random Assignment"
-      help="Randomly assign matches to players. Each player will share exactly one match with every other player.">
-      <AssignmentCounter label="Matches per player:" value={matchesPerPlayer} min={1} max={matchCount - 1} onChange={setMatchesPerPlayer} />
-        <TouchableOpacity
-          style={styles.randomizeButton}
-          onPress={() => onRandomAssignment(matchesPerPlayer)}
-        >
-          <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
-          <Text style={styles.randomizeButtonText}>Randomize Matches</Text>
-        </TouchableOpacity>
+    <AssignmentPanel
+      title="Random Assignment"
+      help="Randomly assign matches to players. Each player will share exactly one match with every other player."
+    >
+      <AssignmentCounter
+        label="Matches per player:"
+        value={matchesPerPlayer}
+        min={1}
+        max={matchCount - 1}
+        onChange={setMatchesPerPlayer}
+      />
+      <TouchableOpacity
+        style={styles.randomizeButton}
+        onPress={() => onRandomAssignment(matchesPerPlayer)}
+      >
+        <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
+        <Text style={styles.randomizeButtonText}>Randomize Matches</Text>
+      </TouchableOpacity>
     </AssignmentPanel>
   );
-};
+}
 
 interface ManualAssignmentSectionProps {
   players: Player[];
