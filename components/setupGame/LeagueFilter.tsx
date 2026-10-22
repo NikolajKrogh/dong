@@ -6,6 +6,8 @@ import { LeagueEndpoint } from "../../constants/leagues";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
 
+const MAX_VISIBLE_LEAGUE_ICONS = 3;
+
 /**
  * Props for league filter.
  * @description Supplies available league options, the user's current multi-selection and a toggle handler.
@@ -137,7 +139,12 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
   const [isLeagueExpanded, setIsLeagueExpanded] = useState(false);
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
-
+  const selectedCount = selectedLeagues.length;
+  const overflowCount = selectedCount - MAX_VISIBLE_LEAGUE_ICONS;
+  let label = "Choose leagues";
+  if (selectedCount > 0) {
+    label = `${selectedCount} ${selectedCount === 1 ? "league" : "leagues"}`;
+  }
 
   return (
     <View style={styles.filterCard}>
@@ -152,11 +159,15 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
       >
         <View style={summaryStyles.row}>
           <View style={summaryStyles.icons}>
-            {selectedLeagues.slice(0, 3).map(league => <LeagueBadge key={league.code} league={league} />)}
-            {selectedLeagues.length > 3 ? <Text style={{ color: colors.textSecondary }}>{`+${selectedLeagues.length - 3}`}</Text> : null}
+            {selectedLeagues.slice(0, MAX_VISIBLE_LEAGUE_ICONS).map(league => (
+              <LeagueBadge key={league.code} league={league} />
+            ))}
+            {overflowCount > 0 ? (
+              <Text style={{ color: colors.textSecondary }}>{`+${overflowCount}`}</Text>
+            ) : null}
           </View>
           <Text numberOfLines={1} style={[summaryStyles.label, { color: colors.textPrimary }]}>
-            {selectedLeagues.length === 0 ? "Choose leagues" : `${selectedLeagues.length} ${selectedLeagues.length === 1 ? "league" : "leagues"}`}
+            {label}
           </Text>
           <Ionicons name={isLeagueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textMuted} />
         </View>

@@ -22,7 +22,7 @@ import { PlatformAnimation } from "../../platform";
 import { Match, useGameStore } from "../../store/store";
 import AppIcon from "../AppIcon";
 import LeagueMatchSections from "./LeagueMatchSections";
-import { MatchData } from "../../utils/matchUtils";
+import type { MatchData } from "../../utils/matchUtils";
 import LeagueFilter from "./LeagueFilter";
 import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow";
@@ -64,8 +64,8 @@ interface MatchListViewProps {
   displayMatches: Match[];
   disableSelection: boolean;
   showSectionTitle: boolean;
-  content: React.ReactNode;
-  feedback: React.ReactNode;
+  manualEntry: React.ReactNode;
+  loadingFeedback: React.ReactNode;
   processingState: ReturnType<typeof useMatchProcessing>["processingState"];
   leagueFilterProps: React.ComponentProps<typeof LeagueFilter>;
   matchFilterProps: React.ComponentProps<typeof MatchFilter>;
@@ -81,9 +81,9 @@ const MatchListView = ({
   displayMatches,
   disableSelection,
   showSectionTitle,
-  content,
+  manualEntry,
   processingState,
-  feedback,
+  loadingFeedback,
   leagueFilterProps,
   matchFilterProps,
   onToggleMatch,
@@ -98,7 +98,7 @@ const MatchListView = ({
       <View testID="MatchListControls" style={styles.matchListControls}>
         <LeagueFilter {...leagueFilterProps} />
         <MatchFilter {...matchFilterProps} />
-        {feedback}
+        {loadingFeedback}
 
         {processingState.isProcessing && (
           <View style={styles.processingIndicator}>
@@ -125,8 +125,12 @@ const MatchListView = ({
             </Text>
           </View>
         ) : (
-          <LeagueMatchSections matches={displayMatches} selectedMatchIds={poolMatchIds}
-            disabled={disableSelection} onToggleMatch={onToggleMatch} />
+          <LeagueMatchSections
+            matches={displayMatches}
+            selectedMatchIds={poolMatchIds}
+            disabled={disableSelection}
+            onToggleMatch={onToggleMatch}
+          />
         )}
 
         {matches.length > 0 && (
@@ -141,7 +145,7 @@ const MatchListView = ({
           </TouchableOpacity>
         )}
       </View>
-      {content}
+      {manualEntry}
     </View>
   </View>
 );
@@ -334,10 +338,6 @@ const MatchList: FC<MatchListProps> = ({
     startProcessing(filteredMatches);
   };
 
-  const handleAddMatchAndClear = () => {
-    handleAddMatchLocally();
-  };
-
   const handleClearAllMatches = () => {
     if (matches.length === 0) {
       Toast.show({
@@ -373,23 +373,25 @@ const MatchList: FC<MatchListProps> = ({
         <Text style={{ color: colors.primary }}>Add a match manually</Text>
         <AppIcon name={manualEntryOpen ? "arrow-up" : "chevron-down"} size={18} color={colors.primary} />
       </TouchableOpacity>
-      {manualEntryOpen ? <TeamSelectionRow
-      homeTeam={homeTeam}
-      awayTeam={awayTeam}
-      setHomeTeam={setHomeTeam}
-      setAwayTeam={setAwayTeam}
-      homeTeamOptions={homeTeamOptions}
-      awayTeamOptions={awayTeamOptions}
-      handleAddMatchAndClear={handleAddMatchAndClear}
-      addNewHomeTeam={addCustomHomeTeam}
-      addNewAwayTeam={addCustomAwayTeam}
-    /> : null}
+      {manualEntryOpen ? (
+        <TeamSelectionRow
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          setHomeTeam={setHomeTeam}
+          setAwayTeam={setAwayTeam}
+          homeTeamOptions={homeTeamOptions}
+          awayTeamOptions={awayTeamOptions}
+          handleAddMatchAndClear={handleAddMatchLocally}
+          addNewHomeTeam={addCustomHomeTeam}
+          addNewAwayTeam={addCustomAwayTeam}
+        />
+      ) : null}
     </View>
   );
 
-  let feedback: React.ReactNode = null;
+  let loadingFeedback: React.ReactNode = null;
   if (isLoading) {
-    feedback = (
+    loadingFeedback = (
       <View style={styles.loadingContainer}>
         <PlatformAnimation
           kind="loading"
@@ -407,22 +409,33 @@ const MatchList: FC<MatchListProps> = ({
   }
 
   const displayMatches = useMemo(() => {
-    const discovered: Match[] = filteredMatches.map((match: MatchData) => ({
-      id: match.id, homeTeam: match.team1, awayTeam: match.team2,
-      homeGoals: 0, awayGoals: 0, startTime: match.time,
-      kickoffAt: match.startDateTime, sourceLeagueCode: match.leagueCode,
-    }));
-    // Keep already-added matches visible when the discovery filters change.
-    return [...new Map([...discovered, ...matches].map(match => [match.id, match])).values()];
-  }, [filteredMatches, matches]);
-  const toggleMatch = (id: string) => {
-    if (disableSelection) return;
-    if (poolMatchIds.includes(id)) handleRemoveMatch(id);
-    else {
-      const match = filteredMatches.find((item: MatchData) => item.id === id);
-      if (match) startProcessing([match]);
+    const byId = new Map<string, Match>();
+    for (const match of filteredMatches) {
+      byId.set(match.id, {
+        id: match.id,
+        homeTeam: match.team1,
+        awayTeam: match.team2,
+        homeGoals: 0,
+        awayGoals: 0,
+        startTime: match.time,
+        kickoffAt: match.startDateTime,
+        sourceLeagueCode: match.leagueCode,
+      });
     }
-  };
+    // Preserve selected scores and keep added matches visible when filters change.
+    for (const match of matches) byId.set(match.id, match);
+    return [...byId.values()];
+  }, [filteredMatches, matches]);
+
+  function toggleMatch(id: string): void {
+    if (disableSelection) return;
+    if (poolMatchIds.includes(id)) {
+      handleRemoveMatch(id);
+      return;
+    }
+    const match = filteredMatches.find((item: MatchData) => item.id === id);
+    if (match) startProcessing([match]);
+  }
 
   return (
     <MatchListView
@@ -431,9 +444,9 @@ const MatchList: FC<MatchListProps> = ({
       displayMatches={displayMatches}
       disableSelection={disableSelection}
       showSectionTitle={showSectionTitle}
-      content={teamSelection}
+      manualEntry={teamSelection}
       processingState={processingState}
-      feedback={feedback}
+      loadingFeedback={loadingFeedback}
       leagueFilterProps={{
         availableLeagues,
         selectedLeagues,
