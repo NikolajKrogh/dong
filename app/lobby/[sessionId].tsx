@@ -855,6 +855,7 @@ function LobbyAssignmentStepContent({
 }) {
   const pickPanel = assignment.canPick ? (
     <PlayerPickPanel
+      compact
       title={assignment.participants.find(player => player.id === assignment.participantId)?.displayName ?? "Your matches"}
       matches={assignment.pickableMatches}
       myPicks={assignment.myPicks}

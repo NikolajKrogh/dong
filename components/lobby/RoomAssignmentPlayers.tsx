@@ -45,9 +45,12 @@ export function RoomAssignmentPlayers({
     }));
   }
   return (
-    <View testID="lobby-assignment-players" style={styles.assignmentSection}>
+    <View
+      testID="lobby-assignment-players"
+      style={[styles.assignmentSection, styles.compactAssignmentSection]}
+    >
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Players</Text>
+        <Text style={[styles.sectionTitle, styles.compactAssignmentTitle]}>Players</Text>
       </View>
       {ownPicks}
       {participants.map((participant) => {
@@ -55,6 +58,7 @@ export function RoomAssignmentPlayers({
         return (
           <MatchSelectionCard
             key={participant.id}
+            compact
             title={participant.displayName}
             testID={`lobby-assignment-player-${participant.id}`}
             badgeTestID={`lobby-allocation-status-${participant.id}`}

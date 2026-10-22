@@ -27,6 +27,7 @@ interface MatchSelectionCardProps {
   collapsed: boolean;
   onToggleCollapsed?: () => void;
   badgeLabel?: string;
+  compact?: boolean;
   children?: React.ReactNode;
   /**
    * Applied to the outer container so callers keep their own layout styles.
@@ -58,9 +59,11 @@ export const MatchSelectionCard: React.FC<MatchSelectionCardProps> = ({
   testID,
   badgeTestID,
   badgeLabel,
+  compact = false,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const cardStyle = style ?? [styles.assignmentContainer, styles.playerContainer];
   let headerIcon: "person-outline" | "chevron-forward" | "chevron-down" =
     "person-outline";
   if (onToggleCollapsed)
@@ -69,7 +72,7 @@ export const MatchSelectionCard: React.FC<MatchSelectionCardProps> = ({
   return (
     <View
       testID={testID}
-      style={style ?? [styles.assignmentContainer, styles.playerContainer]}
+      style={compact ? [cardStyle, styles.compactAssignmentPlayer] : cardStyle}
     >
       <TouchableOpacity
         accessibilityRole={onToggleCollapsed ? "button" : undefined}

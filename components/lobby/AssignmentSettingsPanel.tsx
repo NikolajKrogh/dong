@@ -45,6 +45,7 @@ export function AssignmentSettingsPanel({
   const [showShared, setShowShared] = useState(false);
   return (
     <AssignmentPanel
+      compact
       title={TITLES[mode]}
       help={HELP[mode]}
       testID="lobby-assignment-settings"

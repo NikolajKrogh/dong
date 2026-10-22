@@ -44,19 +44,27 @@ export function AssignmentPanel({
   help,
   children,
   testID,
+  compact = false,
 }: {
   title: string;
   help: string;
   children: React.ReactNode;
   testID?: string;
+  compact?: boolean;
 }): React.JSX.Element {
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [showHelp, setShowHelp] = useState(false);
   return (
-    <View testID={testID} style={styles.assignmentSection}>
+    <View
+      testID={testID}
+      style={[
+        styles.assignmentSection,
+        compact && styles.compactAssignmentSection,
+      ]}
+    >
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={[styles.sectionTitle, compact && styles.compactAssignmentTitle]}>{title}</Text>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={`About ${title.toLowerCase()}`}
@@ -76,7 +84,14 @@ export function AssignmentPanel({
         onClose={() => setShowHelp(false)}
         styles={styles}
       />
-      <View style={styles.randomizeContainer}>{children}</View>
+      <View
+        style={[
+          styles.randomizeContainer,
+          compact && styles.compactAssignmentSection,
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }

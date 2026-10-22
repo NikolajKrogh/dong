@@ -313,6 +313,17 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       // Often a padding container
       padding: 16,
     },
+    compactAssignmentTitle: {
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    compactAssignmentSection: {
+      marginBottom: 0,
+    },
+    compactAssignmentPlayer: {
+      marginTop: 0,
+      marginBottom: 8,
+    },
     assignmentSection: {
       // Layout
       marginBottom: 24,

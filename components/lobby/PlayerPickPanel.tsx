@@ -29,6 +29,7 @@ interface PlayerPickPanelProps {
   isBusy?: boolean;
   testID?: string;
   title?: string;
+  compact?: boolean;
 }
 
 /**
@@ -59,6 +60,7 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   isBusy = false,
   testID = "lobby-player-pick-panel",
   title = "Your matches",
+  compact = false,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [localPicks, setLocalPicks] = useState<string[]>(myPicks);
@@ -114,6 +116,7 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   return (
     <YStack testID={testID} gap="$2">
       <MatchSelectionCard
+        compact={compact}
         title={title}
         selectedCount={localPicks.length}
         totalCount={cap}
