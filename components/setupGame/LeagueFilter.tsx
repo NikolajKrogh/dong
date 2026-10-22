@@ -5,6 +5,7 @@ import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 import { LeagueEndpoint } from "../../constants/leagues";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
+import { filterSummaryStyles } from "./filterSummaryStyles";
 
 const MAX_VISIBLE_LEAGUE_ICONS = 3;
 
@@ -153,11 +154,12 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
         accessibilityRole="button"
         accessibilityLabel="Choose leagues"
         accessibilityState={{ expanded: isLeagueExpanded }}
-        style={summaryStyles.button}
+        style={filterSummaryStyles.button}
         onPress={() => setIsLeagueExpanded(!isLeagueExpanded)}
         activeOpacity={0.7}
       >
-        <View style={summaryStyles.row}>
+        <View style={filterSummaryStyles.row}>
+          <Ionicons name="football-outline" size={20} color={colors.primaryFocus} />
           <View style={summaryStyles.icons}>
             {selectedLeagues.slice(0, MAX_VISIBLE_LEAGUE_ICONS).map(league => (
               <LeagueBadge key={league.code} league={league} />
@@ -166,7 +168,7 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
               <Text style={{ color: colors.textSecondary }}>{`+${overflowCount}`}</Text>
             ) : null}
           </View>
-          <Text numberOfLines={1} style={[summaryStyles.label, { color: colors.textPrimary }]}>
+          <Text numberOfLines={1} style={[filterSummaryStyles.label, { color: colors.textPrimary }]}>
             {label}
           </Text>
           <Ionicons name={isLeagueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textMuted} />
@@ -194,10 +196,7 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
 export default LeagueFilter;
 
 const summaryStyles = StyleSheet.create({
-  button: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 48 },
-  row: { flexDirection: "row", alignItems: "center", gap: 10 },
-  icons: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 },
-  badge: { width: 24, height: 28, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  logo: { width: 24, height: 26, resizeMode: "contain" },
-  label: { flex: 1, fontSize: 14, fontWeight: "600" },
+  icons: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 0 },
+  badge: { width: 22, height: 28, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  logo: { width: 22, height: 26, resizeMode: "contain" },
 });
