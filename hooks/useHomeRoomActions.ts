@@ -9,6 +9,7 @@ import { useHostRoomCreate } from "./useHostRoomCreate";
 import { useMyActiveRoom } from "./useMyActiveRoom";
 import { useRegisteredRoomJoin } from "./useRegisteredRoomJoin";
 import { useRoomExit } from "./useRoomExit";
+import type { MyActiveRoom } from "../types/room";
 
 /**
  * Composes the room join/host/exit hooks used by the home screen (registered
@@ -27,7 +28,7 @@ export const useHomeRoomActions = () => {
     error: createRoomError,
     createRoom,
   } = useHostRoomCreate();
-  const { activeRoom, refresh: refreshActiveRoom } = useMyActiveRoom(
+  const { activeRoom, isLoading: isActiveRoomLoading, error: activeRoomError, refresh: refreshActiveRoom } = useMyActiveRoom(
     account?.id ?? null,
   );
   const {
@@ -38,6 +39,20 @@ export const useHomeRoomActions = () => {
     clearConflict,
   } = useRegisteredRoomJoin();
   const exit = useRoomExit();
+  const [roomToLeave, setRoomToLeave] = useState<MyActiveRoom | null>(null);
+  const exitTarget = roomToLeave ?? conflictRoom;
+
+  const cancelRoomExit = useCallback(() => {
+    if (exit.isExiting) return;
+    setRoomToLeave(null);
+    exit.cancel();
+  }, [exit]);
+
+  const openRoomExit = useCallback(() => {
+    if (!activeRoom) return;
+    exit.cancel();
+    setRoomToLeave(activeRoom);
+  }, [activeRoom, exit]);
   const [isJoinModalVisible, setIsJoinModalVisible] = useState(false);
   const [registeredJoinCode, setRegisteredJoinCode] = useState("");
   const {
@@ -84,116 +99,35 @@ export const useHomeRoomActions = () => {
     // conflictRoom — the modal renders the "Leave current room & switch" affordance.
   }, [joinRegisteredRoom, registeredJoinCode, router]);
 
-  const handleLeaveCurrentAndSwitch = useCallback(async () => {
-    if (!conflictRoom) {
-      return;
-    }
-    const result = await exit.exitRoom(
-      conflictRoom.sessionId,
-      conflictRoom.role,
-    );
-    // If exit needs a host successor choice, the modal stays open; the chooser
-    // surfaces via exit.pendingSuccessorChoice (rendered below).
-    if (!result) {
-      return;
-    }
-    clearActiveGameContext?.();
+  const completeRoomExit = useCallback(async () => {
+    if (!exitTarget) return;
+    // A room exit must not erase an unrelated solo game or another room.
+    const store = useGameStore.getState();
+    if (store.activeGameContext.sessionId === exitTarget.sessionId) store.resetState();
+    setRoomToLeave(null);
     await refreshActiveRoom();
+    if (roomToLeave) return;
     clearConflict();
-    // Retry the original join with the same code.
-    const response = await joinRegisteredRoom(registeredJoinCode);
-    if (response) {
-      setIsJoinModalVisible(false);
-      setRegisteredJoinCode("");
-      router.push({
-        pathname: "/lobby/[sessionId]",
-        params: {
-          sessionId: response.sessionId,
-        },
-      });
-    }
-  }, [
-    clearConflict,
-    clearActiveGameContext,
-    conflictRoom,
-    exit,
-    joinRegisteredRoom,
-    refreshActiveRoom,
-    registeredJoinCode,
-    router,
-  ]);
+    await handleSubmitRegisteredJoin();
+  }, [exitTarget, roomToLeave, refreshActiveRoom, clearConflict, handleSubmitRegisteredJoin]);
 
-  const handleChooseSuccessorOnHome = useCallback(
-    async (participantId: string) => {
-      if (!conflictRoom) {
-        return;
-      }
-      const result = await exit.confirmSuccessor(
-        conflictRoom.sessionId,
-        participantId,
-      );
-      if (!result) {
-        return;
-      }
-      clearActiveGameContext?.();
-      await refreshActiveRoom();
-      clearConflict();
-      const response = await joinRegisteredRoom(registeredJoinCode);
-      if (response) {
-        setIsJoinModalVisible(false);
-        setRegisteredJoinCode("");
-        router.push({
-          pathname: "/lobby/[sessionId]",
-          params: {
-            sessionId: response.sessionId,
-          },
-        });
-      }
-    },
-    [
-      clearConflict,
-      clearActiveGameContext,
-      conflictRoom,
-      exit,
-      joinRegisteredRoom,
-      refreshActiveRoom,
-      registeredJoinCode,
-      router,
-    ],
-  );
+  const handleLeaveCurrentAndSwitch = useCallback(async () => {
+    if (!exitTarget || exit.isExiting) return;
+    const result = await exit.exitRoom(exitTarget.sessionId, exitTarget.role);
+    if (result) await completeRoomExit();
+  }, [exitTarget, exit, completeRoomExit]);
+
+  const handleChooseSuccessorOnHome = useCallback(async (participantId: string) => {
+    if (!exitTarget || exit.isExiting) return;
+    const result = await exit.confirmSuccessor(exitTarget.sessionId, participantId);
+    if (result) await completeRoomExit();
+  }, [exitTarget, exit, completeRoomExit]);
 
   const handleConfirmCloseOnHome = useCallback(async () => {
-    if (!conflictRoom) {
-      return;
-    }
-    const result = await exit.confirmClose(conflictRoom.sessionId);
-    if (!result) {
-      return;
-    }
-    clearActiveGameContext?.();
-    await refreshActiveRoom();
-    clearConflict();
-    const response = await joinRegisteredRoom(registeredJoinCode);
-    if (response) {
-      setIsJoinModalVisible(false);
-      setRegisteredJoinCode("");
-      router.push({
-        pathname: "/lobby/[sessionId]",
-        params: {
-          sessionId: response.sessionId,
-        },
-      });
-    }
-  }, [
-    clearConflict,
-    clearActiveGameContext,
-    conflictRoom,
-    exit,
-    joinRegisteredRoom,
-    refreshActiveRoom,
-    registeredJoinCode,
-    router,
-  ]);
+    if (!exitTarget || exit.isExiting) return;
+    const result = await exit.confirmClose(exitTarget.sessionId);
+    if (result) await completeRoomExit();
+  }, [exitTarget, exit, completeRoomExit]);
 
   const handleOpenGuestJoin = useCallback(() => {
     setHasDismissedGuestJoinModal(false);
@@ -367,6 +301,12 @@ export const useHomeRoomActions = () => {
   return {
     account,
     activeRoom,
+    isActiveRoomLoading,
+    activeRoomError,
+    refreshActiveRoom,
+    roomToLeave,
+    openRoomExit,
+    cancelRoomExit,
     isCreatingRoom,
     createRoomError,
     createRoom,
