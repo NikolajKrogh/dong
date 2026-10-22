@@ -383,7 +383,7 @@ describe("MatchList platform adoption", () => {
       },
     ]);
   });
-  it("groups discovered matches by league using the existing cards and adds a tapped fixture", () => {
+  it("groups added matches, removes tapped cards, and clears the list even when fixtures are available", () => {
     mockMatchDataState.isLoading = false;
     const fixtures = [
       { id: "pl", team1: "Liverpool", team2: "Brighton", leagueCode: "eng.1", time: "15:00" },
@@ -396,14 +396,31 @@ describe("MatchList platform adoption", () => {
         mockMatchTeamsData.push({ key: value, value, league: league.name });
       }
     }
-    const renderer = renderMatchList({ matches: [] });
+    const matches = fixtures.map(match => ({
+      id: match.id, homeTeam: match.team1, awayTeam: match.team2,
+      sourceLeagueCode: match.leagueCode, homeGoals: 0, awayGoals: 0,
+    }));
+    const handleRemoveMatch = jest.fn();
+    const setGlobalMatches = jest.fn();
+    const renderer = renderMatchList({ matches, handleRemoveMatch, setGlobalMatches });
     expect(renderer.root.findAllByProps({ children: "Premier League" }).length).toBeGreaterThan(0);
     expect(renderer.root.findAllByProps({ children: "Championship" }).length).toBeGreaterThan(0);
     const lists = renderer.root.findAllByProps({ testID: "SelectableMatchList" });
     expect(lists).toHaveLength(2);
     expect(lists[0].props.matches[0]).toMatchObject({ id: "pl", homeTeam: "Liverpool", sourceLeagueCode: "eng.1" });
     TestRenderer.act(() => lists[0].props.onToggleMatch("pl"));
-    expect(mockStartProcessing).toHaveBeenCalledWith([fixtures[0]]);
+    expect(lists[0].props.selectedMatchIds).toEqual(["pl", "ch"]);
+    expect(handleRemoveMatch).toHaveBeenCalledWith("pl");
+    expect(mockStartProcessing).not.toHaveBeenCalled();
+    TestRenderer.act(() => {
+      renderer.root.findByProps({ style: mockStyles.clearAllButton }).props.onPress();
+    });
+    expect(setGlobalMatches).toHaveBeenCalledWith([]);
+    const MatchList = require("../../../components/setupGame/MatchList").default;
+    const props = renderer.root.findByType(MatchList).props;
+    TestRenderer.act(() => renderer.update(React.createElement(MatchList, { ...props, matches: [] })));
+    expect(renderer.root.findAllByProps({ testID: "SelectableMatchList" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ testID: "MatchListEmptyState" })).toHaveLength(1);
     TestRenderer.act(() => renderer.unmount());
   });
 

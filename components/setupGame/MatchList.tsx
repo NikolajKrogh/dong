@@ -22,7 +22,6 @@ import { PlatformAnimation } from "../../platform";
 import { Match, useGameStore } from "../../store/store";
 import AppIcon from "../AppIcon";
 import LeagueMatchSections from "./LeagueMatchSections";
-import type { MatchData } from "../../utils/matchUtils";
 import LeagueFilter from "./LeagueFilter";
 import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow";
@@ -61,7 +60,6 @@ interface MatchListProps {
 interface MatchListViewProps {
   matches: Match[];
   poolMatchIds: string[];
-  displayMatches: Match[];
   disableSelection: boolean;
   showSectionTitle: boolean;
   manualEntry: React.ReactNode;
@@ -78,7 +76,6 @@ interface MatchListViewProps {
 const MatchListView = ({
   matches,
   poolMatchIds,
-  displayMatches,
   disableSelection,
   showSectionTitle,
   manualEntry,
@@ -113,7 +110,7 @@ const MatchListView = ({
 
       <View testID="MatchListResults" style={styles.matchListResults}>
         {/* The shared list keeps solo and multiplayer match cards visually aligned. */}
-        {displayMatches.length === 0 ? (
+        {matches.length === 0 ? (
           <View
             testID="MatchListEmptyState"
             style={styles.matchEmptyListContainer}
@@ -126,7 +123,7 @@ const MatchListView = ({
           </View>
         ) : (
           <LeagueMatchSections
-            matches={displayMatches}
+            matches={matches}
             selectedMatchIds={poolMatchIds}
             disabled={disableSelection}
             onToggleMatch={onToggleMatch}
@@ -408,26 +405,10 @@ const MatchList: FC<MatchListProps> = ({
     );
   }
 
-  const displayMatches = useMemo(
-    () => mergeDiscoveredMatches(filteredMatches, matches),
-    [filteredMatches, matches],
-  );
-
-  function toggleMatch(id: string): void {
-    if (disableSelection) return;
-    if (poolMatchIds.includes(id)) {
-      handleRemoveMatch(id);
-      return;
-    }
-    const match = filteredMatches.find((item: MatchData) => item.id === id);
-    if (match) startProcessing([match]);
-  }
-
   return (
     <MatchListView
       matches={matches}
       poolMatchIds={poolMatchIds}
-      displayMatches={displayMatches}
       disableSelection={disableSelection}
       showSectionTitle={showSectionTitle}
       manualEntry={teamSelection}
@@ -451,31 +432,12 @@ const MatchList: FC<MatchListProps> = ({
         filteredMatches,
         isLoading,
       }}
-      onToggleMatch={toggleMatch}
+      onToggleMatch={handleRemoveMatch}
       onClearAll={handleClearAllMatches}
       styles={styles}
       colors={colors}
     />
   );
 };
-
-function mergeDiscoveredMatches(discovered: MatchData[], selected: Match[]): Match[] {
-  const byId = new Map<string, Match>();
-  for (const match of discovered) {
-    byId.set(match.id, {
-      id: match.id,
-      homeTeam: match.team1,
-      awayTeam: match.team2,
-      homeGoals: 0,
-      awayGoals: 0,
-      startTime: match.time,
-      kickoffAt: match.startDateTime,
-      sourceLeagueCode: match.leagueCode,
-    });
-  }
-  // Preserve selected scores and keep added matches visible when filters change.
-  for (const match of selected) byId.set(match.id, match);
-  return [...byId.values()];
-}
 
 export default MatchList;
