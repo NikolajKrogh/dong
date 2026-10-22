@@ -487,7 +487,6 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
             assignment={assignment}
             isHost={isHost}
             onLeave={handleLeave}
-            onHome={navigateHome}
           />
         ) : (
           <LobbyPostStartContent
@@ -596,7 +595,6 @@ function RoomLobbyWizard({
   assignment,
   isHost,
   onLeave,
-  onHome,
 }: {
   lobby: RoomLobbyState;
   snapshot: RoomLobbySnapshot;
@@ -606,7 +604,6 @@ function RoomLobbyWizard({
   assignment: LobbyAssignmentController;
   isHost: boolean;
   onLeave: () => void;
-  onHome: () => void;
 }) {
   const router = useRouter();
   const navigation = useNavigation();
@@ -735,7 +732,6 @@ function RoomLobbyWizard({
     : null;
 
   return <YStack flex={1}>
-    <ShellActionButton label="Home" variant="surface" testID="lobby-home" onPress={onHome} />
     {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
     <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} onStepBack={backStep} firstSlotAction={firstSlotAction} finalAction={finalAction} />
   </YStack>;
