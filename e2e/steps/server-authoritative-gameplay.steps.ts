@@ -12,6 +12,7 @@ import {
   resetActiveTwoClientFixture,
   seedActiveGameState,
   seedSoloGameState,
+  mockTeamDataCatalogue,
 } from "./browser-flow.helpers";
 
 const { Given, When, Then, After } = createBdd();
@@ -87,7 +88,7 @@ Given(
     ).toBeVisible({
       timeout: 20_000,
     });
-    await expect(page.getByText("Shared game · synced", { exact: true })).toBeVisible({
+    await expect(page.getByTestId("GameProgressTabBarContainer")).toBeVisible({
       timeout: 20_000,
     });
   },
@@ -171,7 +172,7 @@ When("the host confirms end game", async ({ page }) => {
   const sheetToggle = page.getByTestId("GameProgressSheetMenuButton");
   await expectInsideViewport(page, sheetToggle);
   await sheetToggle.click();
-  await expect(page.getByTestId("GameActionsSheetFrame")).toHaveAttribute("data-state", "closed");
+  await expect(page.getByTestId("GameActionsSheetFrame")).toBeHidden();
   await page.getByTestId("GameProgressMenuButton").click();
   await expectInteractiveSheet(page, "GameActionsSheetFrame", [
     "FooterHomeButton",
@@ -205,7 +206,7 @@ Given(
       { waitUntil: "commit" },
     );
     await expect(
-      secondActivePage.getByText("Shared game · synced", { exact: true }),
+      secondActivePage.getByTestId("GameProgressTabBarContainer"),
     ).toBeVisible({ timeout: 20_000 });
   },
 );
@@ -245,19 +246,31 @@ Then("the host sees the canonical drink total", async ({ page }) => {
   ).toContainText("0.5", { timeout: 20_000 });
 });
 
-When("the host reassigns their match to the alternate fixture", async ({ page }) => {
-  await page.getByTestId("ReassignMatchesButton").click();
-  await expectInteractiveSheet(page, "ReassignmentSheetFrame");
-  await page.getByTestId("ReassignmentMatch-active-manual").click();
-  await page.getByTestId("ReassignmentMatch-active-alternate").click();
-  await page.getByTestId("ReassignmentSaveButton").click();
-  await expect(page.getByText("Shared game · synced", { exact: true })).toBeVisible({
-    timeout: 20_000,
-  });
+When("the host adds a match and reassigns using the running-game wizard", async ({ page }) => {
+  await mockTeamDataCatalogue(page);
+  await page.getByTestId("GameProgressMenuButton").click();
+  await page.getByTestId("FooterSetupButton").click();
+  await expect(page.getByTestId("SetupWizardRoot")).toBeVisible();
+  await page.getByTestId("SetupManualMatchToggle").click();
+  for (const [side, name] of [["Home", "Added Home"], ["Away", "Added Away"]]) {
+    await page.getByLabel(`${side} Team`, { exact: true }).click();
+    await page.getByTestId(`Setup${side}TeamModal`).getByPlaceholder(`Search ${side.toLowerCase()}`).fill(name);
+    await page.getByText(`Add "${name}"`, { exact: true }).click();
+  }
+  await page.getByTestId("SetupAddMatchButton").click();
+  await expect(page.getByTestId(/^SetupPoolMatch-/).filter({ hasText: "Added Home" })).toBeVisible();
+  await page.getByTestId("SetupWizardStep-assign").click();
+  await page.getByTestId("lobby-assignment-mode-host-assigned").click();
+  await page.getByTestId("lobby-assignment-player-active-game-participant-1").click();
+  await page.getByTestId("lobby-allocate-active-game-participant-1-active-manual").click();
+  await page.getByTestId("lobby-allocate-active-game-participant-1-active-alternate").click();
+  await page.getByTestId("EditGameSave").click();
+  await expect(page.getByTestId("GameProgressTabBarContainer")).toBeVisible({ timeout: 20_000 });
 });
 
 Then("both clients retain the canonical score and assignment", async ({ page }) => {
   const fixture = getActiveTwoClientFixture();
+  expect(fixture.matches.some(match => match.homeTeamName === "Added Home")).toBe(true);
   expect(
     fixture.assignments.some(
       (assignment) =>
@@ -273,8 +286,8 @@ Then("both clients retain the canonical score and assignment", async ({ page }) 
     .filter({ hasText: "Matches" })
     .click();
   await expect(
-    page.getByTestId("GameProgressMatchCard-active-manual"),
-  ).toContainText("1", { timeout: 20_000 });
+    page.getByTestId("GameProgressMatchCard-active-alternate"),
+  ).toBeVisible({ timeout: 20_000 });
   await secondClient()
     .getByTestId("GameProgressTabButton")
     .filter({ hasText: "Matches" })
@@ -287,14 +300,14 @@ Then("both clients retain the canonical score and assignment", async ({ page }) 
 When("the member reloads the active game", async () => {
   await secondClient().reload({ waitUntil: "commit" });
   await expect(
-    secondClient().getByText("Shared game · synced", { exact: true }),
+    secondClient().getByTestId("GameProgressTabBarContainer"),
   ).toBeVisible({ timeout: 20_000 });
 });
 
-Then("the member still sees the canonical score and drink total", async () => {
+Then("the member still sees the canonical assignment and drink total", async () => {
   await expect(
-    secondClient().getByTestId("GameProgressMatchCard-active-manual"),
-  ).toContainText("1", { timeout: 20_000 });
+    secondClient().getByTestId("GameProgressMatchCard-active-alternate"),
+  ).toBeVisible({ timeout: 20_000 });
   await secondClient()
     .getByTestId("GameProgressTabButton")
     .filter({ hasText: "Players" })
@@ -304,17 +317,17 @@ Then("the member still sees the canonical score and drink total", async () => {
   ).toContainText("0.5", { timeout: 20_000 });
 });
 
-Then("both clients show the canonical completed state", async ({ page }) => {
-  await expect(
-    page.getByText("Game complete · results are read-only", { exact: true }),
-  ).toBeVisible({ timeout: 20_000 });
-  await expect(
-    secondClient().getByText("Game complete · results are read-only", { exact: true }),
-  ).toBeVisible({ timeout: 20_000 });
+Then("both clients return Home after canonical completion", async ({ page }) => {
+  expect(getActiveTwoClientFixture().state).toBe("completed");
+  for (const client of [page, secondClient()]) {
+    await expect(client.getByTestId("home-start-game-button")).toBeVisible({ timeout: 20_000 });
+    await expect(client.getByTestId("GameProgressMenuButton")).toHaveCount(0);
+  }
 });
 
-Then("the active game shows the shared game as synced", async ({ page }) => {
-  await expect(page.getByText("Shared game · synced", { exact: true })).toBeVisible({
+Then("the active game is ready without sync chatter", async ({ page }) => {
+  await expect(page.getByText(/Shared game/)).toHaveCount(0);
+  await expect(page.getByTestId("GameProgressTabBarContainer")).toBeVisible({
     timeout: 20_000,
   });
 });
@@ -335,10 +348,8 @@ Then("the canonical refreshed score is visible", async ({ page }) => {
   );
 });
 
-Then("the active game shows the canonical completed state", async ({ page }) => {
-  await expect(
-    page.getByText("Game complete · results are read-only", { exact: true }),
-  ).toBeVisible({ timeout: 20_000 });
+Then("the host returns Home after canonical completion", async ({ page }) => {
+  await expect(page.getByTestId("home-start-game-button")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("ReassignMatchesButton")).toHaveCount(0);
 });
 
@@ -347,8 +358,9 @@ Then("the solo game remains usable without a shared-game banner", async ({ page 
   await expect(page.getByText(/Shared game/)).toHaveCount(0);
 });
 
-Then("the host can see the reassignment control", async ({ page }) => {
-  await expect(page.getByTestId("ReassignMatchesButton")).toBeVisible({
-    timeout: 20_000,
-  });
+Then("the host can see reassignment in game actions", async ({ page }) => {
+  await expect(page.getByTestId("ReassignMatchesButton")).toHaveCount(0);
+  await page.getByTestId("GameProgressMenuButton").click();
+  await expect(page.getByTestId("FooterSetupButton")).toContainText("Reassign matches");
+  await page.getByTestId("GameProgressSheetMenuButton").click();
 });

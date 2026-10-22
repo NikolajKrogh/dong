@@ -1,0 +1,64 @@
+import TestRenderer from "react-test-renderer";
+import { renderHook } from "../../test-utils/render";
+import { useRunningGameDraft } from "../../hooks/useRunningGameDraft";
+import { getRoomRpcClient } from "../../utils/supabaseClient";
+import type { RoomSnapshot } from "../../types/room";
+
+jest.mock("../../utils/supabaseClient", () => ({ getRoomRpcClient: jest.fn() }));
+const saveConfiguration = jest.fn();
+const snapshot: RoomSnapshot = {
+  sessionId: "room", joinCode: "ROOM", state: "in_progress", commonMatchId: "common",
+  assignmentMode: "player_picked", configurationToken: "baseline",
+  participants: [{ id: "host", displayName: "Host", membershipType: "registered", sessionRole: "owner", currentDrinkTotal: 2 }],
+  matches: ["common", "individual"].map(id => ({ id, sourceProvider: "manual", sourceMatchId: null,
+    homeTeamName: id, awayTeamName: "Away", kickoffAt: null, homeScore: 1, awayScore: 0 })),
+  assignments: [{ participantId: "host", matchId: "common" }, { participantId: "host", matchId: "individual" }], picks: [],
+  assignmentPlan: { participantCount: 1, poolSize: 2, matchesPerPlayer: 1, sharedMatchesPerPair: 0,
+    effectivePerPlayer: 1, requiredPoolSize: 2, relaxedFloor: 2, feasible: true, startable: true },
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.mocked(getRoomRpcClient).mockReturnValue({ saveRunningGameConfiguration: saveConfiguration } as unknown as ReturnType<typeof getRoomRpcClient>);
+});
+
+it("keeps edits local, retains existing fixtures, and edits player-picked assignments as host", () => {
+  const { getLatest } = renderHook(() => useRunningGameDraft(snapshot));
+  expect(getLatest().mode).toBe("host_assigned");
+  TestRenderer.act(() => getLatest().updateMatches([]));
+  expect(getLatest().matches.map(m => m.id)).toEqual(["common", "individual"]);
+  expect(saveConfiguration).not.toHaveBeenCalled();
+  expect(snapshot.assignments).toHaveLength(2);
+});
+
+it("saves new provider fixtures and complete allocations with the baseline token", async () => {
+  saveConfiguration.mockResolvedValue(snapshot);
+  const { getLatest } = renderHook(() => useRunningGameDraft(snapshot));
+  TestRenderer.act(() => {
+    getLatest().updateMatches([...getLatest().matches, { id: "provider-new", homeTeam: "Home", awayTeam: "Away",
+      homeGoals: 0, awayGoals: 0, kickoffAt: "2026-10-22T15:00:00Z", sourceLeagueCode: "eng.1" }]);
+    getLatest().toggleAssignment("host", "individual");
+    getLatest().toggleAssignment("host", "provider-new");
+  });
+  await TestRenderer.act(async () => { await getLatest().save(); });
+  expect(saveConfiguration).toHaveBeenCalledWith(expect.objectContaining({ expectedToken: "baseline",
+    configuration: expect.objectContaining({ assignmentMode: "host_assigned",
+      newMatches: [expect.objectContaining({ clientId: "provider-new", sourceProvider: "espn", sourceMatchId: "provider-new", sourceLeagueCode: "eng.1" })],
+      assignments: [{ participantId: "host", matchId: "provider-new" }],
+    }),
+  }));
+});
+
+it("retains drafts and retry identity on network failure, then exposes configuration conflicts", async () => {
+  saveConfiguration.mockRejectedValueOnce(new Error("network"))
+    .mockRejectedValueOnce(new Error("configuration_conflict"));
+  const { getLatest } = renderHook(() => useRunningGameDraft(snapshot));
+  await TestRenderer.act(async () => { await getLatest().save(); });
+  const firstRequest = saveConfiguration.mock.calls[0][0];
+  expect(getLatest().error).toContain("draft has been kept");
+  await TestRenderer.act(async () => { await getLatest().save(); });
+  expect(saveConfiguration.mock.calls[1][0]).toEqual(firstRequest);
+  expect(getLatest().hasConflict).toBe(true);
+  expect(getLatest().canSave).toBe(false);
+  expect(getLatest().assignments).toEqual([{ participantId: "host", matchId: "individual" }]);
+});

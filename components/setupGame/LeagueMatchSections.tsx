@@ -10,6 +10,7 @@ interface LeagueMatchSectionsProps {
   matches: Match[];
   selectedMatchIds: string[];
   disabled: boolean;
+  disabledMatchIds?: string[];
   onToggleMatch: (id: string) => void;
 }
 
@@ -30,6 +31,7 @@ export default function LeagueMatchSections({
   matches,
   selectedMatchIds,
   disabled,
+  disabledMatchIds,
   onToggleMatch,
 }: LeagueMatchSectionsProps): React.JSX.Element {
   const groups = new Map<string, Match[]>();
@@ -50,7 +52,7 @@ export default function LeagueMatchSections({
               matches={group}
               selectedMatchIds={selectedMatchIds}
               onToggleMatch={onToggleMatch}
-              disabledMatchIds={disabled ? group.map(match => match.id) : undefined}
+              disabledMatchIds={disabled ? group.map(match => match.id) : disabledMatchIds}
               testIDPrefix="SetupPoolMatch"
             />
           </View>

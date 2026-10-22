@@ -31,7 +31,7 @@ export function MultiplayerGameStatus({
   onRefresh,
   onRetryMutation,
 }: MultiplayerGameStatusProps) {
-  if (status === "idle") return null;
+  if (["idle", "ready", "refreshing"].includes(status) && !error && !pendingMutations.some(mutation => mutation.status === "uncertain")) return null;
 
   const showRefresh =
     status === "offline" || status === "access_lost" || status === "error";

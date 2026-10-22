@@ -1371,8 +1371,10 @@ export const useActiveGameRoomSync = () => {
       retryMutation,
       completeGame,
       reassignParticipantMatches,
+      acceptSnapshot: applySnapshot,
     }),
     [
+      applySnapshot,
       changeManualScore,
       changeParticipantDrink,
       completeGame,

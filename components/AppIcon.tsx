@@ -10,6 +10,7 @@ type AppIconName =
   | "arrow-up"
   | "beer"
   | "beer-outline"
+  | "checkmark"
   | "calendar"
   | "calendar-outline"
   | "chevron-down"
@@ -60,6 +61,7 @@ const ICON_MAP: Record<AppIconName, IoniconName> = {
   "arrow-up": "arrow-up",
   beer: "beer",
   "beer-outline": "beer-outline",
+  checkmark: "checkmark",
   calendar: "calendar",
   "calendar-outline": "calendar-outline",
   "chevron-down": "chevron-down",

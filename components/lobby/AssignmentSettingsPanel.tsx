@@ -16,6 +16,7 @@ import AppIcon from "../AppIcon";
 interface AssignmentSettingsPanelProps {
   plan: AssignmentPlan;
   mode: AssignmentMode;
+  editing?: boolean;
   isBusy: boolean;
   onChange: (settings: RoomAssignmentSettingsRequest) => void;
 }
@@ -23,6 +24,7 @@ interface AssignmentSettingsPanelProps {
 export function AssignmentSettingsPanel({
   plan,
   mode,
+  editing = false,
   isBusy,
   onChange,
 }: AssignmentSettingsPanelProps): React.JSX.Element {
@@ -80,7 +82,7 @@ export function AssignmentSettingsPanel({
             />
           ) : null}
           <Text style={styles.assignmentDescription}>
-            Matches are assigned when you start the game.
+            {editing ? "Matches are redistributed when you save changes." : "Matches are assigned when you start the game."}
           </Text>
         </>
       ) : null}

@@ -55,9 +55,11 @@ interface MatchListProps {
   setGlobalMatches: (matches: Match[]) => void;
   showSectionTitle?: boolean;
   disableSelection?: boolean;
+  fixedMatchIds?: string[];
 }
 
 interface MatchListViewProps {
+  fixedMatchIds: string[];
   matches: Match[];
   poolMatchIds: string[];
   disableSelection: boolean;
@@ -74,6 +76,7 @@ interface MatchListViewProps {
 }
 
 const MatchListView = ({
+  fixedMatchIds,
   matches,
   poolMatchIds,
   disableSelection,
@@ -87,7 +90,9 @@ const MatchListView = ({
   onClearAll,
   styles,
   colors,
-}: MatchListViewProps) => (
+}: MatchListViewProps) => {
+  const fixedIds = new Set(fixedMatchIds);
+  return (
   <View style={styles.tabContent}>
     {showSectionTitle ? <Text style={styles.sectionTitle}>Matches</Text> : null}
 
@@ -126,11 +131,12 @@ const MatchListView = ({
             matches={matches}
             selectedMatchIds={poolMatchIds}
             disabled={disableSelection}
+            disabledMatchIds={fixedMatchIds.length ? fixedMatchIds : undefined}
             onToggleMatch={onToggleMatch}
           />
         )}
 
-        {matches.length > 0 && (
+        {matches.some(match => !fixedIds.has(match.id)) && (
           <TouchableOpacity style={styles.clearAllButton} onPress={onClearAll}>
             <AppIcon
               name="trash-outline"
@@ -145,7 +151,8 @@ const MatchListView = ({
       {manualEntry}
     </View>
   </View>
-);
+  );
+};
 
 /**
  * Functional component that renders a list of matches with filtering and team selection.
@@ -176,6 +183,7 @@ const MatchList: FC<MatchListProps> = ({
   setGlobalMatches,
   showSectionTitle = true,
   disableSelection = false,
+  fixedMatchIds = [],
 }) => {
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const colors = useColors();
@@ -346,7 +354,8 @@ const MatchList: FC<MatchListProps> = ({
       return;
     }
 
-    setGlobalMatches([]);
+    const fixedIds = new Set(fixedMatchIds);
+    setGlobalMatches(matches.filter(match => fixedIds.has(match.id)));
   };
 
   /**
@@ -408,6 +417,7 @@ const MatchList: FC<MatchListProps> = ({
   return (
     <MatchListView
       matches={matches}
+      fixedMatchIds={fixedMatchIds}
       poolMatchIds={poolMatchIds}
       disableSelection={disableSelection}
       showSectionTitle={showSectionTitle}

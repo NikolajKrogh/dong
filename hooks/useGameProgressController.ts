@@ -289,12 +289,16 @@ const useGameProgressController = () => {
   const isMultiplayerContext = activeGameContext.mode === "multiplayer" || activeGame.isMultiplayer;
   let configurationLabel = "Setup";
   if (isMultiplayerContext) {
-    configurationLabel = activeGameContext.accessKind === "guest" ? "Room status" : "Room & configuration";
+    configurationLabel = activeGame.isHost && activeGameContext.accessKind === "registered" ? "Reassign matches" : "Room status";
   }
 
   const handleBackToSetup = useCallback(() => {
     if (!isMultiplayerContext) {
       router.push("/setupGame");
+      return;
+    }
+    if (activeGame.isHost && activeGame.isEditable && activeGameContext.accessKind === "registered") {
+      router.push("/editGame");
       return;
     }
     if (activeGameContext.accessKind === "registered" && activeGameContext.sessionId
@@ -303,7 +307,7 @@ const useGameProgressController = () => {
       return;
     }
     setRoomStatusVisible(true);
-  }, [activeGame.status, activeGameContext.accessKind, activeGameContext.sessionId, isMultiplayerContext, router]);
+  }, [activeGame.status, activeGame.isHost, activeGame.isEditable, activeGameContext.accessKind, activeGameContext.sessionId, isMultiplayerContext, router]);
 
   const closeRoomStatus = useCallback(() => setRoomStatusVisible(false), []);
 
@@ -397,8 +401,10 @@ const useGameProgressController = () => {
     commonMatchId: commonMatchId ?? "",
     playerAssignments,
     liveMatches,
-    isPolling,
-    lastUpdated,
+    isPolling: activeGame.isMultiplayer ? activeGame.isEditable : isPolling,
+    lastUpdated: activeGame.isMultiplayer
+      ? (activeGame.snapshot?.lastScoresCheckedAt ? new Date(activeGame.snapshot.lastScoresCheckedAt) : null)
+      : lastUpdated,
     setActiveTab,
     openQuickActions,
     closeQuickActions,

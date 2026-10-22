@@ -18,6 +18,7 @@ interface RoomAssignmentPlayersProps {
   isBusy: boolean;
   onToggleAllocation?: (participantId: string, matchId: string) => void;
   pending?: boolean;
+  pendingLabel?: string;
   ownPicks?: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ export function RoomAssignmentPlayers({
   isBusy,
   onToggleAllocation,
   pending = false,
+  pendingLabel = "On start",
   ownPicks,
 }: RoomAssignmentPlayersProps): React.JSX.Element {
   const colors = useColors();
@@ -64,7 +66,7 @@ export function RoomAssignmentPlayers({
             badgeTestID={`lobby-allocation-status-${participant.id}`}
             selectedCount={selected.length}
             totalCount={matchesPerPlayer}
-            badgeLabel={pending ? "On start" : undefined}
+            badgeLabel={pending ? pendingLabel : undefined}
             collapsed={!expanded[participant.id]}
             onToggleCollapsed={
               onToggleAllocation

@@ -130,3 +130,17 @@ No data migration/backfill. Revert a failing delivery slice and rerun cross-stor
 ## Complexity Tracking
 
 No constitution violations. A navigation framework replacement, new persistence service, backend schema work, global history shim, persistent tab bar and indiscriminate removal of ScrollViews are deliberately excluded.
+
+
+## Multiplayer gameplay follow-up (2026-10-22)
+
+The approved follow-up adds server score-check freshness and editing a running game through the existing setup wizard. Keep the plus button, tab switch, match cards and clock position. Initial assignment uses the existing shared single-player controls; running player-picked games are edited by the host. Roster, common match and existing fixtures stay fixed. Edits are local until an atomic host save; Cancel discards them. Configuration conflicts retain the draft. Scores, drinks and start time are never reset.
+
+The server configuration token covers only roster, owner, room state, pool and assignments/settings. The RPC locks the room, validates ownership and allocation, records an immutable configuration event, and caches idempotent results. Provider freshness is nullable, advances only after a complete successful provider check, and is shared by registered and guest snapshots. The additive database migration and score-refresh Edge Function deploy before the client.
+
+Skills applied: project-planner (dependencies), systematic-debugging (clock/navigation tracing), tamagui (existing tokens and shared controls), accessibility (existing wizard/sheet labels and disabled states), supabase (RPC/migration and grants), database-testing (transaction invariants), react-native-testing (focused hook regression checks), playwright-best-practices (extend the existing core browser journey), simplify and Ponytail (reuse and remove the old sheet), react-doctor (changed React files).
+
+Validation is limited to focused unit/component and database tests plus the existing two-client browser journey. Physical-device viewing and validation are explicitly skipped at the user's request because the phone is not running the current client. No new device tests or E2E matrix.
+
+
+Validation completed: typecheck and targeted lint pass; React Doctor reports no issues in the 12 changed React files. The seven focused unit/component suites pass (73 tests across focused runs), and the local editor/clock pgTAP transaction passes 23 assertions. The existing two-client phone-viewport browser journey passes add → assign → save, preserved score/drink state, reconnect and completion; no E2E matrix was added. Supabase migration `20261022172949` and `refresh-provider-scores` are deployed to the linked DONG project, with migration history verified. Physical Chrome/Expo Android acceptance is skipped at the user's request; it is not claimed as passed.

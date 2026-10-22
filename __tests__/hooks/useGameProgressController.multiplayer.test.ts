@@ -59,6 +59,7 @@ const reassignParticipantMatches = jest.fn() as jest.MockedFunction<
 const fetchCurrentScores = jest.fn(async () => undefined);
 
 const multiplayerSync: ActiveGameRoomSync = {
+  acceptSnapshot: jest.fn(),
   isMultiplayer: true,
   isHost: true,
   isEditable: true,
@@ -173,6 +174,16 @@ describe("useGameProgressController multiplayer routing", () => {
     });
   });
 
+  it("uses server score-check freshness while background snapshots refresh", async () => {
+    mockSync.mockReturnValue({ ...multiplayerSync, status: "refreshing", snapshot: {
+      lastScoresCheckedAt: "2026-10-22T15:00:00Z",
+    } as NonNullable<ActiveGameRoomSync["snapshot"]> });
+    const { renderer, latest } = renderController();
+    expect(latest().lastUpdated).toEqual(new Date("2026-10-22T15:00:00Z"));
+    expect(latest().refreshing).toBe(false);
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
   it("routes manual goals and drinks through canonical commands", async () => {
     const { renderer, latest } = renderController();
 
@@ -255,7 +266,7 @@ describe("useGameProgressController multiplayer routing", () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it("preserves active multiplayer context on Home and opens its current lobby", async () => {
+  it("preserves active multiplayer context on Home and opens the host editor", async () => {
     const { renderer, latest } = renderController();
 
     TestRenderer.act(() => latest().handleGoHome());
@@ -263,7 +274,7 @@ describe("useGameProgressController multiplayer routing", () => {
 
     TestRenderer.act(() => latest().handleBackToSetup());
     expect(useGameStore.getState().activeGameContext.mode).toBe("multiplayer");
-    expect(mockPush).toHaveBeenCalledWith({ pathname: "/lobby/[sessionId]", params: { sessionId: "room-1" } });
+    expect(mockPush).toHaveBeenCalledWith("/editGame");
     expect(completeGame).not.toHaveBeenCalled();
     await TestRenderer.act(async () => renderer.unmount());
   });
@@ -303,7 +314,7 @@ describe("useGameProgressController multiplayer routing", () => {
     mockSync.mockReturnValue({ ...multiplayerSync, isHost: false, isEditable: false });
     const { renderer, latest } = renderController();
     TestRenderer.act(() => latest().handleBackToSetup());
-    expect(latest().configurationLabel).toBe("Room & configuration");
+    expect(latest().configurationLabel).toBe("Room status");
     expect(mockPush).toHaveBeenCalledWith({ pathname: "/lobby/[sessionId]", params: { sessionId: "room-1" } });
     expect(completeGame).not.toHaveBeenCalled();
     expect(useGameStore.getState().activeGameContext.sessionId).toBe("room-1");

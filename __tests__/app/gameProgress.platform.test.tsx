@@ -204,9 +204,6 @@ jest.mock("../../components/gameProgress/FooterButtons", () => {
     });
 });
 
-jest.mock("../../components/gameProgress/ReassignmentControl", () => ({
-  ReassignmentControl: () => null,
-}));
 
 const renderGameProgressScreen = () => {
   const GameProgressScreen = require("../../app/gameProgress").default;

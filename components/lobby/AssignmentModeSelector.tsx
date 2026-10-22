@@ -15,7 +15,7 @@ const SHORT_LABELS = {
 };
 const MODE_HELP: Record<AssignmentMode, string> = {
   automatic:
-    "Matches are distributed automatically when the game starts. Everyone gets the common match. Use Shared matches to control how many additional matches each pair shares.",
+    "Matches are distributed automatically when you confirm the assignments. Everyone gets the common match. Use Shared matches to control how many additional matches each pair shares.",
   host_assigned:
     "Open a player to assign their matches. Everyone gets the common match.",
   player_picked:
@@ -24,12 +24,14 @@ const MODE_HELP: Record<AssignmentMode, string> = {
 
 interface AssignmentModeSelectorProps {
   assignmentMode: AssignmentMode;
+  allowPlayerPicked?: boolean;
   isBusy: boolean;
   onSelectMode: (mode: AssignmentMode) => void;
 }
 
 export function AssignmentModeSelector({
   assignmentMode,
+  allowPlayerPicked = true,
   isBusy,
   onSelectMode,
 }: AssignmentModeSelectorProps): React.JSX.Element {
@@ -60,7 +62,7 @@ export function AssignmentModeSelector({
         styles={styles}
       />
       <View style={styles.assignmentModeTabs}>
-        {MODES.map((mode) => (
+        {MODES.filter(mode => allowPlayerPicked || mode !== "player_picked").map((mode) => (
           <TouchableOpacity
             key={mode}
             accessibilityRole="button"

@@ -14,7 +14,6 @@ import { ShellActionButton, ShellScreen } from "../components/ui";
 import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import FooterButtons from "../components/gameProgress/FooterButtons";
 import { MultiplayerGameStatus } from "../components/gameProgress/MultiplayerGameStatus";
-import { ReassignmentControl } from "../components/gameProgress/ReassignmentControl";
 import MatchesGrid from "../components/gameProgress/MatchesGrid/";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import PlayersList from "../components/gameProgress/PlayersList";
@@ -113,14 +112,6 @@ const GameProgressScreen = () => {
             onRefresh={() => void activeGame.refresh()}
             onRetryMutation={(id) => void activeGame.retryMutation(id)}
           />
-          {activeGame.isHost && activeGame.snapshot?.state === "in_progress" ? (
-            <ReassignmentControl
-              snapshot={activeGame.snapshot}
-              pending={activeGame.status === "refreshing"}
-              disabled={!activeGame.isEditable || departurePending}
-              onReassign={activeGame.reassignParticipantMatches}
-            />
-          ) : null}
           <TabNavigation
             activeTab={activeTab}
             setActiveTab={setActiveTab}
