@@ -10,6 +10,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 const mockPlatformAnimation = jest.fn(() => null);
+const mockStartProcessing = jest.fn();
 const mockMatchTeamsData: unknown[] = [];
 const mockApiData: unknown[] = [];
 const mockAvailableLeagues: unknown[] = [];
@@ -50,6 +51,8 @@ jest.mock("react-native", () => ({
   Text: "Text",
   FlatList: "FlatList",
   ActivityIndicator: "ActivityIndicator",
+  Image: "Image",
+  StyleSheet: { create: (styles: unknown) => styles },
   TouchableOpacity: "TouchableOpacity",
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
@@ -94,6 +97,10 @@ jest.mock("../../../styles/setupGameStyles", () => ({
   default: () => mockStyles,
 }));
 
+jest.mock("../../../hooks/useLeagueLogo", () => ({
+  useLeagueLogo: () => ({ logoSource: { uri: "league-logo" }, isLoading: false }),
+}));
+
 jest.mock("../../../hooks/useMatchData", () => ({
   useMatchData: () => mockMatchDataState,
 }));
@@ -117,7 +124,7 @@ jest.mock("../../../hooks/useTeamFiltering", () => ({
 
 jest.mock("../../../hooks/useMatchProcessing", () => ({
   useMatchProcessing: () => ({
-    startProcessing: jest.fn(),
+    startProcessing: mockStartProcessing,
     processingState: {
       isProcessing: false,
       matchesAdded: 0,
@@ -262,6 +269,10 @@ describe("MatchList platform adoption", () => {
     const setAwayTeam = jest.fn();
     const renderer = renderMatchList({ matches: [], setGlobalMatches, setHomeTeam, setAwayTeam });
 
+    expect(renderer.root.findAllByProps({ testID: "TeamSelectionRow" })).toHaveLength(0);
+    TestRenderer.act(() => {
+      renderer.root.findByProps({ testID: "SetupManualMatchToggle" }).props.onPress();
+    });
     TestRenderer.act(() => {
       renderer.root.findByProps({ testID: "TeamSelectionRow" }).props.handleAddMatchAndClear();
     });
@@ -372,6 +383,30 @@ describe("MatchList platform adoption", () => {
       },
     ]);
   });
+  it("groups discovered matches by league using the existing cards and adds a tapped fixture", () => {
+    mockMatchDataState.isLoading = false;
+    const fixtures = [
+      { id: "pl", team1: "Liverpool", team2: "Brighton", leagueCode: "eng.1", time: "15:00" },
+      { id: "ch", team1: "Leeds", team2: "Norwich", leagueCode: "eng.2", time: "15:30" },
+    ];
+    for (const [index, league] of [{ code: "eng.1", name: "Premier League" }, { code: "eng.2", name: "Championship" }].entries()) {
+      mockAvailableLeagues.push(league);
+      mockApiData.push({ name: league.name, matches: [fixtures[index]] });
+      for (const value of [fixtures[index].team1, fixtures[index].team2]) {
+        mockMatchTeamsData.push({ key: value, value, league: league.name });
+      }
+    }
+    const renderer = renderMatchList({ matches: [] });
+    expect(renderer.root.findAllByProps({ children: "Premier League" }).length).toBeGreaterThan(0);
+    expect(renderer.root.findAllByProps({ children: "Championship" }).length).toBeGreaterThan(0);
+    const lists = renderer.root.findAllByProps({ testID: "SelectableMatchList" });
+    expect(lists).toHaveLength(2);
+    expect(lists[0].props.matches[0]).toMatchObject({ id: "pl", homeTeam: "Liverpool", sourceLeagueCode: "eng.1" });
+    TestRenderer.act(() => lists[0].props.onToggleMatch("pl"));
+    expect(mockStartProcessing).toHaveBeenCalledWith([fixtures[0]]);
+    TestRenderer.act(() => renderer.unmount());
+  });
+
   /**
    * The pool renders through the app's shared match-card component, so a match
    * looks the same in the wizard, the room, and the lobby's pick panel. Selection

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, Image } from "react-native";
+import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 import { LeagueEndpoint } from "../../constants/leagues";
@@ -29,7 +29,7 @@ const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
   return (
-    <View key={league.code} style={styles.filterBadge}>
+    <View key={league.code} style={summaryStyles.badge}>
       {isLoading ? (
         <View style={styles.badgeLogoPlaceholder}>
           <Ionicons
@@ -39,7 +39,7 @@ const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
           />
         </View>
       ) : logoSource ? (
-        <Image source={logoSource} style={styles.badgeLogo} />
+        <Image source={logoSource} style={summaryStyles.logo} />
       ) : (
         // Fallback to text if logo is not available or still loading
         <Text
@@ -47,7 +47,7 @@ const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
           numberOfLines={1}
           ellipsizeMode="tail"
         >
-          {league.name}
+          {league.name.slice(0, 2)}
         </Text>
       )}
     </View>
@@ -138,68 +138,27 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
-  // Maximum number of badges to show before collapsing (when > 3 are selected)
-  const MAX_VISIBLE_BADGES_WHEN_COLLAPSED = 2;
-
-  /** Render selected league badges or summary indicator. */
-  const renderBadges = () => {
-    const numSelected = selectedLeagues.length;
-
-    if (numSelected === 0) {
-      return <Text style={styles.noFiltersText}>No leagues selected</Text>;
-    }
-
-    // If 1 to 3 leagues are selected, show them all
-    if (numSelected <= 3) {
-      return selectedLeagues.map((league) => (
-        <LeagueBadge key={league.code} league={league} />
-      ));
-    }
-
-    // If more than 3 leagues are selected, show a summary
-    return (
-      <>
-        {selectedLeagues
-          .slice(0, MAX_VISIBLE_BADGES_WHEN_COLLAPSED)
-          .map((league) => (
-            <LeagueBadge key={league.code} league={league} />
-          ))}
-        <View style={[styles.filterBadge, styles.countBadge]}>
-          <Text style={styles.countBadgeText}>
-            +{numSelected - MAX_VISIBLE_BADGES_WHEN_COLLAPSED}
-          </Text>
-        </View>
-      </>
-    );
-  };
 
   return (
     <View style={styles.filterCard}>
       <TouchableOpacity
-        style={styles.filterCardHeader}
+        testID="SetupLeagueToggle"
+        accessibilityRole="button"
+        accessibilityLabel="Choose leagues"
+        accessibilityState={{ expanded: isLeagueExpanded }}
+        style={summaryStyles.button}
         onPress={() => setIsLeagueExpanded(!isLeagueExpanded)}
         activeOpacity={0.7}
       >
-        <View style={styles.filterCardContent}>
-          <View style={styles.filterTitleContainer}>
-            <Ionicons
-              name="football-outline"
-              size={20}
-              color={colors.primaryFocus}
-            />
-            <Text style={styles.filterTitle}>Choose Leagues</Text>
+        <View style={summaryStyles.row}>
+          <View style={summaryStyles.icons}>
+            {selectedLeagues.slice(0, 3).map(league => <LeagueBadge key={league.code} league={league} />)}
+            {selectedLeagues.length > 3 ? <Text style={{ color: colors.textSecondary }}>{`+${selectedLeagues.length - 3}`}</Text> : null}
           </View>
-
-          <View style={styles.filterBadgesSection}>
-            <View style={styles.filterBadgesContainer}>{renderBadges()}</View>
-            <View style={styles.indicatorContainer}>
-              <Ionicons
-                name={isLeagueExpanded ? "chevron-up" : "chevron-down"}
-                size={18}
-                color={colors.textMuted}
-              />
-            </View>
-          </View>
+          <Text numberOfLines={1} style={[summaryStyles.label, { color: colors.textPrimary }]}>
+            {selectedLeagues.length === 0 ? "Choose leagues" : `${selectedLeagues.length} ${selectedLeagues.length === 1 ? "league" : "leagues"}`}
+          </Text>
+          <Ionicons name={isLeagueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textMuted} />
         </View>
       </TouchableOpacity>
 
@@ -222,3 +181,12 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
 };
 
 export default LeagueFilter;
+
+const summaryStyles = StyleSheet.create({
+  button: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 48 },
+  row: { flexDirection: "row", alignItems: "center", gap: 10 },
+  icons: { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 },
+  badge: { width: 24, height: 28, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  logo: { width: 24, height: 26, resizeMode: "contain" },
+  label: { flex: 1, fontSize: 14, fontWeight: "600" },
+});

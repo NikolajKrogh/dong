@@ -349,7 +349,7 @@ const ExpandedMatchFilter = ({
 const MatchFilter: React.FC<MatchFilterProps> = ({
   selectedDate,
   startTime = "15:00",
-  endTime = "22:00",
+  endTime = "16:00",
   setSelectedDate,
   setStartTime,
   setEndTime,
