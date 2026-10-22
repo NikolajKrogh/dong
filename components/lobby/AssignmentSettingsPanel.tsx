@@ -20,20 +20,6 @@ interface AssignmentSettingsPanelProps {
   onChange: (settings: RoomAssignmentSettingsRequest) => void;
 }
 
-const TITLES: Record<AssignmentMode, string> = {
-  automatic: "Random Assignment",
-  host_assigned: "Manual Assignment",
-  player_picked: "Player Picks",
-};
-const HELP: Record<AssignmentMode, string> = {
-  automatic:
-    "Matches are assigned automatically when the host starts the game. Shared matches control how many fixtures each pair of players watches together.",
-  host_assigned:
-    "Open a player below to assign their matches. Everyone gets the common match too.",
-  player_picked:
-    "Each player chooses their own matches. You can follow their progress below. Everyone gets the common match too.",
-};
-
 export function AssignmentSettingsPanel({
   plan,
   mode,
@@ -44,12 +30,7 @@ export function AssignmentSettingsPanel({
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [showShared, setShowShared] = useState(false);
   return (
-    <AssignmentPanel
-      compact
-      title={TITLES[mode]}
-      help={HELP[mode]}
-      testID="lobby-assignment-settings"
-    >
+    <AssignmentPanel compact testID="lobby-assignment-settings">
       <AssignmentCounter
         label="Matches per player"
         description="Plus the common match"
@@ -86,6 +67,7 @@ export function AssignmentSettingsPanel({
           {showShared ? (
             <AssignmentCounter
               label="Shared by each pair"
+              description="Matches each pair of players shares, excluding the common match."
               value={plan.sharedMatchesPerPair}
               disabled={isBusy}
               testID="lobby-shared-matches-per-pair"
@@ -102,23 +84,11 @@ export function AssignmentSettingsPanel({
           </Text>
         </>
       ) : null}
+      {mode === "host_assigned" ? (
+        <Text style={styles.assignmentDescription}>
+          Open a player to assign their matches.
+        </Text>
+      ) : null}
     </AssignmentPanel>
   );
 }
-
-export const AssignmentRequirementLine: React.FC<{ plan: AssignmentPlan }> = ({
-  plan,
-}) => {
-  const colors = useColors();
-  const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
-  return (
-    <Text
-      testID="lobby-assignment-requirement"
-      style={styles.assignmentDescription}
-    >
-      {plan.effectivePerPlayer} extra{" "}
-      {plan.effectivePerPlayer === 1 ? "match" : "matches"} each · 1 common
-      match
-    </Text>
-  );
-};

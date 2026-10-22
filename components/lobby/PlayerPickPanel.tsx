@@ -113,6 +113,13 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
     void onSetPicks([]);
   }, [onSetPicks]);
 
+  let instruction = "Everyone gets the common match only. No picks needed.";
+  if (cap > 0) {
+    if (atCap) instruction = "All matches chosen. Tap one to change your selection.";
+    else if (localPicks.length === 0) instruction = `Choose ${cap} ${cap === 1 ? "match" : "matches"}.`;
+    else instruction = `Choose ${cap - localPicks.length} more ${cap - localPicks.length === 1 ? "match" : "matches"}.`;
+  }
+
   return (
     <YStack testID={testID} gap="$2">
       <MatchSelectionCard
@@ -127,14 +134,7 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
       >
         <YStack gap="$2">
           <Text color="$colorMuted" fontSize={13}>
-            {cap === 0
-              ? // A per-player count of zero is valid (specs/020 edge cases):
-                // everyone holds the Common Match alone, so there is nothing to
-                // pick and the release wording would make no sense.
-                "This room gives everyone the Common Match only, so there's nothing to pick."
-              : atCap
-                ? "That's all your matches. Tap one to release it and pick another."
-                : `Pick ${cap - localPicks.length} more from the host's matches. You'll get the Common Match too.`}
+            {instruction}
           </Text>
 
           <SelectableMatchList

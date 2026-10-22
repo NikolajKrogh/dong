@@ -46,8 +46,8 @@ export function AssignmentPanel({
   testID,
   compact = false,
 }: {
-  title: string;
-  help: string;
+  title?: string;
+  help?: string;
   children: React.ReactNode;
   testID?: string;
   compact?: boolean;
@@ -63,27 +63,40 @@ export function AssignmentPanel({
         compact && styles.compactAssignmentSection,
       ]}
     >
-      <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, compact && styles.compactAssignmentTitle]}>{title}</Text>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={`About ${title.toLowerCase()}`}
-          hitSlop={10}
-          onPress={() => setShowHelp(true)}
-        >
-          <Ionicons
-            name="information-circle-outline"
-            size={24}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
-      <AssignmentInfoModal
-        visible={showHelp}
-        message={help}
-        onClose={() => setShowHelp(false)}
-        styles={styles}
-      />
+      {title ? (
+        <View style={styles.sectionHeader}>
+          <Text
+            style={[
+              styles.sectionTitle,
+              compact && styles.compactAssignmentTitle,
+            ]}
+          >
+            {title}
+          </Text>
+          {help ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`About ${title.toLowerCase()}`}
+              hitSlop={10}
+              onPress={() => setShowHelp(true)}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+      {help ? (
+        <AssignmentInfoModal
+          visible={showHelp}
+          message={help}
+          onClose={() => setShowHelp(false)}
+          styles={styles}
+        />
+      ) : null}
       <View
         style={[
           styles.randomizeContainer,

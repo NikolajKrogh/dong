@@ -31,10 +31,7 @@ import {
 } from "../../components/matchSelection/SelectableMatchList";
 import { AssignmentModeSelector } from "../../components/lobby/AssignmentModeSelector";
 import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
-import {
-  AssignmentRequirementLine,
-  AssignmentSettingsPanel,
-} from "../../components/lobby/AssignmentSettingsPanel";
+import { AssignmentSettingsPanel } from "../../components/lobby/AssignmentSettingsPanel";
 import { RoomAssignmentPlayers } from "../../components/lobby/RoomAssignmentPlayers";
 import { ParticipantList } from "../../components/lobby/ParticipantList";
 import { RoomIdentityPanel } from "../../components/lobby/RoomIdentityPanel";
@@ -903,7 +900,6 @@ function HostAssignmentContent({
         isBusy={configure.isBusy}
         onToggleAllocation={assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
       />
-      <AssignmentRequirementLine plan={assignment.plan} />
       <StartGameWarnings
         plan={assignment.plan}
         shortParticipants={assignment.shortParticipants}
@@ -925,16 +921,12 @@ function MemberAssignmentContent({
 }) {
   return (
     <>
-      <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-        {assignment.canPick
-          ? "Pick your matches while you wait for the host to start."
-          : "Waiting for the host to start the game…"}
-      </Text>
+      {!assignment.canPick ? <Text color="$colorMuted" fontSize={14}>Waiting for the host to start the game.</Text> : null}
       <Text testID="lobby-assignment-mode-readonly" color="$colorMuted" fontSize={13}>
         Assignment mode: {ASSIGNMENT_MODE_LABELS[assignment.assignmentMode]}
       </Text>
+      <Text color="$colorMuted" fontSize={13}>Everyone gets the common match.</Text>
       <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} />
-      <AssignmentRequirementLine plan={assignment.plan} />
     </>
   );
 }
