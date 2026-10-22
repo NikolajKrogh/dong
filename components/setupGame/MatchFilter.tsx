@@ -8,7 +8,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import AppIcon from "../AppIcon";
-import { filterSummaryStyles } from "./filterSummaryStyles";
 import { MatchData } from "../../utils/matchUtils";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -395,23 +394,23 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
         accessibilityRole="button"
         accessibilityLabel="Match schedule"
         accessibilityState={{ expanded: showTimeFilter }}
-        style={filterSummaryStyles.button}
+        style={styles.filterSummaryButton}
         onPress={toggleExpand}
         activeOpacity={0.7}
       >
-        <View style={filterSummaryStyles.row}>
+        <View style={styles.filterSummaryRow}>
           <AppIcon name="options-outline" size={20} color={colors.primaryFocus} />
-          <View testID="SetupMatchScheduleBadges" style={filterSummaryStyles.values}>
+          <View testID="SetupMatchScheduleBadges" style={styles.filterSummaryValues}>
             {localDateFilterActive ? (
-              <Text style={[filterSummaryStyles.value, { color: colors.textPrimary }]}>{formattedDate}</Text>
+              <Text style={[styles.filterSummaryValue, { color: colors.textPrimary }]}>{formattedDate}</Text>
             ) : null}
             {localTimeFilterActive ? (
-              <Text style={[filterSummaryStyles.value, { color: colors.textPrimary }]}>
+              <Text style={[styles.filterSummaryValue, { color: colors.textPrimary }]}>
                 {startTime.substring(0, 5)} - {endTime.substring(0, 5)}
               </Text>
             ) : null}
             {!localDateFilterActive && !localTimeFilterActive ? (
-              <Text style={[filterSummaryStyles.value, { color: colors.textPrimary }]}>Match Schedule</Text>
+              <Text style={[styles.filterSummaryValue, { color: colors.textPrimary }]}>Match Schedule</Text>
             ) : null}
           </View>
           <Animated.View style={indicatorStyle}>

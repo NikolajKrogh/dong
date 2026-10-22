@@ -5,7 +5,6 @@ import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 import { LeagueEndpoint } from "../../constants/leagues";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { filterSummaryStyles } from "./filterSummaryStyles";
 
 const MAX_VISIBLE_LEAGUE_ICONS = 3;
 
@@ -154,11 +153,11 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
         accessibilityRole="button"
         accessibilityLabel="Choose leagues"
         accessibilityState={{ expanded: isLeagueExpanded }}
-        style={filterSummaryStyles.button}
+        style={styles.filterSummaryButton}
         onPress={() => setIsLeagueExpanded(!isLeagueExpanded)}
         activeOpacity={0.7}
       >
-        <View style={filterSummaryStyles.row}>
+        <View style={styles.filterSummaryRow}>
           <Ionicons name="football-outline" size={20} color={colors.primaryFocus} />
           <View style={summaryStyles.icons}>
             {selectedLeagues.slice(0, MAX_VISIBLE_LEAGUE_ICONS).map(league => (
@@ -168,7 +167,7 @@ const LeagueFilter: React.FC<LeagueFilterProps> = ({
               <Text style={{ color: colors.textSecondary }}>{`+${overflowCount}`}</Text>
             ) : null}
           </View>
-          <Text numberOfLines={1} style={[filterSummaryStyles.label, { color: colors.textPrimary }]}>
+          <Text numberOfLines={1} style={[styles.filterSummaryLabel, { color: colors.textPrimary }]}>
             {label}
           </Text>
           <Ionicons name={isLeagueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textMuted} />
