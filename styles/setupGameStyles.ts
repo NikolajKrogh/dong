@@ -1201,6 +1201,11 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       // fontSize: 16, // Already in base
       // fontWeight: "bold", // Already in base
     },
+    filterSummaryButton: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 48 },
+    filterSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    filterSummaryLabel: { flex: 1, fontSize: 14, fontWeight: "600" },
+    filterSummaryValues: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+    filterSummaryValue: { fontSize: 14, fontWeight: "600" },
     filterCard: {
       // Re-declared, ensure consistency or merge
       ...makeBaseCard(colors),
