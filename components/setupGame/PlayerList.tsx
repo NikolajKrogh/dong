@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   FlatList,
+  Platform,
   type ListRenderItemInfo,
   Text,
   TextInput,
@@ -19,6 +20,7 @@ import {
   type PlayerSuggestion,
   usePlayerSuggestions,
 } from "../../hooks/usePlayerSuggestions";
+import { useReducedMotion } from "../../platform/animation/useReducedMotion";
 import { Player } from "../../store/store";
 import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
 
@@ -144,6 +146,7 @@ const PlayerInputSection = ({
           <TextInput
             ref={inputRef}
             style={styles.playerTextInput}
+            accessibilityLabel="Player name"
             placeholder="Enter player name"
             placeholderTextColor={colors.textPlaceholder}
             value={newPlayerName}
@@ -164,6 +167,7 @@ const PlayerInputSection = ({
       </View>
 
       <TouchableOpacity
+        accessibilityRole="button"
         accessibilityLabel="Add Player"
         testID="SetupAddPlayerButton"
         style={[
@@ -213,6 +217,8 @@ const PlayerListItem = React.memo(function PlayerListItem({
       </LinearGradient>
       <Text style={styles.playerNameText}>{player.name}</Text>
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${player.name}`}
         style={styles.playerRemoveButton}
         onPress={handleRemove}
         hitSlop={playerRemoveHitSlop}
@@ -256,6 +262,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 }) => {
   const { width } = useWindowDimensions();
   const colors = useColors();
+  const reduceMotion = useReducedMotion();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   const isWideLayout = isWideViewport(width);
   const inputRef = useRef<TextInput>(null);
@@ -371,13 +378,13 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
     Animated.timing(anim, {
       toValue: 0,
-      duration: 300,
+      duration: reduceMotion ? 0 : 300,
       useNativeDriver: true,
     }).start(() => {
       handleRemovePlayer(playerId);
       delete fadeAnims.current[playerId];
     });
-  }, [handleRemovePlayer]);
+  }, [handleRemovePlayer, reduceMotion]);
 
   /**
    * Removes all players with a parallel fade-out animation.
@@ -386,7 +393,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
     const animations = Object.values(fadeAnims.current).map((anim) =>
       Animated.timing(anim, {
         toValue: 0,
-        duration: 300,
+        duration: reduceMotion ? 0 : 300,
         useNativeDriver: true,
       }),
     );
@@ -447,6 +454,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
       />
 
       <FlatList
+        testID="SetupPlayersList"
         key={isWideLayout ? "players-wide" : "players-compact"}
         data={players}
         keyExtractor={playerKeyExtractor}
@@ -458,7 +466,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
             iconColor={colors.neutralGray}
           />
         }
-        scrollEnabled={false}
+        scrollEnabled={Platform.OS === "web"}
         contentContainerStyle={styles.playersListContent}
         columnWrapperStyle={
           isWideLayout ? styles.playersListWideRow : undefined
@@ -467,6 +475,8 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
       {players.length > 0 && (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Clear all players"
           style={styles.playerClearAllButton}
           onPress={handleRemoveAllPlayers}
         >

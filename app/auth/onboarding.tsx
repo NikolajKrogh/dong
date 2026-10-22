@@ -24,7 +24,7 @@ const AccountOnboardingScreen = () => {
   return (
     <ShellScreen padded={false} centerContent contentMaxWidth={720}>
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <AuthHeader />
+        <AuthHeader title="Choose username" />
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}

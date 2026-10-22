@@ -8,6 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -91,6 +92,8 @@ const TeamSelectionField = ({
   <View style={styles.teamInputWrapper}>
     <TouchableOpacity
       style={[styles.teamSearchField, team ? styles.teamSearchFieldSelected : null]}
+      accessibilityRole="button"
+      accessibilityLabel={team ? `${placeholder}: ${team}` : placeholder}
       onPress={onOpen}
       activeOpacity={0.7}
     >
@@ -105,17 +108,15 @@ const TeamSelectionField = ({
           styles.teamSearchText,
           team ? styles.teamSearchTextSelected : styles.teamSearchTextPlaceholder,
         ]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
       >
         {team || placeholder}
       </Text>
-      {!!team && (
-        <TouchableOpacity style={styles.teamClearButton} onPress={onClear}>
-          <Ionicons name="close-circle" size={20} color={colors.textMuted} />
-        </TouchableOpacity>
-      )}
     </TouchableOpacity>
+    {!!team && (
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Clear ${placeholder}`} style={styles.teamClearButton} onPress={onClear}>
+        <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+      </TouchableOpacity>
+    )}
   </View>
 );
 
@@ -227,6 +228,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   addNewAwayTeam,
 }) => {
   const colors = useColors();
+  const { width } = useWindowDimensions();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
   /**
    * Current search text for filtering home team options.
@@ -328,7 +330,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
   return (
     <View>
       {/* Team Selection Input Row */}
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, width < 480 && styles.teamSelectionRowCompact]}>
         <TeamSelectionField
           team={homeTeam}
           placeholder="Home Team"
@@ -352,6 +354,7 @@ const TeamSelectionRow: React.FC<TeamSelectionRowProps> = ({
 
         {/* Add Match Button */}
         <TouchableOpacity
+          accessibilityRole="button"
           accessibilityLabel="Add Match"
           testID="SetupAddMatchButton"
           style={[

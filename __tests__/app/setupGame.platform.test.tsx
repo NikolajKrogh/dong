@@ -1,4 +1,5 @@
 import React from "react";
+import TestRenderer from "react-test-renderer";
 
 import { actCreate } from "../../test-utils/render";
 
@@ -10,6 +11,10 @@ const mockUseWindowDimensions = jest.fn(() => ({
 }));
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockBack = jest.fn();
+let mockPreviousRoute: { name: string; params?: Record<string, string> } | undefined;
+let mockParams: Record<string, string | string[]> = {};
 
 const mockStoreState = {
   players: [{ id: "p1", name: "Alice" }],
@@ -38,6 +43,7 @@ jest.mock("react-native", () => ({
     select: (o: Record<string, unknown>) => o.web ?? o.default,
   },
   View: "View",
+  Text: "Text",
   useWindowDimensions: () => mockUseWindowDimensions(),
 }));
 
@@ -51,7 +57,11 @@ jest.mock("react-native-toast-message", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockReplace, back: mockBack, canGoBack: () => !!mockPreviousRoute }),
+  useNavigation: () => ({ getState: () => ({ index: mockPreviousRoute ? 1 : 0, routes: mockPreviousRoute ? [mockPreviousRoute, { name: "setupGame" }] : [{ name: "setupGame" }] }) }),
+  useLocalSearchParams: () => mockParams,
+  useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
+  useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
 }));
 
 jest.mock("../../store/store", () => ({
@@ -108,6 +118,7 @@ const renderSetupGameScreen = () => {
 describe("SetupGameScreen responsive layout", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockParams = {};
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
       height: 844,
@@ -146,26 +157,48 @@ describe("SetupGameScreen responsive layout", () => {
     );
   });
 
-  it("keeps the shared shell unconstrained on phone-sized viewports", () => {
+  it.each([
+    { viewport: "phone", width: 390, height: 844, centerContent: false, contentMaxWidth: undefined },
+    { viewport: "desktop", width: 1280, height: 900, centerContent: true, contentMaxWidth: 1120 },
+  ])("configures the shell for a $viewport viewport", ({ width, height, centerContent, contentMaxWidth }) => {
+    mockUseWindowDimensions.mockReturnValue({ width, height, scale: 1, fontScale: 1 });
     const renderer = renderSetupGameScreen();
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
-    expect(shell.props.centerContent).toBe(false);
-    expect(shell.props.contentMaxWidth).toBeUndefined();
+    expect(shell.props.centerContent).toBe(centerContent);
+    expect(shell.props.contentMaxWidth).toBe(contentMaxWidth);
+
   });
+});
 
-  it("centers the shared shell on desktop-wide viewports", () => {
-    mockUseWindowDimensions.mockReturnValue({
-      width: 1280,
-      height: 900,
-      scale: 1,
-      fontScale: 1,
-    });
 
-    const renderer = renderSetupGameScreen();
-    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
-
-    expect(shell.props.centerContent).toBe(true);
-    expect(shell.props.contentMaxWidth).toBe(1120);
-  });
+describe('solo route restoration', () => {
+ beforeEach(()=>{jest.clearAllMocks();mockParams={};mockPreviousRoute=undefined;});
+ it('pops an owned preceding step on Back without pushing a forward entry', () => {
+  mockParams={step:'common'};mockPreviousRoute={name:'setupGame',params:{step:'matches'}};
+  const tree=renderSetupGameScreen();
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepBack('matches'));
+  expect(mockBack).toHaveBeenCalledTimes(1);expect(mockPush).not.toHaveBeenCalled();
+  mockPreviousRoute=undefined;
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepBack('matches'));
+  expect(mockReplace).toHaveBeenLastCalledWith({step:'matches'});expect(mockBack).toHaveBeenCalledTimes(1);
+  TestRenderer.act(()=>tree.unmount());
+ });
+ it('restores a valid requested key and pushes only changed step choices', () => {
+  mockParams={step:'assign'};const tree=renderSetupGameScreen();
+  expect(tree.root.findByProps({testID:'SetupWizard'}).props.activeStepKey).toBe('assign');
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepChange('assign'));expect(mockPush).not.toHaveBeenCalled();
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepChange('common'));expect(mockPush).toHaveBeenCalledWith({pathname:'/setupGame',params:{step:'common'}});
+ });
+ it('waits for hydration before resolving missing prerequisites', () => {
+  const store=require('../../store/store').useGameStore;
+  let hydrated=false;let finish!:()=>void;
+  store.persist={hasHydrated:()=>hydrated,onFinishHydration:(callback:()=>void)=>{finish=callback;return ()=>{};}};
+  const oldPlayers=mockStoreState.players;mockStoreState.players=[];mockParams={step:'assign'};
+  try {
+   const tree=renderSetupGameScreen();expect(tree.root.findAllByProps({testID:'SetupWizard'})).toHaveLength(0);expect(mockReplace).not.toHaveBeenCalled();
+   TestRenderer.act(()=>{hydrated=true;finish();});
+   expect(tree.root.findByProps({testID:'SetupWizard'}).props.activeStepKey).toBe('players');expect(mockReplace).toHaveBeenCalledWith({step:undefined});
+  } finally {mockStoreState.players=oldPlayers;delete store.persist;}
+ });
 });

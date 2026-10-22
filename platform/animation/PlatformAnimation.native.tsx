@@ -4,6 +4,7 @@ import { Text, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import type { AnimationKind } from "../types";
 import { getAnimationFallback } from "./fallbacks";
+import { useReducedMotion } from "./useReducedMotion";
 import LottieView from "lottie-react-native";
 
 interface PlatformAnimationProps {
@@ -26,9 +27,10 @@ export const PlatformAnimation: React.FC<PlatformAnimationProps> = ({
   testID,
 }) => {
   const colors = useColors();
+  const reduceMotion = useReducedMotion();
   const fallbackConfig = getAnimationFallback(kind);
 
-  if (!fallbackConfig.useNativeRenderer || source === undefined) {
+  if (reduceMotion || !fallbackConfig.useNativeRenderer || source === undefined) {
     return (
       <View
         accessibilityRole="image"

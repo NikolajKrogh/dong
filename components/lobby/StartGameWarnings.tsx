@@ -52,9 +52,9 @@ export const StartGameWarnings: React.FC<StartGameWarningsProps> = ({
         color="$danger"
         fontSize={14}
       >
-        This room needs at least {plan.relaxedFloor} selected matches to start
-        at all (the Common Match plus {plan.effectivePerPlayer} per player) —
-        add more matches before starting.
+        Add at least {plan.relaxedFloor - plan.poolSize} more{" "}
+        {plan.relaxedFloor - plan.poolSize === 1 ? "match" : "matches"} to
+        start.
       </Text>
     ) : null}
 
@@ -69,16 +69,16 @@ export const StartGameWarnings: React.FC<StartGameWarningsProps> = ({
         padding="$3"
       >
         <Text color="$danger" fontSize={14} fontWeight="600">
-          This room needs {plan.requiredPoolSize} selected matches to honor the
-          assignment settings above, but only has {plan.poolSize}.
+          These settings need {plan.requiredPoolSize} matches; the room has{" "}
+          {plan.poolSize}.
         </Text>
         <Text color="$colorMuted" fontSize={13}>
-          Add more matches, or start anyway with matches assigned at random
-          (players may end up sharing different matches than configured).
+          Add more matches, or start with random assignments. Shared matches may
+          differ from your settings.
         </Text>
         <ShellActionButton
           variant="danger"
-          label="Start Anyway (Random Assignments)"
+          label="Start with Random Assignments"
           testID="lobby-start-game-override"
           disabled={isBusy}
           onPress={onStartAnyway}
@@ -92,11 +92,7 @@ export const StartGameWarnings: React.FC<StartGameWarningsProps> = ({
         color="$colorMuted"
         fontSize={13}
       >
-        The server will fill in the rest for{" "}
-        {shortParticipants
-          .map((participant) => participant.displayName)
-          .join(", ")}{" "}
-        if you start now.
+        Unfilled places will be assigned automatically when you start.
       </Text>
     ) : null}
   </>

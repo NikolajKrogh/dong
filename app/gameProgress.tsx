@@ -3,16 +3,17 @@
  * @description Main in-game screen shell: renders tabs, footer, and modals using the game progress controller hook.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, RefreshControl, useWindowDimensions, View } from "react-native";
+import { Modal, RefreshControl, useWindowDimensions, View, Text as RecoveryText } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, YStack } from "tamagui";
 
 import EndGameModal from "../components/gameProgress/EndGameModal";
+import RoomStatusModal from "../components/gameProgress/RoomStatusModal";
 import { SuccessorChooserModal } from "../components/lobby/SuccessorChooserModal";
 import { ShellActionButton, ShellScreen } from "../components/ui";
+import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import FooterButtons from "../components/gameProgress/FooterButtons";
 import { MultiplayerGameStatus } from "../components/gameProgress/MultiplayerGameStatus";
-import { ReassignmentControl } from "../components/gameProgress/ReassignmentControl";
 import MatchesGrid from "../components/gameProgress/MatchesGrid/";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import PlayersList from "../components/gameProgress/PlayersList";
@@ -25,11 +26,13 @@ import { useGameStore } from "../store/store";
 import { isWideLayout } from "../styles/responsive";
 
 const GameProgressScreen = () => {
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const wideLayout = isWideLayout(width);
   const {
     colors,
     styles,
+    hasHydrated,
     activeTab,
     isAlertVisible,
     selectedMatchId,
@@ -55,6 +58,9 @@ const GameProgressScreen = () => {
     handleGoalDecrement,
     cancelEndGame,
     confirmEndGame,
+    configurationLabel,
+    isRoomStatusVisible,
+    closeRoomStatus,
     activeGame: activeGameFromController,
   } = useGameProgressController();
   // Keep the route resilient to older test harnesses and persisted solo state
@@ -86,6 +92,10 @@ const GameProgressScreen = () => {
   const { departurePending, canLeave, setLeaveConfirmVisible } = departure;
   const controlsDisabled = activeGame.isMultiplayer && (!activeGame.isEditable || departurePending);
 
+  if (hasHydrated === false || (!activeGame.isMultiplayer && matches.length === 0)) {
+    return <GameRecovery loading={hasHydrated === false} textColor={colors.textPrimary} />;
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ShellScreen
@@ -94,6 +104,7 @@ const GameProgressScreen = () => {
         contentMaxWidth={wideLayout ? 1280 : undefined}
       >
         <View style={styles.container}>
+          <ScreenReaderHeading>Game in progress</ScreenReaderHeading>
           <MultiplayerGameStatus
             status={activeGame.status}
             error={activeGame.error}
@@ -101,14 +112,6 @@ const GameProgressScreen = () => {
             onRefresh={() => void activeGame.refresh()}
             onRetryMutation={(id) => void activeGame.retryMutation(id)}
           />
-          {activeGame.isHost && activeGame.snapshot?.state === "in_progress" ? (
-            <ReassignmentControl
-              snapshot={activeGame.snapshot}
-              pending={activeGame.status === "refreshing"}
-              disabled={!activeGame.isEditable || departurePending}
-              onReassign={activeGame.reassignParticipantMatches}
-            />
-          ) : null}
           <TabNavigation
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -155,6 +158,7 @@ const GameProgressScreen = () => {
             <FooterButtons
               onHome={handleGoHome}
               onBackToSetup={handleBackToSetup}
+              configurationLabel={configurationLabel}
               onEndGame={handleEndGame}
               onLeaveGame={() => setLeaveConfirmVisible(true)}
               showLeaveGame={canLeave}
@@ -188,10 +192,31 @@ const GameProgressScreen = () => {
         onConfirm={confirmEndGame}
       />
 
+      <RoomStatusModal
+        visible={isRoomStatusVisible ?? false}
+        onClose={closeRoomStatus}
+        activeGame={activeGame}
+        onHome={() => router.dismissTo("/")}
+      />
+
       <GameDepartureModals departure={departure} isHost={activeGame.isHost} />
     </SafeAreaView>
   );
 };
+
+function GameRecovery({ loading, textColor }: { loading: boolean; textColor: string }): React.JSX.Element {
+  const router = useRouter();
+    return <ShellScreen centerContent>
+      <View style={{ gap: 16, padding: 20 }}>
+        <RecoveryText style={{ color: textColor }} accessibilityRole="header">{loading ? "Loading your game..." : "No active game"}</RecoveryText>
+        {!loading ? <>
+          <RecoveryText style={{ color: textColor }}>Start a game or return Home to resume an available room.</RecoveryText>
+          <ShellActionButton label="Start New Game" onPress={() => router.replace("/setupGame")} />
+        </> : null}
+        <ShellActionButton label="Home" variant="surface" onPress={() => router.dismissTo("/")} />
+      </View>
+    </ShellScreen>;
+}
 
 function useGameDeparture(activeGame: NonNullable<ReturnType<typeof useGameProgressController>["activeGame"]>) {
   const router = useRouter();

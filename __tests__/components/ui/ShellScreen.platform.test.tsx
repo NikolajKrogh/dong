@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 
 import { actCreate } from "../../../test-utils/render";
 
@@ -55,4 +56,16 @@ describe("ShellScreen primitive", () => {
     expect(views).toHaveLength(3);
     expect(views[1].props.centered).toBe(false);
   });
+});
+
+
+it('adds one web main landmark even when shells are nested', () => {
+  const original = Platform.OS;
+  Platform.OS = 'web';
+  try {
+    const { ShellScreen } = require('../../../components/ui/ShellScreen');
+    const renderer = actCreate(<ShellScreen><ShellScreen>Nested content</ShellScreen></ShellScreen>);
+    expect(renderer.root.findAll((node) => String(node.type) === 'View' && node.props.render?.type === 'main')).toHaveLength(1);
+    require('react-test-renderer').act(() => renderer.unmount());
+  } finally { Platform.OS = original; }
 });

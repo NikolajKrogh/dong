@@ -290,6 +290,7 @@ export type Database = {
                     "join_code": string;
                     "last_activity_at": string;
                     "last_event_sequence": number;
+                    "last_scores_checked_at": string | null;
                     "matches_per_player": number;
                     "owner_account_id": string;
                     "shared_matches_per_pair": number;
@@ -305,6 +306,7 @@ export type Database = {
                     "join_code": string;
                     "last_activity_at"?: string;
                     "last_event_sequence"?: number;
+                    "last_scores_checked_at"?: string | null;
                     "matches_per_player"?: number;
                     "owner_account_id": string;
                     "shared_matches_per_pair"?: number;
@@ -320,6 +322,7 @@ export type Database = {
                     "join_code"?: string;
                     "last_activity_at"?: string;
                     "last_event_sequence"?: number;
+                    "last_scores_checked_at"?: string | null;
                     "matches_per_player"?: number;
                     "owner_account_id"?: string;
                     "shared_matches_per_pair"?: number;
@@ -712,6 +715,16 @@ export type Database = {
             };
         };
         Functions: {
+            "accept_provider_score_batch_checked_from_edge": {
+                Args: {
+                    "actor_account_id": string;
+                    "all_sources_checked": boolean;
+                    "observations": Json;
+                    "request_id": string;
+                    "session_id": string;
+                };
+                Returns: Json;
+            };
             "accept_provider_score_batch_from_edge": {
                 Args: {
                     "actor_account_id": string;
@@ -1071,6 +1084,15 @@ export type Database = {
                     "new_token": string;
                     "old_token": string;
                     "operation_id": string;
+                };
+                Returns: Json;
+            };
+            "save_running_game_configuration": {
+                Args: {
+                    "configuration": Json;
+                    "expected_token": string;
+                    "idempotency_key": string;
+                    "session_id": string;
                 };
                 Returns: Json;
             };

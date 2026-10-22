@@ -1,4 +1,5 @@
 import type { Database } from "../types/database";
+import type { Json } from "../types/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../lib/supabase";
 import { boundedGuestRetrySeconds, getGuestRoomErrorCode, GuestRoomAccessError } from "./guestRoom";
@@ -28,6 +29,7 @@ import type {
   RoomAssignmentInput,
   RoomAssignmentSettingsRequest,
   RoomSnapshot,
+  SaveRunningGameInput,
 } from "../types/room";
 import { GameplayRpcError, ReassignmentRpcError } from "../types/room";
 export interface GuestRoomRpcClient {
@@ -93,6 +95,7 @@ export interface ProviderScoreRefreshClient {
 }
 
 export interface RoomRpcClient {
+  saveRunningGameConfiguration(input: SaveRunningGameInput): Promise<RoomSnapshot>;
   joinRoomAsRegistered(joinCode: string): Promise<RegisteredJoinResponse>;
   getRoomSnapshot(sessionId: string): Promise<RoomSnapshot>;
   getMyActiveRoom(): Promise<MyActiveRoom | null>;
@@ -579,6 +582,20 @@ export const createRoomRpcClient = (
         );
       }
 
+      return data;
+    },
+
+    async saveRunningGameConfiguration(input) {
+      const { data, error } = await client.rpc("save_running_game_configuration", {
+        session_id: input.sessionId,
+        configuration: input.configuration as unknown as Json,
+        expected_token: input.expectedToken,
+        idempotency_key: input.idempotencyKey,
+      }).overrideTypes<RoomSnapshot, { merge: false }>();
+      if (error) throw error;
+      if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
+        throw new Error("No saved room configuration was returned.");
+      }
       return data;
     },
 

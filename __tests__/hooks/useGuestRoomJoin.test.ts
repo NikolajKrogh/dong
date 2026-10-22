@@ -1,11 +1,9 @@
-import { actCreate } from "../../test-utils/render";
+import { renderHook } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import {
   useGuestRoomJoin,
-  type UseGuestRoomJoinResult,
 } from "../../hooks/useGuestRoomJoin";
 import type {
   GuestRoomJoinResponse,
@@ -170,21 +168,14 @@ describe("useGuestRoomJoin", () => {
       getGuestRoomSnapshot,
     });
 
-    let observedHook!: UseGuestRoomJoinResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomJoin();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     await TestRenderer.act(async () => {
-      await observedHook?.submitGuestJoin(" room42 ", "  Casey  ");
+      await getLatest().submitGuestJoin(" room42 ", "  Casey  ");
     });
 
     expect(joinRoomAsGuest).toHaveBeenCalledWith({
@@ -200,8 +191,8 @@ describe("useGuestRoomJoin", () => {
       joinCode: "ROOM42",
       displayName: "Casey",
     });
-    expect(observedHook?.status).toBe("joined");
-    expect(observedHook?.session?.snapshot.joinCode).toBe("ROOM42");
+    expect(getLatest().status).toBe("joined");
+    expect(getLatest().session?.snapshot.joinCode).toBe("ROOM42");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -229,14 +220,7 @@ describe("useGuestRoomJoin", () => {
       getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(),
     });
 
-    let observedHook!: UseGuestRoomJoinResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomJoin();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -244,17 +228,17 @@ describe("useGuestRoomJoin", () => {
 
     await TestRenderer.act(async () => {
       await expect(
-        observedHook?.submitGuestJoin("ROOM42", "Casey"),
+        getLatest().submitGuestJoin("ROOM42", "Casey"),
       ).resolves.toBeNull();
     });
 
-    expect(observedHook?.status).toBe("failed");
-    expect(observedHook?.isSubmitting).toBe(false);
-    expect(observedHook?.session).toBeNull();
+    expect(getLatest().status).toBe("failed");
+    expect(getLatest().isSubmitting).toBe(false);
+    expect(getLatest().session).toBeNull();
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
 
     await TestRenderer.act(async () => {
-      await observedHook?.submitGuestJoin("ROOM42", "Casey");
+      await getLatest().submitGuestJoin("ROOM42", "Casey");
     });
 
     expect(joinRoomAsGuest).toHaveBeenNthCalledWith(1, {
@@ -278,14 +262,12 @@ describe("useGuestRoomJoin", () => {
     mockCreateGuestRoomToken.mockRejectedValueOnce(new Error("secure_random_unavailable"));
     const joinRoomAsGuest = guestRoomRpcMock.joinRoomAsGuest();
     setGuestRoomRpcClient({ joinRoomAsGuest, getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot() });
-    let observedHook!: UseGuestRoomJoinResult;
-    const Probe = () => { observedHook = useGuestRoomJoin(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
     await TestRenderer.act(async () => { await flushEffects(); });
-    await TestRenderer.act(async () => { await observedHook?.submitGuestJoin("ROOM42", "Casey"); });
+    await TestRenderer.act(async () => { await getLatest().submitGuestJoin("ROOM42", "Casey"); });
     expect(joinRoomAsGuest).not.toHaveBeenCalled();
     expect(mockSaveGuestRoomPendingJoin).not.toHaveBeenCalled();
-    expect(observedHook?.error).toBe("Secure guest access is unavailable on this device. Please try again later.");
+    expect(getLatest().error).toBe("Secure guest access is unavailable on this device. Please try again later.");
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -293,11 +275,9 @@ describe("useGuestRoomJoin", () => {
     mockSaveGuestRoomPendingJoin.mockRejectedValueOnce(new Error("protected_storage_unavailable"));
     const joinRoomAsGuest = guestRoomRpcMock.joinRoomAsGuest();
     setGuestRoomRpcClient({ joinRoomAsGuest, getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot() });
-    let observedHook!: UseGuestRoomJoinResult;
-    const Probe = () => { observedHook = useGuestRoomJoin(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
     await TestRenderer.act(async () => { await flushEffects(); });
-    await TestRenderer.act(async () => { await observedHook?.submitGuestJoin("ROOM42", "Casey"); });
+    await TestRenderer.act(async () => { await getLatest().submitGuestJoin("ROOM42", "Casey"); });
     expect(joinRoomAsGuest).not.toHaveBeenCalled();
     TestRenderer.act(() => { renderer.unmount(); });
   });
@@ -310,26 +290,19 @@ describe("useGuestRoomJoin", () => {
       getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(),
     });
 
-    let observedHook!: UseGuestRoomJoinResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomJoin();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     await TestRenderer.act(async () => {
-      await observedHook?.submitGuestJoin("ROOM42", "   ");
+      await getLatest().submitGuestJoin("ROOM42", "   ");
     });
 
     expect(joinRoomAsGuest).not.toHaveBeenCalled();
-    expect(observedHook?.status).toBe("failed");
-    expect(observedHook?.error).toBe("Enter a guest name to join the room.");
+    expect(getLatest().status).toBe("failed");
+    expect(getLatest().error).toBe("Enter a guest name to join the room.");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -346,14 +319,7 @@ describe("useGuestRoomJoin", () => {
       getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(),
     });
 
-    let observedHook!: UseGuestRoomJoinResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomJoin();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -361,16 +327,16 @@ describe("useGuestRoomJoin", () => {
 
     await TestRenderer.act(async () => {
       await expect(
-        observedHook?.submitGuestJoin("ROOM42", "Casey"),
+        getLatest().submitGuestJoin("ROOM42", "Casey"),
       ).resolves.toBeNull();
     });
 
-    expect(observedHook?.status).toBe("failed");
-    expect(observedHook?.error).toBe(
+    expect(getLatest().status).toBe("failed");
+    expect(getLatest().error).toBe(
       "We couldn't find that room. Check the code and try again.",
     );
-    expect(observedHook?.isSubmitting).toBe(false);
-    expect(observedHook?.session).toBeNull();
+    expect(getLatest().isSubmitting).toBe(false);
+    expect(getLatest().session).toBeNull();
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
 
@@ -389,14 +355,7 @@ describe("useGuestRoomJoin", () => {
       getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(),
     });
 
-    let observedHook!: UseGuestRoomJoinResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomJoin();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomJoin);
 
     await TestRenderer.act(async () => {
       await flushEffects();
@@ -404,16 +363,16 @@ describe("useGuestRoomJoin", () => {
 
     await TestRenderer.act(async () => {
       await expect(
-        observedHook?.submitGuestJoin("ROOM42", "Casey"),
+        getLatest().submitGuestJoin("ROOM42", "Casey"),
       ).resolves.toBeNull();
     });
 
-    expect(observedHook?.status).toBe("failed");
-    expect(observedHook?.error).toBe(
+    expect(getLatest().status).toBe("failed");
+    expect(getLatest().error).toBe(
       "This room is no longer accepting guest joins.",
     );
-    expect(observedHook?.isSubmitting).toBe(false);
-    expect(observedHook?.session).toBeNull();
+    expect(getLatest().isSubmitting).toBe(false);
+    expect(getLatest().session).toBeNull();
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
 
     TestRenderer.act(() => {

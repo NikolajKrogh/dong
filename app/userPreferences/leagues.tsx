@@ -73,7 +73,6 @@ export default function LeagueSettingsScreen() {
         currentDefaultLeagues={defaultSelectedLeagues}
         onSave={(selected) => {
           setDefaultSelectedLeagues(selected);
-          setShowSelectDefaultLeaguesModal(false);
         }}
       />
     </SettingsPage>

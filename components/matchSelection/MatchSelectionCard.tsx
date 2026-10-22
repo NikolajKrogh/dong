@@ -1,6 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Text, TouchableOpacity, View, type StyleProp, type ViewStyle } from "react-native";
+import {
+  Text,
+  TouchableOpacity,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -19,8 +25,10 @@ interface MatchSelectionCardProps {
   selectedCount: number;
   totalCount: number;
   collapsed: boolean;
-  onToggleCollapsed: () => void;
-  children: React.ReactNode;
+  onToggleCollapsed?: () => void;
+  badgeLabel?: string;
+  compact?: boolean;
+  children?: React.ReactNode;
   /**
    * Applied to the outer container so callers keep their own layout styles.
    * Named `style` rather than `containerStyle` deliberately: callers' existing
@@ -50,31 +58,52 @@ export const MatchSelectionCard: React.FC<MatchSelectionCardProps> = ({
   style,
   testID,
   badgeTestID,
+  badgeLabel,
+  compact = false,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const cardStyle = style ?? [styles.assignmentContainer, styles.playerContainer];
+  let headerIcon: "person-outline" | "chevron-forward" | "chevron-down" =
+    "person-outline";
+  if (onToggleCollapsed)
+    headerIcon = collapsed ? "chevron-forward" : "chevron-down";
 
   return (
-    <View testID={testID} style={style}>
+    <View
+      testID={testID}
+      style={compact ? [cardStyle, styles.compactAssignmentPlayer] : cardStyle}
+    >
       <TouchableOpacity
+        accessibilityRole={onToggleCollapsed ? "button" : undefined}
+        accessibilityState={
+          onToggleCollapsed ? { expanded: !collapsed } : undefined
+        }
+        disabled={!onToggleCollapsed}
         style={styles.playerHeader}
         onPress={onToggleCollapsed}
         activeOpacity={0.7}
       >
         <View style={styles.playerHeaderLeft}>
           <Ionicons
-            name={collapsed ? "chevron-forward" : "chevron-down"}
+            name={headerIcon}
             size={18}
             color={colors.primary}
             style={styles.chevronIcon}
           />
           <Text style={styles.playerAssignmentName}>{title}</Text>
         </View>
-        <View style={styles.playerBadge}>
-          <Text testID={badgeTestID} style={styles.playerBadgeText}>
-            {selectedCount}/{totalCount}
+        {badgeLabel ? (
+          <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
+            {badgeLabel}
           </Text>
-        </View>
+        ) : (
+          <View style={styles.playerBadge}>
+            <Text testID={badgeTestID} style={styles.playerBadgeText}>
+              {selectedCount}/{totalCount}
+            </Text>
+          </View>
+        )}
       </TouchableOpacity>
       {collapsed ? null : children}
     </View>

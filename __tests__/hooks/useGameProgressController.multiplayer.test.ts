@@ -12,6 +12,9 @@ import { useGameStore } from "../../store/store";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockSetParams = jest.fn();
+let mockNavigationReady = true;
+let mockGameParams: { gameTab?: string | string[] } = {};
 
 jest.mock("../../hooks/useActiveGameRoomSync", () => ({
   useActiveGameRoomSync: jest.fn(),
@@ -23,8 +26,13 @@ jest.mock("../../platform", () => ({
   useAppVisibility: jest.fn(),
   useGoalSound: jest.fn(),
 }));
+jest.mock("../../utils/navigation/useNavigationReady", () => ({
+  useNavigationReady: () => mockNavigationReady,
+}));
+
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, replace: mockReplace }),
+  useLocalSearchParams: () => mockGameParams,
+  useRouter: () => ({ push: mockPush, replace: mockReplace, setParams: mockSetParams }),
 }));
 
 const mockSync = jest.mocked(useActiveGameRoomSync);
@@ -51,6 +59,7 @@ const reassignParticipantMatches = jest.fn() as jest.MockedFunction<
 const fetchCurrentScores = jest.fn(async () => undefined);
 
 const multiplayerSync: ActiveGameRoomSync = {
+  acceptSnapshot: jest.fn(),
   isMultiplayer: true,
   isHost: true,
   isEditable: true,
@@ -88,6 +97,8 @@ const renderController = () => {
 describe("useGameProgressController multiplayer routing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGameParams = {};
+    mockNavigationReady = true;
     multiplayerSync.status = "ready";
     multiplayerSync.snapshot = null;
     multiplayerSync.isHost = true;
@@ -161,6 +172,16 @@ describe("useGameProgressController multiplayer routing", () => {
         lastAppliedSequence: 3,
       },
     });
+  });
+
+  it("uses server score-check freshness while background snapshots refresh", async () => {
+    mockSync.mockReturnValue({ ...multiplayerSync, status: "refreshing", snapshot: {
+      lastScoresCheckedAt: "2026-10-22T15:00:00Z",
+    } as NonNullable<ActiveGameRoomSync["snapshot"]> });
+    const { renderer, latest } = renderController();
+    expect(latest().lastUpdated).toEqual(new Date("2026-10-22T15:00:00Z"));
+    expect(latest().refreshing).toBe(false);
+    await TestRenderer.act(async () => renderer.unmount());
   });
 
   it("routes manual goals and drinks through canonical commands", async () => {
@@ -245,15 +266,58 @@ describe("useGameProgressController multiplayer routing", () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it("preserves active multiplayer context on Home but clears it for Setup", async () => {
+  it("preserves active multiplayer context on Home and opens the host editor", async () => {
     const { renderer, latest } = renderController();
 
     TestRenderer.act(() => latest().handleGoHome());
     expect(useGameStore.getState().activeGameContext.sessionId).toBe("room-1");
 
     TestRenderer.act(() => latest().handleBackToSetup());
-    expect(useGameStore.getState().activeGameContext.mode).toBe("solo");
-    expect(mockPush).toHaveBeenCalledWith("/setupGame");
+    expect(useGameStore.getState().activeGameContext.mode).toBe("multiplayer");
+    expect(mockPush).toHaveBeenCalledWith("/editGame");
+    expect(completeGame).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+
+  it.each(["guest", "registered"] as const)("keeps %s context while hydrating instead of fabricating a solo game", async (accessKind) => {
+    useGameStore.setState({ activeGameContext: { ...useGameStore.getState().activeGameContext, accessKind } });
+    mockSync.mockReturnValue({ ...multiplayerSync, status: "hydrating", isEditable: false });
+    const { renderer, latest } = renderController();
+    TestRenderer.act(() => latest().handleBackToSetup());
+    expect(useGameStore.getState().activeGameContext.sessionId).toBe("room-1");
+    expect(mockPush).not.toHaveBeenCalledWith("/setupGame");
+    expect(completeGame).not.toHaveBeenCalled();
+    if (accessKind === "guest") {
+      expect(latest().isRoomStatusVisible).toBe(true);
+      expect(mockPush).not.toHaveBeenCalled();
+    }
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it("opens guest read-only status without entering the registered lobby", async () => {
+    useGameStore.setState({ activeGameContext: { ...useGameStore.getState().activeGameContext, accessKind: "guest" } });
+    const { renderer, latest } = renderController();
+    TestRenderer.act(() => latest().handleBackToSetup());
+    expect(latest().configurationLabel).toBe("Room status");
+    expect(latest().isRoomStatusVisible).toBe(true);
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(useGameStore.getState().activeGameContext.accessKind).toBe("guest");
+    expect(changeManualScore).not.toHaveBeenCalled();
+    expect(changeParticipantDrink).not.toHaveBeenCalled();
+    TestRenderer.act(() => latest().closeRoomStatus());
+    expect(latest().isRoomStatusVisible).toBe(false);
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it("keeps a registered member's existing permissions when opening configuration", async () => {
+    mockSync.mockReturnValue({ ...multiplayerSync, isHost: false, isEditable: false });
+    const { renderer, latest } = renderController();
+    TestRenderer.act(() => latest().handleBackToSetup());
+    expect(latest().configurationLabel).toBe("Room status");
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/lobby/[sessionId]", params: { sessionId: "room-1" } });
+    expect(completeGame).not.toHaveBeenCalled();
+    expect(useGameStore.getState().activeGameContext.sessionId).toBe("room-1");
     await TestRenderer.act(async () => renderer.unmount());
   });
 

@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  Modal,
   Text,
   TouchableOpacity,
   useWindowDimensions,
@@ -11,6 +10,7 @@ import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { Match, Player } from "../../store/store";
+import { AssignmentCounter, AssignmentInfoModal, AssignmentPanel } from "./AssignmentControls";
 import { MatchSelectionCard } from "../matchSelection/MatchSelectionCard";
 import {
   SelectableMatchList,
@@ -43,39 +43,6 @@ interface AssignmentSectionProps {
   handleRandomAssignment: (numMatches: number) => void;
 }
 
-interface AssignmentInfoModalProps {
-  visible: boolean;
-  message: string;
-  onClose: () => void;
-  styles: ReturnType<typeof createSetupGameStyles>;
-}
-
-const AssignmentInfoModal = ({
-  visible,
-  message,
-  onClose,
-  styles,
-}: AssignmentInfoModalProps) => (
-  <Modal
-    animationType="slide"
-    transparent
-    visible={visible}
-    onRequestClose={onClose}
-  >
-    <View style={styles.centeredView}>
-      <View style={styles.modalView}>
-        <Text style={styles.modalText}>{message}</Text>
-        <TouchableOpacity
-          style={[styles.button, styles.buttonCancel]}
-          onPress={onClose}
-        >
-          <Text style={styles.textStyle}>Close</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  </Modal>
-);
-
 interface RandomAssignmentSectionProps {
   playerCount: number;
   matchCount: number;
@@ -83,87 +50,44 @@ interface RandomAssignmentSectionProps {
   matchesPerPlayer: number;
   setMatchesPerPlayer: (count: number) => void;
   onRandomAssignment: (count: number) => void;
-  modalVisible: boolean;
-  onToggleModal: () => void;
   styles: ReturnType<typeof createSetupGameStyles>;
   colors: ReturnType<typeof useColors>;
 }
 
-const RandomAssignmentSection = ({
+function RandomAssignmentSection({
   playerCount,
   matchCount,
   commonMatchId,
   matchesPerPlayer,
   setMatchesPerPlayer,
   onRandomAssignment,
-  modalVisible,
-  onToggleModal,
   styles,
   colors,
-}: RandomAssignmentSectionProps) => {
+}: RandomAssignmentSectionProps): React.JSX.Element | null {
   if (playerCount === 0 || matchCount === 0 || !commonMatchId) return null;
 
   return (
-    <View style={[styles.assignmentSection, { marginBottom: 16 }]}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Random Assignment</Text>
-        <TouchableOpacity onPress={onToggleModal}>
-          <Ionicons
-            name="information-circle-outline"
-            size={24}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
-      </View>
-
-      <AssignmentInfoModal
-        visible={modalVisible}
-        message="Randomly assign matches to players. Each player will share exactly one match with every other player."
-        onClose={onToggleModal}
-        styles={styles}
+    <AssignmentPanel
+      title="Random Assignment"
+      help="Randomly assign matches to players. Each player will share exactly one match with every other player."
+    >
+      <AssignmentCounter
+        label="Matches per player:"
+        value={matchesPerPlayer}
+        min={1}
+        max={matchCount - 1}
+        onChange={setMatchesPerPlayer}
       />
-
-      <View style={styles.randomizeContainer}>
-        <View style={styles.matchCounterContainer}>
-          <Text style={styles.matchCountLabel}>Matches per player:</Text>
-          <View style={styles.counter}>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() => setMatchesPerPlayer(Math.max(1, matchesPerPlayer - 1))}
-            >
-              <Ionicons
-                name="remove-outline"
-                size={20}
-                color={colors.primaryLight}
-              />
-            </TouchableOpacity>
-            <Text style={styles.counterValue}>{matchesPerPlayer}</Text>
-            <TouchableOpacity
-              style={styles.counterButton}
-              onPress={() =>
-                setMatchesPerPlayer(Math.min(matchesPerPlayer + 1, matchCount - 1))
-              }
-            >
-              <Ionicons
-                name="add-outline"
-                size={20}
-                color={colors.primaryLight}
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.randomizeButton}
-          onPress={() => onRandomAssignment(matchesPerPlayer)}
-        >
-          <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
-          <Text style={styles.randomizeButtonText}>Randomize Matches</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      <TouchableOpacity
+        style={styles.randomizeButton}
+        onPress={() => onRandomAssignment(matchesPerPlayer)}
+      >
+        <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
+        <Text style={styles.randomizeButtonText}>Randomize Matches</Text>
+      </TouchableOpacity>
+    </AssignmentPanel>
   );
-};
+}
 
 interface ManualAssignmentSectionProps {
   players: Player[];
@@ -305,8 +229,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
   const isWideLayout = isWideViewport(width);
   /** State to control the visibility of the manual assignment info modal. */
   const [isModalVisible, setIsModalVisible] = useState(false);
-  /** State to control the visibility of the random assignment info modal. */
-  const [isRandomModalVisible, setIsRandomModalVisible] = useState(false);
   /**
    * State to track the current layout mode (grid or list).
    * @type {boolean} False for list view, true for grid view.
@@ -332,16 +254,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
    */
   const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
-  };
-
-  /**
-   * Toggles the visibility of the random assignment info modal.
-   *
-   * @function
-   * @returns {void}
-   */
-  const toggleRandomModal = () => {
-    setIsRandomModalVisible(!isRandomModalVisible);
   };
 
   /**
@@ -400,8 +312,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         matchesPerPlayer={matchesPerPlayer}
         setMatchesPerPlayer={setMatchesPerPlayer}
         onRandomAssignment={handleRandomAssignment}
-        modalVisible={isRandomModalVisible}
-        onToggleModal={toggleRandomModal}
         styles={baseStyles}
         colors={colors}
       />

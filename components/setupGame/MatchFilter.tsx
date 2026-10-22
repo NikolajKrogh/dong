@@ -4,6 +4,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  ReduceMotion,
 } from "react-native-reanimated";
 
 import AppIcon from "../AppIcon";
@@ -347,7 +348,7 @@ const ExpandedMatchFilter = ({
 const MatchFilter: React.FC<MatchFilterProps> = ({
   selectedDate,
   startTime = "15:00",
-  endTime = "22:00",
+  endTime = "16:00",
   setSelectedDate,
   setStartTime,
   setEndTime,
@@ -372,7 +373,7 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
   const toggleExpand = () => {
     const newState = !showTimeFilter;
     setShowTimeFilter(newState);
-    rotateProgress.value = withTiming(newState ? 1 : 0, { duration: 250 });
+    rotateProgress.value = withTiming(newState ? 1 : 0, { duration: 250, reduceMotion: ReduceMotion.System });
   };
 
   const localDateFilterActive = isDateFilterActive || selectedDate.length > 0;
@@ -383,7 +384,6 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
     ? selectedDateValue.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
-        year: "numeric",
       })
     : "Select Date";
 
@@ -391,56 +391,31 @@ const MatchFilter: React.FC<MatchFilterProps> = ({
     <View style={styles.filterCard}>
       <TouchableOpacity
         testID="SetupMatchScheduleToggle"
-        style={styles.filterCardHeader}
+        accessibilityRole="button"
+        accessibilityLabel="Match schedule"
+        accessibilityState={{ expanded: showTimeFilter }}
+        style={styles.filterSummaryButton}
         onPress={toggleExpand}
         activeOpacity={0.7}
       >
-        <View style={styles.filterCardContent}>
-          <View style={styles.filterTitleContainer}>
-            <AppIcon
-              name="options-outline"
-              size={22}
-              color={colors.primaryFocus}
-            />
-            <Text style={styles.filterTitle}>Match Schedule</Text>
+        <View style={styles.filterSummaryRow}>
+          <AppIcon name="options-outline" size={20} color={colors.primaryFocus} />
+          <View testID="SetupMatchScheduleBadges" style={styles.filterSummaryValues}>
+            {localDateFilterActive ? (
+              <Text style={[styles.filterSummaryValue, { color: colors.textPrimary }]}>{formattedDate}</Text>
+            ) : null}
+            {localTimeFilterActive ? (
+              <Text style={[styles.filterSummaryValue, { color: colors.textPrimary }]}>
+                {startTime.substring(0, 5)} - {endTime.substring(0, 5)}
+              </Text>
+            ) : null}
+            {!localDateFilterActive && !localTimeFilterActive ? (
+              <Text style={[styles.filterSummaryValue, { color: colors.textPrimary }]}>Match Schedule</Text>
+            ) : null}
           </View>
-
-          <View style={styles.filterBadgesSection}>
-            <View style={styles.filterBadgesContainer}>
-                {localDateFilterActive && (
-                  <View style={styles.filterBadge}>
-                    <AppIcon
-                      name="calendar"
-                      size={16}
-                      color={colors.primaryFocus}
-                    />
-                    <Text style={styles.filterBadgeText} numberOfLines={1}>
-                      {formattedDate}
-                    </Text>
-                  </View>
-                )}
-                {localTimeFilterActive && (
-                  <View style={styles.filterBadge}>
-                    <AppIcon
-                      name="time"
-                      size={16}
-                      color={colors.primaryFocus}
-                    />
-                    <Text style={styles.filterBadgeText} numberOfLines={1}>
-                      {startTime.substring(0, 5)} - {endTime.substring(0, 5)}
-                    </Text>
-                  </View>
-                )}
-            </View>
-
-            <Animated.View style={[styles.indicatorContainer, indicatorStyle]}>
-              <AppIcon
-                name="chevron-down"
-                size={20}
-                color={colors.textSecondary}
-              />
-            </Animated.View>
-          </View>
+          <Animated.View style={indicatorStyle}>
+            <AppIcon name="chevron-down" size={18} color={colors.textMuted} />
+          </Animated.View>
         </View>
       </TouchableOpacity>
 

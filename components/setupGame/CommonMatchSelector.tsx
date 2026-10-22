@@ -24,6 +24,7 @@ import { getTeamLogoWithFallback } from "../../utils/teamLogos";
  */
 interface CommonMatchSelectorProps {
   matches: Match[];
+  readOnly?: boolean;
   selectedCommonMatch: string | null;
   handleSelectCommonMatch: (matchId: string) => void;
 }
@@ -36,6 +37,7 @@ interface CommonMatchSelectorProps {
  */
 const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
   matches,
+  readOnly = false,
   selectedCommonMatch,
   handleSelectCommonMatch,
 }) => {
@@ -123,6 +125,8 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
               >
                 <TouchableOpacity
                   testID={`common-match-option-${item.id}`}
+                  disabled={readOnly}
+                  accessibilityState={{ disabled: readOnly }}
                   onPress={() => handleSelectCommonMatch(item.id)}
                   activeOpacity={0.6}
                   style={[

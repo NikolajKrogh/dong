@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo } from "react";
+import React, { FC, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Text,
@@ -21,7 +21,7 @@ import { filterMatchesByDateAndTime } from "../../hooks/useTeamFiltering";
 import { PlatformAnimation } from "../../platform";
 import { Match, useGameStore } from "../../store/store";
 import AppIcon from "../AppIcon";
-import { SelectableMatchList } from "../matchSelection/SelectableMatchList";
+import LeagueMatchSections from "./LeagueMatchSections";
 import LeagueFilter from "./LeagueFilter";
 import MatchFilter from "./MatchFilter";
 import TeamSelectionRow from "./TeamSelectionRow";
@@ -55,37 +55,44 @@ interface MatchListProps {
   setGlobalMatches: (matches: Match[]) => void;
   showSectionTitle?: boolean;
   disableSelection?: boolean;
+  fixedMatchIds?: string[];
 }
 
 interface MatchListViewProps {
+  fixedMatchIds: string[];
   matches: Match[];
   poolMatchIds: string[];
   disableSelection: boolean;
   showSectionTitle: boolean;
-  content: React.ReactNode;
+  manualEntry: React.ReactNode;
+  loadingFeedback: React.ReactNode;
   processingState: ReturnType<typeof useMatchProcessing>["processingState"];
   leagueFilterProps: React.ComponentProps<typeof LeagueFilter>;
   matchFilterProps: React.ComponentProps<typeof MatchFilter>;
-  onRemoveMatch: (matchId: string) => void;
+  onToggleMatch: (matchId: string) => void;
   onClearAll: () => void;
   styles: ReturnType<typeof createSetupGameStyles>;
   colors: ReturnType<typeof useColors>;
 }
 
 const MatchListView = ({
+  fixedMatchIds,
   matches,
   poolMatchIds,
   disableSelection,
   showSectionTitle,
-  content,
+  manualEntry,
   processingState,
+  loadingFeedback,
   leagueFilterProps,
   matchFilterProps,
-  onRemoveMatch,
+  onToggleMatch,
   onClearAll,
   styles,
   colors,
-}: MatchListViewProps) => (
+}: MatchListViewProps) => {
+  const fixedIds = new Set(fixedMatchIds);
+  return (
   <View style={styles.tabContent}>
     {showSectionTitle ? <Text style={styles.sectionTitle}>Matches</Text> : null}
 
@@ -93,7 +100,7 @@ const MatchListView = ({
       <View testID="MatchListControls" style={styles.matchListControls}>
         <LeagueFilter {...leagueFilterProps} />
         <MatchFilter {...matchFilterProps} />
-        {content}
+        {loadingFeedback}
 
         {processingState.isProcessing && (
           <View style={styles.processingIndicator}>
@@ -116,21 +123,20 @@ const MatchListView = ({
             <AppIcon name="football-outline" size={48} color={colors.textMuted} />
             <Text style={styles.emptyListTitleText}>No matches added yet!</Text>
             <Text style={styles.emptyListSubtitleText}>
-              Use the filters above to find matches, or the team selectors to
-              add your first match.
+              Use the filters above to find matches, or add a match manually below.
             </Text>
           </View>
         ) : (
-          <SelectableMatchList
+          <LeagueMatchSections
             matches={matches}
             selectedMatchIds={poolMatchIds}
-            onToggleMatch={onRemoveMatch}
-            disabledMatchIds={disableSelection ? poolMatchIds : undefined}
-            testIDPrefix="SetupPoolMatch"
+            disabled={disableSelection}
+            disabledMatchIds={fixedMatchIds.length ? fixedMatchIds : undefined}
+            onToggleMatch={onToggleMatch}
           />
         )}
 
-        {matches.length > 0 && (
+        {matches.some(match => !fixedIds.has(match.id)) && (
           <TouchableOpacity style={styles.clearAllButton} onPress={onClearAll}>
             <AppIcon
               name="trash-outline"
@@ -142,9 +148,11 @@ const MatchListView = ({
           </TouchableOpacity>
         )}
       </View>
+      {manualEntry}
     </View>
   </View>
-);
+  );
+};
 
 /**
  * Functional component that renders a list of matches with filtering and team selection.
@@ -175,14 +183,14 @@ const MatchList: FC<MatchListProps> = ({
   setGlobalMatches,
   showSectionTitle = true,
   disableSelection = false,
+  fixedMatchIds = [],
 }) => {
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore();
   const {
     isLoading: isTeamLoading,
-    isError: isTeamError,
-    errorMessage: teamErrorMessage,
     teamsData: allTeamsData,
   } = useTeamData();
   const {
@@ -208,8 +216,6 @@ const MatchList: FC<MatchListProps> = ({
 
   const {
     isLoading: isMatchLoading,
-    isError: isMatchError,
-    errorMessage: matchErrorMessage,
     teamsData: matchTeamsData,
     apiData,
     availableLeagues,
@@ -219,7 +225,7 @@ const MatchList: FC<MatchListProps> = ({
    * Appends a hand-typed fixture to the pool and clears the two fields.
    *
    * Declared here, above `useMatchProcessing`, because that hook takes it as its
-   * sequential-fallback handler — a `const` referenced before its initialiser
+   * sequential-fallback handler â€” a `const` referenced before its initialiser
    * would be a TDZ error. It replaces what used to be a `handleAddMatch` prop,
    * which every caller had to supply and none of them ever saw invoked: both pass
    * `setGlobalMatches`, so the hook always took its batch path.
@@ -337,10 +343,6 @@ const MatchList: FC<MatchListProps> = ({
     startProcessing(filteredMatches);
   };
 
-  const handleAddMatchAndClear = () => {
-    handleAddMatchLocally();
-  };
-
   const handleClearAllMatches = () => {
     if (matches.length === 0) {
       Toast.show({
@@ -352,13 +354,14 @@ const MatchList: FC<MatchListProps> = ({
       return;
     }
 
-    setGlobalMatches([]);
+    const fixedIds = new Set(fixedMatchIds);
+    setGlobalMatches(matches.filter(match => fixedIds.has(match.id)));
   };
 
   /**
    * Every match in the pool reads as selected, which is what makes tapping one
    * the release gesture. `SelectableMatchList` owns no selection state, so what
-   * "selected" means is entirely this caller's choice — here it is "in the pool",
+   * "selected" means is entirely this caller's choice â€” here it is "in the pool",
    * where on the lobby's pick panel the same component means "one of my picks".
    */
   const poolMatchIds = useMemo(
@@ -367,24 +370,34 @@ const MatchList: FC<MatchListProps> = ({
   );
 
   const isLoading = isMatchLoading || isTeamLoading;
-  const isError = isMatchError || isTeamError;
-  const errorMessage = matchErrorMessage || teamErrorMessage;
-  let content = (
-    <TeamSelectionRow
-      homeTeam={homeTeam}
-      awayTeam={awayTeam}
-      setHomeTeam={setHomeTeam}
-      setAwayTeam={setAwayTeam}
-      homeTeamOptions={homeTeamOptions}
-      awayTeamOptions={awayTeamOptions}
-      handleAddMatchAndClear={handleAddMatchAndClear}
-      addNewHomeTeam={addCustomHomeTeam}
-      addNewAwayTeam={addCustomAwayTeam}
-    />
+  const teamSelection = (
+    <View>
+      <TouchableOpacity testID="SetupManualMatchToggle" accessibilityRole="button"
+        accessibilityState={{ expanded: manualEntryOpen }} onPress={() => setManualEntryOpen(!manualEntryOpen)}
+        style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <AppIcon name="add" size={20} color={colors.primary} />
+        <Text style={{ color: colors.primary }}>Add a match manually</Text>
+        <AppIcon name={manualEntryOpen ? "arrow-up" : "chevron-down"} size={18} color={colors.primary} />
+      </TouchableOpacity>
+      {manualEntryOpen ? (
+        <TeamSelectionRow
+          homeTeam={homeTeam}
+          awayTeam={awayTeam}
+          setHomeTeam={setHomeTeam}
+          setAwayTeam={setAwayTeam}
+          homeTeamOptions={homeTeamOptions}
+          awayTeamOptions={awayTeamOptions}
+          handleAddMatchAndClear={handleAddMatchLocally}
+          addNewHomeTeam={addCustomHomeTeam}
+          addNewAwayTeam={addCustomAwayTeam}
+        />
+      ) : null}
+    </View>
   );
 
+  let loadingFeedback: React.ReactNode = null;
   if (isLoading) {
-    content = (
+    loadingFeedback = (
       <View style={styles.loadingContainer}>
         <PlatformAnimation
           kind="loading"
@@ -399,24 +412,18 @@ const MatchList: FC<MatchListProps> = ({
         <Text style={styles.loadingText}>Loading matches and teams...</Text>
       </View>
     );
-  } else if (isError) {
-    content = (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>
-          {errorMessage || "Error loading data."}
-        </Text>
-      </View>
-    );
   }
 
   return (
     <MatchListView
       matches={matches}
+      fixedMatchIds={fixedMatchIds}
       poolMatchIds={poolMatchIds}
       disableSelection={disableSelection}
       showSectionTitle={showSectionTitle}
-      content={content}
+      manualEntry={teamSelection}
       processingState={processingState}
+      loadingFeedback={loadingFeedback}
       leagueFilterProps={{
         availableLeagues,
         selectedLeagues,
@@ -435,7 +442,7 @@ const MatchList: FC<MatchListProps> = ({
         filteredMatches,
         isLoading,
       }}
-      onRemoveMatch={handleRemoveMatch}
+      onToggleMatch={handleRemoveMatch}
       onClearAll={handleClearAllMatches}
       styles={styles}
       colors={colors}

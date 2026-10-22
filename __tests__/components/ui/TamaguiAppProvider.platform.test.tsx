@@ -1,53 +1,23 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 import { actCreate } from "../../../test-utils/render";
 
+let mockTheme = "light";
 jest.mock("../../../store/store", () => ({
-  useGameStore: Object.assign(
-    (selector: (s: any) => any) => selector({ theme: "light" }),
-    { getState: () => ({ theme: "light" }) }
-  ),
+  useGameStore: (selector: (state: { theme: string }) => unknown) => selector({ theme: mockTheme }),
 }));
 
 describe("TamaguiAppProvider theme-bridge regression", () => {
-  it("renders with the light theme without crashing", () => {
+  beforeEach(() => { mockTheme = "light"; });
+  it.each(["light", "dark"])("passes the persisted %s theme to Tamagui and follows changes", (theme) => {
     const { TamaguiAppProvider } = require("../../../components/ui/TamaguiAppProvider");
-    const tree = actCreate(
-      React.createElement(TamaguiAppProvider, null,
-        React.createElement("div", null, "child")
-      )
-    );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
-  });
-
-  it("renders with the dark theme without crashing", () => {
-    // Override the mock to return dark
-    const storeMock = require("../../../store/store");
-    storeMock.useGameStore = Object.assign(
-      (selector: (s: any) => any) => selector({ theme: "dark" }),
-      { getState: () => ({ theme: "dark" }) }
-    );
-
-    const { TamaguiAppProvider } = require("../../../components/ui/TamaguiAppProvider");
-    const tree = actCreate(
-      React.createElement(TamaguiAppProvider, null,
-        React.createElement("div", null, "child")
-      )
-    );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
-  });
-
-  it("TamaguiTestProvider applies the requested theme", () => {
-    const tree = actCreate(
-      React.createElement(TamaguiTestProvider, { theme: "dark" },
-        React.createElement("div", null, "dark-child")
-      )
-    );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
+    const { TamaguiProvider } = require("tamagui");
+    mockTheme = theme;
+    const tree = actCreate(<TamaguiAppProvider><span>child</span></TamaguiAppProvider>);
+    expect(tree.root.findByType(TamaguiProvider).props.defaultTheme).toBe(theme);
+    mockTheme = theme === "light" ? "dark" : "light";
+    TestRenderer.act(() => tree.update(<TamaguiAppProvider><span>child</span></TamaguiAppProvider>));
+    expect(tree.root.findByType(TamaguiProvider).props.defaultTheme).toBe(mockTheme);
   });
 
   it("renders an open real Sheet under the app provider without a portal-context error", () => {

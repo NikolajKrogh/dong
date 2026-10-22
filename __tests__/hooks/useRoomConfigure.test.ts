@@ -1,10 +1,9 @@
+import { renderHook } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import {
   useRoomConfigure,
-  type UseRoomConfigureResult,
 } from "../../hooks/useRoomConfigure";
 import type { RoomSnapshot } from "../../types/room";
 import { generateIdempotencyKey, getStartGameApiClient } from "../../utils/commandApiClient";
@@ -91,16 +90,8 @@ const baseSnapshot: RoomSnapshot = {
 };
 
 const render = (snapshot: RoomSnapshot | null, onMutated?: () => void) => {
-  let observed: UseRoomConfigureResult | null = null;
-  const Probe = () => {
-    observed = useRoomConfigure(snapshot, onMutated);
-    return null;
-  };
-  let renderer!: TestRenderer.ReactTestRenderer;
-  TestRenderer.act(() => {
-    renderer = TestRenderer.create(React.createElement(Probe));
-  });
-  return { result: () => observed, renderer };
+  const { renderer, getLatest } = renderHook(() => useRoomConfigure(snapshot, onMutated));
+  return { renderer, result: getLatest };
 };
 
 describe("useRoomConfigure", () => {

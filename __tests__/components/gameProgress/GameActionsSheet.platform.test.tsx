@@ -54,6 +54,15 @@ describe("GameActionsSheet", () => {
     );
   };
 
+  it.each(["Room status", "Room & configuration"])("names the current game configuration action %s", (configurationLabel) => {
+    const renderer = renderSheet(createProps({ configurationLabel, showEndGame: false }));
+    const action = renderer.root.findAllByProps({ testID: "FooterSetupButton" })
+      .find((node) => node.props.onPress);
+    expect(action).toBeDefined();
+    expect(JSON.stringify(renderer.toJSON())).toContain(configurationLabel);
+    TestRenderer.act(() => renderer.unmount());
+  });
+
   it("uses fit mode without a fixed snap point", () => {
     const renderer = renderSheet(createProps());
     const sheet = renderer.root.findAll(

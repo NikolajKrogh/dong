@@ -1,4 +1,4 @@
-import { actCreate } from "../../test-utils/render";
+import { actCreate, renderHook } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
@@ -219,22 +219,15 @@ describe("useGuestRoomSession", () => {
       getGuestRoomSnapshot,
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     expect(getGuestRoomSnapshot).toHaveBeenCalledWith("guest-token-1");
-    expect(observedHook?.status).toBe("joined");
-    expect(observedHook?.session?.grant.guestToken).toBe("guest-token-1");
+    expect(getLatest()?.status).toBe("joined");
+    expect(getLatest()?.session?.grant.guestToken).toBe("guest-token-1");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -247,15 +240,13 @@ describe("useGuestRoomSession", () => {
     mockReadGuestRoomSessionGrant.mockResolvedValue(null);
     const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot(async () => createSnapshot());
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(mockReadLegacyGrant).toHaveBeenCalledTimes(1);
     expect(getGuestRoomSnapshot).toHaveBeenCalledWith(legacyGrant.guestToken);
     expect(mockReadLegacyGrant.mock.invocationCallOrder[0]).toBeLessThan(getGuestRoomSnapshot.mock.invocationCallOrder[0]);
     expect(mockSaveGuestRoomSessionGrant).toHaveBeenCalledWith(legacyGrant);
-    expect(observedHook?.status).toBe("joined");
+    expect(getLatest()?.status).toBe("joined");
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -265,12 +256,10 @@ describe("useGuestRoomSession", () => {
     setGuestRoomRpcClient({
       joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(async () => { throw new Error("offline"); }),
     });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
-    expect(observedHook?.session).toBeNull();
+    expect(getLatest()?.session).toBeNull();
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -286,16 +275,14 @@ describe("useGuestRoomSession", () => {
     }));
     const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot();
     setGuestRoomRpcClient({ joinRoomAsGuest, getGuestRoomSnapshot });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(joinRoomAsGuest).toHaveBeenCalledWith({ joinCode: "ROOM42", guestName: "Casey", guestToken: "retry-token" });
     expect(getGuestRoomSnapshot).not.toHaveBeenCalled();
     expect(mockSaveGuestRoomSessionGrant).toHaveBeenCalledWith(expect.objectContaining({
       guestToken: "retry-token", grantExpiresAt: "2026-09-22T00:00:00Z",
     }));
-    expect(observedHook?.status).toBe("joined");
+    expect(getLatest()?.status).toBe("joined");
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -312,26 +299,19 @@ describe("useGuestRoomSession", () => {
       getGuestRoomSnapshot,
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     await TestRenderer.act(async () => {
-      await observedHook?.refreshRoom();
+      await getLatest()?.refreshRoom();
     });
 
     expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
     expect(mockSaveGuestRoomSessionGrant).not.toHaveBeenCalled();
-    expect(observedHook?.session?.snapshot.state).toBe("in_progress");
+    expect(getLatest()?.session?.snapshot.state).toBe("in_progress");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -353,14 +333,7 @@ describe("useGuestRoomSession", () => {
       getGuestRoomSnapshot,
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
 
     await TestRenderer.act(async () => {
       await Promise.resolve();
@@ -374,7 +347,7 @@ describe("useGuestRoomSession", () => {
     });
 
     expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
-    expect(observedHook?.session?.snapshot.state).toBe("in_progress");
+    expect(getLatest()?.session?.snapshot.state).toBe("in_progress");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -393,23 +366,16 @@ describe("useGuestRoomSession", () => {
       getGuestRoomSnapshot,
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     expect(mockClearGuestRoomSessionGrant).toHaveBeenCalledTimes(1);
-    expect(observedHook?.status).toBe("expired");
-    expect(observedHook?.session).toBeNull();
-    expect(observedHook?.error).toBe(
+    expect(getLatest()?.status).toBe("expired");
+    expect(getLatest()?.session).toBeNull();
+    expect(getLatest()?.error).toBe(
       "Your guest access expired. Rejoin the room to continue.",
     );
 
@@ -431,27 +397,20 @@ describe("useGuestRoomSession", () => {
       getGuestRoomSnapshot,
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     await TestRenderer.act(async () => {
-      await observedHook?.refreshRoom();
+      await getLatest()?.refreshRoom();
     });
 
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
-    expect(observedHook?.status).toBe("failed");
-    expect(observedHook?.session?.grant.guestToken).toBe("guest-token-1");
-    expect(observedHook?.error).toBe("Unable to refresh the room right now.");
+    expect(getLatest()?.status).toBe("failed");
+    expect(getLatest()?.session?.grant.guestToken).toBe("guest-token-1");
+    expect(getLatest()?.error).toBe("Unable to refresh the room right now.");
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -469,28 +428,21 @@ describe("useGuestRoomSession", () => {
       leaveRoomAsGuest: guestRoomRpcMock.leaveRoomAsGuest(async () => ({ ok: true, status: "confirmed" as const })),
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
 
     await TestRenderer.act(async () => {
       await flushEffects();
     });
 
     await TestRenderer.act(async () => {
-      await expect(observedHook?.leaveRoom()).resolves.toBe(true);
+      await expect(getLatest()?.leaveRoom()).resolves.toBe(true);
     });
 
     expect(mockClearGuestRoomSessionGrant).toHaveBeenCalled();
     expect(mockSavePendingLeave).toHaveBeenCalledWith(persistedGrant);
-    expect(observedHook?.status).toBe("left");
-    expect(observedHook?.session).toBeNull();
-    expect(observedHook?.error).toBeNull();
+    expect(getLatest()?.status).toBe("left");
+    expect(getLatest()?.session).toBeNull();
+    expect(getLatest()?.error).toBeNull();
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -513,12 +465,10 @@ describe("useGuestRoomSession", () => {
         result: snapshot,
       })),
     });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
     await TestRenderer.act(async () => {
-      await expect(observedHook.leaveRoom()).resolves.toBe(true);
+      await expect(getLatest().leaveRoom()).resolves.toBe(true);
     });
     expect(useGameStore.getState().history).toMatchObject([{
       id: grant.sessionId, isEarlyLeaveResult: true,
@@ -540,25 +490,17 @@ describe("useGuestRoomSession", () => {
       })),
     });
 
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => {
-      observedHook = useGuestRoomSession();
-      return null;
-    };
-    let renderer: TestRenderer.ReactTestRenderer;
-    await TestRenderer.act(async () => {
-      renderer = TestRenderer.create(React.createElement(Probe));
-      await flushEffects();
-    });
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
+    await TestRenderer.act(async () => { await flushEffects(); });
 
     await TestRenderer.act(async () => {
-      await expect(observedHook.leaveRoom()).resolves.toBe(false);
+      await expect(getLatest().leaveRoom()).resolves.toBe(false);
     });
 
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
-    expect(observedHook.status).toBe("joined");
-    expect(observedHook.session?.grant).toEqual(persistedGrant);
-    expect(observedHook.error).toBe("Could not confirm departure. Your guest access remains active.");
+    expect(getLatest().status).toBe("joined");
+    expect(getLatest().session?.grant).toEqual(persistedGrant);
+    expect(getLatest().error).toBe("Could not confirm departure. Your guest access remains active.");
     await TestRenderer.act(async () => renderer!.unmount());
   });
 
@@ -569,15 +511,13 @@ describe("useGuestRoomSession", () => {
       joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot: guestRoomRpcMock.getGuestRoomSnapshot(async () => createSnapshot()),
       leaveRoomAsGuest: guestRoomRpcMock.leaveRoomAsGuest(async () => { throw new Error("offline"); }),
     });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
-    await TestRenderer.act(async () => { await expect(observedHook?.leaveRoom()).resolves.toBe(false); });
+    await TestRenderer.act(async () => { await expect(getLatest()?.leaveRoom()).resolves.toBe(false); });
     expect(mockSavePendingLeave).toHaveBeenCalledWith(persistedGrant);
     expect(mockClearGuestRoomSessionGrant).not.toHaveBeenCalled();
-    expect(observedHook?.session).toBeNull();
-    expect(observedHook?.status).toBe("pending_leave");
+    expect(getLatest()?.session).toBeNull();
+    expect(getLatest()?.status).toBe("pending_leave");
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -599,16 +539,14 @@ describe("useGuestRoomSession", () => {
       grantExpiresAt: new Date(Date.now() + 48 * 60 * 60_000).toISOString(), replayed: false,
     }));
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, rotateGuestRoomGrant });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
-    await TestRenderer.act(async () => { await observedHook?.refreshRoom(); });
+    await TestRenderer.act(async () => { await getLatest()?.refreshRoom(); });
     expect(mockSavePendingRotation).toHaveBeenCalledWith(grant, "d".repeat(64), "00000000-0000-4000-8000-000000000001");
     expect(mockSavePendingRotation.mock.invocationCallOrder[0]).toBeLessThan(rotateGuestRoomGrant.mock.invocationCallOrder[0]);
     expect(rotateGuestRoomGrant).toHaveBeenCalledWith(grant.guestToken, "d".repeat(64), "00000000-0000-4000-8000-000000000001");
     expect(getGuestRoomSnapshot.mock.calls.at(-1)?.[0]).toBe("d".repeat(64));
-    expect(observedHook?.session?.grant.guestToken).toBe("d".repeat(64));
+    expect(getLatest()?.session?.grant.guestToken).toBe("d".repeat(64));
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -627,15 +565,13 @@ describe("useGuestRoomSession", () => {
     const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot(async () => createSnapshot());
     const rotateGuestRoomGrant = guestRoomRpcMock.rotateGuestRoomGrant(async () => { throw new Error("offline"); });
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, rotateGuestRoomGrant });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
-    await TestRenderer.act(async () => { await observedHook?.refreshRoom(); });
+    await TestRenderer.act(async () => { await getLatest()?.refreshRoom(); });
     expect(mockSavePendingRotation).toHaveBeenCalled();
     expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(1);
-    expect(observedHook?.session).toBeNull();
-    expect(observedHook?.status).toBe("renewing");
+    expect(getLatest()?.session).toBeNull();
+    expect(getLatest()?.status).toBe("renewing");
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -688,14 +624,12 @@ describe("useGuestRoomSession", () => {
       grantExpiresAt: new Date(Date.now() + 48 * 60 * 60_000).toISOString(), replayed: true,
     }));
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, rotateGuestRoomGrant });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(rotateGuestRoomGrant).toHaveBeenCalledWith(grant.guestToken, "d".repeat(64), "00000000-0000-4000-8000-000000000001");
     expect(getGuestRoomSnapshot).toHaveBeenCalledWith("d".repeat(64));
     expect(getGuestRoomSnapshot).not.toHaveBeenCalledWith(grant.guestToken);
-    expect(observedHook?.session?.grant.guestToken).toBe("d".repeat(64));
+    expect(getLatest()?.session?.grant.guestToken).toBe("d".repeat(64));
     TestRenderer.act(() => { renderer.unmount(); });
   });
 
@@ -706,15 +640,13 @@ describe("useGuestRoomSession", () => {
     const leaveRoomAsGuest = guestRoomRpcMock.leaveRoomAsGuest(async () => ({ ok: true as const, status: "confirmed" as const }));
     const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot();
     setGuestRoomRpcClient({ joinRoomAsGuest: guestRoomRpcMock.joinRoomAsGuest(), getGuestRoomSnapshot, leaveRoomAsGuest });
-    let observedHook!: UseGuestRoomSessionResult;
-    const Probe = () => { observedHook = useGuestRoomSession(); return null; };
-    const renderer = actCreate(React.createElement(Probe));
+    const { renderer, getLatest } = renderHook(useGuestRoomSession);
     await TestRenderer.act(async () => { await flushEffects(); });
     expect(leaveRoomAsGuest).toHaveBeenCalledWith(grant.guestToken);
     expect(getGuestRoomSnapshot).not.toHaveBeenCalled();
     expect(mockClearGuestRoomSessionGrant).toHaveBeenCalled();
-    expect(observedHook?.session).toBeNull();
-    expect(observedHook?.status).toBe("left");
+    expect(getLatest()?.session).toBeNull();
+    expect(getLatest()?.status).toBe("left");
     TestRenderer.act(() => { renderer.unmount(); });
   });
   it("submits a guest's own picks by room-scoped token and refreshes (T029)", async () => {

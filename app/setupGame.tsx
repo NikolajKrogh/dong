@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import { Text, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import {
@@ -11,11 +11,16 @@ import {
   SetupWizard,
 } from "../components";
 import { ShellScreen } from "../components/ui";
+import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import { Player, useGameStore } from "../store/store";
 import { createRandomAssignments } from "../utils/setupGameAssignments";
+import { selectGameplayMatches } from "../utils/selectGameplayMatches";
 import { isWideLayout } from "../styles/responsive";
 import createSetupGameStyles from "../styles/setupGameStyles";
 import { useColors } from "../styles/theme";
+import { useStoreHydration } from "../utils/navigation/useStoreHydration";
+import { useNavigationReady } from "../utils/navigation/useNavigationReady";
+import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams, type SoloStep, type RouteParams } from "../utils/navigation/viewState";
 
 /**
  * Game setup wizard: players, matches, common match selection, and assignments.
@@ -25,6 +30,16 @@ import { useColors } from "../styles/theme";
  */
 const SetupGameScreen = () => {
   const router = useRouter();
+  const navigation = useNavigation();
+  const navigationReady = useNavigationReady();
+  const params = useLocalSearchParams() as RouteParams;
+  const requestedStep = parseSoloStep(params);
+  const hydrated = useStoreHydration();
+  const [activeStep, setActiveStep] = useState<SoloStep>("players");
+  const [restoreNotice, setRestoreNotice] = useState("");
+  const restoredRequest = useRef<string | null>(null);
+  const pendingStep = useRef<string | null>(null);
+  useFocusEffect(React.useCallback(() => { pendingStep.current = null; }, []));
   const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -43,12 +58,47 @@ const SetupGameScreen = () => {
     setCommonMatchId: setGlobalCommonMatchId,
     setPlayerAssignments: setGlobalPlayerAssignments,
     setMatchesPerPlayer,
-    clearActiveGameContext,
   } = useGameStore();
 
-  const canAdvanceToMatches = players.length > 0;
+  const canAdvanceToMatches = players.length > 0 || !!newPlayerName.trim();
   const canAdvanceToCommonMatch = matches.length > 0;
   const canAdvanceToAssign = matches.length >= 1 && commonMatchId !== null;
+  const resolveSetupStep = React.useCallback((requested: SoloStep): SoloStep => {
+    return resolveStep(requested, SOLO_STEPS, [
+      true,
+      players.length > 0,
+      matches.length > 0,
+      matches.length > 0 && matches.some(match => match.id === commonMatchId),
+    ]);
+  }, [players.length, matches, commonMatchId]);
+  const routeRequest = JSON.stringify(params.step ?? null);
+  useEffect(() => {
+    if (!navigationReady || !hydrated || restoredRequest.current === routeRequest) return;
+    restoredRequest.current = routeRequest;
+    pendingStep.current = null;
+    const step = resolveSetupStep(requestedStep);
+    setActiveStep(step);
+    // Route restoration is an external navigation event, independent of live prerequisites.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (step !== requestedStep) setRestoreNotice("Complete this step before continuing your setup.");
+    const canonical = withViewParams(params, { step: step === "players" ? undefined : step });
+    if (!sameViewParams(params, canonical)) router.setParams({ step: step === "players" ? undefined : step });
+  }, [navigationReady, hydrated, routeRequest, requestedStep, params, resolveSetupStep, router]);
+  const changeStep = (key: string) => {
+    const step = resolveSetupStep(key as SoloStep);
+    if (step === activeStep || step === pendingStep.current) return;
+    pendingStep.current = step;
+    setRestoreNotice("");
+    router.push({ pathname: "/setupGame", params: withViewParams(params, { step: step === "players" ? undefined : step }) });
+  };
+  const backStep = (key: string) => {
+    const step = resolveSetupStep(key as SoloStep);
+    setRestoreNotice("");
+    const stack = navigation.getState();
+    const previous = stack?.routes[(stack.index ?? 0) - 1];
+    if (router.canGoBack() && previous?.name === "setupGame" && parseSoloStep((previous.params ?? {}) as RouteParams) === step) router.back();
+    else router.setParams({ step: step === "players" ? undefined : step });
+  };
   const canStartGame =
     players.length > 0 && matches.length > 0 && commonMatchId !== null;
 
@@ -145,78 +195,9 @@ const SetupGameScreen = () => {
     );
   };
 
-  const handleStartGame = () => {
-    if (players.length === 0) {
-      Toast.show({
-        type: "themedWarning",
-        text1: "No Players",
-        text2: "Please add at least one player to start the game.",
-        position: "bottom",
-      });
-      return;
-    }
+  const handleStartGame = useStartGame();
 
-    if (matches.length === 0) {
-      Toast.show({
-        type: "themedWarning",
-        text1: "No Matches",
-        text2: "Please add at least one match to start the game.",
-        position: "bottom",
-      });
-      return;
-    }
-
-    if (!commonMatchId) {
-      Toast.show({
-        type: "themedWarning",
-        text1: "No Common Match",
-        text2: "Please select a common match that all players will drink for.",
-        position: "bottom",
-      });
-      return;
-    }
-
-    const assignedMatchIds = new Set(Object.values(playerAssignments).flat());
-    const filteredMatches = matches.filter(
-      (match) =>
-        assignedMatchIds.has(match.id) ||
-        (commonMatchId && match.id === commonMatchId),
-    );
-    setGlobalMatches(filteredMatches);
-    clearActiveGameContext();
-
-    router.push("/gameProgress");
-  };
-
-  const handleRandomAssignment = (numMatches: number) => {
-    try {
-      const newAssignments = createRandomAssignments(
-        players,
-        matches,
-        commonMatchId,
-        numMatches,
-      );
-
-      setGlobalPlayerAssignments(newAssignments);
-      Toast.show({
-        type: "themedSuccess",
-        text1: "Matches assigned",
-        text2: `Each player has ${numMatches} additional matches plus the common match.`,
-        position: "bottom",
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error.";
-
-      Toast.show({
-        type: "themedWarning",
-        text1: "Failed",
-        text2: errorMessage,
-        position: "bottom",
-      });
-      console.error(error);
-    }
-  };
+  const handleRandomAssignment = useRandomAssignment();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -225,7 +206,13 @@ const SetupGameScreen = () => {
         centerContent={wideLayout}
         contentMaxWidth={wideLayout ? 1120 : undefined}
       >
+        <ScreenReaderHeading>Set up game</ScreenReaderHeading>
+        {!hydrated ? <Text>Loading your saved setup…</Text> : <>
+        {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
         <SetupWizard
+          activeStepKey={activeStep}
+          onStepChange={changeStep}
+          onStepBack={backStep}
           steps={[
             {
               key: "players",
@@ -296,7 +283,7 @@ const SetupGameScreen = () => {
             label: "Home",
             icon: "home",
             iconPosition: "leading",
-            onPress: () => router.push("./"),
+            onPress: () => router.replace("/"),
             backgroundColor: colors.secondary,
           }}
           finalAction={{
@@ -316,9 +303,89 @@ const SetupGameScreen = () => {
             return false;
           }}
         />
+        </>}
       </ShellScreen>
     </SafeAreaView>
   );
 };
+
+function useStartGame(): () => void {
+  const router = useRouter();
+  const { players, matches, commonMatchId, playerAssignments,
+    setMatches: setGlobalMatches, clearActiveGameContext } = useGameStore();
+  const handleStartGame = () => {
+    if (players.length === 0) {
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Players",
+        text2: "Please add at least one player to start the game.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    if (matches.length === 0) {
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Matches",
+        text2: "Please add at least one match to start the game.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    if (!commonMatchId) {
+      Toast.show({
+        type: "themedWarning",
+        text1: "No Common Match",
+        text2: "Please select a common match that all players will drink for.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    const filteredMatches = selectGameplayMatches(matches, commonMatchId, playerAssignments);
+    setGlobalMatches(filteredMatches);
+    clearActiveGameContext();
+
+    router.push("/gameProgress");
+  };
+
+  return handleStartGame;
+}
+
+function useRandomAssignment(): (numMatches: number) => void {
+  const { players, matches, commonMatchId, setPlayerAssignments: setGlobalPlayerAssignments } = useGameStore();
+  const handleRandomAssignment = (numMatches: number) => {
+    try {
+      const newAssignments = createRandomAssignments(
+        players,
+        matches,
+        commonMatchId,
+        numMatches,
+      );
+
+      setGlobalPlayerAssignments(newAssignments);
+      Toast.show({
+        type: "themedSuccess",
+        text1: "Matches assigned",
+        text2: `Each player has ${numMatches} additional matches plus the common match.`,
+        position: "bottom",
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error.";
+
+      Toast.show({
+        type: "themedWarning",
+        text1: "Failed",
+        text2: errorMessage,
+        position: "bottom",
+      });
+      console.error(error);
+    }
+  };
+  return handleRandomAssignment;
+}
 
 export default SetupGameScreen;

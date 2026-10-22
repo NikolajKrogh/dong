@@ -1,10 +1,11 @@
 /**
  * @description Screen displaying historical game sessions, player cumulative stats, and overall statistics. Provides a tabbed interface (Games, Players, Stats) without gesture-based swiping for simplicity and accessibility.
  */
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useFocusEffect, useIsFocused, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   FlatList,
   Text,
   TouchableOpacity,
@@ -37,6 +38,11 @@ import { useFriends, type Person } from "../features/friends";
 import { createHistoryStyles } from "../styles/historyStyles";
 import { isWideLayout } from "../styles/responsive";
 import { useColors } from "../styles/theme";
+import { useStoreHydration } from "../utils/navigation/useStoreHydration";
+import { useNavigationReady } from "../utils/navigation/useNavigationReady";
+import { TaskOverlay } from "../platform/navigation/taskNavigation";
+import { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from "../platform/navigation/detailEntry";
+import { historyParams, parseHistoryState, sameViewParams, withViewParams, type HistoryRouteState, type RouteParams } from "../utils/navigation/viewState";
 
 const TABS = ["Games", "Players", "Stats"];
 const TAB_ICONS = ["calendar-outline", "people-outline", "stats-chart-outline"] as const;
@@ -68,57 +74,6 @@ interface HistoryViewState {
   sortDirection: SortDirection;
   sortModalVisible: boolean;
 }
-
-type HistoryViewAction =
-  | { type: "openDetails"; game: GameSession }
-  | { type: "closeDetails" }
-  | { type: "switchTab"; index: number }
-  | { type: "toggleSortModal"; visible: boolean }
-  | { type: "changeSort"; field: HistorySortField };
-
-const initialHistoryViewState: HistoryViewState = {
-  selectedGame: null,
-  isDetailVisible: false,
-  activeTabIndex: 0,
-  sortField: "date",
-  sortDirection: "desc",
-  sortModalVisible: false,
-};
-
-function getRouteFriendId(value: string | string[] | undefined): string {
-  return isAccountId(value)
-    ? value.toLowerCase()
-    : "";
-}
-
-const historyViewReducer = (
-  state: HistoryViewState,
-  action: HistoryViewAction,
-): HistoryViewState => {
-  switch (action.type) {
-    case "openDetails":
-      return { ...state, selectedGame: action.game, isDetailVisible: true };
-    case "closeDetails":
-      return { ...state, selectedGame: null, isDetailVisible: false };
-    case "switchTab":
-      return { ...state, activeTabIndex: action.index };
-    case "toggleSortModal":
-      return { ...state, sortModalVisible: action.visible };
-    case "changeSort": {
-      const nextSortDirection: SortDirection = action.field === state.sortField
-        ? state.sortDirection === "desc" ? "asc" : "desc"
-        : "desc";
-      return {
-        ...state,
-        sortField: action.field,
-        sortDirection: nextSortDirection,
-        sortModalVisible: false,
-      };
-    }
-    default:
-      return state;
-  }
-};
 
 type HistoryScreenState = ReturnType<typeof useHistory>;
 type HistoryStyles = ReturnType<typeof createHistoryStyles>;
@@ -161,26 +116,35 @@ interface HistoryActions {
 
 const HistoryScreen = () => {
   const historyState = useHistory();
-  const params = useLocalSearchParams<{ friendId?: string | string[] }>();
-  const initialTarget = getRouteFriendId(params.friendId);
+  const hydrated = useStoreHydration();
+  const params = useLocalSearchParams() as RouteParams;
+  const route = parseHistoryState(params, historyState.accountId);
   const { refresh } = historyState;
   useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
   return (
     <HistoryContent
-      key={`${historyState.accountId ?? "local"}:${initialTarget || "default"}`}
-      initialTarget={initialTarget}
+      key={`${historyState.accountId ?? "local"}:${route.friendId || "default"}`}
+      route={route}
+      params={params}
       {...historyState}
+      loading={historyState.loading || !hydrated}
     />
   );
 };
 
 interface HistoryContentProps extends HistoryScreenState {
-  initialTarget: string;
+  route: HistoryRouteState;
+  params: RouteParams;
 }
 
-const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps) => {
+const HistoryContent = ({ route, params, ...historyState }: HistoryContentProps) => {
+  const routeFocused = useIsFocused();
   const router = useRouter();
-  const [statsTargetId, setStatsTargetId] = useState(initialTarget);
+  const navigationReady = useNavigationReady();
+  const navigation = useNavigation();
+  const openedFromList = useRef(false);
+  const anchoredDetail = useRef("");
+  const statsTargetId = route.friendId;
   const { history, loading, error, refresh, accountId } = historyState;
   const coplayers = useHistoryCoplayerContext(
     history.flatMap((game) => game.players.flatMap((player) =>
@@ -196,10 +160,49 @@ const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps)
   const wideLayout = isWideLayout(availableWidth);
   const shellWideLayout = isWideLayout(width);
   const columns = wideLayout && fontScale < 1.5 ? 2 : 1;
-  const [viewState, dispatch] = useReducer(historyViewReducer, {
-    ...initialHistoryViewState,
-    activeTabIndex: initialTarget ? 2 : 0,
-  });
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  // This records a failed external navigation, even after its URL is normalized.
+  const [unavailableGame, reportUnavailableGame] = React.useReducer(() => true, false);
+  const selectedGame = history.find(game => game.id === route.gameId) ?? null;
+  const { sort: sortField, direction: sortDirection } = route;
+  const viewState: HistoryViewState = {
+    selectedGame,
+    isDetailVisible: selectedGame !== null,
+    activeTabIndex: ["games", "players", "stats"].indexOf(route.tab),
+    sortField,
+    sortDirection,
+    sortModalVisible,
+  };
+
+  const navigateView = useCallback((next: HistoryRouteState, replace = false) => {
+    const nextParams = withViewParams(params, historyParams(next));
+    if (sameViewParams(params, nextParams)) return;
+    const target = { pathname: "/history" as const, params: nextParams };
+    if (replace) router.setParams(historyParams(next));
+    else router.push(target);
+  }, [params, router]);
+  useEffect(() => {
+    if (!navigationReady || loading) return;
+    const game = route.gameId ? history.find(item => item.id === route.gameId) ?? null : null;
+    const next = route.gameId && !game && !error ? { ...route, gameId: "" } : route;
+    if (game && anchoredDetail.current !== route.gameId) {
+      anchoredDetail.current = route.gameId;
+      const stack = navigation.getState();
+      const previous = stack?.routes[(stack?.index ?? 0) - 1];
+      const previousView = parseHistoryState((previous?.params ?? {}) as RouteParams);
+      if (!hasDetailListParent() && (previous?.name !== "history" || previousView.gameId || previousView.tab !== "games")) {
+        const listParams = withViewParams(params, historyParams({ ...route, gameId: "" }));
+        // A direct detail needs its own list below it so browser Back dismisses it first.
+        router.replace({ pathname: "/history", params: listParams });
+        router.push({ pathname: "/history", params });
+        return;
+      }
+    }
+    if (route.gameId && !game && !error) reportUnavailableGame();
+    if (!route.gameId) openedFromList.current = false;
+    navigateView(next, true);
+    if (game) return rememberDetailListParent(game.id);
+  }, [navigationReady, loading, error, history, route, params, navigation, router, navigateView]);
 
   const targetFriendLoaded = friends.items.some(
     (person) => person.account_id === statsTargetId && person.relationship === "friends",
@@ -243,12 +246,8 @@ const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps)
   ]);
 
   const onOpenShared = useCallback((targetId: string) => {
-    dispatch({ type: "closeDetails" });
-    setStatsTargetId(targetId);
-    dispatch({ type: "switchTab", index: 2 });
-  }, []);
-  const selectedGame = viewState.selectedGame;
-  const { sortField, sortDirection } = viewState;
+    navigateView({ ...route, tab: "stats", friendId: targetId === accountId ? "" : targetId, gameId: "" });
+  }, [route, navigateView, accountId]);
   const selectedResult = history.find((game) => game.id === selectedGame?.id);
   const colors = useColors();
   const styles = useMemo(
@@ -269,27 +268,35 @@ const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps)
   );
 
   const onSortChange = useCallback((field: HistorySortField) => {
-    dispatch({ type: "changeSort", field });
-  }, []);
+    setSortModalVisible(false);
+    const direction = field === sortField && sortDirection === "desc" ? "asc" : "desc";
+    navigateView({ ...route, sort: field, direction }, true);
+  }, [route, sortField, sortDirection, navigateView]);
   const onSwitchTab = useCallback((index: number) => {
-    dispatch({ type: "switchTab", index });
-  }, []);
+    navigateView({ ...route, tab: ["games", "players", "stats"][index] as HistoryRouteState["tab"], friendId: index === 2 ? statsTargetId : "", gameId: "" });
+  }, [route, statsTargetId, navigateView]);
   const onOpenGame = useCallback((game: GameSession) => {
     if (!game) {
       console.warn("Attempted to open details for null game");
       return;
     }
-    dispatch({ type: "openDetails", game });
-  }, []);
+    openedFromList.current = true;
+    navigateView({ ...route, tab: "games", friendId: "", gameId: game.id });
+  }, [route, navigateView]);
   const onCloseDetails = useCallback(() => {
-    dispatch({ type: "closeDetails" });
-  }, []);
-  const onBack = useCallback(() => router.back(), [router]);
+    const stack = navigation.getState();
+    const previous = stack?.routes[(stack?.index ?? 0) - 1];
+    const previousIsList = previous?.name === "history" && !parseHistoryState((previous.params ?? {}) as RouteParams).gameId;
+    if (router.canGoBack() && (openedFromList.current || previousIsList)) router.back();
+    else if (!backToRememberedDetailList()) navigateView({ ...route, gameId: "" }, true);
+    openedFromList.current = false;
+  }, [navigation, router, route, navigateView]);
+  const onBack = useCallback(() => router.canGoBack() ? router.back() : router.replace("/"), [router]);
   const onOpenSort = useCallback(() => {
-    dispatch({ type: "toggleSortModal", visible: true });
+    setSortModalVisible(true);
   }, []);
   const onCloseSort = useCallback(() => {
-    dispatch({ type: "toggleSortModal", visible: false });
+    setSortModalVisible(false);
   }, []);
   const onRetry = useCallback(() => { void refresh(); }, [refresh]);
   const onMeasureViewport = useCallback((event: { nativeEvent: { layout: { width: number } } }) => {
@@ -313,7 +320,7 @@ const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps)
       friendError: friends.actionError,
       friendList: friends,
       statsTargetId,
-      onSelectStatsTarget: setStatsTargetId,
+      onSelectStatsTarget: onOpenShared,
     }),
     [
       history,
@@ -341,9 +348,10 @@ const HistoryContent = ({ initialTarget, ...historyState }: HistoryContentProps)
 
   return (
     <HistoryContentView
+      recovery={unavailableGame ? <View><Text accessibilityRole="alert">This game is unavailable on this device or account.</Text><ShellActionButton label="Home" href="/" /></View> : null}
       data={data}
       layout={layout}
-      state={viewState}
+      state={{ ...viewState, isDetailVisible: viewState.isDetailVisible && routeFocused }}
       actions={actions}
       selectedResult={selectedResult}
     />
@@ -387,12 +395,14 @@ function sortHistory(
 }
 
 function HistoryContentView({
+  recovery,
   data,
   layout,
   state,
   actions,
   selectedResult,
 }: {
+  recovery?: React.ReactNode;
   data: HistoryContentData;
   layout: HistoryLayout;
   state: HistoryViewState;
@@ -400,15 +410,16 @@ function HistoryContentView({
   selectedResult: GameSession | undefined;
 }) {
   return data.history.length === 0 && state.activeTabIndex === 0
-    ? <HistoryEmptyScreen data={data} layout={layout} actions={actions} />
-    : <HistoryPage data={data} layout={layout} state={state} actions={actions} selectedResult={selectedResult} />;
+    ? <HistoryEmptyScreen recovery={recovery} data={data} layout={layout} actions={actions} />
+    : <HistoryPage recovery={recovery} data={data} layout={layout} state={state} actions={actions} selectedResult={selectedResult} />;
 }
 
 function HistoryEmptyScreen({
+  recovery,
   data,
   layout,
   actions,
-}: Pick<Parameters<typeof HistoryContentView>[0], "data" | "layout" | "actions">) {
+}: Pick<Parameters<typeof HistoryContentView>[0], "recovery" | "data" | "layout" | "actions">) {
   const cloudStatus = <HistoryCloudStatus data={data} colors={layout.colors} onRetry={actions.onRetry} />;
   return (
     <SafeAreaView style={layout.styles.safeArea}>
@@ -419,6 +430,7 @@ function HistoryEmptyScreen({
         contentProps={centeredContentProps}
       >
         <HistoryHeader title="History" onBack={actions.onBack} showSortButton={false} sortDirection="desc" onOpenSortModal={noop} />
+        {recovery}
         {cloudStatus}
         <HistoryTabBar activeTabIndex={0} styles={layout.styles} colors={layout.colors}
           wideLayout={layout.wideLayout} onSwitchTab={actions.onSwitchTab} />
@@ -434,12 +446,14 @@ function HistoryEmptyScreen({
 }
 
 function HistoryPage({
+  recovery,
   data,
   layout,
   state,
   actions,
   selectedResult,
 }: {
+  recovery?: React.ReactNode;
   data: HistoryContentData;
   layout: HistoryLayout;
   state: HistoryViewState;
@@ -461,14 +475,17 @@ function HistoryPage({
           sortDirection={state.sortDirection}
           onOpenSortModal={actions.onOpenSort}
         />
+        {recovery}
         <HistoryCloudStatus data={data} colors={layout.colors} onRetry={actions.onRetry} />
-        <SortHistoryModal
-          visible={state.sortModalVisible}
-          sortField={state.sortField}
-          sortDirection={state.sortDirection}
-          onClose={actions.onCloseSort}
-          onSortChange={actions.onSortChange}
-        />
+        <TaskOverlay open={state.sortModalVisible} onClose={actions.onCloseSort} fallbackHref="/history">
+          {({ open, dismiss, runAfterDismiss }) => <SortHistoryModal
+            visible={open}
+            sortField={state.sortField}
+            sortDirection={state.sortDirection}
+            onClose={dismiss}
+            onSortChange={field => runAfterDismiss(() => actions.onSortChange(field))}
+          />}
+        </TaskOverlay>
         <HistoryTabBar
           activeTabIndex={state.activeTabIndex}
           styles={layout.styles}
@@ -580,6 +597,7 @@ function HistoryTabButton({
       testID={`HistoryTab-${label}`}
       accessibilityRole="tab"
       accessibilityState={accessibilityState}
+      {...(Platform.OS === "web" ? { "aria-selected": selected } : {})}
       style={[styles.tab, selected && styles.activeTab]}
       onPress={handlePress}
     >

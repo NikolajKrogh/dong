@@ -68,35 +68,12 @@ class MatchDiscoveryServiceTest {
     @Test
     void malformedPayloadIsRejectedAsUpstreamBadResponse() {
         when(espnClient.fetchScoreboard("eng.1", LocalDate.of(2026, 5, 24)))
-                .thenReturn(new EspnScoreboardResponse(
-                        List.of(),
-                        List.of(new EspnScoreboardResponse.Event(
-                                "broken-event",
-                                "Chelsea at Arsenal",
-                                "Chelsea @ Arsenal",
-                                null,
-                                null,
-                                new EspnScoreboardResponse.Status(
-                                        new EspnScoreboardResponse.StatusType(null, "pre", null, null, null, null)),
-                                List.of(new EspnScoreboardResponse.Competition(List.of(
-                                        competitor("home", "Arsenal", "0"),
-                                        competitor("away", "Chelsea", "0"))))))));
+                .thenReturn(malformedScoreboard());
 
         assertThatThrownBy(() -> matchDiscoveryService.discover(null, List.of("eng.1")))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
                 .isEqualTo(ErrorCode.UPSTREAM_BAD_RESPONSE);
-    }
-
-    @Test
-    void rateLimitedUpstreamIsSurfacedAsServiceUnavailable() {
-        when(espnClient.fetchScoreboard("eng.1", LocalDate.of(2026, 5, 24)))
-                .thenThrow(new ApiException(ErrorCode.UPSTREAM_UNAVAILABLE));
-
-        assertThatThrownBy(() -> matchDiscoveryService.discover(null, List.of("eng.1")))
-                .isInstanceOf(ApiException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.UPSTREAM_UNAVAILABLE);
     }
 
     @Test

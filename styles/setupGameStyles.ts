@@ -71,7 +71,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     safeArea: {
       ...makeBaseContainer(),
       backgroundColor: colors.background,
-      paddingTop: 25, // Consider SafeAreaView component for this
     },
     container: {
       ...makeBaseContainer(),
@@ -221,6 +220,42 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       fontWeight: "500",
       color: colors.textSecondary,
     },
+    assignmentCounterLabel: {
+      flex: 1,
+      marginRight: 8,
+    },
+    assignmentDescription: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+    assignmentModeTabs: {
+      flexDirection: "row",
+      padding: 4,
+      gap: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.backgroundLight,
+    },
+    assignmentModeTab: {
+      flex: 1,
+      minHeight: 44,
+      justifyContent: "center",
+      alignItems: "center",
+      borderRadius: 7,
+      paddingHorizontal: 2,
+    },
+    assignmentModeLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    assignmentPendingLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
     matchItemWrapper: {
       // Used for layout, no specific visual style from palette
       marginBottom: 8,
@@ -276,6 +311,17 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     tabContent: {
       // Often a padding container
       padding: 16,
+    },
+    compactAssignmentTitle: {
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    compactAssignmentSection: {
+      marginBottom: 0,
+    },
+    compactAssignmentPlayer: {
+      marginTop: 0,
+      marginBottom: 8,
     },
     assignmentSection: {
       // Layout
@@ -489,17 +535,14 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderColor: colors.borderLight,
       overflow: "hidden",
     },
-    currentStepLabel: {
-      fontSize: 18,
-      fontWeight: "600",
-      color: colors.textPrimary,
-      textAlign: "center",
-      marginTop: 8,
-      marginBottom: 16,
-    },
     stepButton: {
+      minHeight: 48,
+      minWidth: 48,
+      width: 48,
+      justifyContent: "center",
+      alignItems: "center",
       paddingVertical: 8,
-      paddingHorizontal: 16,
+      paddingHorizontal: 0,
       borderRadius: 20,
       backgroundColor: colors.backgroundSubtle,
     },
@@ -533,11 +576,16 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     stepConnector: {
       height: 2,
-      width: 30,
+      flex: 1,
+      minWidth: 4,
+      maxWidth: 40,
       backgroundColor: colors.borderLight,
       marginHorizontal: 8,
     },
     stepConnectorWide: {
+      flex: 0,
+      minWidth: 2,
+      maxWidth: 2,
       width: 2,
       height: 24,
       marginHorizontal: 0,
@@ -553,6 +601,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     wizardNavigation: {
       flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
       justifyContent: "space-between",
       paddingHorizontal: 16,
       paddingVertical: 16,
@@ -1197,6 +1247,11 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       // fontSize: 16, // Already in base
       // fontWeight: "bold", // Already in base
     },
+    filterSummaryButton: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 48 },
+    filterSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    filterSummaryLabel: { flex: 1, fontSize: 14, fontWeight: "600" },
+    filterSummaryValues: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+    filterSummaryValue: { fontSize: 14, fontWeight: "600" },
     filterCard: {
       // Re-declared, ensure consistency or merge
       ...makeBaseCard(colors),
@@ -1211,18 +1266,24 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.surface, // Explicit for header part
     },
     filterCardContent: {
+      gap: 8,
+      alignItems: "stretch",
+      minWidth: 0,
+    },
+    filterCardContentWide: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
     },
     filterTitleContainer: {
       flexDirection: "row",
       alignItems: "center",
-      minWidth: "25%", // Layout specific
+      minWidth: 0,
+      flexShrink: 1,
     },
     filterTitle: {
       ...makeBaseSectionTitle(colors),
       fontSize: 16, // Keep specific
+      flexShrink: 1,
       fontWeight: "600", // Bolder
       marginLeft: 10,
       color: colors.textSecondary,
@@ -1231,8 +1292,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     filterBadgesSection: {
       flexDirection: "row",
       alignItems: "center",
-      flex: 1,
-      justifyContent: "flex-end",
+      minWidth: 0,
+      justifyContent: "space-between",
     },
     filterBadgesScroll: {
       // For horizontal scroll of badges
@@ -1240,23 +1301,27 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     filterBadgesContainer: {
       flexDirection: "row",
-      flexWrap: "wrap", // Allow badges to wrap if too many
-      justifyContent: "flex-end",
+      flexWrap: "wrap",
+      flex: 1,
+      minWidth: 0,
+      gap: 6,
     },
     filterBadge: {
       backgroundColor: colors.backgroundSubtle,
       borderRadius: 12,
       paddingHorizontal: 6,
       paddingVertical: 5,
-      marginLeft: 6,
+      marginLeft: 0,
       marginBottom: 4, // For wrapping
       flexDirection: "row",
       alignItems: "center",
       borderWidth: 1,
       borderColor: colors.borderSubtle,
-      maxWidth: 110, // Prevent very long badges
+      maxWidth: "100%",
     },
     filterBadgeText: {
+      flexShrink: 1,
+      minWidth: 0,
       fontSize: 11,
       color: colors.textSecondary,
       marginLeft: 3,
@@ -1553,10 +1618,20 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     playerInputRow: {
       alignItems: "flex-start",
     },
+    teamSelectionRowCompact: {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 8,
+    },
     teamInputWrapper: {
-      flex: 1, // Allow inputs to take available space
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
     },
     teamSearchField: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: "row",
       alignItems: "center",
       backgroundColor: colors.backgroundLight,
@@ -1564,7 +1639,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       borderColor: colors.border,
       borderRadius: 10,
       paddingHorizontal: 10,
-      height: 50,
+      minHeight: 50,
+      paddingVertical: 10,
     },
     teamSearchFieldSelected: {
       borderColor: colors.primaryFocus,
@@ -1575,6 +1651,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     teamSearchText: {
       flex: 1,
+      minWidth: 0,
       fontSize: 14,
       color: colors.textSecondary, // Default color
     },
@@ -1586,7 +1663,10 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       fontWeight: "500",
     },
     teamClearButton: {
-      paddingLeft: 8, // Add some padding for easier touch
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
     },
     vsText: {
       fontWeight: "bold",

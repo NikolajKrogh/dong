@@ -8,6 +8,7 @@ import type { MyActiveRoom } from "../../types/room";
 
 interface JoinRoomModalProps {
   visible: boolean;
+  leaveOnly?: boolean;
   styles: ReturnType<typeof createStyles>;
   colors: ReturnType<typeof useColors>;
   conflictRoom: MyActiveRoom | null;
@@ -117,6 +118,7 @@ const JoinCodeView = ({
 };
 
 interface ConflictPromptProps {
+  leaveOnly: boolean;
   visible: boolean;
   conflictRoom: MyActiveRoom | null;
   exit: UseRoomExitResult;
@@ -126,6 +128,7 @@ interface ConflictPromptProps {
 }
 
 const ConflictPrompt = ({
+  leaveOnly,
   visible,
   conflictRoom,
   exit,
@@ -134,13 +137,14 @@ const ConflictPrompt = ({
   onLeaveAndSwitch,
 }: ConflictPromptProps) => {
   if (!visible || !conflictRoom) return null;
+  const leaveLabel = leaveOnly ? "Leave Room" : "Leave & Join";
 
   return (
     <>
-      <Text style={styles.modalTitle}>You&apos;re in another room</Text>
+      <Text style={styles.modalTitle}>{leaveOnly ? "Leave Room" : "You're in another room"}</Text>
       <Text style={styles.modalText}>
-        {conflictRoom.role === "owner"
-          ? "You're hosting a room. Leave it (handover or close) and join this one?"
+        {leaveOnly
+          ? "Leave this room? If you're hosting, another player will take over, or the room will close."
           : "Leave your current room and join this one?"}
       </Text>
       {exit.error !== null && (
@@ -150,6 +154,7 @@ const ConflictPrompt = ({
         <TouchableOpacity
           style={[styles.modalButton, styles.buttonCancel]}
           onPress={onStay}
+          disabled={exit.isExiting}
         >
           <Text style={styles.textStyle}>Stay</Text>
         </TouchableOpacity>
@@ -160,7 +165,7 @@ const ConflictPrompt = ({
           onPress={onLeaveAndSwitch}
         >
           <Text style={styles.textStyle}>
-            {exit.isExiting ? "Leaving…" : "Leave & Join"}
+            {exit.isExiting ? "Leaving…" : leaveLabel}
           </Text>
         </TouchableOpacity>
       </View>
@@ -189,11 +194,13 @@ const SuccessorChoice = ({
       <Text style={styles.modalText}>
         Pick which signed-in player should take over your current room.
       </Text>
+      {exit.error ? <Text accessibilityRole="alert" style={styles.createRoomError}>{exit.error}</Text> : null}
       {exit.eligibleSuccessors.map((candidate) => (
         <TouchableOpacity
           key={candidate.id}
           testID={`home-conflict-successor-${candidate.id}`}
           style={[styles.modalButton, styles.buttonConfirm, { marginTop: 8 }]}
+          disabled={exit.isExiting}
           onPress={() => onChooseSuccessor(candidate.id)}
         >
           <Text style={styles.textStyle}>{candidate.displayName}</Text>
@@ -201,6 +208,7 @@ const SuccessorChoice = ({
       ))}
       <TouchableOpacity
         style={[styles.modalButton, styles.buttonCancel, { marginTop: 12 }]}
+        disabled={exit.isExiting}
         onPress={exit.cancel}
       >
         <Text style={styles.textStyle}>Cancel</Text>
@@ -210,6 +218,7 @@ const SuccessorChoice = ({
 };
 
 interface CloseRoomConfirmationProps {
+  leaveOnly: boolean;
   visible: boolean;
   exit: UseRoomExitResult;
   styles: JoinRoomModalProps["styles"];
@@ -217,22 +226,26 @@ interface CloseRoomConfirmationProps {
 }
 
 const CloseRoomConfirmation = ({
+  leaveOnly,
   visible,
   exit,
   styles,
   onConfirmClose,
 }: CloseRoomConfirmationProps) => {
   if (!visible) return null;
+  const closeLabel = leaveOnly ? "Close Room" : "Close & Join";
 
   return (
     <>
       <Text style={styles.modalTitle}>Everyone left</Text>
       <Text style={styles.modalText}>
-        There&apos;s no one left to take over. Close the room and join the new one?
+        {leaveOnly ? "There's no one left to take over. Close the room?" : "There's no one left to take over. Close the room and join the new one?"}
       </Text>
+      {exit.error ? <Text accessibilityRole="alert" style={styles.createRoomError}>{exit.error}</Text> : null}
       <View style={styles.modalButtons}>
         <TouchableOpacity
           style={[styles.modalButton, styles.buttonCancel]}
+          disabled={exit.isExiting}
           onPress={exit.cancel}
         >
           <Text style={styles.textStyle}>Cancel</Text>
@@ -244,7 +257,7 @@ const CloseRoomConfirmation = ({
           onPress={onConfirmClose}
         >
           <Text style={styles.textStyle}>
-            {exit.isExiting ? "Closing…" : "Close & Join"}
+            {exit.isExiting ? "Closing…" : closeLabel}
           </Text>
         </TouchableOpacity>
       </View>
@@ -280,6 +293,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = (props) => {
             onSubmit={props.onSubmitJoin}
           />
           <ConflictPrompt
+            leaveOnly={props.leaveOnly ?? false}
             visible={views.conflictPrompt}
             conflictRoom={props.conflictRoom}
             exit={props.exit}
@@ -294,6 +308,7 @@ export const JoinRoomModal: React.FC<JoinRoomModalProps> = (props) => {
             onChooseSuccessor={props.onChooseSuccessor}
           />
           <CloseRoomConfirmation
+            leaveOnly={props.leaveOnly ?? false}
             visible={views.closeConfirmation}
             exit={props.exit}
             styles={props.styles}

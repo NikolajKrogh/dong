@@ -46,7 +46,7 @@ export interface RoomMatchPool {
 /** Provider recorded for a fixture taken from the discovery catalogue. */
 export const CATALOGUE_SOURCE_PROVIDER = "espn";
 
-const toDisplayMatch = (match: RoomMatchSummary): Match => ({
+export const toDisplayMatch = (match: RoomMatchSummary): Match => ({
   id: match.id,
   homeTeam: match.homeTeamName,
   awayTeam: match.awayTeamName,
@@ -74,7 +74,7 @@ const toDisplayMatch = (match: RoomMatchSummary): Match => ({
  * insert, which is exactly the bug this replaced — nor safely reassembled from the
  * accompanying UTC `date`.
  */
-const toAddRequest = (match: Match): AddRoomMatchRequest =>
+export const toAddRequest = (match: Match): AddRoomMatchRequest =>
   match.kickoffAt
     ? {
         sourceProvider: CATALOGUE_SOURCE_PROVIDER,

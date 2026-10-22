@@ -1,6 +1,7 @@
 import type { GuestRoomSnapshot } from "../types/guestRoom";
 import type { RoomSnapshot } from "../types/room";
 import type { Match, Player } from "../store/store";
+import { selectGameplayMatches } from "./selectGameplayMatches";
 
 export type CompatibleRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 
@@ -47,7 +48,7 @@ export const roomSnapshotToGameState = (snapshot: CompatibleRoomSnapshot) => {
 
   return {
     players,
-    matches,
+    matches: selectGameplayMatches(matches, snapshot.commonMatchId, playerAssignments),
     commonMatchId: snapshot.commonMatchId,
     playerAssignments,
   };

@@ -1,5 +1,6 @@
 import React from "react";
-import { Platform } from "react-native";
+import { Link, type Href } from "expo-router";
+import { Platform, type Role } from "react-native";
 import { GetProps, Text, XStack, styled } from "tamagui";
 
 const ShellActionButtonFrame = styled(XStack, {
@@ -7,7 +8,16 @@ const ShellActionButtonFrame = styled(XStack, {
   justifyContent: "center",
   gap: "$2",
   width: "100%",
-  minWidth: 0,
+  minWidth: 44,
+  minHeight: 44,
+  borderWidth: 0,
+  cursor: "pointer",
+  focusVisibleStyle: {
+    outlineWidth: 2,
+    outlineStyle: "solid",
+    outlineColor: "$primaryFocus",
+    outlineOffset: 3,
+  },
   paddingVertical: "$3",
   paddingHorizontal: "$4",
   borderRadius: "$3",
@@ -99,33 +109,76 @@ type ShellActionButtonProps = GetProps<typeof ShellActionButtonFrame> & {
   label?: string;
   icon?: React.ReactNode;
   onPress?: () => void;
+  href?: Href;
 };
 
 export function ShellActionButton({
   label,
   icon,
   onPress,
+  href,
   variant,
   accessibilityLabel,
   accessibilityState,
+  accessibilityRole,
   ...props
 }: ShellActionButtonProps) {
-  const accessibilityProps = Platform.OS === "web" ? {
-    "aria-label": accessibilityLabel,
-    "aria-disabled": accessibilityState?.disabled ?? props.disabled,
-    "aria-expanded": accessibilityState?.expanded,
-    "aria-selected": accessibilityState?.selected,
-    "aria-checked": accessibilityState?.checked,
-    "aria-busy": accessibilityState?.busy,
-  } : { accessibilityLabel, accessibilityState };
-  return (
-    <ShellActionButtonFrame variant={variant} onPress={onPress} {...props} {...accessibilityProps}>
-      {icon}
+  const disabled = Boolean(props.disabled || accessibilityState?.disabled);
+  const isWeb = Platform.OS === "web";
+  const linkHref = disabled ? undefined : href;
+  const accessibilityProps = getAccessibilityProps({
+    role: props.role, accessibilityRole, accessibilityLabel, accessibilityState,
+  }, disabled, Boolean(linkHref));
+  const controlLabel = accessibilityLabel ?? label;
+  const button = (
+    <ShellActionButtonFrame
+      {...props}
+      variant={variant}
+      {...(isWeb ? { render: linkHref ? <a href={Link.resolveHref(linkHref)} aria-label={controlLabel} style={{ textDecoration: "none" }} /> : <button type="button" aria-label={controlLabel} /> } : {})}
+      {...(isWeb && !linkHref ? { type: "button" as const } : {})}
+      {...accessibilityProps}
+      disabled={disabled}
+      onPress={disabled ? undefined : onPress}
+    >
+      <ShellActionContent icon={icon} label={label} variant={variant} />
+    </ShellActionButtonFrame>
+  );
+  return linkHref ? <Link href={linkHref} asChild>{button}</Link> : button;
+}
+
+function getAccessibilityProps(
+  { role, accessibilityRole, accessibilityLabel, accessibilityState }: Pick<ShellActionButtonProps,
+    "role" | "accessibilityRole" | "accessibilityLabel" | "accessibilityState">,
+  disabled: boolean,
+  isLink: boolean,
+) {
+  const defaultRole = isLink ? "link" : "button";
+  if (Platform.OS === "web") {
+    return {
+      role: role ?? (accessibilityRole as Role | undefined) ?? defaultRole,
+      "aria-label": accessibilityLabel,
+      "aria-disabled": disabled,
+      "aria-expanded": accessibilityState?.expanded,
+      "aria-selected": accessibilityState?.selected,
+      "aria-checked": accessibilityState?.checked,
+      "aria-busy": accessibilityState?.busy,
+    };
+  }
+  return {
+    accessibilityLabel,
+    accessibilityRole: accessibilityRole ?? defaultRole,
+    accessibilityState: disabled ? { ...accessibilityState, disabled: true } : accessibilityState,
+  };
+}
+
+function ShellActionContent({ icon, label, variant }: Pick<ShellActionButtonProps, "icon" | "label" | "variant">): React.JSX.Element {
+  const isWeb = Platform.OS === "web";
+  return <>
+      {icon ? <XStack aria-hidden={isWeb ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
       {label ? (
-        <ShellActionButtonLabel surfaceText={variant === "surface"}>
+        <ShellActionButtonLabel fontFamily={isWeb ? "system-ui" : undefined} surfaceText={variant === "surface"}>
           {label}
         </ShellActionButtonLabel>
       ) : null}
-    </ShellActionButtonFrame>
-  );
+  </>;
 }

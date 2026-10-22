@@ -5,16 +5,19 @@ import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 import GameActionsSheet from "./GameActionsSheet";
+import { useReducedMotion } from "../../platform/animation/useReducedMotion";
+import { TaskOverlay } from "../../platform/navigation/taskNavigation";
 
 /**
  * Props for FooterButtons.
  * @interface
  */
 interface FooterButtonsProps {
-  /** Invoked before navigating Home so active multiplayer context is cleared. */
+  /** Invoked before navigating Home without ending participation. */
   onHome?: () => void;
   /** Invoked when user selects Back to Setup. */
   onBackToSetup: () => void;
+  configurationLabel?: string;
   /** Invoked when user selects End Game. */
   onEndGame: () => void;
   onLeaveGame?: () => void;
@@ -33,6 +36,7 @@ interface FooterButtonsProps {
 const FooterButtons: React.FC<FooterButtonsProps> = ({
   onHome,
   onBackToSetup,
+  configurationLabel = "Setup",
   onEndGame,
   onLeaveGame,
   showLeaveGame = false,
@@ -40,6 +44,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 }) => {
   const router = useRouter();
   const colors = useColors();
+  const reduceMotion = useReducedMotion();
   const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [sheetPosition, setSheetPosition] = useState(0);
@@ -53,7 +58,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
     Animated.timing(rotation, {
       toValue: nextVisible ? 1 : 0,
-      duration: 300,
+      duration: reduceMotion ? 0 : 300,
       useNativeDriver: true,
     }).start();
 
@@ -65,7 +70,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   const closeMenu = () => {
     Animated.timing(rotation, {
       toValue: 0,
-      duration: 300,
+      duration: reduceMotion ? 0 : 300,
       useNativeDriver: true,
     }).start();
 
@@ -81,28 +86,11 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
     outputRange: ["0deg", "45deg"],
   });
 
-  const runAction = (action: () => void) => {
-    closeMenu();
-    action();
-  };
-
-  /** Navigate to home after closing the sheet. */
-  const goToHome = () => {
-    runAction(() => {
-      onHome?.();
-      router.push("/");
-    });
-  };
-
-  const goToSetup = () => runAction(onBackToSetup);
-  const endGame = () => runAction(onEndGame);
-  const leaveGame = () => onLeaveGame && runAction(onLeaveGame);
-
-  const renderToggle = (inSheet: boolean) => (
+  const renderToggle = (inSheet: boolean, onPress = toggleMenu) => (
     <TouchableOpacity
       testID={inSheet ? "GameProgressSheetMenuButton" : "GameProgressMenuButton"}
       style={styles.menuButton}
-      onPress={toggleMenu}
+      onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={inSheet ? "Close game actions" : "Open game actions"}
       accessibilityElementsHidden={!inSheet && menuVisible}
@@ -117,21 +105,26 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
 
   return (
     <View style={styles.container}>
-      <GameActionsSheet
-        onBackToSetup={goToSetup}
-        onEndGame={endGame}
-        onLeaveGame={leaveGame}
-        showLeaveGame={showLeaveGame}
-        onHome={goToHome}
-        onOpenChange={(open: boolean) =>
-          open ? setMenuVisible(true) : closeMenu()
-        }
-        onPositionChange={setSheetPosition}
-        open={menuVisible}
-        position={sheetPosition}
-        showEndGame={showEndGame}
-        floatingToggle={renderToggle(true)}
-      />
+      <TaskOverlay open={menuVisible} onClose={closeMenu} fallbackHref="/gameProgress"
+        returnFocusId="GameProgressMenuButton">
+        {({ open, dismiss, runAfterDismiss }) => <GameActionsSheet
+          onBackToSetup={() => runAfterDismiss(onBackToSetup)}
+          configurationLabel={configurationLabel}
+          onEndGame={() => runAfterDismiss(onEndGame)}
+          onLeaveGame={onLeaveGame ? () => runAfterDismiss(onLeaveGame) : undefined}
+          showLeaveGame={showLeaveGame}
+          onHome={() => runAfterDismiss(() => {
+            onHome?.();
+            router.dismissTo("/");
+          })}
+          onOpenChange={(nextOpen: boolean) => { if (!nextOpen) dismiss(); }}
+          onPositionChange={setSheetPosition}
+          open={open}
+          position={sheetPosition}
+          showEndGame={showEndGame}
+          floatingToggle={renderToggle(true, dismiss)}
+        />}
+      </TaskOverlay>
 
       {/* Menu toggle button */}
       <View style={styles.footer}>

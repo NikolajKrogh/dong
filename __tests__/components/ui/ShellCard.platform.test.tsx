@@ -1,58 +1,20 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+import { ShellCard } from "../../../components/ui/ShellCard";
 
 describe("ShellCard primitive", () => {
-  it("renders children inside the card frame", () => {
-    const { ShellCard } = require("../../../components/ui/ShellCard");
+  it.each([
+    { name: "default", props: {}, theme: "light" },
+    { name: "elevated", props: { elevated: true }, theme: "light" },
+    { name: "compact", props: { compact: true }, theme: "light" },
+    { name: "dark theme", props: {}, theme: "dark" },
+  ] as const)("keeps its content in the $name card", ({ props, theme }) => {
     const tree = actCreate(
-      React.createElement(
-        TamaguiTestProvider,
-        null,
-        React.createElement(ShellCard, null, "Card content")
-      )
+      <TamaguiTestProvider theme={theme}>
+        <ShellCard {...props}><span>Card content</span></ShellCard>
+      </TamaguiTestProvider>,
     );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
-  });
-
-  it("accepts the elevated variant", () => {
-    const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = actCreate(
-      React.createElement(
-        TamaguiTestProvider,
-        null,
-        React.createElement(ShellCard, { elevated: true }, "Elevated card")
-      )
-    );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
-  });
-
-  it("accepts the compact variant", () => {
-    const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = actCreate(
-      React.createElement(
-        TamaguiTestProvider,
-        null,
-        React.createElement(ShellCard, { compact: true }, "Compact card")
-      )
-    );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
-  });
-
-  it("renders in dark theme without crashing", () => {
-    const { ShellCard } = require("../../../components/ui/ShellCard");
-    const tree = actCreate(
-      React.createElement(
-        TamaguiTestProvider,
-        { theme: "dark" },
-        React.createElement(ShellCard, null, "Dark card")
-      )
-    );
-    expect(tree.toJSON()).toBeDefined();
-    TestRenderer.act(() => tree.unmount());
+    expect(tree.root.findByType("span").props.children).toBe("Card content");
   });
 });

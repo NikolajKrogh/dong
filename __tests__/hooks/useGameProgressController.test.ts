@@ -20,9 +20,17 @@ jest.mock("../../hooks/useLiveScores", () => ({
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockSetParams = jest.fn();
+let mockNavigationReady = true;
+let mockGameParams: { gameTab?: string | string[] } = {};
+
+jest.mock("../../utils/navigation/useNavigationReady", () => ({
+  useNavigationReady: () => mockNavigationReady,
+}));
 
 jest.mock("expo-router", () => ({
-  useRouter: jest.fn(() => ({ push: mockPush, replace: mockReplace })),
+  useLocalSearchParams: () => mockGameParams,
+  useRouter: jest.fn(() => ({ push: mockPush, replace: mockReplace, setParams: mockSetParams })),
 }));
 
 jest.mock("../../platform", () => ({
@@ -52,12 +60,14 @@ const renderControllerProbe = () => {
 
   const renderer = actCreate(React.createElement(Probe));
 
-  return { renderer, getLatest: () => latest as Controller };
+  return { renderer, getLatest: () => latest as Controller, rerender: () => renderer.update(React.createElement(Probe)) };
 };
 
 describe("useGameProgressController (integration)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGameParams = {};
+    mockNavigationReady = true;
 
     mockUseLiveScores.mockReturnValue({
       liveMatches: [],
@@ -102,6 +112,32 @@ describe("useGameProgressController (integration)", () => {
       soundEnabled: true,
       commonMatchNotificationsEnabled: true,
     });
+  });
+
+  it("waits for container readiness before normalizing a malformed fresh-tab choice", async () => {
+    mockGameParams = { gameTab: ["players", "matches"] };
+    mockNavigationReady = false;
+    const controller = renderControllerProbe();
+    expect(mockSetParams).not.toHaveBeenCalled();
+    mockNavigationReady = true;
+    TestRenderer.act(() => controller.rerender());
+    expect(mockSetParams).toHaveBeenCalledTimes(1);
+    expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => controller.renderer.unmount());
+  });
+
+  it("restores the Players tab on remount and normalizes ambiguous route choices", async () => {
+    mockGameParams = { gameTab: "players" };
+    const first = renderControllerProbe();
+    expect(first.getLatest().activeTab).toBe("players");
+    TestRenderer.act(() => first.getLatest().setActiveTab("matches"));
+    expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => first.renderer.unmount());
+    mockGameParams = { gameTab: ["players", "matches"] };
+    const second = renderControllerProbe();
+    expect(second.getLatest().activeTab).toBe("matches");
+    expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => second.renderer.unmount());
   });
 
   it("migrates legacy goals-only matches into homeGoals/awayGoals on mount", async () => {
@@ -180,6 +216,25 @@ describe("useGameProgressController (integration)", () => {
         renderer.unmount();
       });
     });
+  });
+
+  it.each<{ name: string; matchId: string; commonMatchId: string | null; assignments: Record<string, string[]>; expected: string | null }>([
+    { name: "common match", matchId: "m3", commonMatchId: "m3", assignments: { p1: ["m1", "m3"], p2: ["m2"], p3: ["m1", "m2"], p4: [] }, expected: "Alice, Bob and 2 others should drink!" },
+    { name: "first assigned match", matchId: "m1", commonMatchId: "m3", assignments: { p1: ["m1"], p2: ["m2"], p3: ["m1", "m2"], p4: [] }, expected: "Alice, Charlie should drink!" },
+    { name: "second assigned match", matchId: "m2", commonMatchId: "m3", assignments: { p1: ["m1"], p2: ["m2"], p3: ["m1", "m2"], p4: [] }, expected: "Bob, Charlie should drink!" },
+    { name: "no assigned players", matchId: "m4", commonMatchId: "m3", assignments: {}, expected: null },
+    { name: "empty assignments", matchId: "m1", commonMatchId: null, assignments: { p4: [] }, expected: null },
+    { name: "no common match", matchId: "m1", commonMatchId: null, assignments: { p1: ["m1"], p3: ["m1"] }, expected: "Alice, Charlie should drink!" },
+  ])("resolves drinkers through the real controller for $name", ({ matchId, commonMatchId, assignments, expected }) => {
+    useGameStore.setState({
+      players: ["Alice", "Bob", "Charlie", "David"].map((name, index) => ({ id: `p${index + 1}`, name, drinksTaken: 0 })),
+      matches: [{ id: matchId, homeTeam: "A", awayTeam: "B", homeGoals: 0, awayGoals: 0 }],
+      commonMatchId, playerAssignments: assignments,
+    });
+    const { getLatest } = renderControllerProbe();
+    TestRenderer.act(() => getLatest().handleGoalIncrement(matchId, "home"));
+    if (expected === null) expect(mockToastShow).not.toHaveBeenCalled();
+    else expect(mockToastShow).toHaveBeenCalledWith(expect.objectContaining({ text2: expected }));
   });
 
   it("suppresses the goal notification for the common match when commonMatchNotificationsEnabled is false", async () => {
@@ -330,6 +385,9 @@ describe("useGameProgressController (integration)", () => {
       getLatest().handleBackToSetup();
     });
     expect(mockPush).toHaveBeenCalledWith("/setupGame");
+    expect(getLatest().configurationLabel).toBe("Setup");
+    expect(getLatest().players).toHaveLength(2);
+    expect(getLatest().matches).toHaveLength(1);
 
     await TestRenderer.act(async () => {
       getLatest().openQuickActions("m1");

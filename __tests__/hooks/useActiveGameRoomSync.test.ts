@@ -121,6 +121,86 @@ const snapshot = (overrides: Partial<RoomSnapshot> = {}): RoomSnapshot => ({
   ...overrides,
 });
 
+const createStrictRealtimeClient = () => {
+  const channels = new Map<string, any>();
+  const created: any[] = [];
+  let finishRemoval: (() => void) | null = null;
+  let deferRemoval = false;
+  let failRemoval = false;
+  const client = {
+    channel: jest.fn((topic: string, options: unknown) => {
+      if (channels.has(topic)) return channels.get(topic);
+      let subscribed = false;
+      const handlers = new Map<string, () => void>();
+      const channel: any = {
+        topic: `realtime:${topic}`, options, handlers,
+        on: jest.fn((type: string, filter: { event: string }, callback: () => void) => {
+          if (subscribed && type === "presence") throw new Error(`cannot add ${type} callbacks after subscribe()`);
+          handlers.set(filter.event, callback);
+          return channel;
+        }),
+        subscribe: jest.fn((callback: (status: string) => void) => {
+          subscribed = true;
+          channel.status = callback;
+          callback("SUBSCRIBED");
+          return channel;
+        }),
+        track: jest.fn().mockResolvedValue("ok"),
+        presenceState: jest.fn(() => ({ participant: [{}] })),
+        teardown: jest.fn(),
+      };
+      channels.set(topic, channel);
+      created.push(channel);
+      return channel;
+    }),
+    getChannels: () => [...channels.values()],
+    removeChannel: jest.fn(async (channel: any) => {
+      if (deferRemoval) await new Promise<void>(resolve => { finishRemoval = resolve; });
+      if (failRemoval) throw new Error("transport closed");
+      channels.delete(channel.topic.replace(/^realtime:/, ""));
+      return "ok";
+    }),
+  };
+  return { client, created, defer: () => { deferRemoval = true; },
+    fail: () => { failRemoval = true; }, finish: () => { deferRemoval = false; finishRemoval?.(); } };
+};
+
+function activateRegisteredRoom(lastAppliedSequence: number): void {
+  useGameStore.setState({
+    activeGameContext: {
+      mode: "multiplayer",
+      sessionId: "session-1",
+      participantId: "participant-1",
+      accessKind: "registered",
+      lastAppliedSequence,
+    },
+  });
+}
+
+async function renderRoomSync(wrapper: React.ElementType = React.Fragment) {
+  let latest!: ReturnType<typeof useActiveGameRoomSync>;
+  function Probe() {
+    const value = useActiveGameRoomSync();
+    React.useEffect(() => { latest = value; }, [value]);
+    return null;
+  }
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await TestRenderer.act(async () => {
+    renderer = TestRenderer.create(React.createElement(wrapper, null, React.createElement(Probe)));
+  });
+  return { renderer, getLatest: () => latest };
+}
+
+function setupStrictRoomSync(readSnapshot = async () => snapshot()) {
+  const strict = createStrictRealtimeClient();
+  const original = getSupabaseClient.getMockImplementation();
+  getSupabaseClient.mockReturnValue(strict.client);
+  const getRoomSnapshot = jest.fn(readSnapshot);
+  getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+  activateRegisteredRoom(10);
+  return { strict, original, getRoomSnapshot };
+}
+
 describe("active room sync composition", () => {
   beforeEach(() => {
     useGameStore.setState({ endedGuestSessionId: null });
@@ -917,4 +997,213 @@ describe("active room sync composition", () => {
     expect(latest!.status).toBe("ready");
     await TestRenderer.act(async () => renderer!.unmount());
   });
+  it("shares an already-subscribed room between mounted game screens until the last screen leaves", async () => {
+    const { strict, original, getRoomSnapshot } = setupStrictRoomSync();
+    let first!: TestRenderer.ReactTestRenderer;
+    let second!: TestRenderer.ReactTestRenderer;
+    try {
+      ({ renderer: first } = await renderRoomSync());
+      ({ renderer: second } = await renderRoomSync());
+      expect(strict.client.channel).toHaveBeenCalledTimes(1);
+      const before = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("room_changed")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(before + 2);
+      await TestRenderer.act(async () => first.unmount());
+      expect(strict.client.removeChannel).not.toHaveBeenCalled();
+      const remaining = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("sync")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(remaining + 1);
+      await TestRenderer.act(async () => second.unmount());
+      expect(strict.client.removeChannel).toHaveBeenCalledTimes(1);
+    } finally {
+      await TestRenderer.act(async () => { first?.unmount(); second?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it("waits for asynchronous removal before remount and ignores late callbacks and failed tracking", async () => {
+    const { strict, original, getRoomSnapshot } = setupStrictRoomSync();
+    let first!: TestRenderer.ReactTestRenderer;
+    let second!: TestRenderer.ReactTestRenderer;
+    try {
+      ({ renderer: first } = await renderRoomSync());
+      strict.defer();
+      await TestRenderer.act(async () => first.unmount());
+      ({ renderer: second } = await renderRoomSync());
+      expect(strict.created).toHaveLength(1);
+      const calls = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("room_changed")(); strict.created[0].status("SUBSCRIBED"); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(calls);
+      expect(strict.created[0].track).toHaveBeenCalledTimes(1);
+      await TestRenderer.act(async () => strict.finish());
+      expect(strict.created).toHaveLength(2);
+      expect(strict.created[1].options).toEqual({ config: { private: true, presence: { key: "participant-1" } } });
+      strict.created[1].track.mockRejectedValueOnce(new Error("offline"));
+      await TestRenderer.act(async () => { strict.created[1].status("CHANNEL_ERROR"); strict.created[1].status("SUBSCRIBED"); });
+      await TestRenderer.act(async () => { strict.created[1].handlers.get("room_changed")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(calls + 1);
+    } finally {
+      await TestRenderer.act(async () => { strict.finish(); first?.unmount(); second?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it("replaces a room subscription when the registered participant identity changes", async () => {
+    const { strict, original, getRoomSnapshot } = setupStrictRoomSync(async () => snapshot({ participants: [
+      { ...snapshot().participants[0], id: useGameStore.getState().activeGameContext.participantId! },
+    ] }));
+    let tree!: TestRenderer.ReactTestRenderer;
+    try {
+      ({ renderer: tree } = await renderRoomSync());
+      strict.defer();
+      await TestRenderer.act(async () => { useGameStore.setState({ activeGameContext: {
+        mode: "multiplayer", sessionId: "session-1", participantId: "participant-2", accessKind: "registered", lastAppliedSequence: 10,
+      } }); });
+      expect(strict.created).toHaveLength(1);
+      const calls = getRoomSnapshot.mock.calls.length;
+      await TestRenderer.act(async () => { strict.created[0].handlers.get("room_changed")(); });
+      expect(getRoomSnapshot).toHaveBeenCalledTimes(calls);
+      await TestRenderer.act(async () => strict.finish());
+      expect(strict.created).toHaveLength(2);
+      expect(strict.created[1].options).toEqual({ config: { private: true, presence: { key: "participant-2" } } });
+    } finally {
+      await TestRenderer.act(async () => { strict.finish(); tree?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it("does not create a channel for a consumer destroyed while an earlier removal is pending", async () => {
+    const { strict, original } = setupStrictRoomSync();
+    let first!: TestRenderer.ReactTestRenderer;
+    let second!: TestRenderer.ReactTestRenderer;
+    try {
+      ({ renderer: first } = await renderRoomSync());
+      strict.defer();
+      await TestRenderer.act(async () => first.unmount());
+      ({ renderer: second } = await renderRoomSync());
+      await TestRenderer.act(async () => second.unmount());
+      await TestRenderer.act(async () => strict.finish());
+      expect(strict.created).toHaveLength(1);
+      expect(strict.client.removeChannel).toHaveBeenCalledTimes(1);
+      strict.fail();
+      ({ renderer: second } = await renderRoomSync());
+      expect(strict.created).toHaveLength(2);
+      await TestRenderer.act(async () => second.unmount());
+      expect(strict.created[1].teardown).toHaveBeenCalledTimes(1);
+      ({ renderer: second } = await renderRoomSync());
+      expect(strict.created).toHaveLength(2);
+      expect(strict.client.channel).toHaveBeenCalledTimes(2);
+    } finally {
+      await TestRenderer.act(async () => { strict.finish(); first?.unmount(); second?.unmount(); });
+      getSupabaseClient.mockImplementation(original);
+    }
+  });
+
+  it.each(["snapshot", "access loss"])("discards a late %s response after unmount and activation of another room", async (outcome) => {
+    let resolveRoomA!: (value: RoomSnapshot) => void;
+    let rejectRoomA!: (error: Error) => void;
+    const request = new Promise<RoomSnapshot>((resolve, reject) => { resolveRoomA = resolve; rejectRoomA = reject; });
+    const getRoomSnapshot = jest.fn(() => request);
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    activateRegisteredRoom(0);
+    let tree!: TestRenderer.ReactTestRenderer;
+    ({ renderer: tree } = await renderRoomSync());
+    expect(getRoomSnapshot).toHaveBeenCalledTimes(1);
+    await TestRenderer.act(async () => tree.unmount());
+    const roomB = { mode: "multiplayer" as const, sessionId: "session-2", participantId: "participant-2", accessKind: "registered" as const, lastAppliedSequence: 20 };
+    useGameStore.setState({ activeGameContext: roomB, players: [{ id: "room-b-player", name: "Room B" }], matches: [] });
+    await TestRenderer.act(async () => {
+      if (outcome === "snapshot") resolveRoomA(snapshot({ lastEventSequence: 99 }));
+      else rejectRoomA(new GameplayRpcError("forbidden", "Room A access ended"));
+      await Promise.resolve();
+    });
+    expect(useGameStore.getState().activeGameContext).toEqual(roomB);
+    expect(useGameStore.getState().players).toEqual([{ id: "room-b-player", name: "Room B" }]);
+    expect(useGameStore.getState().matches).toEqual([]);
+  });
+
+  it("discards a mutation result after its game screen unmounts", async () => {
+    let completeMutation!: (value: unknown) => void;
+    const changeManualScore = jest.fn(() => new Promise(resolve => { completeMutation = resolve; }));
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot: jest.fn(async () => snapshot()), changeManualScore });
+    activateRegisteredRoom(0);
+    const { renderer: tree, getLatest } = await renderRoomSync();
+    let pending!: ReturnType<ReturnType<typeof useActiveGameRoomSync>["changeManualScore"]>;
+    await TestRenderer.act(async () => { pending = getLatest().changeManualScore("match-manual", "home", 1); });
+    await TestRenderer.act(async () => tree.unmount());
+    const roomB = { mode: "multiplayer" as const, sessionId: "session-2", participantId: "participant-2", accessKind: "registered" as const, lastAppliedSequence: 20 };
+    useGameStore.setState({ activeGameContext: roomB, players: [{ id: "room-b-player", name: "Room B" }], matches: [] });
+    await TestRenderer.act(async () => {
+      completeMutation({ sessionId: "session-1", matchId: "match-manual", homeScore: 2, awayScore: 0, sequenceNumber: 99 });
+      await pending;
+    });
+    expect(useGameStore.getState().activeGameContext).toEqual(roomB);
+    expect(useGameStore.getState().players).toEqual([{ id: "room-b-player", name: "Room B" }]);
+    expect(useGameStore.getState().matches).toEqual([]);
+  });
+
+  it("hydrates a fresh generation when StrictMode restarts effects", async () => {
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot });
+    activateRegisteredRoom(0);
+    const { renderer: tree, getLatest } = await renderRoomSync(React.StrictMode);
+    expect(getRoomSnapshot).toHaveBeenCalled();
+    expect(getLatest().status).toBe("ready");
+    expect(getLatest().snapshot?.sessionId).toBe("session-1");
+    await TestRenderer.act(async () => tree.unmount());
+  });
+
+  it.each(["completion", "reassignment"])("does not restart a refresh when %s finishes after unmount", async (operation) => {
+    let completeEnd!: (value: unknown) => void;
+    const request = new Promise(resolve => { completeEnd = resolve; });
+    const endGameSession = jest.fn(() => request);
+    const reassignParticipantMatches = jest.fn(() => request);
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot, endGameSession, reassignParticipantMatches });
+    activateRegisteredRoom(0);
+    const { renderer: tree, getLatest } = await renderRoomSync();
+    let pending!: Promise<unknown>;
+    await TestRenderer.act(async () => {
+      pending = operation === "completion" ? getLatest().completeGame() : getLatest().reassignParticipantMatches("participant-1", ["match-manual"]);
+    });
+    await TestRenderer.act(async () => tree.unmount());
+    const roomB = { mode: "multiplayer" as const, sessionId: "session-2", participantId: "participant-2", accessKind: "registered" as const, lastAppliedSequence: 20 };
+    useGameStore.setState({ activeGameContext: roomB, players: [], matches: [] });
+    await TestRenderer.act(async () => { completeEnd({ status: "completed" }); await pending; });
+    expect(getRoomSnapshot).toHaveBeenCalledTimes(1);
+    expect(useGameStore.getState().activeGameContext).toEqual(roomB);
+    await expect(getLatest().refresh()).resolves.toBeNull();
+    await expect(getLatest().changeManualScore("match-manual", "home", 1)).rejects.toThrow("Return to the game");
+    await expect(getLatest().completeGame()).rejects.toThrow("Return to the game");
+    await expect(getLatest().reassignParticipantMatches("participant-1", ["match-manual"])).rejects.toThrow("Return to the game");
+    expect(endGameSession).toHaveBeenCalledTimes(operation === "completion" ? 1 : 0);
+    expect(reassignParticipantMatches).toHaveBeenCalledTimes(operation === "reassignment" ? 1 : 0);
+  });
+
+  it("rejects a retained uncertain retry before it changes another room after unmount", async () => {
+    const changeManualScore = jest.fn().mockRejectedValue(new Error("network request failed"));
+    const getRoomSnapshot = jest.fn(async () => snapshot());
+    getRoomRpcClient.mockReturnValue({ getRoomSnapshot, changeManualScore });
+    activateRegisteredRoom(0);
+    const { renderer: tree, getLatest } = await renderRoomSync();
+    await TestRenderer.act(async () => {
+      await expect(getLatest().changeManualScore("match-manual", "home", 1)).rejects.toThrow("network request failed");
+    });
+    expect(getLatest().pendingMutations[0].status).toBe("uncertain");
+    const mutationId = getLatest().pendingMutations[0].id;
+    const retainedRetry = getLatest().retryMutation;
+    await TestRenderer.act(async () => tree.unmount());
+    const roomB = { mode: "multiplayer" as const, sessionId: "session-2", participantId: "participant-2", accessKind: "registered" as const, lastAppliedSequence: 20 };
+    const playersB = [{ id: "room-b-player", name: "Room B", drinksTaken: 7 }];
+    const matchesB = [{ id: "room-b-match", homeTeam: "B Home", awayTeam: "B Away", homeGoals: 4, awayGoals: 2 }];
+    useGameStore.setState({ activeGameContext: roomB, players: playersB, matches: matchesB, commonMatchId: "room-b-match", playerAssignments: { "room-b-player": ["room-b-match"] } });
+    await expect(retainedRetry(mutationId)).rejects.toThrow("Return to the game");
+    expect(changeManualScore).toHaveBeenCalledTimes(1);
+    expect(getRoomSnapshot).toHaveBeenCalledTimes(1);
+    expect(useGameStore.getState()).toMatchObject({
+      activeGameContext: roomB, players: playersB, matches: matchesB,
+      commonMatchId: "room-b-match", playerAssignments: { "room-b-player": ["room-b-match"] },
+    });
+  });
+
 });

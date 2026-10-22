@@ -1,68 +1,95 @@
-/**
- * @file AssignmentModeSelector.tsx
- * @description Host-only selector for how the room's matches get allocated.
- * Extracted from app/lobby/[sessionId].tsx unchanged.
- */
-import React from "react";
-import { Text, XStack, YStack } from "tamagui";
-
+import React, { useMemo, useState } from "react";
+import { Text, TouchableOpacity, View } from "react-native";
 import type { AssignmentMode } from "../../types/room";
+import { AssignmentInfoModal } from "../setupGame/AssignmentControls";
+import AppIcon from "../AppIcon";
 import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
-import { ShellActionButton } from "../ui";
-
-/** Kebab-case suffixes for the mode selector's testIDs. */
-const MODE_TEST_IDS: Record<AssignmentMode, string> = {
-  automatic: "automatic",
-  host_assigned: "host-assigned",
-  player_picked: "player-picked",
-};
+import createSetupGameStyles from "../../styles/setupGameStyles";
+import { useColors } from "../../styles/theme";
 
 const MODES = ["automatic", "host_assigned", "player_picked"] as const;
+const SHORT_LABELS = {
+  automatic: "Automatic",
+  host_assigned: "Host assigns",
+  player_picked: "Players pick",
+};
+const MODE_HELP: Record<AssignmentMode, string> = {
+  automatic:
+    "Matches are distributed automatically when you confirm the assignments. Everyone gets the common match. Use Shared matches to control how many additional matches each pair shares.",
+  host_assigned:
+    "Open a player to assign their matches. Everyone gets the common match.",
+  player_picked:
+    "Each player chooses their own matches. You can follow their progress below. Everyone gets the common match.",
+};
 
 interface AssignmentModeSelectorProps {
-  /** The room's current mode. */
   assignmentMode: AssignmentMode;
-  /** Disables every option while a room write is in flight. */
+  allowPlayerPicked?: boolean;
   isBusy: boolean;
-  /**
-   * Invoked with the tapped mode. The caller owns the FR-030a confirmation gate
-   * for switching away from an existing draft — this component never calls the
-   * RPC itself.
-   */
   onSelectMode: (mode: AssignmentMode) => void;
 }
 
-export const AssignmentModeSelector: React.FC<AssignmentModeSelectorProps> = ({
+export function AssignmentModeSelector({
   assignmentMode,
+  allowPlayerPicked = true,
   isBusy,
   onSelectMode,
-}) => (
-  <YStack
-    testID="lobby-assignment-mode"
-    gap="$2"
-    backgroundColor="$backgroundLight"
-    borderColor="$borderColorLight"
-    borderRadius="$5"
-    borderWidth={1}
-    padding="$3"
-  >
-    <Text color="$color" fontSize={14} fontWeight="700">
-      Assignment mode
-    </Text>
-    {/* Wraps because three labels do not fit one phone row. */}
-    <XStack gap="$2" flexWrap="wrap">
-      {MODES.map((mode) => (
-        <ShellActionButton
-          key={mode}
-          variant={assignmentMode === mode ? "primary" : "surface"}
-          size="small"
-          widthMode="fit"
-          label={ASSIGNMENT_MODE_LABELS[mode]}
-          testID={`lobby-assignment-mode-${MODE_TEST_IDS[mode]}`}
-          disabled={isBusy}
-          onPress={() => onSelectMode(mode)}
-        />
-      ))}
-    </XStack>
-  </YStack>
-);
+}: AssignmentModeSelectorProps): React.JSX.Element {
+  const [showHelp, setShowHelp] = useState(false);
+  const colors = useColors();
+  const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
+  return (
+    <View testID="lobby-assignment-mode">
+      <View style={styles.sectionHeader}>
+        <Text style={styles.filterSectionTitle}>Assignment mode</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="About assignment modes"
+          hitSlop={10}
+          onPress={() => setShowHelp(true)}
+        >
+          <AppIcon
+            name="information-circle-outline"
+            size={24}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
+      </View>
+      <AssignmentInfoModal
+        visible={showHelp}
+        message={MODE_HELP[assignmentMode]}
+        onClose={() => setShowHelp(false)}
+        styles={styles}
+      />
+      <View style={styles.assignmentModeTabs}>
+        {MODES.filter(mode => allowPlayerPicked || mode !== "player_picked").map((mode) => (
+          <TouchableOpacity
+            key={mode}
+            accessibilityRole="button"
+            accessibilityLabel={ASSIGNMENT_MODE_LABELS[mode]}
+            accessibilityState={{
+              selected: mode === assignmentMode,
+              disabled: isBusy,
+            }}
+            testID={`lobby-assignment-mode-${mode.replaceAll("_", "-")}`}
+            disabled={isBusy}
+            onPress={() => onSelectMode(mode)}
+            style={[
+              styles.assignmentModeTab,
+              mode === assignmentMode && { backgroundColor: colors.primary },
+            ]}
+          >
+            <Text
+              style={[
+                styles.assignmentModeLabel,
+                mode === assignmentMode && { color: colors.textLight },
+              ]}
+            >
+              {SHORT_LABELS[mode]}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}

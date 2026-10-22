@@ -36,7 +36,7 @@ When("the host opens the {word} step", async ({ page }, stepName: string) => {
   if (!key) {
     throw new Error(`Unknown wizard step "${stepName}"`);
   }
-  const stepButton = page.getByTestId(`SetupWizardStep-${key}`);
+  const stepButton = page.getByRole("tab", { name: new RegExp(`^${stepName}, step `) });
   await expect(stepButton).toBeVisible({ timeout: 10_000 });
   await stepButton.click();
 });
@@ -56,7 +56,7 @@ const expectAriaDisabled = async (locator: Locator) => {
 Then("the host cannot advance past the Matches step", async ({ page }) => {
   // With an empty pool the Common step is unreachable, and with it every
   // control that could start the game.
-  await expectAriaDisabled(page.getByTestId("SetupWizardNext"));
+  await expectAriaDisabled(page.getByRole("button", { name: "Next", exact: true }));
   await expect(page.getByTestId("lobby-start-game")).toHaveCount(0);
 });
 
@@ -88,7 +88,7 @@ When(
   async ({ page }) => {
     // The Common step is the wizard's own card grid, the same one single player
     // uses, rather than a per-row "Make Common Match" button in a pool list.
-    await page.getByTestId("SetupWizardStep-common").click();
+    await page.getByRole("tab", { name: /^Common, step / }).click();
     const commonCard = page.getByTestId("common-match-option-match-1");
     await expect(commonCard).toBeVisible({ timeout: 10_000 });
     await commonCard.click();
@@ -96,7 +96,7 @@ When(
 );
 
 When("the host taps the Start Game button", async ({ page }) => {
-  const startButton = page.getByTestId("lobby-start-game");
+  const startButton = page.getByRole("button", { name: "Start Game", exact: true });
   await expect(startButton).toBeVisible({ timeout: 10_000 });
   await startButton.click();
 });

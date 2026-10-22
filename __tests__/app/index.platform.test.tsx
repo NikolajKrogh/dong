@@ -108,6 +108,8 @@ jest.mock("../../hooks/useRoomExit", () => ({
 }));
 
 jest.mock("expo-router", () => ({
+  Link: ({ children, href }: { children: React.ReactElement; href: string }) =>
+    require("react").cloneElement(children, { href, onPress: () => mockPush(href) }),
   useFocusEffect: (callback: () => void) => {
     require("react").useEffect(callback, [callback]);
   },
@@ -318,29 +320,20 @@ describe("HomeScreen platform adoption", () => {
     });
   });
 
-  it("shows cloud history on Home without local games and opens History", () => {
-    mockUseHistory.mockReturnValue({
-      history: [{ id: "cloud-game", players: [], matches: [] }],
-      refresh: mockRefreshHistory,
-      accountId: "host",
-    });
+  it.each([
+    { name: "loaded cloud history", history: [{ id: "cloud-game", players: [], matches: [] }] },
+    { name: "cloud history not loaded yet", history: [] },
+  ])("opens History from Home with $name and no local games", ({ history }) => {
+    mockUseHistory.mockReturnValue({ history, refresh: mockRefreshHistory, accountId: "host" });
     const HomeScreen = require("../../app/index").default;
     const renderer = actCreate(React.createElement(HomeScreen));
     expect(mockStoreState.history).toEqual([]);
     const card = renderer.root.findByProps({ testID: "home-history-stats-card" });
+    expect(card.props.href).toBe("/history");
     TestRenderer.act(() => card.props.onPress());
     expect(mockPush).toHaveBeenCalledWith("/history");
+    expect(renderer.root.findAllByProps({ testID: "home-history-button" })).toHaveLength(0);
     expect(mockRefreshHistory).toHaveBeenCalled();
-    TestRenderer.act(() => renderer.unmount());
-  });
-
-  it("keeps History reachable before cloud games load", () => {
-    mockUseHistory.mockReturnValue({ history: [], refresh: mockRefreshHistory, accountId: "host" });
-    const HomeScreen = require("../../app/index").default;
-    const renderer = actCreate(React.createElement(HomeScreen));
-    const button = renderer.root.findByProps({ testID: "home-history-button" });
-    TestRenderer.act(() => button.props.onPress());
-    expect(mockPush).toHaveBeenCalledWith("/history");
     TestRenderer.act(() => renderer.unmount());
   });
 
@@ -455,38 +448,28 @@ describe("HomeScreen platform adoption", () => {
     });
   });
 
-  it("keeps the home shell unconstrained on phone-sized viewports", () => {
-    const HomeScreen = require("../../app/index").default;
-
-    const renderer = actCreate(React.createElement(HomeScreen));
+  it.each([
+    { viewport: "phone", width: 390, height: 844, centerContent: false, contentMaxWidth: undefined },
+    { viewport: "desktop", width: 1280, height: 900, centerContent: true, contentMaxWidth: 960 },
+  ])("configures the shell for a $viewport viewport", ({ width, height, centerContent, contentMaxWidth }) => {
+    mockUseWindowDimensions.mockReturnValue({ width, height, scale: 1, fontScale: 1 });
+    const renderer = actCreate(React.createElement(require("../../app/index").default));
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
-    expect(shell.props.centerContent).toBe(false);
-    expect(shell.props.contentMaxWidth).toBeUndefined();
+    expect(shell.props.centerContent).toBe(centerContent);
+    expect(shell.props.contentMaxWidth).toBe(contentMaxWidth);
 
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
   });
+});
 
-  it("centers the home shell on desktop-wide viewports", () => {
-    mockUseWindowDimensions.mockReturnValue({
-      width: 1280,
-      height: 900,
-      scale: 1,
-      fontScale: 1,
-    });
 
-    const HomeScreen = require("../../app/index").default;
-
-    const renderer = actCreate(React.createElement(HomeScreen));
-    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
-
-    expect(shell.props.centerContent).toBe(true);
-    expect(shell.props.contentMaxWidth).toBe(960);
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
-  });
+it.each([null, { id: 'signed-in-account' }])('exposes Friends and local History for account %j', (account) => {
+  mockUseAccountAuth.mockReturnValue({ account });
+  const HomeScreen = require('../../app/index').default;
+  const renderer = actCreate(React.createElement(HomeScreen));
+  expect(renderer.root.findByProps({ testID: 'home-friends-button' }).props).toMatchObject({ label: 'Friends', href: '/friends' });
+  expect(renderer.root.findByProps({ testID: 'home-history-stats-card' }).props).toMatchObject({ href: '/history', 'aria-label': 'Game Stats, view history' });
+  expect(renderer.root.findAllByProps({ testID: 'home-history-button' })).toHaveLength(0);
+  expect(renderer.root.findByProps({ testID: 'open-preferences-button' }).props.accessibilityLabel).toBe('Settings');
+  TestRenderer.act(() => renderer.unmount());
 });

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { FlatList, Image, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, Platform, Text, TouchableOpacity, View } from "react-native";
 
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -245,6 +245,7 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
   ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem]);
   const renderMatch = React.useCallback(({ item, index }: { item: SelectableMatch; index: number }) => (
     <SelectableMatchRow
+      key={item.id}
       match={item}
       index={index}
       selected={selectedMatchSet.has(item.id)}
@@ -261,6 +262,11 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
         {matches.map(renderCompactMatchItem)}
       </View>
     );
+  }
+
+  // Disabled web ScrollViews set touch-action:none and block the parent's swipe.
+  if (Platform.OS === "web") {
+    return <View>{matches.map((item, index) => renderMatch({ item, index }))}</View>;
   }
 
   return (

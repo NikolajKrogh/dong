@@ -1,10 +1,15 @@
 import React from "react";
+import { Platform } from "react-native";
+import { act } from "react-test-renderer";
 
 import { actCreate } from "../../test-utils/render";
+
+const mockUsePathname = jest.fn(() => "/");
 
 jest.mock("../../platform/connectivity", () => ({ subscribeConnectivity: () => () => {} }));
 
 jest.mock("expo-router", () => ({
+  usePathname: () => mockUsePathname(),
   useRootNavigationState: () => ({ key: "root" }),
   useRouter: () => ({ replace: jest.fn() }),
   Stack: Object.assign(
@@ -12,6 +17,8 @@ jest.mock("expo-router", () => ({
     { Screen: () => null }
   ),
 }));
+
+jest.mock("expo-router/head", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => children }));
 
 jest.mock("react-native-toast-message", () => {
   const ReactLocal = require("react");
@@ -39,33 +46,35 @@ jest.mock("../../store/store", () => ({
   ),
 }));
 
-describe("Root shell provider regression", () => {
-  it("wraps the shell in TamaguiAppProvider", () => {
-    const Layout = require("../../app/_layout").default;
-    const tree = actCreate(React.createElement(Layout));
+it("keeps navigation and Toast inside the gesture root and themed provider", () => {
+  const Layout = require("../../app/_layout").default;
+  const { TamaguiAppProvider } = require("../../components/ui");
+  const { PlatformGestureRoot } = require("../../platform");
+  const { Stack } = require("expo-router");
+  const tree = actCreate(<Layout />);
+  const provider = tree.root.findByType(TamaguiAppProvider);
+  const gestures = provider.findByType(PlatformGestureRoot);
 
-    // The root tree should contain a TamaguiProvider from the TamaguiAppProvider wrapper
-    // After T012 integrates TamaguiAppProvider, this provider element will exist.
-    // For now this verifies the root shell renders.
-    expect(tree.toJSON()).toBeDefined();
-  });
+  expect(gestures.findByType(Stack).props.initialRouteName).toBe("index");
+  expect(gestures.findAllByType("Toast" as React.ElementType)).toHaveLength(1);
+});
 
-  it("keeps Toast inside the themed shell", () => {
-    const Layout = require("../../app/_layout").default;
-    const tree = actCreate(React.createElement(Layout));
-    const root = tree.root;
-
-    // Toast must be a descendant (not a sibling of) the shell root
-    const toastElements = root.findAll(
-      (node) => String(node.type) === "Toast" || (typeof node.type === "function" && (node.type as any).name === "Toast")
-    );
-    expect(toastElements.length).toBeGreaterThanOrEqual(0); // baseline: renders
-  });
-
-  it("preserves PlatformGestureRoot as the gesture handler wrapper", () => {
-    const Layout = require("../../app/_layout").default;
-    const tree = actCreate(React.createElement(Layout));
-    // The layout still renders (gesture root is present in the tree)
-    expect(tree.toJSON()).not.toBeNull();
-  });
+it('updates the browser title when the current route changes', () => {
+  const previousPlatform = Platform.OS;
+  Platform.OS = 'web';
+  try {
+    const Layout = require('../../app/_layout').default;
+    const tree = actCreate(<Layout />);
+    expect(tree.root.findByType('title' as React.ElementType).props.children).toBe('Home · DONG');
+    mockUsePathname.mockReturnValue('/history');
+    act(() => tree.update(<Layout />));
+    expect(tree.root.findByType('title' as React.ElementType).props.children).toBe('History · DONG');
+    mockUsePathname.mockReturnValue('/lobby/room-fixture');
+    act(() => tree.update(<Layout />));
+    expect(tree.root.findByType('title' as React.ElementType).props.children).toBe('Room · DONG');
+    act(() => tree.unmount());
+  } finally {
+    Platform.OS = previousPlatform;
+    mockUsePathname.mockReturnValue('/');
+  }
 });

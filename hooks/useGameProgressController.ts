@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import { useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { useLiveScores } from "./useLiveScores";
 import { usePersistedTeamLogos } from "./usePersistedTeamLogos";
@@ -15,9 +15,21 @@ import { useColors } from "../styles/theme";
 import { useGameStore } from "../store/store";
 import { useAppVisibility, useGoalSound } from "../platform";
 import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
+import { useNavigationReady } from "../utils/navigation/useNavigationReady";
+
+const subscribeGameHydration = (onChange: () => void) => {
+  const begin = useGameStore.persist.onHydrate(onChange);
+  const finish = useGameStore.persist.onFinishHydration(onChange);
+  return () => { begin(); finish(); };
+};
 
 const useGameProgressController = () => {
+  const hasHydrated = useSyncExternalStore(subscribeGameHydration, useGameStore.persist.hasHydrated, () => false);
   const router = useRouter();
+  const navigationReady = useNavigationReady();
+  const params = useLocalSearchParams<{ gameTab?: string | string[] }>();
+  const activeTab = params.gameTab === "players" ? "players" : "matches";
+  const [isRoomStatusVisible, setRoomStatusVisible] = useState(false);
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
 
@@ -28,7 +40,6 @@ const useGameProgressController = () => {
     initialGameProgressUiState,
   );
   const {
-    activeTab,
     isAlertVisible,
     selectedMatchId,
     isQuickActionsVisible,
@@ -238,19 +249,24 @@ const useGameProgressController = () => {
     [activeGame, setPlayers],
   );
 
+  useEffect(() => {
+    if (navigationReady && params.gameTab !== undefined && params.gameTab !== "players" && params.gameTab !== "matches") {
+      router.setParams({ gameTab: undefined });
+    }
+  }, [navigationReady, params.gameTab, router]);
+
   const setActiveTab = useCallback((tab: string) => {
-    dispatchUi({
-      type: "setActiveTab",
-      tab: tab === "players" ? "players" : "matches",
-    });
-  }, []);
+    const gameTab = tab === "players" ? "players" : undefined;
+    if (activeTab !== (gameTab ?? "matches")) router.setParams({ gameTab });
+  }, [activeTab, router]);
 
   const handleEndGame = useCallback(() => {
+    if (!activeGame.isMultiplayer && matches.length === 0) return;
     if (activeGame.isMultiplayer && (!activeGame.isHost || !activeGame.isEditable)) {
       return;
     }
     dispatchUi({ type: "setAlertVisible", visible: true });
-  }, [activeGame.isEditable, activeGame.isHost, activeGame.isMultiplayer]);
+  }, [activeGame.isEditable, activeGame.isHost, activeGame.isMultiplayer, matches.length]);
 
   const confirmEndGame = useCallback(() => {
     dispatchUi({ type: "setAlertVisible", visible: false });
@@ -270,12 +286,30 @@ const useGameProgressController = () => {
     dispatchUi({ type: "setAlertVisible", visible: false });
   }, []);
 
+  const isMultiplayerContext = activeGameContext.mode === "multiplayer" || activeGame.isMultiplayer;
+  let configurationLabel = "Setup";
+  if (isMultiplayerContext) {
+    configurationLabel = activeGame.isHost && activeGameContext.accessKind === "registered" ? "Reassign matches" : "Room status";
+  }
+
   const handleBackToSetup = useCallback(() => {
-    if (activeGame.isMultiplayer) {
-      clearActiveGameContext();
+    if (!isMultiplayerContext) {
+      router.push("/setupGame");
+      return;
     }
-    router.push("/setupGame");
-  }, [activeGame.isMultiplayer, clearActiveGameContext, router]);
+    if (activeGame.isHost && activeGame.isEditable && activeGameContext.accessKind === "registered") {
+      router.push("/editGame");
+      return;
+    }
+    if (activeGameContext.accessKind === "registered" && activeGameContext.sessionId
+      && activeGame.status !== "ended" && activeGame.status !== "access_lost") {
+      router.push({ pathname: "/lobby/[sessionId]", params: { sessionId: activeGameContext.sessionId } });
+      return;
+    }
+    setRoomStatusVisible(true);
+  }, [activeGame.status, activeGame.isHost, activeGame.isEditable, activeGameContext.accessKind, activeGameContext.sessionId, isMultiplayerContext, router]);
+
+  const closeRoomStatus = useCallback(() => setRoomStatusVisible(false), []);
 
   const handleGoHome = useCallback(() => {
     const isTerminalRoom =
@@ -353,18 +387,24 @@ const useGameProgressController = () => {
   return {
     colors,
     styles,
+    hasHydrated,
     activeTab,
     isAlertVisible,
     selectedMatchId,
     isQuickActionsVisible,
     refreshing,
+    configurationLabel,
+    isRoomStatusVisible,
+    closeRoomStatus,
     players,
     matches,
     commonMatchId: commonMatchId ?? "",
     playerAssignments,
     liveMatches,
-    isPolling,
-    lastUpdated,
+    isPolling: activeGame.isMultiplayer ? activeGame.isEditable : isPolling,
+    lastUpdated: activeGame.isMultiplayer
+      ? (activeGame.snapshot?.lastScoresCheckedAt ? new Date(activeGame.snapshot.lastScoresCheckedAt) : null)
+      : lastUpdated,
     setActiveTab,
     openQuickActions,
     closeQuickActions,

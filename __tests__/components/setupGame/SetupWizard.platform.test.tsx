@@ -288,3 +288,67 @@ describe("SetupWizard responsive layout", () => {
     expect(stepLabels).toHaveLength(1);
   });
 });
+
+
+describe('controlled route steps', () => {
+ it('distinguishes explicit Back from choosing a new step', () => {
+  const onStepChange=jest.fn(); const onStepBack=jest.fn();
+  const tree=renderSetupWizard({activeStepKey:'common',onStepChange,onStepBack});
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizardBack'}).props.onPress());
+  expect(onStepBack).toHaveBeenCalledWith('matches');expect(onStepChange).not.toHaveBeenCalled();
+  TestRenderer.act(()=>tree.unmount());
+ });
+ it('requests a new key while keeping the caller selected step', () => {
+  const onStepChange=jest.fn(); const tree=renderSetupWizard({activeStepKey:'matches',onStepChange});
+  expect(tree.root.findByProps({testID:'SetupWizardStep-matches'}).props.accessibilityState.selected).toBe(true);
+  TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizardNext'}).props.onPress());
+  expect(onStepChange).toHaveBeenCalledWith('common');
+  expect(tree.root.findByProps({testID:'SetupWizardStep-matches'}).props.accessibilityState.selected).toBe(true);
+ });
+ it('commits pending input once for repeated Next and cancels deferred work on unmount', () => {
+  jest.useFakeTimers(); const onBeforeNext=jest.fn(()=>true); const onStepChange=jest.fn();
+  const tree=renderSetupWizard({activeStepKey:'players',onStepChange,onBeforeNext});
+  TestRenderer.act(()=>{tree.root.findByProps({testID:'SetupWizardNext'}).props.onPress();tree.root.findByProps({testID:'SetupWizardNext'}).props.onPress();});
+  expect(onBeforeNext).toHaveBeenCalledTimes(1);
+  TestRenderer.act(()=>tree.unmount());TestRenderer.act(()=>jest.runAllTimers());expect(onStepChange).not.toHaveBeenCalled();jest.useRealTimers();
+ });
+});
+
+
+it('retains the native content scroller and gives short web pages natural content height', () => {
+  const { Platform } = require('react-native');
+  const previous = Platform.OS;
+  mockUseWindowDimensions.mockReturnValue({ width: 640, height: 360, scale: 1, fontScale: 2 });
+  try {
+    for (const platform of ['web', 'android']) {
+      Platform.OS = platform;
+      const tree = renderSetupWizard();
+      expect(tree.root.findAllByProps({ testID: 'SetupWizardPageScroll' })).toHaveLength(platform === 'web' ? 1 : 0);
+      expect(tree.root.findAllByProps({ testID: 'SetupWizardContent' })).toHaveLength(1);
+      expect(tree.root.findByProps({ testID: 'SetupWizardContent' }).props.style).toEqual([mockStyles.stepContentScroll, platform === 'web' ? { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', overflow: 'visible' } : false]);
+      TestRenderer.act(() => tree.unmount());
+    }
+  } finally { Platform.OS = previous; }
+});
+
+
+it('keeps step content mounted while keyboard resizing changes the web scroll owner', () => {
+  const mounted = jest.fn();
+  const unmounted = jest.fn();
+  const InputProbe = () => {
+    React.useEffect(() => { mounted(); return unmounted; }, []);
+    return React.createElement('TextInput');
+  };
+  mockUseWindowDimensions.mockReturnValue({ width: 360, height: 623, scale: 1, fontScale: 1 });
+  const tree = renderSetupWizard({ steps: [{ ...step('players', 'Players'), content: React.createElement(InputProbe) }] });
+  const SetupWizard = require('../../../components/setupGame/SetupWizard').default;
+  const props = tree.root.findByType(SetupWizard).props;
+  for (const height of [360, 623]) {
+    mockUseWindowDimensions.mockReturnValue({ width: 360, height, scale: 1, fontScale: 1 });
+    TestRenderer.act(() => tree.update(React.createElement(SetupWizard, props)));
+    expect(mounted).toHaveBeenCalledTimes(1);
+    expect(unmounted).not.toHaveBeenCalled();
+  }
+  TestRenderer.act(() => tree.unmount());
+  expect(unmounted).toHaveBeenCalledTimes(1);
+});

@@ -79,6 +79,8 @@ export interface RoomSnapshot {
   ownerParticipantId?: string | null;
   /** Monotonic room event fence used to reject stale poll responses. */
   lastEventSequence?: number;
+  lastScoresCheckedAt?: string | null;
+  configurationToken?: string;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
   /**
@@ -315,3 +317,18 @@ export const ROOM_ERROR = {
 // will be filled in from the pre-start lobby display (derived from
 // `assignmentPlan` + `assignments`, same as the "still short" indicator),
 // not from the start-game response. See research.md R5.
+
+/** Local draft committed atomically; existing matches and historical scores cannot be removed. */
+export interface RunningGameConfiguration {
+  assignmentMode: "automatic" | "host_assigned";
+  matchesPerPlayer: number;
+  sharedMatchesPerPair: number;
+  newMatches: (AddRoomMatchRequest & { clientId: string })[];
+  assignments: RoomAssignmentInput[];
+}
+export interface SaveRunningGameInput {
+  sessionId: string;
+  configuration: RunningGameConfiguration;
+  expectedToken: string;
+  idempotencyKey: string;
+}

@@ -53,6 +53,8 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
         </Text>
         <TextInput
           accessibilityLabel="Room Code"
+          aria-describedby={error ? "guest-join-error" : undefined}
+          autoComplete="off"
           autoCapitalize="characters"
           autoCorrect={false}
           onChangeText={onJoinCodeChange}
@@ -78,6 +80,8 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
         </Text>
         <TextInput
           accessibilityLabel="Guest Name"
+          aria-describedby={error ? "guest-join-error" : undefined}
+          autoComplete="nickname"
           autoCapitalize="words"
           autoCorrect={false}
           onChangeText={onGuestNameChange}
@@ -98,7 +102,7 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
       </FormField>
 
       {error ? (
-        <Text color="$danger" fontSize={14} lineHeight={20}>
+        <Text nativeID="guest-join-error" role="alert" accessibilityLiveRegion="polite" color="$danger" fontSize={14} lineHeight={20}>
           {error}
         </Text>
       ) : null}
@@ -109,6 +113,8 @@ export const GuestJoinForm: React.FC<GuestJoinFormProps> = ({
       ) : null}
 
       <ShellActionButton
+        disabled={isSubmitting}
+        accessibilityState={{ busy: isSubmitting }}
         label={isSubmitting ? "Joining..." : submitLabel}
         onPress={onSubmit}
         variant="success"

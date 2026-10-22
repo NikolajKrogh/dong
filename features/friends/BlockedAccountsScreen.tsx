@@ -1,14 +1,18 @@
 import React from 'react';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'tamagui';
 import SettingsPage from '../../components/preferences/SettingsPage';
 import { ShellActionButton } from '../../components/ui';
 import PeopleList from './PeopleList';
 import { useFriends } from './useFriends';
+import FriendsAccessScreen from './FriendsAccessScreen';
+import { parseFriendsTab, type RouteParams } from '../../utils/navigation/viewState';
 export default function BlockedAccountsScreen() {
-  const router = useRouter(); const friends = useFriends('blocks');
-  return <SettingsPage title="Blocked accounts" onBack={() => router.replace('/friends' as never)}>
-    {!friends.enabled ? <Text color="$textMuted">Sign in to manage blocked accounts.</Text> : <>
+  const router = useRouter();
+  const params = useLocalSearchParams() as RouteParams;
+  const tab = parseFriendsTab(params); const friends = useFriends('blocks');
+  return <SettingsPage title="Blocked accounts" onBack={() => router.canGoBack() ? router.back() : router.replace({ pathname: '/friends', params: { tab } })}>
+    {!friends.enabled ? <FriendsAccessScreen returnTo={"/friends/blocked?tab=" + tab} /> : <>
       <Text color="$textMuted">Unblocking allows new requests. It does not restore a friendship.</Text>
       <ShellActionButton role="button" variant="surface" label="Refresh" onPress={() => { void friends.refresh(); }} />
       {friends.actionError ? <Text color="$danger" accessibilityRole="alert">{friends.actionError}</Text> : null}

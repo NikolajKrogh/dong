@@ -90,6 +90,8 @@ export interface GuestRoomSnapshot {
   state: GuestRoomSessionState;
   ownerParticipantId?: string | null;
   lastEventSequence?: number;
+  lastScoresCheckedAt?: string | null;
+  configurationToken?: string;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
   /** Live roster projection; absent on servers predating the roster migration. */

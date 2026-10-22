@@ -1,4 +1,5 @@
 import React from "react";
+import { Platform } from "react-native";
 import { actCreate } from "../../../test-utils/render";
 
 const mockStyles = {
@@ -161,6 +162,19 @@ describe("SelectableMatchList", () => {
     expect(
       list.root.findAllByProps({ style: mockStyles.gridContainer }),
     ).toHaveLength(0);
+    expect(list.root.findAllByType("FlatList" as never)).toHaveLength(0);
+    expect(list.root.findAllByType("TouchableOpacity" as never)).toHaveLength(MATCHES.length);
+  });
+
+  it("preserves the non-scrolling native list", () => {
+    const original = Platform.OS;
+    try {
+      Platform.OS = "android";
+      const list = render();
+      expect(list.root.findByType("FlatList" as never).props.scrollEnabled).toBe(false);
+    } finally {
+      Platform.OS = original;
+    }
   });
 
   it("omits per-match testIDs when no prefix is given", () => {
@@ -173,15 +187,11 @@ describe("SelectableMatchList", () => {
    * converged on this renderer. Both `startTime` shapes must work: a local
    * "HH:MM" from match discovery and a full ISO instant from a room's pool.
    *
-   * Driven through the FlatList's `renderItem` rather than the rendered tree:
-   * `react-native` is string-mocked in this suite, so the fake `FlatList` never
-   * calls `renderItem` and list rows are otherwise unreachable.
+   * Web rows render directly, so exercise the actual list tree.
    */
   describe("kickoff footer", () => {
     const renderRow = (match: Record<string, unknown>) => {
-      const list = render({ matches: [match], useGridLayout: false });
-      const { renderItem } = list.root.findByType("FlatList" as never).props;
-      return actCreate(renderItem({ item: match, index: 0 }));
+      return render({ matches: [match], useGridLayout: false });
     };
 
     const footers = (row: ReturnType<typeof actCreate>) =>

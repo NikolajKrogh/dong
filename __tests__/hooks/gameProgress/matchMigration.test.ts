@@ -13,30 +13,13 @@ const buildMatch = (overrides: Partial<Match> = {}): Match => ({
 });
 
 describe("migrateLegacyMatch", () => {
-  it("splits a legacy total goals value evenly for an even total", () => {
-    const match = buildMatch({
-      homeGoals: undefined,
-      awayGoals: undefined,
-      goals: 4,
-    });
-
-    const migrated = migrateLegacyMatch(match);
-
-    expect(migrated.homeGoals).toBe(2);
-    expect(migrated.awayGoals).toBe(2);
-  });
-
-  it("floors home and ceils away for an odd legacy total", () => {
-    const match = buildMatch({
-      homeGoals: undefined,
-      awayGoals: undefined,
-      goals: 5,
-    });
-
-    const migrated = migrateLegacyMatch(match);
-
-    expect(migrated.homeGoals).toBe(2);
-    expect(migrated.awayGoals).toBe(3);
+  it.each([
+    { total: 4, home: 2, away: 2 },
+    { total: 5, home: 2, away: 3 },
+  ])("splits a legacy total of $total into $home home and $away away goals", ({ total, home, away }) => {
+    const migrated = migrateLegacyMatch(buildMatch({ homeGoals: undefined, awayGoals: undefined, goals: total }));
+    expect(migrated.homeGoals).toBe(home);
+    expect(migrated.awayGoals).toBe(away);
   });
 
   it("only migrates from goals when a per-team field is actually missing", () => {

@@ -1,5 +1,5 @@
+import { renderHook } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import React from "react";
 import Toast from "react-native-toast-message";
 import TestRenderer from "react-test-renderer";
 
@@ -34,71 +34,33 @@ const buildGoalInfo = (
   ...overrides,
 });
 
-type Hook = ReturnType<typeof useGoalToastQueue>;
-
-const renderHookProbe = (getPlayersWhoDrink: (matchId: string) => string[]) => {
-  let latest: Hook | undefined;
-
-  const Probe = () => {
-    latest = useGoalToastQueue(getPlayersWhoDrink);
-    return null;
-  };
-
-  let renderer!: TestRenderer.ReactTestRenderer;
-  TestRenderer.act(() => {
-    renderer = TestRenderer.create(React.createElement(Probe));
-  });
-
-  return { renderer, getLatest: () => latest as Hook };
-};
+const renderHookProbe = (getPlayersWhoDrink: (matchId: string) => string[]) =>
+  renderHook(() => useGoalToastQueue(getPlayersWhoDrink));
 
 describe("useGoalToastQueue", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("shows a toast with the score title and a drink message for one player", async () => {
-    const getPlayersWhoDrink = jest.fn(() => ["Alice"]);
+  it.each([
+    { players: ["Alice"], message: "Alice should drink!" },
+    { players: ["Alice", "Bob"], message: "Alice, Bob should drink!" },
+    { players: ["Alice", "Bob", "Charlie"], message: "Alice, Bob, Charlie should drink!" },
+    { players: ["Alice", "Bob", "Charlie", "David"], message: "Alice, Bob and 2 others should drink!" },
+    { players: ["Alice", "Bob", "Cara", "Dan", "Eve"], message: "Alice, Bob and 3 others should drink!" },
+    { players: Array.from({ length: 10 }, (_, i) => `Player ${i + 1}`), message: "Player 1, Player 2 and 8 others should drink!" },
+  ])("shows the score and formats $players as $message", async ({ players, message }) => {
+    const getPlayersWhoDrink = jest.fn(() => players);
     const { renderer, getLatest } = renderHookProbe(getPlayersWhoDrink);
-
     await TestRenderer.act(async () => {
       getLatest().enqueueGoalToast(buildGoalInfo());
-      await Promise.resolve();
     });
-
+    expect(getPlayersWhoDrink).toHaveBeenCalledWith("match-1");
     expect(mockToastShow).toHaveBeenCalledTimes(1);
-    const [payload] = mockToastShow.mock.calls[0] as [
-      { text1: string; text2: string },
-    ];
-    expect(payload.text1).toBe("Arsenal FC 1-0 Chelsea FC");
-    expect(payload.text2).toBe("Alice should drink!");
-
-    TestRenderer.act(() => {
-      renderer.unmount();
+    expect(mockToastShow.mock.calls[0][0]).toMatchObject({
+      text1: "Arsenal FC 1-0 Chelsea FC", text2: message,
     });
-  });
-
-  it("formats the message for more than 3 affected players", async () => {
-    const getPlayersWhoDrink = jest.fn(() => [
-      "Alice",
-      "Bob",
-      "Cara",
-      "Dan",
-      "Eve",
-    ]);
-    const { renderer, getLatest } = renderHookProbe(getPlayersWhoDrink);
-
-    await TestRenderer.act(async () => {
-      getLatest().enqueueGoalToast(buildGoalInfo());
-      await Promise.resolve();
-    });
-
-    const [payload] = mockToastShow.mock.calls[0] as [{ text2: string }];
-    expect(payload.text2).toBe("Alice, Bob and 3 others should drink!");
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it("does not enqueue (or show) a toast when no players are affected", async () => {

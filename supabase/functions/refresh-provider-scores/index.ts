@@ -198,12 +198,13 @@ const authenticatedHandler = withSupabase<Database>(
     );
     const { data: acceptedData, error: acceptedError } =
       await context.supabaseAdmin.rpc(
-        "accept_provider_score_batch_from_edge",
+        "accept_provider_score_batch_checked_from_edge",
         {
           session_id: sessionId,
           actor_account_id: actorId,
           request_id: requestId,
           observations: observations.map((observation) => ({ ...observation })),
+          all_sources_checked: targets.length > 0 && warnings.length === 0,
         },
       );
     if (acceptedError) {
@@ -241,7 +242,7 @@ const authenticatedHandler = withSupabase<Database>(
       sessionId,
       requestId,
       status,
-      refreshedAt: accepted?.refreshedAt ?? new Date().toISOString(),
+      refreshedAt: accepted?.refreshedAt ?? null,
       results: accepted?.results ?? [],
       warnings,
     }, 200, origin);

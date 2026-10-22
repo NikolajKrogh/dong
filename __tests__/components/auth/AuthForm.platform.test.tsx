@@ -3,6 +3,10 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
+let mockAuthStatus = "signedOut";
+const mockDismissTo = jest.fn();
+const mockReplace = jest.fn();
+
 type ExchangeCodeForSessionResult = {
   data: { session: null };
   error: null;
@@ -41,7 +45,8 @@ jest.mock("../../../styles/theme", () => ({
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: jest.fn(),
-    replace: jest.fn(),
+    replace: mockReplace,
+    dismissTo: mockDismissTo,
   }),
 }));
 
@@ -86,8 +91,8 @@ jest.mock("tamagui", () => {
   const actual = jest.requireActual("tamagui") as object;
   return {
     ...actual,
-    Text: ({ children, onPress, testID }: any) =>
-      ReactLocal.createElement(RN.Text, { onPress, testID }, children),
+    Text: ({ children, ...props }: any) =>
+      ReactLocal.createElement(RN.Text, props, children),
     XStack: ({ children, onPress, testID }: any) =>
       ReactLocal.createElement(RN.View, { onPress, testID }, children),
     YStack: ({ children, onPress, testID }: any) =>
@@ -118,7 +123,7 @@ jest.mock("../../../hooks/useAccountAuth", () => {
       verifySignupOtp: jest.fn(),
       requestPasswordReset: jest.fn(),
       session: null,
-      status: "signedOut",
+      status: mockAuthStatus,
       user: null,
     }),
   };
@@ -129,9 +134,34 @@ const { TamaguiTestProvider } = require("../../../test-utils/tamagui");
 const TestSubject = (props: any) =>
   React.createElement(TamaguiTestProvider, null, React.createElement(AuthForm, props));
 
+const openRegistration = (tree: ReturnType<typeof actCreate>) => {
+  const createTab = tree.root.findAll((node) => node.props.active === false && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => createTab.props.onPress());
+};
+
+const registrationSubmit = (tree: ReturnType<typeof actCreate>) =>
+  tree.root.findAll((node) => typeof node.props.label === 'string' && node.props.label.startsWith('Create account') && typeof node.props.onPress === 'function')[0];
+
 describe("AuthForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockAuthStatus = "signedOut";
+  });
+
+  it.each(["/friends?tab=requests", null])("returns through an existing destination after sign-in (%s)", (returnTo) => {
+    mockAuthStatus = "ready";
+    actCreate(React.createElement(TestSubject, { returnTo }));
+    expect(mockDismissTo).toHaveBeenCalledWith(returnTo ?? "/");
+    expect(mockReplace).not.toHaveBeenCalled();
+
+  });
+
+  it("keeps username onboarding and its intended return target", () => {
+    mockAuthStatus = "needsUsername";
+    actCreate(React.createElement(TestSubject, { returnTo: "/friends?tab=requests" }));
+    expect(mockReplace).toHaveBeenCalledWith("/auth/onboarding?returnTo=%2Ffriends%3Ftab%3Drequests");
+    expect(mockDismissTo).not.toHaveBeenCalled();
+
   });
 
   it("renders the sign-in form by default", () => {
@@ -142,8 +172,6 @@ describe("AuthForm", () => {
 
     expect(textContents).toContain("Sign in");
     expect(textContents).toContain("Create account");
-
-    tree.unmount();
   });
 
   it("exchanges a confirmation code from the email link", async () => {
@@ -152,7 +180,7 @@ describe("AuthForm", () => {
       error: null,
     });
 
-    const tree = actCreate(
+    actCreate(
       React.createElement(TestSubject, {
         confirmationCode: "confirmation-code-123",
       }),
@@ -165,7 +193,47 @@ describe("AuthForm", () => {
     expect(mockExchangeCodeForSession).toHaveBeenCalledWith(
       "confirmation-code-123",
     );
-
-    tree.unmount();
   });
+});
+
+
+it('names fields and distinguishes sign-in from registration autofill', () => {
+  const tree = actCreate(React.createElement(TestSubject));
+  const { TextInput } = require('react-native');
+  let inputs = tree.root.findAllByType(TextInput);
+  expect(inputs.map((node) => node.props.accessibilityLabel)).toEqual(['Email address', 'Password']);
+  expect(inputs.map((node) => node.props.autoComplete)).toEqual(['username', 'current-password']);
+  openRegistration(tree);
+  inputs = tree.root.findAllByType(TextInput);
+  expect(inputs.map((node) => node.props.accessibilityLabel)).toEqual(['Display name', 'Email address', 'Password', 'Confirm password']);
+  expect(inputs.map((node) => node.props.autoComplete)).toEqual(['nickname', 'email', 'new-password', 'new-password']);
+  const toggle = tree.root.findAll((node) => node.props.accessibilityLabel === 'Show password' && typeof node.props.onPress === 'function')[0];
+  TestRenderer.act(() => toggle.props.onPress());
+  expect(tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Password')?.props.secureTextEntry).toBe(false);
+  TestRenderer.act(() => tree.unmount());
+});
+
+it('announces password mismatch and associates it with confirmation', () => {
+  const tree = actCreate(React.createElement(TestSubject));
+  openRegistration(tree);
+  const { TextInput } = require('react-native');
+  const password = tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Password')!;
+  TestRenderer.act(() => password.props.onChangeText('one-password'));
+  const submit = registrationSubmit(tree);
+  TestRenderer.act(() => submit.props.onPress());
+  expect(tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Confirm password')?.props).toMatchObject({ 'aria-invalid': true, 'aria-describedby': 'auth-form-error' });
+  expect(tree.root.findAll((node) => node.props.nativeID === 'auth-form-error' && node.props.role === 'alert').length).toBeGreaterThan(0);
+  TestRenderer.act(() => tree.unmount());
+});
+
+
+it('names the verification code field and declares one-time-code autofill', async () => {
+  const tree = actCreate(React.createElement(TestSubject));
+  openRegistration(tree);
+  const submit = registrationSubmit(tree);
+  await TestRenderer.act(async () => { await submit.props.onPress(); });
+  const { TextInput } = require('react-native');
+  const code = tree.root.findAllByType(TextInput).find((node) => node.props.accessibilityLabel === 'Verification code');
+  expect(code?.props).toMatchObject({ autoComplete: 'one-time-code', textContentType: 'oneTimeCode', keyboardType: 'number-pad' });
+  TestRenderer.act(() => tree.unmount());
 });

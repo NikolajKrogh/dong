@@ -20,10 +20,13 @@ export const goalToastConfig = {
    * @returns {JSX.Element}
    */
   success: (props: {
+    isVisible?: boolean;
     text1?: string;
     text2?: string;
     props?: { scoringTeam?: "home" | "away" };
   }) => {
+    if (props.isVisible === false) return <></>;
+
     // Get scoring team from props
     const scoringTeam = props.props?.scoringTeam || "home";
 
@@ -66,6 +69,8 @@ export const goalToastConfig = {
     const colors = getCurrentColors();
     return (
       <View
+        role="status"
+        accessibilityLiveRegion="polite"
         style={{
           width: "90%",
           backgroundColor: colors.toastBackground,

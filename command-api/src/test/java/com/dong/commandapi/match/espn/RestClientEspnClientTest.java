@@ -4,6 +4,8 @@ import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -68,37 +70,20 @@ class RestClientEspnClientTest {
                 .isEqualTo(ErrorCode.UPSTREAM_BAD_RESPONSE);
     }
 
-    @Test
-    void rateLimitedResponseIsSurfacedAsUpstreamUnavailable() {
-        server.expect(requestTo(EXPECTED_URI))
-                .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
+    @ParameterizedTest(name = "HTTP {0} maps to {1}")
+    @CsvSource({
+            "TOO_MANY_REQUESTS, UPSTREAM_UNAVAILABLE",
+            "SERVICE_UNAVAILABLE, UPSTREAM_UNAVAILABLE",
+            "NOT_FOUND, UPSTREAM_BAD_RESPONSE"
+    })
+    void httpErrorsAreMappedToControlledErrors(HttpStatus status, ErrorCode expectedError) {
+        server.expect(requestTo(EXPECTED_URI)).andRespond(withStatus(status));
 
         assertThatThrownBy(() -> client.fetchScoreboard("eng.1", MATCH_DATE))
                 .isInstanceOf(ApiException.class)
                 .extracting("errorCode")
-                .isEqualTo(ErrorCode.UPSTREAM_UNAVAILABLE);
-    }
-
-    @Test
-    void serverErrorIsSurfacedAsUpstreamUnavailable() {
-        server.expect(requestTo(EXPECTED_URI))
-                .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
-
-        assertThatThrownBy(() -> client.fetchScoreboard("eng.1", MATCH_DATE))
-                .isInstanceOf(ApiException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.UPSTREAM_UNAVAILABLE);
-    }
-
-    @Test
-    void otherClientErrorIsSurfacedAsUpstreamBadResponse() {
-        server.expect(requestTo(EXPECTED_URI))
-                .andRespond(withStatus(HttpStatus.NOT_FOUND));
-
-        assertThatThrownBy(() -> client.fetchScoreboard("eng.1", MATCH_DATE))
-                .isInstanceOf(ApiException.class)
-                .extracting("errorCode")
-                .isEqualTo(ErrorCode.UPSTREAM_BAD_RESPONSE);
+                .isEqualTo(expectedError);
+        server.verify();
     }
 
     @Test

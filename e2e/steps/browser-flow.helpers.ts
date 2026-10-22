@@ -224,6 +224,8 @@ export const buildActiveGameSnapshot = () => ({
   assignmentMode: "automatic" as const,
   ownerParticipantId: ACTIVE_GAME_PARTICIPANT_ID,
   lastEventSequence: 7,
+  configurationToken: "configuration-7",
+  lastScoresCheckedAt: "2026-10-22T15:00:00Z",
   participants: [
     {
       id: ACTIVE_GAME_PARTICIPANT_ID,
@@ -422,6 +424,8 @@ export const buildActiveTwoClientSnapshot = () => {
     assignmentMode: "automatic" as const,
     ownerParticipantId: ACTIVE_GAME_PARTICIPANT_ID,
     lastEventSequence: state.lastEventSequence,
+    configurationToken: `configuration-${state.lastEventSequence}`,
+    lastScoresCheckedAt: "2026-10-22T15:00:00Z",
     participants: state.participants.map((participant) => ({ ...participant })),
     matches: state.matches.map((match) => ({ ...match })),
     assignments: state.assignments.map((assignment) => ({ ...assignment })),
@@ -529,52 +533,19 @@ export const attachActiveTwoClientMocks = async (
     },
   );
 
-  await page.route(
-    "**/rest/v1/rpc/reassign_participant_matches**",
-    async (route) => {
-      const body = route.request().postDataJSON() as {
-        participant_id: string;
-        match_ids: string[];
-      };
-      const state = getActiveTwoClientFixture();
-      const commonMatchId = "active-common";
-      const previous = state.assignments
-        .filter(
-          (assignment) =>
-            assignment.participantId === body.participant_id &&
-            assignment.matchId !== commonMatchId,
-        )
-        .map((assignment) => assignment.matchId);
-      state.assignments = state.assignments.filter(
-        (assignment) =>
-          assignment.participantId !== body.participant_id ||
-          assignment.matchId === commonMatchId,
-      );
-      state.assignments.push(
-        ...body.match_ids.map((matchId) => ({
-          participantId: body.participant_id,
-          matchId,
-        })),
-      );
-      state.lastEventSequence += 1;
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          sessionId: ACTIVE_GAME_ROOM_ID,
-          participantId: body.participant_id,
-          addedMatchIds: body.match_ids.filter(
-            (matchId) => !previous.includes(matchId),
-          ),
-          removedMatchIds: previous.filter(
-            (matchId) => !body.match_ids.includes(matchId),
-          ),
-          matchIds: body.match_ids,
-          sequenceNumber: state.lastEventSequence,
-        }),
-      });
-    },
-  );
+  await page.route("**/rest/v1/rpc/save_running_game_configuration**", async route => {
+    const body = route.request().postDataJSON() as {
+      configuration: { newMatches: { clientId: string; sourceProvider: string; sourceMatchId: string | null;
+        homeTeamName: string; awayTeamName: string; kickoffAt: string | null }[];
+        assignments: { participantId: string; matchId: string }[] };
+    };
+    const state = getActiveTwoClientFixture();
+    state.matches.push(...body.configuration.newMatches.map(match => ({ ...match, id: match.clientId, homeScore: 0, awayScore: 0 })));
+    state.assignments = [...body.configuration.assignments,
+      ...state.participants.map(p => ({ participantId: p.id, matchId: "active-common" }))];
+    state.lastEventSequence += 1;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(buildActiveTwoClientSnapshot()) });
+  });
 
   await page.route("**/rest/v1/rpc/end_game_session**", async (route) => {
     const state = getActiveTwoClientFixture();
@@ -900,6 +871,14 @@ export const mockHostRoomServices = async (
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(buildHostRoomAuthUser()),
+    });
+  });
+
+  await page.route("**/rest/v1/rpc/bootstrap_account", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(buildHostRoomAccountRow()),
     });
   });
 

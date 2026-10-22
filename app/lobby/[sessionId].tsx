@@ -10,7 +10,7 @@
  * gameplay store and redirects to /gameProgress once the room transitions to
  * `in_progress`. Closed/expired rooms return the viewer home.
  */
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -18,7 +18,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { Modal, ScrollView, useWindowDimensions } from "react-native";
+import { Modal, Platform, ScrollView, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Text, YStack } from "tamagui";
@@ -31,11 +31,8 @@ import {
 } from "../../components/matchSelection/SelectableMatchList";
 import { AssignmentModeSelector } from "../../components/lobby/AssignmentModeSelector";
 import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
-import {
-  AssignmentRequirementLine,
-  AssignmentSettingsPanel,
-} from "../../components/lobby/AssignmentSettingsPanel";
-import { HostAllocationGrid } from "../../components/lobby/HostAllocationGrid";
+import { AssignmentSettingsPanel } from "../../components/lobby/AssignmentSettingsPanel";
+import { RoomAssignmentPlayers } from "../../components/lobby/RoomAssignmentPlayers";
 import { ParticipantList } from "../../components/lobby/ParticipantList";
 import { RoomIdentityPanel } from "../../components/lobby/RoomIdentityPanel";
 import { StartGameWarnings } from "../../components/lobby/StartGameWarnings";
@@ -49,6 +46,8 @@ import { useRoomLobby } from "../../hooks/useRoomLobby";
 import { useAccountAuth } from "../../hooks/useAccountAuth";
 import { useMyActiveRoom } from "../../hooks/useMyActiveRoom";
 import { buildAccountAuthRoute } from "../../utils/accountAuthRoutes";
+import { useNavigationReady } from "../../utils/navigation/useNavigationReady";
+import { LOBBY_STEPS, parseLobbyStep, resolveStep, sameViewParams, withViewParams, type LobbyStep, type RouteParams } from "../../utils/navigation/viewState";
 import { useRoomMatchPool } from "../../hooks/useRoomMatchPool";
 import { useGameStore } from "../../store/store";
 import {
@@ -188,6 +187,7 @@ function useLobbyAssignmentController(
 
   return {
     assignmentMode,
+    participantId,
     automaticMinimum,
     canPick,
     commonMatchId,
@@ -199,6 +199,7 @@ function useLobbyAssignmentController(
     participants,
     pendingModeSwitch,
     pickProgress,
+    picks,
     pickableMatches,
     plan,
     poolAsSelectable,
@@ -389,12 +390,14 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
     router.replace("/");
   }, [clearActiveGameContext, router]);
 
+  const navigateHome = useCallback(() => {
+    router.dismissTo("/");
+  }, [router]);
+
   const [isEndGameConfirmVisible, setIsEndGameConfirmVisible] = useState(false);
 
-  // push, not replace: the lobby stays on the stack so the game screen's back
-  // gesture returns here rather than dropping the room entirely.
   const handleReturnToGame = useCallback(() => {
-    router.push("/gameProgress");
+    router.dismissTo("/gameProgress");
   }, [router]);
 
   const handleLeave = useCallback(async () => {
@@ -455,7 +458,7 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
       <LobbyLoadingScreen
         error={lobby.error}
         onRetry={handleRetryLobby}
-        onHome={goHome}
+        onHome={navigateHome}
       />
     );
   }
@@ -491,7 +494,7 @@ const RoomLobbyScreen = ({ sessionId, participantId }: { sessionId: string; part
             configure={configure}
             assignment={assignment}
             isHost={isHost}
-            onReturnHome={goHome}
+            onReturnHome={lobby.roomEnded ? goHome : navigateHome}
             onReturnToGame={handleReturnToGame}
             onLeave={handleLeave}
             onOpenEndGameConfirmation={handleOpenEndGameConfirmation}
@@ -601,11 +604,28 @@ function RoomLobbyWizard({
   isHost: boolean;
   onLeave: () => void;
 }) {
+  const router = useRouter();
+  const navigation = useNavigation();
+  const navigationReady = useNavigationReady();
+  const params = useLocalSearchParams() as RouteParams;
+  const requestedStep = parseLobbyStep(params);
+  const [{ activeStep, restoreNotice }, updateRoute] = React.useReducer(
+    (state: { activeStep: LobbyStep; restoreNotice: string }, action: { step?: LobbyStep; notice?: string }) => ({
+      activeStep: action.step ?? state.activeStep,
+      restoreNotice: action.notice ?? state.restoreNotice,
+    }),
+    { activeStep: "room", restoreNotice: "" },
+  );
+  const restoredRequest = useRef<string | null>(null);
+  const pendingStep = useRef<string | null>(null);
+  useFocusEffect(useCallback(() => { pendingStep.current = null; }, []));
   const colors = useColors();
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
   const startGame = configure.startGame;
   const handleStartGame = useCallback(() => void startGame(), [startGame]);
+  const canEnterCommon = snapshot.assignmentPlan.poolSize > 0;
+  const canEnterAssign = snapshot.commonMatchId !== null || assignment.canPick;
   const steps: WizardStep[] = [
     {
       key: "room",
@@ -636,7 +656,7 @@ function RoomLobbyWizard({
       key: "common",
       name: "Common",
       icon: "tv-outline",
-      canEnter: snapshot.assignmentPlan.poolSize > 0,
+      canEnter: canEnterCommon,
       content: (
         <LobbyCommonStepContent
           matches={pool.matches}
@@ -650,10 +670,9 @@ function RoomLobbyWizard({
       key: "assign",
       name: "Assign",
       icon: "git-network",
-      canEnter: snapshot.commonMatchId !== null || assignment.canPick,
+      canEnter: canEnterAssign,
       content: (
         <LobbyAssignmentStepContent
-          snapshot={snapshot}
           configure={configure}
           assignment={assignment}
           isHost={isHost}
@@ -662,6 +681,34 @@ function RoomLobbyWizard({
       ),
     },
   ];
+  const routeRequest = JSON.stringify([snapshot.sessionId, params.step ?? null]);
+  React.useLayoutEffect(() => {
+    if (!navigationReady || restoredRequest.current === routeRequest) return;
+    restoredRequest.current = routeRequest;
+    pendingStep.current = null;
+    const step = resolveStep(requestedStep, LOBBY_STEPS, [true, true, canEnterCommon, canEnterAssign]);
+    // Restore before paint; polling must not move an active editor.
+    updateRoute({ step, notice: step !== requestedStep
+      ? "Complete this step before continuing your room setup." : undefined });
+    const canonical = withViewParams(params, { step: step === "room" ? undefined : step });
+    if (!sameViewParams(params, canonical)) router.setParams({ step: step === "room" ? undefined : step });
+  }, [navigationReady, routeRequest, requestedStep, canEnterCommon, canEnterAssign, params, router]);
+  const changeStep = (key: string) => {
+    const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
+    if (step === activeStep || step === pendingStep.current) return;
+    pendingStep.current = step;
+    updateRoute({ notice: "" });
+    router.push({ pathname: "/lobby/[sessionId]", params: { ...withViewParams(params, { step: step === "room" ? undefined : step }), sessionId: snapshot.sessionId } });
+  };
+  const backStep = (key: string) => {
+    const step = resolveStep(key as LobbyStep, LOBBY_STEPS, steps.map(item => item.canEnter));
+    updateRoute({ notice: "" });
+    const stack = navigation.getState();
+    const previous = stack?.routes[(stack.index ?? 0) - 1];
+    const previousParams = (previous?.params ?? {}) as RouteParams;
+    if (router.canGoBack() && previous?.name === "lobby/[sessionId]" && previousParams.sessionId === snapshot.sessionId && parseLobbyStep(previousParams) === step) router.back();
+    else router.setParams({ step: step === "room" ? undefined : step });
+  };
   const firstSlotAction = {
     label: isHost ? "Leave Room" : "Leave",
     icon: "exit-outline" as const,
@@ -682,7 +729,10 @@ function RoomLobbyWizard({
       }
     : null;
 
-  return <SetupWizard steps={steps} firstSlotAction={firstSlotAction} finalAction={finalAction} />;
+  return <YStack flex={1}>
+    {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
+    <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} onStepBack={backStep} firstSlotAction={firstSlotAction} finalAction={finalAction} />
+  </YStack>;
 }
 
 function LobbyIdentityStepContent({
@@ -696,7 +746,7 @@ function LobbyIdentityStepContent({
 }) {
   return (
     <YStack gap="$4" padding="$4">
-      <Text color="$color" fontSize={22} fontWeight="700">Room Lobby</Text>
+      <Text {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })} color="$color" fontSize={22} fontWeight="700">Room Lobby</Text>
       <RoomIdentityPanel
         joinCode={lobby.joinCode}
         participants={assignment.participants}
@@ -790,13 +840,11 @@ function LobbyCommonStepContent({
 }
 
 function LobbyAssignmentStepContent({
-  snapshot,
   configure,
   assignment,
   isHost,
   onSelectMode,
 }: {
-  snapshot: RoomLobbySnapshot;
   configure: RoomLobbyConfigure;
   assignment: LobbyAssignmentController;
   isHost: boolean;
@@ -804,6 +852,8 @@ function LobbyAssignmentStepContent({
 }) {
   const pickPanel = assignment.canPick ? (
     <PlayerPickPanel
+      compact
+      title={assignment.participants.find(player => player.id === assignment.participantId)?.displayName ?? "Your matches"}
       matches={assignment.pickableMatches}
       myPicks={assignment.myPicks}
       cap={assignment.plan.matchesPerPlayer}
@@ -815,7 +865,6 @@ function LobbyAssignmentStepContent({
     <YStack gap="$4" padding="$4">
       {isHost ? (
         <HostAssignmentContent
-          snapshot={snapshot}
           configure={configure}
           assignment={assignment}
           pickPanel={pickPanel}
@@ -829,13 +878,11 @@ function LobbyAssignmentStepContent({
 }
 
 function HostAssignmentContent({
-  snapshot,
   configure,
   assignment,
   pickPanel,
   onSelectMode,
 }: {
-  snapshot: RoomLobbySnapshot;
   configure: RoomLobbyConfigure;
   assignment: LobbyAssignmentController;
   pickPanel: React.ReactNode;
@@ -846,19 +893,13 @@ function HostAssignmentContent({
   return (
     <>
       <AssignmentModeSelector assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy} onSelectMode={onSelectMode} />
-      {pickPanel}
-      {assignment.assignmentMode === "host_assigned" ? (
-        <HostAllocationGrid
-          participants={assignment.participants}
-          matches={snapshot.matches}
-          commonMatchId={assignment.commonMatchId}
-          matchesPerPlayer={assignment.plan.matchesPerPlayer}
-          additionalMatchIdsFor={assignment.additionalMatchIdsFor}
-          isBusy={configure.isBusy}
-          onToggleAllocation={assignment.toggleAllocation}
-        />
-      ) : null}
-      <AssignmentSettingsPanel plan={assignment.plan} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
+      <AssignmentSettingsPanel plan={assignment.plan} mode={assignment.assignmentMode} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
+      <LobbyAssignmentPlayers
+        assignment={assignment}
+        pickPanel={pickPanel}
+        isBusy={configure.isBusy}
+        onToggleAllocation={assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
+      />
       <StartGameWarnings
         plan={assignment.plan}
         shortParticipants={assignment.shortParticipants}
@@ -880,17 +921,51 @@ function MemberAssignmentContent({
 }) {
   return (
     <>
-      <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-        {assignment.canPick
-          ? "Pick your matches while you wait for the host to start."
-          : "Waiting for the host to start the game…"}
-      </Text>
+      {!assignment.canPick ? <Text color="$colorMuted" fontSize={14}>Waiting for the host to start the game.</Text> : null}
       <Text testID="lobby-assignment-mode-readonly" color="$colorMuted" fontSize={13}>
         Assignment mode: {ASSIGNMENT_MODE_LABELS[assignment.assignmentMode]}
       </Text>
-      {pickPanel}
-      <AssignmentRequirementLine plan={assignment.plan} />
+      <Text color="$colorMuted" fontSize={13}>Everyone gets the common match.</Text>
+      <LobbyAssignmentPlayers assignment={assignment} pickPanel={pickPanel} />
     </>
+  );
+}
+
+function LobbyAssignmentPlayers({
+  assignment,
+  pickPanel,
+  isBusy = false,
+  onToggleAllocation,
+}: {
+  assignment: LobbyAssignmentController;
+  pickPanel: React.ReactNode;
+  isBusy?: boolean;
+  onToggleAllocation?: (participantId: string, matchId: string) => void;
+}): React.JSX.Element {
+  const participants = pickPanel
+    ? assignment.participants.filter(player => player.id !== assignment.participantId)
+    : assignment.participants;
+
+  function selectedMatchIdsFor(participantId: string): string[] {
+    if (assignment.assignmentMode === "player_picked") {
+      return assignment.picks
+        .filter(pick => pick.participantId === participantId)
+        .map(pick => pick.matchId);
+    }
+    return assignment.additionalMatchIdsFor(participantId);
+  }
+
+  return (
+    <RoomAssignmentPlayers
+      participants={participants}
+      matches={assignment.pickableMatches}
+      matchesPerPlayer={assignment.plan.matchesPerPlayer}
+      isBusy={isBusy}
+      ownPicks={pickPanel}
+      pending={assignment.assignmentMode === "automatic"}
+      selectedMatchIdsFor={selectedMatchIdsFor}
+      onToggleAllocation={onToggleAllocation}
+    />
   );
 }
 
@@ -965,7 +1040,7 @@ function LobbyPostStartState({
 
   return (
     <YStack gap="$4" testID="lobby-in-progress">
-      <Text color="$color" fontSize={28} fontWeight="700">
+      <Text {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })} color="$color" fontSize={28} fontWeight="700">
         Game in progress
       </Text>
       <Text color="$colorMuted" fontSize={14}>
@@ -977,6 +1052,7 @@ function LobbyPostStartState({
         participants={lobby.participants}
         pickProgress={assignment.pickProgress}
       />
+      <ShellActionButton label="Home" variant="surface" testID="lobby-home" onPress={onReturnHome} />
       <LobbyInProgressActions
         isHost={isHost}
         isBusy={configure.isBusy}

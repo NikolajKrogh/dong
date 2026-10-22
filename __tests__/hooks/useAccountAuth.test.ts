@@ -173,6 +173,14 @@ const createSupabaseClientMock = (
   };
 };
 
+const renderAuthProbe = (observe: (auth: ReturnType<typeof useAccountAuth>) => void) => {
+  const Probe = () => {
+    observe(useAccountAuth());
+    return null;
+  };
+  return actCreate(React.createElement(AccountAuthProvider, null, React.createElement(Probe)));
+};
+
 describe("account auth foundation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -275,18 +283,9 @@ describe("account auth foundation", () => {
 
     let observedAccount: ReturnType<typeof useAccountAuth>["account"] = null;
 
-    const Probe = () => {
-      observedAccount = useAccountAuth().account;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    renderAuthProbe((auth) => {
+      observedAccount = auth.account;
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -335,20 +334,10 @@ describe("account auth foundation", () => {
     let observedAccount: ReturnType<typeof useAccountAuth>["account"] = null;
     let saveUsername: ((displayName: string) => Promise<void>) | null = null;
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       observedAccount = auth.account;
       saveUsername = auth.saveUsername;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -649,20 +638,10 @@ describe("account auth foundation", () => {
     let signOut: (() => Promise<void>) | null = null;
     let observedStatus = "loading";
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       signOut = auth.signOut;
       observedStatus = auth.status;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -726,20 +705,10 @@ describe("account auth foundation", () => {
     let observedStatus = "loading";
     let observedSessionNotice: string | null = null;
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       observedStatus = auth.status;
       observedSessionNotice = auth.sessionNotice;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -784,20 +753,10 @@ describe("account auth foundation", () => {
         ) => Promise<void>)
       | null = null;
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       observedStatus = auth.status;
       signUpAccount = auth.signUp;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -863,20 +822,10 @@ describe("account auth foundation", () => {
       | null = null;
     let observedStatus = "loading";
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       completePasswordRecovery = auth.completePasswordRecovery;
       observedStatus = auth.status;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -936,20 +885,10 @@ describe("account auth foundation", () => {
     let deleteAccount: (() => Promise<void>) | null = null;
     let observedStatus = "loading";
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       deleteAccount = auth.deleteAccount;
       observedStatus = auth.status;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -1014,19 +953,9 @@ describe("account auth foundation", () => {
 
     let deleteAccount: (() => Promise<void>) | null = null;
 
-    const Probe = () => {
-      const auth = useAccountAuth();
+    renderAuthProbe((auth) => {
       deleteAccount = auth.deleteAccount;
-      return null;
-    };
-
-    actCreate(
-      React.createElement(
-        AccountAuthProvider,
-        null,
-        React.createElement(Probe),
-      ),
-    );
+    });
 
     await TestRenderer.act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 0));

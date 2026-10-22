@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { ImageSourcePropType } from "react-native";
@@ -18,55 +18,53 @@ let queryClient: QueryClient;
 
 const DEFAULT_LOGO = require("../../assets/images/teams/default.png");
 const HARDCODED_LOGO = { testUri: "hardcoded-arsenal" } as ImageSourcePropType;
-const flushQuery = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+// Drain both the lookup promise and React Query's scheduled observer notification.
+const flushQuery = () => jest.runAllTimersAsync();
 
 const renderHookProbe = (teamName: string) => {
-  const observedSources: ImageSourcePropType[] = [];
   let latest: ImageSourcePropType | undefined;
 
-  const Probe = () => {
-    latest = useTeamLogo(teamName);
-    observedSources.push(latest);
+  const Probe = ({ name }: { name: string }) => {
+    latest = useTeamLogo(name);
     return null;
   };
 
+  const element = (name: string) => React.createElement(
+    QueryClientProvider,
+    { client: queryClient },
+    React.createElement(Probe, { name }),
+  );
   let renderer!: TestRenderer.ReactTestRenderer;
   TestRenderer.act(() => {
-    renderer = TestRenderer.create(
-      React.createElement(
-        QueryClientProvider,
-        { client: queryClient },
-        React.createElement(Probe),
-      ),
-    );
+    renderer = TestRenderer.create(element(teamName));
   });
 
-  return { renderer, observedSources, getLatest: () => latest };
+  return { renderer, getLatest: () => latest,
+    rerender: (name: string) => renderer.update(element(name)) };
 };
 
 describe("useTeamLogo", () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     jest.clearAllMocks();
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: 0 } },
     });
   });
 
-  it("returns the default logo immediately for an empty team name", () => {
-    const { renderer, getLatest } = renderHookProbe("");
+  afterEach(() => {
+    queryClient.clear();
+    jest.useRealTimers();
+  });
+
+  it.each([
+    ["empty", ""],
+    ["whitespace-only", "   "],
+  ])("returns the default logo immediately for an %s team name", (_label, name) => {
+    const { renderer, getLatest } = renderHookProbe(name);
 
     expect(getLatest()).toBe(DEFAULT_LOGO);
     expect(mockGetHardcodedTeamLogoOnly).not.toHaveBeenCalled();
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
-  });
-
-  it("returns the default logo immediately for a whitespace-only team name", () => {
-    const { renderer, getLatest } = renderHookProbe("   ");
-
-    expect(getLatest()).toBe(DEFAULT_LOGO);
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -156,43 +154,19 @@ describe("useTeamLogo", () => {
     );
     mockGetTeamLogo.mockResolvedValue(null);
 
-    let teamName = "Unmapped United";
-    let latest: ImageSourcePropType | undefined;
-
-    const Probe = () => {
-      latest = useTeamLogo(teamName);
-      return null;
-    };
-
-    let renderer!: TestRenderer.ReactTestRenderer;
-    TestRenderer.act(() => {
-      renderer = TestRenderer.create(
-        React.createElement(
-          QueryClientProvider,
-          { client: queryClient },
-          React.createElement(Probe),
-        ),
-      );
-    });
+    const { renderer, getLatest, rerender } = renderHookProbe("Unmapped United");
 
     await TestRenderer.act(async () => {
       await flushQuery();
     });
 
-    expect(latest).toBe(DEFAULT_LOGO);
+    expect(getLatest()).toBe(DEFAULT_LOGO);
 
-    teamName = "Chelsea FC";
     await TestRenderer.act(async () => {
-      renderer.update(
-        React.createElement(
-          QueryClientProvider,
-          { client: queryClient },
-          React.createElement(Probe),
-        ),
-      );
+      rerender("Chelsea FC");
     });
 
-    expect(latest).toBe(HARDCODED_LOGO);
+    expect(getLatest()).toBe(HARDCODED_LOGO);
 
     TestRenderer.act(() => {
       renderer.unmount();

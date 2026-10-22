@@ -1,6 +1,7 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
+jest.mock("../../components/gameProgress/RoomStatusModal", () => ({ __esModule: true, default: () => null }));
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -12,6 +13,7 @@ const mockUseWindowDimensions = jest.fn(() => ({
 jest.mock("react-native", () => ({
   Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
+  Text: "Text",
   StyleSheet: { create: (styles: unknown) => styles },
   Modal: ({ children, visible }: { children: React.ReactNode; visible: boolean }) => {
     if (!visible) return null;
@@ -78,6 +80,7 @@ const controllerState = {
   selectedMatchId: null,
   isQuickActionsVisible: false,
   refreshing: false,
+  hasHydrated: true,
   players: [{ id: "p1", name: "Alice", drinksTaken: 0 }],
   matches: [
     {
@@ -201,9 +204,6 @@ jest.mock("../../components/gameProgress/FooterButtons", () => {
     });
 });
 
-jest.mock("../../components/gameProgress/ReassignmentControl", () => ({
-  ReassignmentControl: () => null,
-}));
 
 const renderGameProgressScreen = () => {
   const GameProgressScreen = require("../../app/gameProgress").default;
@@ -212,6 +212,25 @@ const renderGameProgressScreen = () => {
 };
 
 describe("GameProgressScreen responsive layout", () => {
+
+  it("offers Home and setup when direct gameplay has no game, without an empty End Game action", () => {
+    mockUseGameProgressController.mockReturnValueOnce({ ...controllerState, matches: [], players: [] });
+    const Screen = require("../../app/gameProgress").default;
+    const renderer = actCreate(React.createElement(Screen));
+    expect(renderer.root.findByProps({ label: "Start New Game" })).toBeDefined();
+    expect(renderer.root.findByProps({ label: "Home" })).toBeDefined();
+    expect(renderer.root.findAllByProps({ testID: "FooterButtons" })).toHaveLength(0);
+    TestRenderer.act(() => renderer.unmount());
+  });
+
+  it("shows hydration rather than incorrectly declaring a saved game missing", () => {
+    mockUseGameProgressController.mockReturnValueOnce({ ...controllerState, hasHydrated: false, matches: [], players: [] });
+    const Screen = require("../../app/gameProgress").default;
+    const renderer = actCreate(React.createElement(Screen));
+    expect(renderer.root.findAllByProps({ label: "Start New Game" })).toHaveLength(0);
+    expect(renderer.root.findAll((node) => node.props.children === "Loading your game...").length).toBeGreaterThan(0);
+    TestRenderer.act(() => renderer.unmount());
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockActiveGameContext = { sessionId: null, participantId: null, accessKind: "registered" };
@@ -265,27 +284,17 @@ describe("GameProgressScreen responsive layout", () => {
     expect(footerButtons.props.onEndGame).toBe(controllerState.handleEndGame);
   });
 
-  it("keeps the shared shell unconstrained on phone-sized viewports", () => {
+  it.each([
+    { viewport: "phone", width: 390, height: 844, centerContent: false, contentMaxWidth: undefined },
+    { viewport: "desktop", width: 1280, height: 900, centerContent: true, contentMaxWidth: 1280 },
+  ])("configures the shell for a $viewport viewport", ({ width, height, centerContent, contentMaxWidth }) => {
+    mockUseWindowDimensions.mockReturnValue({ width, height, scale: 1, fontScale: 1 });
     const renderer = renderGameProgressScreen();
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
-    expect(shell.props.centerContent).toBe(false);
-    expect(shell.props.contentMaxWidth).toBeUndefined();
-  });
+    expect(shell.props.centerContent).toBe(centerContent);
+    expect(shell.props.contentMaxWidth).toBe(contentMaxWidth);
 
-  it("centers the shared shell on desktop-wide viewports", () => {
-    mockUseWindowDimensions.mockReturnValue({
-      width: 1280,
-      height: 900,
-      scale: 1,
-      fontScale: 1,
-    });
-
-    const renderer = renderGameProgressScreen();
-    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
-
-    expect(shell.props.centerContent).toBe(true);
-    expect(shell.props.contentMaxWidth).toBe(1280);
   });
 
   it("disables multiplayer editing and End Game for a non-editable member", () => {
