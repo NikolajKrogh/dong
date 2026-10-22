@@ -1,12 +1,11 @@
+import { renderHook } from "../../test-utils/render";
 import { describe, expect, it, jest } from "@jest/globals";
-import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import {
   CATALOGUE_SOURCE_PROVIDER,
   MANUAL_SOURCE_PROVIDER,
   useRoomMatchPool,
-  type RoomMatchPool,
 } from "../../hooks/useRoomMatchPool";
 import type {
   AddRoomMatchRequest,
@@ -38,24 +37,9 @@ const mount = (
   removeMatches: (ids: string[]) => Promise<void> = jest.fn(async () => {}),
   onBatchAdded?: (result: BatchRoomMatchResult) => void,
 ) => {
-  let latest: RoomMatchPool | undefined;
-  const Probe = () => {
-    latest = useRoomMatchPool({
-      roomMatches,
-      addMatches,
-      removeMatch,
-      removeMatches,
-      onBatchAdded,
-    });
-    return null;
-  };
-  TestRenderer.act(() => {
-    TestRenderer.create(React.createElement(Probe));
-  });
-  if (!latest) {
-    throw new Error("hook did not render");
-  }
-  return latest;
+  return renderHook(() => useRoomMatchPool({
+    roomMatches, addMatches, removeMatch, removeMatches, onBatchAdded,
+  })).getLatest();
 };
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));

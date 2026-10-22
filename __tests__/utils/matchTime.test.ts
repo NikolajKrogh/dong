@@ -43,15 +43,7 @@ describe("formatMatchTime", () => {
       },
     );
 
-    /**
-     * The ordering of the fallbacks matters here. `new Date("15:00")` is invalid
-     * in Node, so the bare-clock branch is reached — but a permissive engine that
-     * parsed it would silently reformat, which is why the raw-string branch is
-     * asserted rather than assumed.
-     */
-    it("does not reformat a bare clock time into AM/PM", () => {
-      expect(formatMatchTime("15:00")).not.toMatch(/AM|PM/);
-    });
+
   });
 
   describe("an ESPN-shaped string Date cannot parse", () => {

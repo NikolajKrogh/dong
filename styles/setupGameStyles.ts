@@ -71,7 +71,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     safeArea: {
       ...makeBaseContainer(),
       backgroundColor: colors.background,
-      paddingTop: 25, // Consider SafeAreaView component for this
     },
     container: {
       ...makeBaseContainer(),

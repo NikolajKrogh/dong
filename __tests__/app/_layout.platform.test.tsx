@@ -46,37 +46,18 @@ jest.mock("../../store/store", () => ({
   ),
 }));
 
-describe("Root shell provider regression", () => {
-  it("wraps the shell in TamaguiAppProvider", () => {
-    const Layout = require("../../app/_layout").default;
-    const tree = actCreate(React.createElement(Layout));
+it("keeps navigation and Toast inside the gesture root and themed provider", () => {
+  const Layout = require("../../app/_layout").default;
+  const { TamaguiAppProvider } = require("../../components/ui");
+  const { PlatformGestureRoot } = require("../../platform");
+  const { Stack } = require("expo-router");
+  const tree = actCreate(<Layout />);
+  const provider = tree.root.findByType(TamaguiAppProvider);
+  const gestures = provider.findByType(PlatformGestureRoot);
 
-    // The root tree should contain a TamaguiProvider from the TamaguiAppProvider wrapper
-    // After T012 integrates TamaguiAppProvider, this provider element will exist.
-    // For now this verifies the root shell renders.
-    expect(tree.toJSON()).toBeDefined();
-  });
-
-  it("keeps Toast inside the themed shell", () => {
-    const Layout = require("../../app/_layout").default;
-    const tree = actCreate(React.createElement(Layout));
-    const root = tree.root;
-
-    // Toast must be a descendant (not a sibling of) the shell root
-    const toastElements = root.findAll(
-      (node) => String(node.type) === "Toast" || (typeof node.type === "function" && (node.type as any).name === "Toast")
-    );
-    expect(toastElements.length).toBeGreaterThanOrEqual(0); // baseline: renders
-  });
-
-  it("preserves PlatformGestureRoot as the gesture handler wrapper", () => {
-    const Layout = require("../../app/_layout").default;
-    const tree = actCreate(React.createElement(Layout));
-    // The layout still renders (gesture root is present in the tree)
-    expect(tree.toJSON()).not.toBeNull();
-  });
+  expect(gestures.findByType(Stack).props.initialRouteName).toBe("index");
+  expect(gestures.findAllByType("Toast" as React.ElementType)).toHaveLength(1);
 });
-
 
 it('updates the browser title when the current route changes', () => {
   const previousPlatform = Platform.OS;

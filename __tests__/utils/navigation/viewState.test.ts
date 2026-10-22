@@ -15,9 +15,11 @@ it('canonicalizes owned keys without dropping return context', () => {
  const state=parseHistoryState({tab:'stats',friendId,sort:'goals',direction:'asc'});
  expect(withViewParams({returnTo:'/friends',gameId:'old'},historyParams(state))).toEqual({returnTo:'/friends',tab:'stats',friendId,sort:'goals',direction:'asc'});
 });
-it('restores the earliest prerequisite instead of a later empty step', () => {
- expect(resolveStep('assign',SOLO_STEPS,[true,false,false,false])).toBe('players');
- expect(resolveStep('assign',SOLO_STEPS,[true,true,false,false])).toBe('matches');
- expect(resolveStep('assign',SOLO_STEPS,[true,true,true,false])).toBe('common');
- expect(resolveStep('assign',SOLO_STEPS,[true,true,true,true])).toBe('assign');
+it.each([
+ { expected: 'players', prerequisites: [true, false, false, false] },
+ { expected: 'matches', prerequisites: [true, true, false, false] },
+ { expected: 'common', prerequisites: [true, true, true, false] },
+ { expected: 'assign', prerequisites: [true, true, true, true] },
+])('restores $expected as the earliest available step', ({ expected, prerequisites }) => {
+ expect(resolveStep('assign', SOLO_STEPS, prerequisites)).toBe(expected);
 });

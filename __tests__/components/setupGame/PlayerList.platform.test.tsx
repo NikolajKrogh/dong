@@ -156,29 +156,16 @@ describe("PlayerList responsive layout", () => {
     });
   });
 
-  it("keeps the players list in one column on phone-sized viewports", () => {
+  it.each([
+    { viewport: "phone", width: 390, height: 844, columns: 1, rowStyle: undefined },
+    { viewport: "desktop", width: 1280, height: 900, columns: 2, rowStyle: mockStyles.playersListWideRow },
+  ])("lays out players for a $viewport viewport", ({ width, height, columns, rowStyle }) => {
+    mockUseWindowDimensions.mockReturnValue({ width, height, scale: 1, fontScale: 1 });
     const renderer = renderPlayerList();
     const list = renderer.root.find((node) => String(node.type) === "FlatList");
 
-    expect(list.props.numColumns).toBe(1);
-    expect(list.props.columnWrapperStyle).toBeUndefined();
-  });
-
-  it("switches the players list to two columns on desktop-sized viewports", () => {
-    mockUseWindowDimensions.mockReturnValue({
-      width: 1280,
-      height: 900,
-      scale: 1,
-      fontScale: 1,
-    });
-
-    const renderer = renderPlayerList();
-    const list = renderer.root.find((node) => String(node.type) === "FlatList");
-
-    expect(list.props.numColumns).toBe(2);
-    expect(list.props.columnWrapperStyle).toEqual(
-      mockStyles.playersListWideRow,
-    );
+    expect(list.props.numColumns).toBe(columns);
+    expect(list.props.columnWrapperStyle).toEqual(rowStyle);
   });
 
   it("keeps recent player suggestions hidden on focus until the user types on phone-sized viewports", () => {

@@ -287,27 +287,17 @@ describe("GameProgressScreen responsive layout", () => {
     expect(footerButtons.props.onEndGame).toBe(controllerState.handleEndGame);
   });
 
-  it("keeps the shared shell unconstrained on phone-sized viewports", () => {
+  it.each([
+    { viewport: "phone", width: 390, height: 844, centerContent: false, contentMaxWidth: undefined },
+    { viewport: "desktop", width: 1280, height: 900, centerContent: true, contentMaxWidth: 1280 },
+  ])("configures the shell for a $viewport viewport", ({ width, height, centerContent, contentMaxWidth }) => {
+    mockUseWindowDimensions.mockReturnValue({ width, height, scale: 1, fontScale: 1 });
     const renderer = renderGameProgressScreen();
     const shell = renderer.root.findByProps({ testID: "ShellScreen" });
 
-    expect(shell.props.centerContent).toBe(false);
-    expect(shell.props.contentMaxWidth).toBeUndefined();
-  });
+    expect(shell.props.centerContent).toBe(centerContent);
+    expect(shell.props.contentMaxWidth).toBe(contentMaxWidth);
 
-  it("centers the shared shell on desktop-wide viewports", () => {
-    mockUseWindowDimensions.mockReturnValue({
-      width: 1280,
-      height: 900,
-      scale: 1,
-      fontScale: 1,
-    });
-
-    const renderer = renderGameProgressScreen();
-    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
-
-    expect(shell.props.centerContent).toBe(true);
-    expect(shell.props.contentMaxWidth).toBe(1280);
   });
 
   it("disables multiplayer editing and End Game for a non-editable member", () => {

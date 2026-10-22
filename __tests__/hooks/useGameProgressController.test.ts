@@ -218,6 +218,25 @@ describe("useGameProgressController (integration)", () => {
     });
   });
 
+  it.each<{ name: string; matchId: string; commonMatchId: string | null; assignments: Record<string, string[]>; expected: string | null }>([
+    { name: "common match", matchId: "m3", commonMatchId: "m3", assignments: { p1: ["m1", "m3"], p2: ["m2"], p3: ["m1", "m2"], p4: [] }, expected: "Alice, Bob and 2 others should drink!" },
+    { name: "first assigned match", matchId: "m1", commonMatchId: "m3", assignments: { p1: ["m1"], p2: ["m2"], p3: ["m1", "m2"], p4: [] }, expected: "Alice, Charlie should drink!" },
+    { name: "second assigned match", matchId: "m2", commonMatchId: "m3", assignments: { p1: ["m1"], p2: ["m2"], p3: ["m1", "m2"], p4: [] }, expected: "Bob, Charlie should drink!" },
+    { name: "no assigned players", matchId: "m4", commonMatchId: "m3", assignments: {}, expected: null },
+    { name: "empty assignments", matchId: "m1", commonMatchId: null, assignments: { p4: [] }, expected: null },
+    { name: "no common match", matchId: "m1", commonMatchId: null, assignments: { p1: ["m1"], p3: ["m1"] }, expected: "Alice, Charlie should drink!" },
+  ])("resolves drinkers through the real controller for $name", ({ matchId, commonMatchId, assignments, expected }) => {
+    useGameStore.setState({
+      players: ["Alice", "Bob", "Charlie", "David"].map((name, index) => ({ id: `p${index + 1}`, name, drinksTaken: 0 })),
+      matches: [{ id: matchId, homeTeam: "A", awayTeam: "B", homeGoals: 0, awayGoals: 0 }],
+      commonMatchId, playerAssignments: assignments,
+    });
+    const { getLatest } = renderControllerProbe();
+    TestRenderer.act(() => getLatest().handleGoalIncrement(matchId, "home"));
+    if (expected === null) expect(mockToastShow).not.toHaveBeenCalled();
+    else expect(mockToastShow).toHaveBeenCalledWith(expect.objectContaining({ text2: expected }));
+  });
+
   it("suppresses the goal notification for the common match when commonMatchNotificationsEnabled is false", async () => {
     useGameStore.setState({ commonMatchNotificationsEnabled: false });
 

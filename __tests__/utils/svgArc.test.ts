@@ -1,22 +1,14 @@
 import { describeArc, polarToCartesian } from "../../utils/svgArc";
 
 describe("polarToCartesian", () => {
-  it("returns the top point for angle 0", () => {
-    const point = polarToCartesian(50, 50, 40, 0);
-    expect(point.x).toBeCloseTo(50);
-    expect(point.y).toBeCloseTo(10);
-  });
-
-  it("returns the right point for angle 90", () => {
-    const point = polarToCartesian(50, 50, 40, 90);
-    expect(point.x).toBeCloseTo(90);
-    expect(point.y).toBeCloseTo(50);
-  });
-
-  it("returns the bottom point for angle 180", () => {
-    const point = polarToCartesian(50, 50, 40, 180);
-    expect(point.x).toBeCloseTo(50);
-    expect(point.y).toBeCloseTo(90);
+  it.each([
+    { angle: 0, x: 50, y: 10 },
+    { angle: 90, x: 90, y: 50 },
+    { angle: 180, x: 50, y: 90 },
+  ])("returns ($x, $y) for angle $angle", ({ angle, x, y }) => {
+    const point = polarToCartesian(50, 50, 40, angle);
+    expect(point.x).toBeCloseTo(x);
+    expect(point.y).toBeCloseTo(y);
   });
 });
 
@@ -51,14 +43,8 @@ describe("describeArc", () => {
     expect(flag).toBe("0");
   });
 
-  it("handles a full-circle span (360 degrees) without producing NaN coordinates", () => {
-    const path = describeArc(50, 50, 40, 0, 360);
-    expect(path).not.toContain("NaN");
-    expect(path.length).toBeGreaterThan(0);
-  });
-
-  it("handles a negative full-circle span (-360 degrees) without producing NaN coordinates", () => {
-    const path = describeArc(50, 50, 40, 0, -360);
+  it.each([360, -360])("handles a full-circle span of %s without NaN coordinates", (angle) => {
+    const path = describeArc(50, 50, 40, 0, angle);
     expect(path).not.toContain("NaN");
     expect(path.length).toBeGreaterThan(0);
   });

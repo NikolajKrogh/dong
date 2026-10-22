@@ -180,15 +180,7 @@ describe("browser-flow.helpers", () => {
     const datasets = createSetupJourneyDatasets();
 
     expect(datasets).toHaveLength(2);
-    expect(datasets[0]).toEqual({
-      playerNames: ["Alex", "Morgan"],
-      matches: [
-        { homeTeam: "Arsenal", awayTeam: "Chelsea" },
-        { homeTeam: "Liverpool", awayTeam: "Everton" },
-      ],
-      commonMatchIndex: 0,
-      matchesPerPlayer: 1,
-    });
+    expect(datasets[0]).toEqual(createSetupJourneyDataset());
     expect(datasets[1]).toEqual({
       playerNames: ["Alex", "Morgan", "Jamie"],
       matches: [
@@ -243,24 +235,15 @@ describe("browser-flow.helpers", () => {
     });
   });
 
-  it("dismisses onboarding when the skip control is visible", async () => {
-    const { page, skipButton } = createMockPage(true);
-
+  it.each([
+    { name: "visible", visible: true, clicks: 1 },
+    { name: "hidden", visible: false, clicks: 0 },
+  ])("dismisses onboarding only when its skip control is $name", async ({ visible, clicks }) => {
+    const { page, skipButton } = createMockPage(visible);
     await dismissOnboardingIfPresent(page as unknown as Page);
-
     expect(page.getByText).toHaveBeenCalledWith("Skip");
     expect(skipButton.isVisible).toHaveBeenCalledWith({ timeout: 500 });
-    expect(skipButton.click).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not click skip when onboarding is not visible", async () => {
-    const { page, skipButton } = createMockPage(false);
-
-    await dismissOnboardingIfPresent(page as unknown as Page);
-
-    expect(page.getByText).toHaveBeenCalledWith("Skip");
-    expect(skipButton.isVisible).toHaveBeenCalledWith({ timeout: 500 });
-    expect(skipButton.click).not.toHaveBeenCalled();
+    expect(skipButton.click).toHaveBeenCalledTimes(clicks);
   });
 
   it("waits for browser flow readiness after loading and onboarding dismissal", async () => {

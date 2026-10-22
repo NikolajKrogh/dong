@@ -44,6 +44,33 @@ const snapshot = {
 } as unknown as RoomSnapshot;
 
 describe("room snapshot projections", () => {
+  it("shows common and assigned matches without removing the room pool, including after reassignment", () => {
+    const room = {
+      ...snapshot,
+      matches: ["unused", "common-match", "match-1"].map((id) => ({
+        id,
+        sourceProvider: "manual",
+        sourceMatchId: null,
+        homeTeamName: `${id} home`,
+        awayTeamName: `${id} away`,
+        kickoffAt: null,
+        homeScore: 2,
+        awayScore: 1,
+      })),
+    };
+
+    const game = roomSnapshotUtils.roomSnapshotToGameState(room);
+    expect(game.matches.map((match) => match.id)).toEqual(["common-match", "match-1"]);
+    expect(game.matches[1]).toMatchObject({ homeGoals: 2, awayGoals: 1 });
+    expect(room.matches.map((match) => match.id)).toEqual(["unused", "common-match", "match-1"]);
+
+    const reassigned = roomSnapshotUtils.roomSnapshotToGameState({
+      ...room,
+      assignments: [{ participantId: host.id, matchId: "unused" }],
+    });
+    expect(reassigned.matches.map((match) => match.id)).toEqual(["unused", "common-match"]);
+  });
+
   it("selects activeRoster for live lobby consumers with legacy fallback", () => {
     const toActiveRoster = (roomSnapshotUtils as unknown as Record<string, unknown>)
       .roomSnapshotToActiveRoster as

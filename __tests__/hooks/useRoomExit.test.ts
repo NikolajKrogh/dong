@@ -1,8 +1,8 @@
+import { renderHook } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import React from "react";
 import TestRenderer from "react-test-renderer";
 
-import { useRoomExit, type UseRoomExitResult } from "../../hooks/useRoomExit";
+import { useRoomExit } from "../../hooks/useRoomExit";
 import type { RoomSnapshot } from "../../types/room";
 import { getRoomRpcClient } from "../../utils/supabaseClient";
 
@@ -52,16 +52,8 @@ const rosterWith = (memberIds: string[]): RoomSnapshot => ({
 });
 
 const render = () => {
-  let observed: UseRoomExitResult | null = null;
-  const Probe = () => {
-    observed = useRoomExit();
-    return null;
-  };
-  let renderer!: TestRenderer.ReactTestRenderer;
-  TestRenderer.act(() => {
-    renderer = TestRenderer.create(React.createElement(Probe));
-  });
-  return { result: () => observed, renderer };
+  const { renderer, getLatest } = renderHook(useRoomExit);
+  return { renderer, result: getLatest };
 };
 
 describe("useRoomExit", () => {

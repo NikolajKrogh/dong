@@ -14,6 +14,7 @@ import { ShellScreen } from "../components/ui";
 import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import { Player, useGameStore } from "../store/store";
 import { createRandomAssignments } from "../utils/setupGameAssignments";
+import { selectGameplayMatches } from "../utils/selectGameplayMatches";
 import { isWideLayout } from "../styles/responsive";
 import createSetupGameStyles from "../styles/setupGameStyles";
 import { useColors } from "../styles/theme";
@@ -343,12 +344,7 @@ function useStartGame(): () => void {
       return;
     }
 
-    const assignedMatchIds = new Set(Object.values(playerAssignments).flat());
-    const filteredMatches = matches.filter(
-      (match) =>
-        assignedMatchIds.has(match.id) ||
-        (commonMatchId && match.id === commonMatchId),
-    );
+    const filteredMatches = selectGameplayMatches(matches, commonMatchId, playerAssignments);
     setGlobalMatches(filteredMatches);
     clearActiveGameContext();
 

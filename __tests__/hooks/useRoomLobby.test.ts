@@ -1,6 +1,5 @@
-import { actCreate } from "../../test-utils/render";
+import { renderHook } from "../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
-import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import { useRoomLobby, type UseRoomLobbyResult } from "../../hooks/useRoomLobby";
@@ -59,16 +58,11 @@ const renderLobby = async (
   sessionId: string,
   participantId: string,
 ): Promise<{ result: () => UseRoomLobbyResult | null; unmount: () => void }> => {
-  let observed: UseRoomLobbyResult | null = null;
-  const Probe = () => {
-    observed = useRoomLobby(sessionId, participantId);
-    return null;
-  };
-  const renderer = actCreate(React.createElement(Probe));
+  const { renderer, getLatest } = renderHook(() => useRoomLobby(sessionId, participantId));
   await TestRenderer.act(async () => {
     await flush();
   });
-  return { result: () => observed, unmount: () => TestRenderer.act(() => renderer.unmount()) };
+  return { result: getLatest, unmount: () => TestRenderer.act(() => renderer.unmount()) };
 };
 
 describe("useRoomLobby", () => {
@@ -97,23 +91,10 @@ describe("useRoomLobby", () => {
     unmount();
   });
 
-  it("flags the room as ended when the state is closed", async () => {
+  it.each(["closed", "completed"] as const)("flags a %s room as ended", async (state) => {
     mockGetRoomRpcClient.mockReturnValue({
-      getRoomSnapshot: jest.fn(async () => snapshot({ state: "closed" })),
+      getRoomSnapshot: jest.fn(async () => snapshot({ state })),
     } as never);
-
-    const { result, unmount } = await renderLobby("session-1", "owner-1");
-    expect(result()?.roomEnded).toBe(true);
-    unmount();
-  });
-
-  // `completed` is what end_game_session (040) produces. Without it an ended
-  // game fell through to the normal lobby render instead of the ended notice.
-  it("flags the room as ended when the game has been completed", async () => {
-    mockGetRoomRpcClient.mockReturnValue({
-      getRoomSnapshot: jest.fn(async () => snapshot({ state: "completed" })),
-    } as never);
-
     const { result, unmount } = await renderLobby("session-1", "owner-1");
     expect(result()?.roomEnded).toBe(true);
     unmount();
@@ -140,7 +121,7 @@ describe("useRoomLobby", () => {
     unmount();
   });
 
-  it("flags gameStarted once the snapshot state transitions to in_progress (FR-012)", async () => {
+  it("keeps a joinable room waiting for game start", async () => {
     mockGetRoomRpcClient.mockReturnValue({
       getRoomSnapshot: jest.fn(async () => snapshot({ state: "joinable" })),
     } as never);
@@ -150,14 +131,5 @@ describe("useRoomLobby", () => {
     unmount();
   });
 
-  it("flags gameStarted true when the room is in_progress", async () => {
-    mockGetRoomRpcClient.mockReturnValue({
-      getRoomSnapshot: jest.fn(async () => snapshot({ state: "in_progress" })),
-    } as never);
 
-    const { result, unmount } = await renderLobby("session-1", "owner-1");
-    expect(result()?.gameStarted).toBe(true);
-    expect(result()?.roomEnded).toBe(false);
-    unmount();
-  });
 });

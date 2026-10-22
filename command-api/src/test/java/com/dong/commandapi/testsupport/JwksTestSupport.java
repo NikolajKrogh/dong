@@ -116,11 +116,7 @@ public final class JwksTestSupport {
 
     private static String sign(ECKey key, String subject, String role, Instant expiry) {
         try {
-            JWTClaimsSet claims = new JWTClaimsSet.Builder()
-                    .subject(subject)
-                    .claim("role", role)
-                    .expirationTime(Date.from(expiry))
-                    .build();
+            JWTClaimsSet claims = claims(subject, role, expiry);
             SignedJWT jwt = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(key.getKeyID()).build(),
                     claims);

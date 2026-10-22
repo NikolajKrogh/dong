@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { createElement, type ReactElement } from "react";
 import TestRenderer from "react-test-renderer";
 
 const mounted = new Set<TestRenderer.ReactTestRenderer>();
@@ -24,4 +24,19 @@ export const actCreate = (
   });
   mounted.add(renderer);
   return renderer;
+};
+
+/** Mount a hook with the same commit and cleanup rules as component tests. */
+export const renderHook = <Result>(useHook: () => Result) => {
+  let latest!: Result;
+  const Probe = () => {
+    latest = useHook();
+    return null;
+  };
+  const renderer = actCreate(createElement(Probe));
+  return {
+    renderer,
+    getLatest: () => latest,
+    rerender: () => renderer.update(createElement(Probe)),
+  };
 };

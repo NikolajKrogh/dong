@@ -18,48 +18,21 @@ const buildMatch = (overrides: Partial<Match> = {}): Match => ({
 });
 
 describe("calculateToastScoreDisplay", () => {
-  it("uses the live newTotal/otherTeamScore pairing for the home team", () => {
-    const result = calculateToastScoreDisplay(
-      buildMatch(),
-      "home",
-      true,
-      3,
-      2,
-    );
-
-    expect(result).toEqual({ homeScore: 3, awayScore: 2 });
-  });
-
-  it("uses the live newTotal/otherTeamScore pairing for the away team", () => {
-    const result = calculateToastScoreDisplay(
-      buildMatch(),
-      "away",
-      true,
-      3,
-      2,
-    );
-
-    expect(result).toEqual({ homeScore: 2, awayScore: 3 });
-  });
-
-  it("falls back to the match's own goal counts when not a live update", () => {
-    const result = calculateToastScoreDisplay(
-      buildMatch({ homeGoals: 4, awayGoals: 1 }),
-      "home",
-      false,
-    );
-
-    expect(result).toEqual({ homeScore: 4, awayScore: 1 });
-  });
-
-  it("falls back to the match's own goal counts when live totals are missing", () => {
-    const result = calculateToastScoreDisplay(
-      buildMatch({ homeGoals: 2, awayGoals: 2 }),
-      "home",
-      true,
-    );
-
-    expect(result).toEqual({ homeScore: 2, awayScore: 2 });
+  it.each([
+    { name: "live home goal", team: "home", live: true, newTotal: 3, other: 2, home: 1, away: 0, expected: [3, 2] },
+    { name: "live away goal", team: "away", live: true, newTotal: 3, other: 2, home: 1, away: 0, expected: [2, 3] },
+    { name: "first home goal while behind", team: "home", live: true, newTotal: 1, other: 3, home: 0, away: 3, expected: [1, 3] },
+    { name: "first away goal while behind", team: "away", live: true, newTotal: 1, other: 3, home: 3, away: 0, expected: [3, 1] },
+    { name: "zero home live totals", team: "home", live: true, newTotal: 0, other: 0, home: 1, away: 2, expected: [0, 0] },
+    { name: "zero away live totals", team: "away", live: true, newTotal: 0, other: 0, home: 1, away: 2, expected: [0, 0] },
+    { name: "manual goal already applied", team: "home", live: false, newTotal: undefined, other: undefined, home: 4, away: 1, expected: [4, 1] },
+    { name: "live totals missing", team: "home", live: true, newTotal: undefined, other: undefined, home: 2, away: 2, expected: [2, 2] },
+    { name: "other live total missing", team: "home", live: true, newTotal: 3, other: undefined, home: 1, away: 2, expected: [1, 2] },
+    { name: "scoring live total missing", team: "away", live: true, newTotal: undefined, other: 5, home: 1, away: 2, expected: [1, 2] },
+    { name: "missing stored goals", team: "home", live: false, newTotal: undefined, other: undefined, home: undefined, away: undefined, expected: [0, 0] },
+  ] as const)("uses canonical display scores for $name", ({ team, live, newTotal, other, home, away, expected }) => {
+    expect(calculateToastScoreDisplay(buildMatch({ homeGoals: home, awayGoals: away }), team, live, newTotal, other))
+      .toEqual({ homeScore: expected[0], awayScore: expected[1] });
   });
 });
 

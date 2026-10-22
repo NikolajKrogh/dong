@@ -202,6 +202,11 @@ const renderLobby = () => {
   );
 };
 
+const rerenderLobby = (tree: ReturnType<typeof actCreate>) => {
+  act(() => tree.update(React.createElement(TamaguiTestProvider, null,
+    React.createElement(require("../../../app/lobby/[sessionId]").default))));
+};
+
 /** The steps array handed to the (stubbed) wizard. */
 const wizardProps = (tree: ReturnType<typeof actCreate>) =>
   tree.root.findByType("SetupWizard" as unknown as React.ElementType).props;
@@ -258,28 +263,10 @@ describe("pre-start lobby, as the setup wizard", () => {
     tree.unmount();
   });
 
-  it("gives the host the four wizard steps in wizard order", () => {
-    setLobby({ role: "owner" });
-    const props = wizardProps(renderLobby());
-
-    expect(props.steps.map((step: { key: string }) => step.key)).toEqual([
-      "room",
-      "matches",
-      "common",
-      "assign",
-    ]);
-  });
-
-  it("gives a member the identical step shape, so a poll cannot remount the wizard", () => {
-    setLobby({ role: "member" });
-    const props = wizardProps(renderLobby());
-
-    expect(props.steps.map((step: { key: string }) => step.key)).toEqual([
-      "room",
-      "matches",
-      "common",
-      "assign",
-    ]);
+  it.each(["owner", "member"] as const)("keeps the same wizard step order for %s", (role) => {
+    setLobby({ role });
+    expect(wizardProps(renderLobby()).steps.map((step: { key: string }) => step.key))
+      .toEqual(["room", "matches", "common", "assign"]);
   });
 
   it("offers the host Start Game and a member nothing to press", () => {
@@ -378,7 +365,7 @@ describe("pre-start lobby, as the setup wizard", () => {
     const tree = renderLobby();
     expect(wizardProps(tree).activeStepKey).toBe("assign");
     setLobby({ poolSize: 0, commonMatchId: null });
-    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    rerenderLobby(tree);
     expect(wizardProps(tree).activeStepKey).toBe("assign");
     expect(mockSetParams).not.toHaveBeenCalled();
     act(() => tree.unmount());
@@ -391,7 +378,7 @@ describe("pre-start lobby, as the setup wizard", () => {
     const tree = renderLobby();
     expect(mockSetParams).not.toHaveBeenCalled();
     mockNavigationReady = true;
-    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    rerenderLobby(tree);
     expect(wizardProps(tree).activeStepKey).toBe("matches");
     expect(mockSetParams).toHaveBeenCalledWith({ step: "matches" });
     expect(mockStartGame).not.toHaveBeenCalled();
@@ -406,9 +393,9 @@ describe("pre-start lobby, as the setup wizard", () => {
     act(() => wizardProps(tree).onStepChange("matches"));
     expect(mockPush).toHaveBeenCalledTimes(1);
     mockParams = { step: "matches" };
-    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    rerenderLobby(tree);
     mockParams = {};
-    act(() => tree.update(React.createElement(TamaguiTestProvider, null, React.createElement(require("../../../app/lobby/[sessionId]").default))));
+    rerenderLobby(tree);
     expect(wizardProps(tree).activeStepKey).toBe("room");
     expect(mockPush).toHaveBeenCalledTimes(1);
     act(() => tree.unmount());

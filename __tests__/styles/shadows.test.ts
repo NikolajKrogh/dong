@@ -51,27 +51,13 @@ describe("androidElevationFallback", () => {
     }
   });
 
-  it("keeps elevation on Android versions before boxShadow support", () => {
-    setPlatform("android", 27);
-
-    expect(androidElevationFallback(4)).toEqual({ elevation: 4 });
-  });
-
-  it("uses boxShadow without elevation on Android 9 and newer", () => {
-    setPlatform("android", 28);
-
-    expect(androidElevationFallback(4)).toEqual({});
-  });
-
-  it("does not add elevation on web", () => {
-    setPlatform("web", 27);
-
-    expect(androidElevationFallback(4)).toEqual({});
-  });
-
-  it("does not add elevation on iOS", () => {
-    setPlatform("ios", 27);
-
-    expect(androidElevationFallback(4)).toEqual({});
+  it.each([
+    { os: "android", version: 27, expected: { elevation: 4 } },
+    { os: "android", version: 28, expected: {} },
+    { os: "web", version: 27, expected: {} },
+    { os: "ios", version: 27, expected: {} },
+  ])("uses the elevation fallback for $os $version", ({ os, version, expected }) => {
+    setPlatform(os, version);
+    expect(androidElevationFallback(4)).toEqual(expected);
   });
 });
