@@ -3,7 +3,7 @@ import TestRenderer from "react-test-renderer";
 import RoomStatusModal from "../../../components/gameProgress/RoomStatusModal";
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
-import type { ActiveGameRoomSync } from "../../../hooks/useActiveGameRoomSync";
+import type { ActiveGameRoomSync } from "../../../features/rooms/useActiveGameRoomSync";
 
 jest.mock("../../../platform/navigation/taskNavigation", () => ({
   TaskOverlay: ({ open, onClose, children }: any) => children({

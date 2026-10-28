@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
-import type { ActiveGameSyncStatus, PendingGameplayMutation } from "../../hooks/useActiveGameRoomSync";
+import type { ActiveGameSyncStatus, PendingGameplayMutation } from "../../features/rooms/useActiveGameRoomSync";
 import { ShellCard } from "../ui";
 
 interface MultiplayerGameStatusProps {

@@ -15,7 +15,7 @@ import { HistoryStatsCard } from "./HistoryStatsCard";
 import { HomeGameActions } from "./HomeGameActions";
 import { HomeSplash } from "./HomeSplash";
 import { JoinRoomModal } from "./JoinRoomModal";
-import { GuestJoinModal } from "../../components/guestJoin/GuestJoinModal";
+import { GuestJoinModal } from "../rooms/GuestJoinModal";
 import OnboardingScreen from "../../components/OnboardingScreen";
 import { ShellActionButton, ShellScreen } from "../../components/ui";
 import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";

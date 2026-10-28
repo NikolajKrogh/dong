@@ -5,7 +5,7 @@ import useGameProgressController from "../../hooks/useGameProgressController";
 import {
   useActiveGameRoomSync,
   type ActiveGameRoomSync,
-} from "../../hooks/useActiveGameRoomSync";
+} from "../../features/rooms/useActiveGameRoomSync";
 import { useLiveScores } from "../../features/football-matches/useLiveScores";
 import { useAppVisibility, useGoalSound } from "../../platform";
 import { useGameStore } from "../../store/store";
@@ -16,7 +16,7 @@ const mockSetParams = jest.fn();
 let mockNavigationReady = true;
 let mockGameParams: { gameTab?: string | string[] } = {};
 
-jest.mock("../../hooks/useActiveGameRoomSync", () => ({
+jest.mock("../../features/rooms/useActiveGameRoomSync", () => ({
   useActiveGameRoomSync: jest.fn(),
 }));
 jest.mock("../../features/football-matches/useLiveScores", () => ({

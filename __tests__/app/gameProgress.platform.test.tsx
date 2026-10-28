@@ -52,15 +52,15 @@ jest.mock("../../store/store", () => ({
 }));
 
 const mockExitRoom = jest.fn(async () => ({ status: "left" }));
-jest.mock("../../hooks/useRoomExit", () => ({ useRoomExit: () => ({
+jest.mock("../../features/rooms/useRoomExit", () => ({ useRoomExit: () => ({
   exitRoom: mockExitRoom, confirmSuccessor: jest.fn(), confirmClose: jest.fn(),
   cancel: jest.fn(), error: null, isExiting: false,
   pendingSuccessorChoice: false, eligibleSuccessors: [], needsCloseConfirm: false,
 }) }));
-jest.mock("../../hooks/useGuestRoomSession", () => ({ useGuestRoomSession: () => ({
+jest.mock("../../features/rooms/useGuestRoomSession", () => ({ useGuestRoomSession: () => ({
   status: "idle", error: null, leaveRoom: jest.fn(),
 }) }));
-jest.mock("../../components/lobby/SuccessorChooserModal", () => ({
+jest.mock("../../features/rooms/SuccessorChooserModal", () => ({
   SuccessorChooserModal: () => null,
 }));
 jest.mock("../../components/gameProgress/MultiplayerGameStatus", () => ({

@@ -2,15 +2,15 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useGameStore } from "../../store/store";
-import { roomSnapshotToGameState } from "../../utils/roomSnapshot";
+import { roomSnapshotToGameState } from "../rooms/roomSnapshotAdapter";
 import { useAccountAuth } from "../account";
-import { useGuestRoomJoin } from "../../hooks/useGuestRoomJoin";
-import { useHostRoomCreate } from "../../hooks/useHostRoomCreate";
-import { useMyActiveRoom } from "../../hooks/useMyActiveRoom";
-import { useRegisteredRoomJoin } from "../../hooks/useRegisteredRoomJoin";
-import { useRoomExit } from "../../hooks/useRoomExit";
+import { useGuestRoomJoin } from "../rooms/useGuestRoomJoin";
+import { useHostRoomCreate } from "../rooms/useHostRoomCreate";
+import { useMyActiveRoom } from "../rooms/useMyActiveRoom";
+import { useRegisteredRoomJoin } from "../rooms/useRegisteredRoomJoin";
+import { useRoomExit } from "../rooms/useRoomExit";
 import type { MyActiveRoom, RoomSnapshot } from "../../types/room";
-import { getRoomRpcClient } from "../../utils/supabaseClient";
+import { getRoomRpcClient } from "../rooms/roomRpcClient";
 
 /**
  * Composes the room join/host/exit hooks used by the home screen (registered

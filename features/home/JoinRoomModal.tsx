@@ -3,7 +3,7 @@ import { Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 import createStyles from "./homeStyles";
 import { useColors } from "../../styles/theme";
-import type { UseRoomExitResult } from "../../hooks/useRoomExit";
+import type { UseRoomExitResult } from "../rooms/useRoomExit";
 import type { MyActiveRoom } from "../../types/room";
 
 interface JoinRoomModalProps {

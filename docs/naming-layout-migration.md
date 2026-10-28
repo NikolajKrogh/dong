@@ -262,3 +262,69 @@ Discovery, saved-match operations, solo tracking, filters/time formatting, and t
 Refactor later: utils/commandApiClient.ts mixes a match-discovery facade, Java command HTTP handling and shared idempotency keys. Separate those existing responsibilities behind their actual interfaces before moving the shared command/idempotency portion into lib; avoid making infrastructure depend on a feature public index.
 
 M5a validation: typecheck, lint and Knip passed; affected football/setup/history tests passed (details below). Existing phone-sized Home Playwright journeys: 2 passed in 24.7 seconds after the Home/Preferences/setup moves.
+
+## M5b — Rooms and guest lifecycle
+
+Lobby/guest UI, room synchronization and configuration hooks, credential/session lifecycle and the room RPC client now share the rooms owner. guestRoom becomes guestRoomService because it implements session grant and access lifecycle, distinguishing it from the shared guestRoom contract. roomSnapshot becomes roomSnapshotAdapter because its exported operations translate server snapshots into application rosters/state. supabaseClient becomes roomRpcClient: lib/supabase.ts still owns SDK setup, while this module owns room-specific RPC operations. RoomLobbyScreen names the existing screen implementation; all three original route paths remain entry points. The platform-specific room-ended exit hook stays in platform because it integrates accessibility/back-handler behavior.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/components/guestJoin/GuestJoinForm.platform.test.tsx | __tests__/features/rooms/GuestJoinForm.platform.test.tsx | Mirror the room implementation and retain the existing test scope. |
+| __tests__/components/guestJoin/GuestJoinLobby.platform.test.tsx | __tests__/features/rooms/GuestJoinLobby.platform.test.tsx | Mirror the room implementation and retain the existing test scope. |
+| __tests__/components/lobby/PlayerPickPanel.platform.test.tsx | __tests__/features/rooms/PlayerPickPanel.platform.test.tsx | Mirror the room implementation and retain the existing test scope. |
+| components/guestJoin/GuestJoinForm.tsx | features/rooms/GuestJoinForm.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/guestJoin/GuestJoinLobby.tsx | features/rooms/GuestJoinLobby.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/guestJoin/GuestJoinModal.tsx | features/rooms/GuestJoinModal.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/AssignmentModeSelector.tsx | features/rooms/AssignmentModeSelector.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/AssignmentSettingsPanel.tsx | features/rooms/AssignmentSettingsPanel.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/ParticipantList.tsx | features/rooms/ParticipantList.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/PlayerPickPanel.tsx | features/rooms/PlayerPickPanel.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/RoomAssignmentPlayers.tsx | features/rooms/RoomAssignmentPlayers.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/RoomEndedNotice.tsx | features/rooms/RoomEndedNotice.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/RoomIdentityPanel.tsx | features/rooms/RoomIdentityPanel.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/StartGameWarnings.tsx | features/rooms/StartGameWarnings.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| components/lobby/SuccessorChooserModal.tsx | features/rooms/SuccessorChooserModal.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| hooks/useActiveGameRoomSync.ts | features/rooms/useActiveGameRoomSync.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useActiveGameRoomSync.test.ts | __tests__/features/rooms/useActiveGameRoomSync.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useGuestRoomEndedNavigation.ts | features/rooms/useGuestRoomEndedNavigation.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useGuestRoomEndedNavigation.test.ts | __tests__/features/rooms/useGuestRoomEndedNavigation.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useGuestRoomJoin.ts | features/rooms/useGuestRoomJoin.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useGuestRoomJoin.test.ts | __tests__/features/rooms/useGuestRoomJoin.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useGuestRoomSession.ts | features/rooms/useGuestRoomSession.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useGuestRoomSession.test.ts | __tests__/features/rooms/useGuestRoomSession.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useHostRoomCreate.ts | features/rooms/useHostRoomCreate.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useHostRoomCreate.test.ts | __tests__/features/rooms/useHostRoomCreate.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useMyActiveRoom.ts | features/rooms/useMyActiveRoom.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useMyActiveRoom.test.ts | __tests__/features/rooms/useMyActiveRoom.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useRegisteredRoomJoin.ts | features/rooms/useRegisteredRoomJoin.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useRegisteredRoomJoin.test.ts | __tests__/features/rooms/useRegisteredRoomJoin.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useRoomConfigure.ts | features/rooms/useRoomConfigure.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useRoomConfigure.test.ts | __tests__/features/rooms/useRoomConfigure.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useRoomExit.ts | features/rooms/useRoomExit.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useRoomExit.test.ts | __tests__/features/rooms/useRoomExit.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useRoomLobby.ts | features/rooms/useRoomLobby.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useRoomLobby.test.ts | __tests__/features/rooms/useRoomLobby.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useRoomMatchPool.ts | features/rooms/useRoomMatchPool.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useRoomMatchPool.test.ts | __tests__/features/rooms/useRoomMatchPool.test.ts | Mirror the room implementation and retain the existing test scope. |
+| hooks/useRunningGameDraft.ts | features/rooms/useRunningGameDraft.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/hooks/useRunningGameDraft.test.ts | __tests__/features/rooms/useRunningGameDraft.test.ts | Mirror the room implementation and retain the existing test scope. |
+| utils/guestRoom.ts | features/rooms/guestRoomService.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/utils/guestRoom.storage.test.ts | __tests__/features/rooms/guestRoomService.storage.test.ts | Mirror the room implementation and retain the existing test scope. |
+| utils/guestRoomTermination.ts | features/rooms/guestRoomTermination.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/utils/guestRoomTermination.test.ts | __tests__/features/rooms/guestRoomTermination.test.ts | Mirror the room implementation and retain the existing test scope. |
+| utils/roomSnapshot.ts | features/rooms/roomSnapshotAdapter.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/utils/roomSnapshot.test.ts | __tests__/features/rooms/roomSnapshotAdapter.test.ts | Mirror the room implementation and retain the existing test scope. |
+| utils/supabaseClient.ts | features/rooms/roomRpcClient.ts | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/utils/supabaseClient.gameplay.test.ts | __tests__/features/rooms/roomRpcClient.gameplay.test.ts | Mirror the room implementation and retain the existing test scope. |
+| __tests__/utils/supabaseClient.guestAccess.test.ts | __tests__/features/rooms/roomRpcClient.guestAccess.test.ts | Mirror the room implementation and retain the existing test scope. |
+| __tests__/utils/supabaseClient.processing.test.ts | __tests__/features/rooms/roomRpcClient.processing.test.ts | Mirror the room implementation and retain the existing test scope. |
+| __tests__/utils/supabaseClient.reassign.test.ts | __tests__/features/rooms/roomRpcClient.reassign.test.ts | Mirror the room implementation and retain the existing test scope. |
+| app/lobby/[sessionId].tsx | features/rooms/RoomLobbyScreen.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| app/editGame.tsx | features/rooms/EditGameScreen.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| app/roomEnded.tsx | features/rooms/RoomEndedScreen.tsx | Collect room-owned implementation and name the role; preserve route/security/lifecycle behavior. |
+| __tests__/app/lobby/lobbyInProgress.platform.test.tsx | __tests__/features/rooms/RoomLobbyScreen.inProgress.platform.test.tsx | Mirror the room implementation and retain the existing test scope. |
+| __tests__/app/lobby/lobbyWizard.platform.test.tsx | __tests__/features/rooms/RoomLobbyScreen.wizard.platform.test.tsx | Mirror the room implementation and retain the existing test scope. |
+
+Refactor later: features/rooms/RoomLobbyScreen.tsx (formerly app/lobby/[sessionId].tsx) has roughly 1,400 lines combining host/member eligibility, wizard state, assignments and rendering. features/rooms/useActiveGameRoomSync.ts exceeds 1,300 lines combining identity fencing, polling, optimistic mutation replay and completion. Review internal modules behind their existing interfaces, preserving the concurrency and guest-access tests, instead of splitting them merely by line count. The room RPC refactor candidate above now lives at features/rooms/roomRpcClient.ts.
+
+M5b validation: 31 affected suites / 274 tests passed, with typecheck, lint and Knip passing. The route wrapper is RoomLobbyScreen and its existing internal authenticated-content implementation is RoomLobbyContent, avoiding a name collision without changing membership gating. M5a affected run comprised 26 suites / 196 tests, all passing.

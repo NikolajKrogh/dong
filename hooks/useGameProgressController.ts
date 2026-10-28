@@ -15,7 +15,7 @@ import { createGameProgressStyles } from "../styles/gameProgressStyles";
 import { useColors } from "../styles/theme";
 import { useGameStore } from "../store/store";
 import { useAppVisibility, useGoalSound } from "../platform";
-import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
+import { useActiveGameRoomSync } from "../features/rooms/useActiveGameRoomSync";
 import { useNavigationReady } from "../utils/navigation/useNavigationReady";
 
 const subscribeGameHydration = (onChange: () => void) => {

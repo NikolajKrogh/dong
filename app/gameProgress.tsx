@@ -9,7 +9,7 @@ import { Text, YStack } from "tamagui";
 
 import EndGameModal from "../components/gameProgress/EndGameModal";
 import RoomStatusModal from "../components/gameProgress/RoomStatusModal";
-import { SuccessorChooserModal } from "../components/lobby/SuccessorChooserModal";
+import { SuccessorChooserModal } from "../features/rooms/SuccessorChooserModal";
 import { ShellActionButton, ShellScreen } from "../components/ui";
 import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import FooterButtons from "../components/gameProgress/FooterButtons";
@@ -19,8 +19,8 @@ import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActions
 import PlayersList from "../components/gameProgress/PlayersList";
 import GameProgressTabs from "../components/gameProgress/GameProgressTabs";
 import useGameProgressController from "../hooks/useGameProgressController";
-import { useGuestRoomSession } from "../hooks/useGuestRoomSession";
-import { useRoomExit } from "../hooks/useRoomExit";
+import { useGuestRoomSession } from "../features/rooms/useGuestRoomSession";
+import { useRoomExit } from "../features/rooms/useRoomExit";
 import { useRouter } from "expo-router";
 import { useGameStore } from "../store/store";
 import { isWideLayout } from "../styles/responsive";

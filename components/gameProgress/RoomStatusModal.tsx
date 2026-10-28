@@ -2,7 +2,7 @@ import React from "react";
 import { Modal, Platform, ScrollView } from "react-native";
 import { Text, YStack } from "tamagui";
 
-import type { ActiveGameRoomSync } from "../../hooks/useActiveGameRoomSync";
+import type { ActiveGameRoomSync } from "../../features/rooms/useActiveGameRoomSync";
 import { TaskOverlay } from "../../platform/navigation/taskNavigation";
 import { ShellActionButton } from "../ui";
 

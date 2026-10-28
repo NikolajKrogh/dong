@@ -35,17 +35,17 @@ jest.mock("expo-router", () => ({
 jest.mock("../../../features/account", () => ({
   useAccountAuth: () => ({ account: null }),
 }));
-jest.mock("../../../hooks/useHostRoomCreate", () => ({
+jest.mock("../../../features/rooms/useHostRoomCreate", () => ({
   useHostRoomCreate: () => ({
     isCreating: false,
     error: null,
     createRoom: jest.fn(),
   }),
 }));
-jest.mock("../../../hooks/useMyActiveRoom", () => ({
+jest.mock("../../../features/rooms/useMyActiveRoom", () => ({
   useMyActiveRoom: () => ({ activeRoom: null, refresh: jest.fn() }),
 }));
-jest.mock("../../../hooks/useRegisteredRoomJoin", () => ({
+jest.mock("../../../features/rooms/useRegisteredRoomJoin", () => ({
   useRegisteredRoomJoin: () => ({
     isJoining: false,
     error: null,
@@ -54,7 +54,7 @@ jest.mock("../../../hooks/useRegisteredRoomJoin", () => ({
     clearConflict: jest.fn(),
   }),
 }));
-jest.mock("../../../hooks/useRoomExit", () => ({
+jest.mock("../../../features/rooms/useRoomExit", () => ({
   useRoomExit: () => ({
     isExiting: false,
     error: null,
@@ -67,7 +67,7 @@ jest.mock("../../../hooks/useRoomExit", () => ({
     cancel: jest.fn(),
   }),
 }));
-jest.mock("../../../hooks/useGuestRoomJoin", () => ({
+jest.mock("../../../features/rooms/useGuestRoomJoin", () => ({
   useGuestRoomJoin: () => ({
     session: mockGuestSession,
     status: mockGuestRoomStatus,

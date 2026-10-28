@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
 import { createGuestRoomHostFixture } from "../fixtures";
-import { roomSnapshotToGameState } from "../../utils/roomSnapshot";
+import { roomSnapshotToGameState } from "../../features/rooms/roomSnapshotAdapter";
 import {
   GUEST_ROOM_SESSION_GRANT_STORAGE_KEY,
   HOST_ROOM_PARTICIPANT_ID,

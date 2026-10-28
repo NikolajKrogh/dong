@@ -20,7 +20,7 @@ const mockUseAccountAuth = jest.fn(() => ({
 const mockRefreshHistory = jest.fn();
 const mockPush = jest.fn();
 const mockGetRoomSnapshot = jest.fn(() => Promise.resolve(null));
-jest.mock("../../../utils/supabaseClient", () => ({ getRoomRpcClient: () => ({ getRoomSnapshot: mockGetRoomSnapshot }) }));
+jest.mock("../../../features/rooms/roomRpcClient", () => ({ getRoomRpcClient: () => ({ getRoomSnapshot: mockGetRoomSnapshot }) }));
 const mockUseHistory = jest.fn();
 jest.mock("../../../features/history", () => ({
   useHistory: () => mockUseHistory(),
@@ -88,7 +88,7 @@ jest.mock("../../../platform", () => ({
   PlatformAnimation: mockPlatformAnimation,
 }));
 
-jest.mock("../../../hooks/useGuestRoomJoin", () => ({
+jest.mock("../../../features/rooms/useGuestRoomJoin", () => ({
   useGuestRoomJoin: () => mockUseGuestRoomJoin(),
 }));
 
@@ -96,19 +96,19 @@ jest.mock("../../../features/account", () => ({
   useAccountAuth: () => mockUseAccountAuth(),
 }));
 
-jest.mock("../../../hooks/useHostRoomCreate", () => ({
+jest.mock("../../../features/rooms/useHostRoomCreate", () => ({
   useHostRoomCreate: () => mockUseHostRoomCreate(),
 }));
 
-jest.mock("../../../hooks/useMyActiveRoom", () => ({
+jest.mock("../../../features/rooms/useMyActiveRoom", () => ({
   useMyActiveRoom: () => mockUseMyActiveRoom(),
 }));
 
-jest.mock("../../../hooks/useRegisteredRoomJoin", () => ({
+jest.mock("../../../features/rooms/useRegisteredRoomJoin", () => ({
   useRegisteredRoomJoin: () => mockUseRegisteredRoomJoin(),
 }));
 
-jest.mock("../../../hooks/useRoomExit", () => ({
+jest.mock("../../../features/rooms/useRoomExit", () => ({
   useRoomExit: () => mockUseRoomExit(),
 }));
 
@@ -213,7 +213,7 @@ jest.mock("../../../components/OnboardingScreen", () => {
     );
 });
 
-jest.mock("../../../components/guestJoin/GuestJoinModal", () => ({
+jest.mock("../../../features/rooms/GuestJoinModal", () => ({
   GuestJoinModal: ({ visible, session }: any) => {
     const RN = require("react-native");
     const R = require("react");

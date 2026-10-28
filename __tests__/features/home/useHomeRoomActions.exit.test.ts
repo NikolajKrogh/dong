@@ -5,7 +5,7 @@ import { useHomeRoomActions } from "../../../features/home/useHomeRoomActions";
 
 const mockRoom = { sessionId: "room-1", participantId: "host", role: "owner", joinCode: "ABC123" };
 const mockRefresh = jest.fn();
-jest.mock("../../../utils/supabaseClient", () => ({
+jest.mock("../../../features/rooms/roomRpcClient", () => ({
   getRoomRpcClient: () => ({ getRoomSnapshot: () => new Promise(() => {}) }),
 }));
 const mockJoin = jest.fn();
@@ -26,15 +26,15 @@ jest.mock("../../../store/store", () => ({
   }),
 }));
 jest.mock("../../../features/account", () => ({ useAccountAuth: () => ({ account: { id: "host" } }) }));
-jest.mock("../../../hooks/useMyActiveRoom", () => ({
+jest.mock("../../../features/rooms/useMyActiveRoom", () => ({
   useMyActiveRoom: () => ({ activeRoom: mockRoom, refresh: mockRefresh, isLoading: false, error: null }),
 }));
-jest.mock("../../../hooks/useRoomExit", () => ({ useRoomExit: () => mockExit }));
-jest.mock("../../../hooks/useHostRoomCreate", () => ({ useHostRoomCreate: () => ({}) }));
-jest.mock("../../../hooks/useRegisteredRoomJoin", () => ({
+jest.mock("../../../features/rooms/useRoomExit", () => ({ useRoomExit: () => mockExit }));
+jest.mock("../../../features/rooms/useHostRoomCreate", () => ({ useHostRoomCreate: () => ({}) }));
+jest.mock("../../../features/rooms/useRegisteredRoomJoin", () => ({
   useRegisteredRoomJoin: () => ({ conflictRoom: null, clearConflict: jest.fn(), joinRoom: mockJoin }),
 }));
-jest.mock("../../../hooks/useGuestRoomJoin", () => ({
+jest.mock("../../../features/rooms/useGuestRoomJoin", () => ({
   useGuestRoomJoin: () => ({ session: null, status: "idle" }),
 }));
 

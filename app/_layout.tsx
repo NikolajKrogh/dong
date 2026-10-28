@@ -7,7 +7,7 @@ import { goalToastConfig } from "../components/gameProgress/GoalToast";
 import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
 import { AccountAuthProvider } from "../features/account";
-import { useGuestRoomEndedNavigation } from "../hooks/useGuestRoomEndedNavigation";
+import { useGuestRoomEndedNavigation } from "../features/rooms/useGuestRoomEndedNavigation";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../lib/queryClient';
 import QueryLifecycle from '../lib/QueryLifecycle';

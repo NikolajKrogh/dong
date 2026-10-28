@@ -240,7 +240,7 @@ describe("AssignmentSection progress badge", () => {
 
 describe("shared solo and room assignment controls", () => {
   it("preserves both server settings when either shared counter changes", () => {
-    const { AssignmentSettingsPanel } = require("../../../components/lobby/AssignmentSettingsPanel");
+    const { AssignmentSettingsPanel } = require("../../../features/rooms/AssignmentSettingsPanel");
     const onChange = jest.fn();
     const tree = actCreate(React.createElement(AssignmentSettingsPanel, {
       plan: { matchesPerPlayer: 2, sharedMatchesPerPair: 1 }, mode: "automatic", isBusy: false, onChange,
@@ -254,7 +254,7 @@ describe("shared solo and room assignment controls", () => {
   });
 
   it("uses the solo card and match list for host allocation with busy-write protection", () => {
-    const { RoomAssignmentPlayers } = require("../../../components/lobby/RoomAssignmentPlayers");
+    const { RoomAssignmentPlayers } = require("../../../features/rooms/RoomAssignmentPlayers");
     const { MatchSelectionCard } = require("../../../features/game-setup/MatchSelectionCard");
     const { SelectableMatchList } = require("../../../features/game-setup/SelectableMatchList");
     const onToggleAllocation = jest.fn();
