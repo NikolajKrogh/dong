@@ -102,13 +102,15 @@ const findSelectedMatch = (
 const findLiveMatch = (liveMatches: LiveMatch[], selectedMatchId: string | null) =>
   liveMatches.find((candidate) => candidate.id === selectedMatchId);
 
-const isProviderControlledMatch = (
+function isProviderControlledMatch(
   match: TrackedMatch | null,
   liveMatchData: LiveMatch | undefined,
-) =>
-  (match?.sourceProvider != null &&
-    match.sourceProvider.toLowerCase() !== "manual") ||
-  Boolean(liveMatchData);
+): boolean {
+  const hasCatalogIdentity = Boolean(match?.catalogMatchId);
+  const hasProviderIdentity = match?.sourceProvider != null
+    && match.sourceProvider.toLowerCase() !== "manual";
+  return hasCatalogIdentity || hasProviderIdentity || Boolean(liveMatchData);
+}
 
 const getTeamScorers = (
   liveMatchData: LiveMatch | undefined,
@@ -116,7 +118,8 @@ const getTeamScorers = (
 ) => {
   if (!liveMatchData) return [];
   const teamId = team === "home" ? liveMatchData.homeTeamId : liveMatchData.awayTeamId;
-  return liveMatchData.goalScorers?.filter((scorer) => scorer.teamId === teamId) || [];
+  if (!teamId) return [];
+  return liveMatchData.goalScorers?.filter((scorer) => scorer.teamId === teamId) ?? [];
 };
 
 const getAffectedPlayers = (
@@ -149,7 +152,17 @@ const isCommonMatchSelection = (
 const shouldShowStatisticsTab = (
   isApiControlledMatch: boolean,
   liveMatchData: LiveMatch | undefined,
-) => Boolean(isApiControlledMatch && liveMatchData?.homeTeamStatistics);
+) => Boolean(isApiControlledMatch && (liveMatchData?.homeTeamStatistics || liveMatchData?.awayTeamStatistics));
+
+const unavailableStatistics = {
+  shotAttempts: null,
+  shotsOnGoal: null,
+  fouls: null,
+  yellowCards: null,
+  redCards: null,
+  cornerKicks: null,
+  possession: null,
+};
 
 const getMatchStatistics = (
   isApiControlledMatch: boolean,
@@ -157,14 +170,13 @@ const getMatchStatistics = (
 ): MatchTabContentProps["statistics"] => {
   if (
     !isApiControlledMatch ||
-    !liveMatchData?.homeTeamStatistics ||
-    !liveMatchData.awayTeamStatistics
+    !liveMatchData || (!liveMatchData.homeTeamStatistics && !liveMatchData.awayTeamStatistics)
   ) {
     return null;
   }
   return {
-    homeStats: liveMatchData.homeTeamStatistics,
-    awayStats: liveMatchData.awayTeamStatistics,
+    homeStats: liveMatchData.homeTeamStatistics ?? unavailableStatistics,
+    awayStats: liveMatchData.awayTeamStatistics ?? unavailableStatistics,
   };
 };
 
@@ -447,7 +459,7 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
       showStatisticsTab={showStatisticsTab}
       scoreControls={scoreControls}
       isApiControlledMatch={isApiControlledMatch}
-      goalScorers={{ homeTeamScorers, awayTeamScorers }}
+      goalScorers={{ homeTeamScorers, awayTeamScorers, availability: liveMatchData?.goalsAvailability, hasMoreGoals: liveMatchData?.hasMoreGoals }}
       players={{
         affectedPlayersCount: affectedPlayers.length,
         playerColumns,

@@ -4,7 +4,6 @@ import {
 } from "../../types/room";
 import {
   createGuestRoomRpcClient,
-  createProviderScoreRefreshClient,
   createRoomRpcClient,
 } from "../../utils/supabaseClient";
 
@@ -32,34 +31,6 @@ const result: GameplayCommandResult = {
 };
 
 describe("server-authoritative gameplay RPC clients", () => {
-  it("sends only the room ID and UUID key to the authenticated Edge Function", async () => {
-    const response = {
-      sessionId: "session-1",
-      requestId: "00000000-0000-4000-8000-000000000001",
-      status: "not_due" as const,
-      refreshedAt: null,
-      results: [],
-      warnings: [],
-    };
-    const invoke = jest.fn().mockResolvedValue({ data: response, error: null });
-    const client = {
-      functions: { invoke },
-    } as never;
-
-    await expect(
-      createProviderScoreRefreshClient(client).refreshProviderScores(
-        "session-1",
-        "00000000-0000-4000-8000-000000000001",
-      ),
-    ).resolves.toEqual(response);
-    expect(invoke).toHaveBeenCalledWith("refresh-provider-scores", {
-      body: { sessionId: "session-1" },
-      headers: {
-        "Idempotency-Key": "00000000-0000-4000-8000-000000000001",
-      },
-    });
-  });
-
   it("serializes a registered manual score command and preserves the result", async () => {
     const { client, rpc } = fakeClient({ data: result, error: null });
     const roomClient = createRoomRpcClient(client);

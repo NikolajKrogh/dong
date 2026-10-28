@@ -45,6 +45,7 @@ const GameProgressScreen = () => {
     liveMatches,
     isPolling,
     lastUpdated,
+    sourceStatusMessage,
     setActiveTab,
     openQuickActions,
     closeQuickActions,
@@ -120,6 +121,7 @@ const GameProgressScreen = () => {
           >
             <View style={styles.tabContent}>
               <MatchesGrid
+                sourceStatusMessage={sourceStatusMessage}
                 matches={matches}
                 players={players}
                 commonMatchId={commonMatchId}

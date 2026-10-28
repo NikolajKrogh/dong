@@ -58,34 +58,31 @@ const LeagueCard = React.memo(function LeagueCard({ league, removeLeague }: Leag
     () => removeLeague(league.code),
     [league.code, removeLeague],
   );
+  const logoPlaceholderIcon = isLoading ? "hourglass-outline" : "football-outline";
+  let logoContent = (
+    <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
+      <Ionicons
+        name={logoPlaceholderIcon}
+        size={20}
+        color={colors.textMuted}
+      />
+    </View>
+  );
+  if (!isLoading && logoSource) {
+    logoContent = (
+      <Image
+        source={logoSource}
+        style={manageLeaguesModalStyles.leagueLogo}
+        resizeMode="contain"
+      />
+    );
+  }
 
   return (
     <View style={manageLeaguesModalStyles.leagueCard}>
       <View style={manageLeaguesModalStyles.leagueCardContent}>
         <View style={manageLeaguesModalStyles.logoContainer}>
-          {isLoading ? (
-            <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
-              <Ionicons
-                name="hourglass-outline"
-                size={20}
-                color={colors.textMuted}
-              />
-            </View>
-          ) : logoSource ? (
-            <Image
-              source={logoSource}
-              style={manageLeaguesModalStyles.leagueLogo}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={manageLeaguesModalStyles.leagueLogoPlaceholder}>
-              <Ionicons
-                name="football-outline"
-                size={20}
-                color={colors.textMuted}
-              />
-            </View>
-          )}
+          {logoContent}
         </View>
 
         <View style={manageLeaguesModalStyles.leagueInfo}>
@@ -229,6 +226,8 @@ const ManageLeaguesModal: React.FC<ManageLeaguesModalProps> = ({
           </Text>
           <TouchableOpacity
             onPress={handleOpenResetConfirm}
+            accessibilityRole="button"
+            accessibilityLabel="Reset leagues to defaults"
             style={manageLeaguesModalStyles.resetButton}
           >
             <Ionicons name="refresh-outline" size={22} color={colors.danger} />

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react";
 
+import { FOOTBALL_MATCH_PROVIDER } from "../types/footballMatch";
 import type {
   AddRoomMatchRequest,
   BatchRoomMatchResult,
@@ -44,10 +45,11 @@ export interface RoomMatchPool {
 }
 
 /** Provider recorded for a fixture taken from the discovery catalogue. */
-export const CATALOGUE_SOURCE_PROVIDER = "espn";
+export const CATALOGUE_SOURCE_PROVIDER = FOOTBALL_MATCH_PROVIDER;
 
 export const toDisplayMatch = (match: RoomMatchSummary): Match => ({
   id: match.id,
+  catalogMatchId: match.catalogMatchId ?? undefined,
   homeTeam: match.homeTeamName,
   awayTeam: match.awayTeamName,
   homeGoals: match.homeScore,

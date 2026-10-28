@@ -14,6 +14,7 @@ export type SortDirection = "asc" | "desc";
  * @description Data + handlers required to render matches in grid/list form with pull‑to‑refresh and live score meta.
  */
 export interface MatchesGridProps {
+  sourceStatusMessage?: string | null;
   /** Array of match objects from the game store. */
   matches: Match[];
   /** Player list used for assignment lookups. */
@@ -60,6 +61,7 @@ export interface MatchItemProps {
  * @description Sorting + layout controls state used by the header bar.
  */
 export interface MatchesHeaderProps {
+  sourceStatusMessage?: string | null;
   /** Current sort field. */
   sortField: SortField;
   /** Current sort direction. */

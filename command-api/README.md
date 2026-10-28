@@ -1,6 +1,6 @@
 # DONG Command API
 
-Supabase-authenticated multiplayer command API. Spring Boot 3.3 / Java 17.
+Supabase-authenticated multiplayer command API. Spring Boot 3.5.3 / Java 17.
 
 Bootstrap scope (issue #132 / US4.1): authenticated command surface, OpenAPI docs,
 health/readiness, structured-log + metrics observability, one stub command endpoint,
@@ -102,8 +102,6 @@ cp .env.example .env   # loaded automatically; no shell exports needed
 breaks all authentication while leaving the rest of the service healthy, so it has
 its own health component (below). For local Supabase both point at the port in
 `supabase/config.toml` `[api]` (currently `55321`, **not** the upstream default 54321).
-| `COMMAND_API_MATCH_DISCOVERY_TTL` | Optional cache TTL for repeated identical match lookups. Defaults to `PT5M`. |
-| `COMMAND_API_MATCH_DISCOVERY_ESPN_BASE_URL` | Optional ESPN soccer API base URL override. Defaults to the public ESPN soccer site API. |
 
 ## Run
 
@@ -118,7 +116,8 @@ export SUPABASE_JWKS_URL=... SUPABASE_URL=http://127.0.0.1:54321
   start cleanly and then reject every authenticated request.
 - API explorer: `http://localhost:8080/swagger-ui.html`
 - Stub command: `POST /v1/rooms/{roomId}/commands/{commandType}` (Bearer JWT + `Idempotency-Key: <uuid v4>`). The key is **format-validated only** — there is no deduplication yet (issue #133), so a replayed command re-executes. Safe only while the lone `echo` handler is side-effect free; `IdempotencyStubGuardTest` enforces this.
-- Match discovery: `GET /v1/matches` is public and uses the configured supported league allowlist. Each league/date is fetched and cached independently (default `PT5M` TTL, bounded by `cache-maximum-size`), and leagues are fetched in parallel. If some requested leagues are temporarily unavailable, the response returns matches from the healthy leagues rather than failing — only when **every** requested league fails is a `503` surfaced.
+- Match discovery: `GET /v1/matches` forwards public selections to Supabase `discover-matches`, in batches of at most 16 league codes. Postgres owns shared acquisition and freshness; Java makes no ESPN calls and keeps no discovery cache. Source event IDs remain `id`; `catalogMatchId` is additive and remains a string. An explicit `requestedAt` uses its own offset's calendar date, within seven days of today UTC. Nonempty partial saved results are returned; an empty list is successful only when every requested group is available and known empty. Cold/unavailable empty data returns `503`.
+- Room processing: a committed `room_processing_pending` result retries the same RPC key/payload at most twice after one second. Exhaustion returns HTTP 200 with `{ "ok": false, "code": "room_processing_pending", "retryAfterSeconds": 1 }`. It does not emit an accepted acknowledgement or complete the terminal idempotency cache. Stale preconditions remain conflicts; Java does not rebase them.
 
 Dev CORS for the Expo web client: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev`
 
@@ -131,10 +130,12 @@ Dev CORS for the Expo web client: `./mvnw spring-boot:run -Dspring-boot.run.prof
 
 Focused match-discovery validation on PowerShell:
 
+Supported leagues come from the versioned `constants/leagueCatalog.json`, bundled by both the app and ESPN transport, with matching saved Postgres identities verified by `npm run check:league-catalog`. Java validates identifier syntax and request bounds, and preserves the catalog's unsupported-league and invalid-date errors as HTTP 400 responses. There is no separate Java league list or frontend league-metadata request.
+
 ```powershell
 $env:SUPABASE_JWKS_URL = "https://example.invalid/.well-known/jwks.json"
 $env:SUPABASE_URL = "http://localhost:9"
-.\mvnw.cmd --% -Dtest=MatchNormalizationTest,MatchDiscoveryServiceTest,MatchCacheServiceTest,MatchDiscoveryControllerTest,MatchDiscoveryPerformanceTest test
+.\mvnw.cmd --% -Dtest=MatchCatalogClientTest,MatchDiscoveryServiceTest,MatchDiscoveryControllerTest,SupabaseRestClientTest,CommandControllerTest,CommandDispatcherTest,PersistentIdempotencyServiceTest test
 ```
 
 See `specs/014-java-command-api/quickstart.md` for end-to-end validation.

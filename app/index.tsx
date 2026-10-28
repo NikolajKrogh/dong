@@ -1,21 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  ActivityIndicator,
   Image,
   ScrollView,
-  Text,
   useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import AppIcon from "../components/AppIcon";
-import { CancelGameModal } from "../components/home/CancelGameModal";
-import { CurrentGameCard } from "../components/home/CurrentGameCard";
 import { HistoryStatsCard } from "../components/home/HistoryStatsCard";
+import { HomeGameActions } from "../components/home/HomeGameActions";
 import { HomeSplash } from "../components/home/HomeSplash";
 import { JoinRoomModal } from "../components/home/JoinRoomModal";
 import { GuestJoinModal } from "../components/guestJoin/GuestJoinModal";
@@ -24,7 +21,6 @@ import { ShellActionButton, ShellScreen } from "../components/ui";
 import { ScreenReaderHeading } from "../components/ui/ScreenReaderHeading";
 import { useHomeRoomActions } from "../hooks/useHomeRoomActions";
 import { useHistory } from "../features/history";
-import { useGameStore } from "../store/store";
 import { getTopDrinker, getTotalDrinks } from "../utils/homeStats";
 import createStyles from "../styles/indexStyles";
 import { isWideLayout } from "../styles/responsive";
@@ -43,12 +39,10 @@ let hasSplashBeenShown = false;
  * @returns {React.ReactElement} Home screen UI.
  */
 const HomeScreen = () => {
-  const router = useRouter();
   const { width } = useWindowDimensions();
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const wideLayout = isWideLayout(width);
-  const { players, matches, resetState, activeGameContext } = useGameStore();
   const { history, refresh: refreshHistory } = useHistory();
   const roomActions = useHomeRoomActions();
   const refreshActiveRoom = roomActions.refreshActiveRoom;
@@ -56,7 +50,6 @@ const HomeScreen = () => {
     void refreshHistory();
     void refreshActiveRoom();
   }, [refreshHistory, refreshActiveRoom]));
-  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isSplashVisible, setIsSplashVisible] = useState(() => {
     const shouldShow = !hasSplashBeenShown;
     if (shouldShow) {
@@ -87,14 +80,6 @@ const HomeScreen = () => {
     setIsFirstLaunch(false);
   }, []);
 
-  const handleContinueGame = useCallback(() => {
-    router.push("/gameProgress");
-  }, [router]);
-
-  const openCancelModal = useCallback(() => {
-    setIsConfirmModalVisible(true);
-  }, []);
-
   const topDrinkerInfo = useMemo(() => getTopDrinker(history), [history]);
   const totalDrinks = useMemo(() => getTotalDrinks(history), [history]);
 
@@ -105,18 +90,6 @@ const HomeScreen = () => {
   if (isFirstLaunch) {
     return <OnboardingScreen onFinish={handleFinishOnboarding} />;
   }
-
-  const hasGameInProgress = activeGameContext?.mode !== "multiplayer" && players.length > 0 && matches.length > 0;
-
-  /**
-   * Cancel current game.
-   * @description Resets global game state and dismisses confirmation modal.
-   */
-  const handleCancelGame = () => {
-    if (activeGameContext?.mode === "multiplayer") return;
-    resetState();
-    setIsConfirmModalVisible(false);
-  };
 
   return (
     <>
@@ -143,29 +116,7 @@ const HomeScreen = () => {
               <ScreenReaderHeading>Home</ScreenReaderHeading>
             </View>
 
-            {hasGameInProgress ? (
-              <CurrentGameCard
-                colors={colors}
-                styles={styles}
-                matchesCount={matches.length}
-                playersCount={players.length}
-                onContinue={handleContinueGame}
-                continueHref="/gameProgress"
-                onCancel={openCancelModal}
-              />
-            ) : (
-              <ShellActionButton
-                variant="success"
-                label="Start New Game"
-                testID="home-start-game-button"
-                icon={
-                  <AppIcon name="add-circle" size={22} color={colors.white} />
-                }
-                href="/setupGame"
-                widthMode={wideLayout ? "wide" : undefined}
-                style={{ marginTop: 16 }}
-              />
-            )}
+            <HomeGameActions actions={roomActions} colors={colors} styles={styles} wideLayout={wideLayout} />
 
             <HistoryStatsCard
               colors={colors}
@@ -174,18 +125,6 @@ const HomeScreen = () => {
               topDrinkerInfo={topDrinkerInfo}
               totalDrinks={totalDrinks}
             />
-
-            <ShellActionButton
-              variant="surface"
-              label="Friends"
-              href="/friends"
-              testID="home-friends-button"
-              icon={<AppIcon name="people-outline" size={22} color={colors.primary} />}
-              widthMode={wideLayout ? "wide" : undefined}
-              style={{ marginTop: 16 }}
-            />
-
-            <HomeRoomActions actions={roomActions} colors={colors} styles={styles} wideLayout={wideLayout} />
 
             <ShellActionButton
               variant="surface"
@@ -205,134 +144,12 @@ const HomeScreen = () => {
             />
           </ScrollView>
 
-          <CancelGameModal
-            visible={isConfirmModalVisible}
-            styles={styles}
-            onRequestClose={() => setIsConfirmModalVisible(false)}
-            onConfirm={handleCancelGame}
-          />
-
           <HomeRoomModals actions={roomActions} colors={colors} styles={styles} />
         </SafeAreaView>
       </ShellScreen>
     </>
   );
 };
-
-interface HomeRoomActionsProps {
-  actions: ReturnType<typeof useHomeRoomActions>;
-  colors: ReturnType<typeof useColors>;
-  styles: ReturnType<typeof createStyles>;
-  wideLayout: boolean;
-}
-
-function ActiveRoomActions({ actions, colors, styles, wideLayout }: HomeRoomActionsProps) {
-  const { account, activeRoom, activeRoomError, refreshActiveRoom, openRoomExit, handleReturnToRoom } = actions;
-  return <>
-    {account !== null && activeRoom !== null ? <>
-      <ShellActionButton variant="primary" label="Return to room" testID="home-return-to-room"
-        icon={<AppIcon name="people" size={22} color={colors.white} />} onPress={handleReturnToRoom}
-        widthMode={wideLayout ? "wide" : undefined} style={{ marginTop: 16 }} />
-      <ShellActionButton variant="danger" label="Leave Room" testID="home-leave-room"
-        onPress={openRoomExit} widthMode={wideLayout ? "wide" : undefined} style={{ marginTop: 12 }} />
-    </> : null}
-    {activeRoomError ? <View>
-      <Text accessibilityRole="alert" style={styles.createRoomError}>{activeRoomError}</Text>
-      <ShellActionButton variant="surface" label="Retry" onPress={() => { void refreshActiveRoom(); }} />
-    </View> : null}
-  </>;
-}
-
-function HomeRoomActions({ actions, colors, styles, wideLayout }: HomeRoomActionsProps) {
-  const {
-    account,
-    activeRoom,
-    isActiveRoomLoading,
-    activeRoomError,
-    isCreatingRoom,
-    createRoomError,
-    createRoom,
-    setIsJoinModalVisible,
-    guestRoomSession,
-    guestJoinActionLabel,
-    handleOpenGuestJoin,
-  } = actions;
-  return (
-    <>
-    <ActiveRoomActions actions={actions} colors={colors} styles={styles} wideLayout={wideLayout} />
-
-    {account !== null && activeRoom === null && (
-      <>
-        <ShellActionButton
-          variant="primary"
-          label={isCreatingRoom ? "Creating Room…" : "Create Room"}
-          testID="home-create-room-button"
-          disabled={isCreatingRoom || isActiveRoomLoading || Boolean(activeRoomError)}
-          icon={
-            isCreatingRoom ? (
-              <ActivityIndicator color={colors.white} />
-            ) : (
-              <AppIcon
-                name="people-outline"
-                size={22}
-                color={colors.white}
-              />
-            )
-          }
-          onPress={() => {
-            void createRoom();
-          }}
-          widthMode={wideLayout ? "wide" : undefined}
-          style={{ marginTop: 16 }}
-        />
-
-        {createRoomError !== null && (
-          <Text
-            testID="home-create-room-error"
-            style={styles.createRoomError}
-          >
-            {createRoomError}
-          </Text>
-        )}
-
-        <ShellActionButton
-          variant="secondary"
-          label="Join Room"
-          testID="home-join-registered-button"
-          disabled={isActiveRoomLoading || Boolean(activeRoomError)}
-          icon={
-            <AppIcon
-              name="people-outline"
-              size={22}
-              color={colors.white}
-            />
-          }
-          onPress={() => setIsJoinModalVisible(true)}
-          widthMode={wideLayout ? "wide" : undefined}
-          style={{ marginTop: 16 }}
-        />
-      </>
-    )}
-
-    <ShellActionButton
-      variant={guestRoomSession ? "primary" : "secondary"}
-      label={guestJoinActionLabel}
-      testID="home-join-room-button"
-      icon={
-        <AppIcon
-          name={guestRoomSession ? "people" : "people-outline"}
-          size={22}
-          color={colors.white}
-        />
-      }
-      onPress={handleOpenGuestJoin}
-      widthMode={wideLayout ? "wide" : undefined}
-      style={{ marginTop: 16 }}
-    />
-
-    </>
-  );
-}
 
 function HomeRoomModals({ actions, colors, styles }: {
   actions: ReturnType<typeof useHomeRoomActions>;

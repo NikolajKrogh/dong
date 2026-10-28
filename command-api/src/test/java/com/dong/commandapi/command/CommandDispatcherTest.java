@@ -110,4 +110,18 @@ class CommandDispatcherTest {
         verify(idempotency).release(key, host);
         verify(idempotency, never()).complete(any(), any(), any());
     }
+
+    @Test
+    void pendingProgressReleasesReservationWithoutCachingATerminalSuccess() {
+        UUID key = UUID.randomUUID();
+        when(idempotency.validate("key")).thenReturn(key);
+        when(idempotency.reserve(key, "test-command", "room-1", host)).thenReturn(new IdempotencyDecision.Proceed());
+        CommandHandler handler = testHandler();
+        when(handler.handle(any())).thenReturn(new CommandResult(CommandResult.Status.ACCEPTED,
+                Map.of("ok", false, "code", "room_processing_pending", "retryAfterSeconds", 1)));
+        CommandDispatcher dispatcher = new CommandDispatcher(List.of(handler), idempotency);
+        assertThat(dispatcher.dispatch(ctx("test-command")).result().detail().get("code")).isEqualTo("room_processing_pending");
+        verify(idempotency).release(key, host);
+        verify(idempotency, never()).complete(any(), any(), any());
+    }
 }

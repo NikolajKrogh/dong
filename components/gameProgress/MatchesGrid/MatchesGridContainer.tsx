@@ -34,6 +34,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   refreshing,
   lastUpdated,
   isPolling,
+  sourceStatusMessage,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(
@@ -186,6 +187,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
     <View style={{ flex: 1 }}>
       {/* Header with title, refresh status, and layout toggle */}
       <MatchesHeader
+        sourceStatusMessage={sourceStatusMessage}
         sortField={sortField}
         sortDirection={sortDirection}
         useGridLayout={useGridLayout}

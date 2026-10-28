@@ -142,6 +142,7 @@ export const convertTimeToMinutes = (timeString: string): number => {
 
 /** Match data shape. */
 export interface MatchData {
+  catalogMatchId?: string;
   id: string;
   /** Stable provider league code used by trusted score ingestion. */
   leagueCode?: string;

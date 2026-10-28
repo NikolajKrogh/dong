@@ -5,6 +5,9 @@ import { useHomeRoomActions } from "../../hooks/useHomeRoomActions";
 
 const mockRoom = { sessionId: "room-1", participantId: "host", role: "owner", joinCode: "ABC123" };
 const mockRefresh = jest.fn();
+jest.mock("../../utils/supabaseClient", () => ({
+  getRoomRpcClient: () => ({ getRoomSnapshot: () => new Promise(() => {}) }),
+}));
 const mockJoin = jest.fn();
 const mockStore = {
   activeGameContext: { mode: "multiplayer", sessionId: "room-1" },

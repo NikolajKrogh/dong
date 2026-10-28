@@ -119,6 +119,7 @@ describe("Settings menu", () => {
 
     for (const [label, route] of [
       ["Profile & username", "/userPreferences/profile"],
+      ["Friends", "/friends"],
       ["Appearance", "/userPreferences/appearance"],
       ["Sound & notifications", "/userPreferences/sound"],
       ["Leagues", "/userPreferences/leagues"],
@@ -147,6 +148,7 @@ describe("Settings menu", () => {
     expect(text).toContain("Sign in or create account");
     expect(text).not.toContain("Profile & username");
     expect(text).not.toContain("Sign out");
+    expect(text).not.toContain("Friends");
     press(tree, "action-Sign in or create account");
     expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2FuserPreferences");
     unmount(tree);

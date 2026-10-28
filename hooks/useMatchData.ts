@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   ApiResponse,
   TeamWithLeague,
 } from "../utils/matchUtils";
 import { useGameStore } from "../store/store";
-import { AVAILABLE_LEAGUES, LeagueEndpoint } from "../constants/leagues";
+import { AVAILABLE_LEAGUES, type LeagueEndpoint } from "../constants/leagues";
 import {
   getMatchDiscoveryApiClient,
   type MatchDiscoveryRequest,
@@ -36,22 +36,6 @@ const buildRequestedAt = (
   return `${selectedDate}T00:00:00.000Z`;
 };
 
-const buildLeagueLookup = (configuredLeagues: LeagueEndpoint[]) => {
-  const lookup = new Map<string, LeagueEndpoint>();
-
-  configuredLeagues.forEach((league) => {
-    lookup.set(league.code, league);
-  });
-
-  AVAILABLE_LEAGUES.forEach((league) => {
-    if (!lookup.has(league.code)) {
-      lookup.set(league.code, league);
-    }
-  });
-
-  return lookup;
-};
-
 const mapNormalizedMatchesToApiData = (
   configuredLeagues: LeagueEndpoint[],
   normalizedMatches: NormalizedMatch[],
@@ -62,6 +46,7 @@ const mapNormalizedMatchesToApiData = (
       .filter((match) => match.league === league.code)
       .map((match) => ({
         id: match.id,
+        catalogMatchId: match.catalogMatchId,
         leagueCode: match.league,
         team1: match.homeTeam,
         team2: match.awayTeam,
@@ -136,12 +121,14 @@ const getClientSafeErrorMessage = (error: unknown) => {
  * @returns State bundle (isLoading, isError, errorMessage, teamsData, apiData, availableLeagues).
  */
 export function useMatchData(selectedDate?: string) {
+  const generationRef = useRef(0);
   /** Indicates if data is currently loading. */
   const [isLoading, setIsLoading] = useState(false);
   /** Whether an error occurred. */
   const [isError, setIsError] = useState(false);
   /** Error message (if any). */
   const [errorMessage, setErrorMessage] = useState("");
+  const [availabilityMessage, setAvailabilityMessage] = useState("");
   /** Processed unique team list. */
   const [teamsData, setTeamsData] = useState<TeamWithLeague[]>([]);
   /** Raw structured API data grouped by league. */
@@ -159,27 +146,43 @@ export function useMatchData(selectedDate?: string) {
     * @description Handles uniqueness filtering, sorting, and client-safe error state when requests fail.
    */
   const fetchData = useCallback(async () => {
+    const generation = ++generationRef.current;
     setIsLoading(true);
     setIsError(false);
     setErrorMessage("");
 
     try {
-      const leagueEndpoints = configuredLeagues;
+      const catalog = new Map(AVAILABLE_LEAGUES.map(league => [league.code, league]));
+      const leagueEndpoints = configuredLeagues
+        .map(league => catalog.get(league.code) ?? league);
       if (leagueEndpoints.length === 0) {
         setApiData([]);
         setTeamsData([]);
         setAvailableLeagues([]);
+        setAvailabilityMessage("");
         return;
       }
 
-      const leagueLookup = buildLeagueLookup(leagueEndpoints);
+      const leagueLookup = new Map(leagueEndpoints.map(league => [league.code, league]));
       const request: MatchDiscoveryRequest = {
         leagueCodes: leagueEndpoints.map((league) => league.code),
         requestedAt: buildRequestedAt(selectedDate),
       };
-      const normalizedMatches = await getMatchDiscoveryApiClient().discoverMatches(
+      const discovery = await getMatchDiscoveryApiClient().discoverMatches(
         request,
       );
+      if (generationRef.current !== generation) return;
+
+      const incompleteGroups = discovery.groups.filter(group => group.availability !== "available" || group.isStale);
+      const incompleteNames = [...new Set(incompleteGroups.map(group => leagueLookup.get(group.leagueCode)?.name ?? group.leagueCode))];
+      const incomplete = discovery.availability !== "available" || incompleteGroups.length > 0;
+      let availabilityNotice = "";
+      if (incompleteNames.length) {
+        availabilityNotice = `Matches for ${incompleteNames.join(", ")} may be missing or out of date. Available matches are still shown.`;
+      } else if (incomplete) {
+        availabilityNotice = "Some matches may be missing or out of date. Available matches are still shown.";
+      }
+      setAvailabilityMessage(availabilityNotice);
 
       const availableLeagueCodes = new Set(request.leagueCodes);
       const resolvedAvailableLeagues = request.leagueCodes
@@ -189,24 +192,23 @@ export function useMatchData(selectedDate?: string) {
 
       const groupedApiData = mapNormalizedMatchesToApiData(
         resolvedAvailableLeagues,
-        normalizedMatches,
+        discovery.matches,
       );
 
       setApiData(groupedApiData);
       setAvailableLeagues(resolvedAvailableLeagues);
       setTeamsData(extractTeamsFromNormalizedMatches(groupedApiData));
     } catch (error) {
+      if (generationRef.current !== generation) return;
       console.error(
         "Error fetching teams:",
         error instanceof Error ? error.message : String(error)
       );
       setIsError(true);
       setErrorMessage(getClientSafeErrorMessage(error));
-      setApiData([]);
-      setTeamsData([]);
-      setAvailableLeagues([]);
+      // Keep accepted data visible when only a background refresh fails.
     } finally {
-      setIsLoading(false);
+      if (generationRef.current === generation) setIsLoading(false);
     }
   }, [selectedDate, configuredLeagues]);
 
@@ -214,12 +216,17 @@ export function useMatchData(selectedDate?: string) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
     fetchData();
+    // Invalidate every in-flight request when the selection changes or unmounts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { generationRef.current++; };
   }, [fetchData]);
 
   return {
     isLoading,
     isError,
     errorMessage,
+    availabilityMessage,
+    retry: fetchData,
     teamsData,
     apiData,
     availableLeagues,

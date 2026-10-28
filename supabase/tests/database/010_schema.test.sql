@@ -2,7 +2,9 @@
 BEGIN;
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(37);
+SELECT plan(39);
+SELECT ok(to_regclass('public.provider_matches') IS NULL, 'provider facts are outside the exposed public schema');
+SELECT ok(to_regprocedure('public.claim_provider_request(bigint,text,uuid,bigint)') IS NULL, 'source ownership has no public RPC alias');
 SELECT ok(
         to_regclass('public.accounts') IS NOT NULL,
         'accounts table exists'
@@ -301,7 +303,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'matches'
         ),
-        'id:uuid:NO,session_id:uuid:NO,source_provider:text:NO,source_match_id:text:YES,home_team_name:text:NO,away_team_name:text:NO,kickoff_at:timestamp with time zone:YES,home_score:integer:NO,away_score:integer:NO,created_at:timestamp with time zone:YES,source_league_code:text:YES',
+        'id:uuid:NO,session_id:uuid:NO,source_provider:text:NO,source_match_id:text:YES,home_team_name:text:NO,away_team_name:text:NO,kickoff_at:timestamp with time zone:YES,home_score:integer:NO,away_score:integer:NO,created_at:timestamp with time zone:YES,source_league_code:text:YES,catalog_match_id:bigint:YES,tracking_started_observation_version:bigint:YES,last_applied_observation_version:bigint:YES,last_provider_applied_at:timestamp with time zone:YES',
         'matches columns, types, and nullability match expectations'
     );
 SELECT ok(
@@ -370,7 +372,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'gameplay_events'
         ),
-        'id:uuid:NO,session_id:uuid:NO,sequence_number:bigint:NO,actor_participant_id:uuid:NO,event_type:text:NO,idempotency_key:text:NO,payload:jsonb:NO,created_at:timestamp with time zone:YES',
+        'id:uuid:NO,session_id:uuid:NO,sequence_number:bigint:NO,actor_participant_id:uuid:YES,event_type:text:NO,idempotency_key:text:NO,payload:jsonb:NO,created_at:timestamp with time zone:YES,actor_kind:text:NO,room_match_id:uuid:YES,catalog_match_id:bigint:YES,provider_observation_version:bigint:YES',
         'gameplay_events columns, types, and nullability match expectations'
     );
 SELECT *

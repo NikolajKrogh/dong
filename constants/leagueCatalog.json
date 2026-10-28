@@ -1,0 +1,849 @@
+[
+  {
+    "code": "eng.1",
+    "name": "Premier League",
+    "category": "Europe",
+    "defaultOrder": 0,
+    "selectedByDefault": true
+  },
+  {
+    "code": "eng.2",
+    "name": "Championship",
+    "category": "Europe",
+    "defaultOrder": 1,
+    "selectedByDefault": true
+  },
+  {
+    "code": "eng.3",
+    "name": "League One",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "eng.4",
+    "name": "League Two",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "eng.league_cup",
+    "name": "Carabao Cup",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "eng.fa",
+    "name": "FA Cup",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "esp.1",
+    "name": "La Liga",
+    "category": "Europe",
+    "defaultOrder": 3,
+    "selectedByDefault": false
+  },
+  {
+    "code": "esp.2",
+    "name": "LALIGA 2",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "esp.copa_del_rey",
+    "name": "Spanish Copa del Rey",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ger.1",
+    "name": "Bundesliga",
+    "category": "Europe",
+    "defaultOrder": 2,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ger.2",
+    "name": "German 2. Bundesliga",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ger.dfb_pokal",
+    "name": "DFB Pokal",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ita.1",
+    "name": "Serie A",
+    "category": "Europe",
+    "defaultOrder": 4,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ita.2",
+    "name": "Serie B",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ita.coppa_italia",
+    "name": "Coppa Italia",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fra.1",
+    "name": "Ligue 1",
+    "category": "Europe",
+    "defaultOrder": 5,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fra.2",
+    "name": "Ligue 2",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fra.coupe_de_france",
+    "name": "Coupe de France",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "por.1",
+    "name": "Portuguese Primeira Liga",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ned.1",
+    "name": "Eredivisie",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ned.cup",
+    "name": "Dutch KNVB Beker",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "sco.1",
+    "name": "Scottish Premiership",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "sco.3",
+    "name": "Scottish League One",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "sco.4",
+    "name": "Scottish League Two",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bel.1",
+    "name": "Belgian Pro League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "rus.1",
+    "name": "Russian Premier League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "tur.1",
+    "name": "Turkish Super Lig",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "gre.1",
+    "name": "Greek Super League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "sui.1",
+    "name": "Swiss Super League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "aut.1",
+    "name": "Austrian Bundesliga",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "den.1",
+    "name": "Superliga",
+    "category": "Europe",
+    "defaultOrder": 6,
+    "selectedByDefault": false
+  },
+  {
+    "code": "nor.1",
+    "name": "Norwegian Eliteserien",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "swe.1",
+    "name": "Swedish Allsvenskan",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "irl.1",
+    "name": "Irish Premier Division",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.champions",
+    "name": "UEFA Champions League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.europa",
+    "name": "UEFA Europa League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.europa.conf",
+    "name": "UEFA Conference League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.wchampions",
+    "name": "UEFA Women's Champions League",
+    "category": "Europe",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "usa.1",
+    "name": "MLS",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "usa.nwsl",
+    "name": "NWSL",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "usa.usl.1",
+    "name": "USL Championship",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "usa.usl.l1",
+    "name": "USL League One",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "usa.open",
+    "name": "U.S. Open Cup",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "usa.nwsl.cup",
+    "name": "NWSL Challenge Cup",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "mex.1",
+    "name": "Mexican Liga BBVA MX",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "mex.2",
+    "name": "Mexican Liga de Expansión MX",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "mex.copa_mx",
+    "name": "Mexican Copa MX",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "concacaf.champions",
+    "name": "Concacaf Champions Cup",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "concacaf.gold",
+    "name": "Concacaf Gold Cup",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "crc.1",
+    "name": "Costa Rican Primera Division",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "hon.1",
+    "name": "Honduran Liga Nacional",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "gua.1",
+    "name": "Guatemalan Liga Nacional",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "slv.1",
+    "name": "Salvadoran Primera Division",
+    "category": "USA, Mexico & CONCACAF",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.1",
+    "name": "Brazilian Serie A",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.2",
+    "name": "Brazilian Serie B",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.copa_do_brazil",
+    "name": "Copa do Brasil",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.camp.gaucho",
+    "name": "Brazilian Campeonato Gaucho",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.camp.paulista",
+    "name": "Brazilian Campeonato Paulista",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.camp.carioca",
+    "name": "Brazilian Campeonato Carioca",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bra.camp.mineiro",
+    "name": "Brazilian Campeonato Mineiro",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.1",
+    "name": "Argentine Liga Profesional de Fútbol",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.2",
+    "name": "Argentine Nacional B",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.3",
+    "name": "Argentine Primera B",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.4",
+    "name": "Argentine Primera C",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.5",
+    "name": "Argentine Primera D",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.copa",
+    "name": "Copa Argentina",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "arg.copa_lpf",
+    "name": "Argentine Copa de la Liga Profesional",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "col.1",
+    "name": "Colombian Primera A",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "col.2",
+    "name": "Colombian Primera B",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "col.copa",
+    "name": "Copa Colombia",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "chi.1",
+    "name": "Chilean Primera División",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "chi.copa_chi",
+    "name": "Copa Chile",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ecu.1",
+    "name": "LigaPro Ecuador",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uru.1",
+    "name": "Liga UAF Uruguaya",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ven.1",
+    "name": "Venezuelan Primera División",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "par.1",
+    "name": "Paraguayan Primera División",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "per.1",
+    "name": "Peruvian Liga 1",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "bol.1",
+    "name": "Bolivian Liga Profesional",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "conmebol.libertadores",
+    "name": "CONMEBOL Libertadores",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "conmebol.sudamericana",
+    "name": "CONMEBOL Sudamericana",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "conmebol.america",
+    "name": "Copa América",
+    "category": "South America",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.world",
+    "name": "FIFA World Cup",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.cwc",
+    "name": "FIFA Club World Cup",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.worldq.uefa",
+    "name": "FIFA World Cup Qualifying - UEFA",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.worldq.concacaf",
+    "name": "FIFA World Cup Qualifying - Concacaf",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.worldq.conmebol",
+    "name": "FIFA World Cup Qualifying - CONMEBOL",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.worldq.afc",
+    "name": "FIFA World Cup Qualifying - AFC",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.worldq.caf",
+    "name": "FIFA World Cup Qualifying - CAF",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.worldq.ofc",
+    "name": "FIFA World Cup Qualifying - OFC",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.wwc",
+    "name": "FIFA Women's World Cup",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.world.u20",
+    "name": "FIFA Under-20 World Cup",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.world.u17",
+    "name": "FIFA Under-17 World Cup",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.olympics",
+    "name": "Men's Olympic Soccer Tournament",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.w.olympics",
+    "name": "Women's Olympic Soccer Tournament",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.friendly",
+    "name": "International Friendly",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "fifa.friendly.w",
+    "name": "Women's International Friendly",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.euro",
+    "name": "UEFA European Championship",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.nations",
+    "name": "UEFA Nations League",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.euro_u21",
+    "name": "UEFA European Under-21 Championship",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.euro.u19",
+    "name": "UEFA European Under-19 Championship",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.euroq",
+    "name": "UEFA European Championship Qualifying",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "uefa.weuro",
+    "name": "UEFA Women's European Championship",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "concacaf.womens.championship",
+    "name": "Concacaf W Championship",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "club.friendly",
+    "name": "Club Friendly",
+    "category": "Internationals",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "afc.champions",
+    "name": "AFC Champions League Elite",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "afc.cup",
+    "name": "AFC Champions League Two",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "afc.asian.cup",
+    "name": "AFC Asian Cup",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "afc.cupq",
+    "name": "AFC Asian Cup Qualifiers",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ksa.1",
+    "name": "Saudi Pro League",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "aus.1",
+    "name": "Australian A-League Men",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "aus.w.1",
+    "name": "Australian A-League Women",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "jpn.1",
+    "name": "Japanese J.League",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "chn.1",
+    "name": "Chinese Super League",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "ind.1",
+    "name": "Indian Super League",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "idn.1",
+    "name": "Indonesian Liga 1",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "mys.1",
+    "name": "Malaysian Super League",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "sgp.1",
+    "name": "Singaporean Premier League",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "tha.1",
+    "name": "Thai League 1",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "aff.championship",
+    "name": "ASEAN Championship",
+    "category": "Asia",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "caf.champions",
+    "name": "CAF Champions League",
+    "category": "Africa",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  },
+  {
+    "code": "caf.nations",
+    "name": "Africa Cup of Nations",
+    "category": "Africa",
+    "defaultOrder": null,
+    "selectedByDefault": false
+  }
+]

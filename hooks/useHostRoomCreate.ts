@@ -31,7 +31,7 @@ const messageFor = (error: unknown): string => {
 export interface UseHostRoomCreateResult {
   isCreating: boolean;
   error: string | null;
-  createRoom: () => Promise<void>;
+  createRoom: () => Promise<boolean>;
 }
 
 export const useHostRoomCreate = (): UseHostRoomCreateResult => {
@@ -52,8 +52,10 @@ export const useHostRoomCreate = (): UseHostRoomCreateResult => {
           sessionId: response.sessionId,
         },
       });
+      return true;
     } catch (err) {
       setError(messageFor(err));
+      return false;
     } finally {
       setIsCreating(false);
     }

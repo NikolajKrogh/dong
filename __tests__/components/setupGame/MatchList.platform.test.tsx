@@ -17,10 +17,13 @@ const mockAvailableLeagues: unknown[] = [];
 const mockAllTeamsData: unknown[] = [];
 const mockFilteredTeamsData: unknown[] = [];
 const mockSetFilteredTeamsData = jest.fn();
+const mockRetryMatchDiscovery = jest.fn();
 const mockMatchDataState = {
   isLoading: true,
   isError: false,
   errorMessage: "",
+  availabilityMessage: "",
+  retry: mockRetryMatchDiscovery,
   teamsData: mockMatchTeamsData,
   apiData: mockApiData,
   availableLeagues: mockAvailableLeagues,
@@ -78,10 +81,10 @@ jest.mock("../../../platform", () => ({
 }));
 
 jest.mock("../../../store/store", () => ({
-  useGameStore: () => ({
-    defaultSelectedLeagues: [],
-    theme: "light",
-  }),
+  useGameStore: (selector?: (state: unknown) => unknown) => {
+    const state = { defaultSelectedLeagues: [], configuredLeagues: [], theme: "light" };
+    return selector ? selector(state) : state;
+  },
 }));
 
 jest.mock("../../../styles/theme", () => ({
@@ -239,6 +242,7 @@ describe("MatchList platform adoption", () => {
     mockMatchDataState.isLoading = true;
     mockMatchDataState.isError = false;
     mockMatchDataState.errorMessage = "";
+    mockMatchDataState.availabilityMessage = "";
   });
 
   it("uses the shared animation adapter for loading feedback", () => {
@@ -268,6 +272,13 @@ describe("MatchList platform adoption", () => {
     const setHomeTeam = jest.fn();
     const setAwayTeam = jest.fn();
     const renderer = renderMatchList({ matches: [], setGlobalMatches, setHomeTeam, setAwayTeam });
+
+    if (status === "failed") {
+      const retry = renderer.root.findByProps({ accessibilityLabel: "Retry loading matches" });
+      expect(retry.props.disabled).toBe(false);
+      TestRenderer.act(() => retry.props.onPress());
+      expect(mockRetryMatchDiscovery).toHaveBeenCalledTimes(1);
+    }
 
     expect(renderer.root.findAllByProps({ testID: "TeamSelectionRow" })).toHaveLength(0);
     TestRenderer.act(() => {

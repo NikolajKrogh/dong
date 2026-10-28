@@ -1,6 +1,7 @@
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { AVAILABLE_LEAGUES, type LeagueEndpoint } from "../../constants/leagues";
+import { useGameStore } from "../../store/store";
 import { useLeagueLogo } from "../../hooks/useLeagueLogo";
 import type { Match } from "../../store/store";
 import { useColors } from "../../styles/theme";
@@ -34,6 +35,7 @@ export default function LeagueMatchSections({
   disabledMatchIds,
   onToggleMatch,
 }: LeagueMatchSectionsProps): React.JSX.Element {
+  const configuredLeagues = useGameStore(state => state.configuredLeagues);
   const groups = new Map<string, Match[]>();
   for (const match of matches) {
     const code = match.sourceLeagueCode ?? "";
@@ -44,7 +46,9 @@ export default function LeagueMatchSections({
   return (
     <>
       {[...groups].map(([code, group]) => {
-        const league = AVAILABLE_LEAGUES.find(item => item.code === code);
+        const league = AVAILABLE_LEAGUES.find(item => item.code === code)
+          ?? configuredLeagues.find(item => item.code === code)
+          ?? (code ? { code, name: code } : undefined);
         return (
           <View key={code}>
             {league ? <LeagueHeading league={league} /> : null}

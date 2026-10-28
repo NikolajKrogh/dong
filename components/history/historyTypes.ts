@@ -47,6 +47,8 @@ export interface Player {
  * @property {number} [goals] Optional total goals (may be precomputed or cached).
  */
 export interface Match {
+  catalogMatchId?: string;
+  catalogSnapshot?: import("../../types/footballMatch").SavedMatch;
   id: string;
   homeTeam: string;
   awayTeam: string;

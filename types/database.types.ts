@@ -413,32 +413,44 @@ export type Database = {
             };
             "gameplay_events": {
                 Row: {
-                    "actor_participant_id": string;
+                    "actor_kind": string;
+                    "actor_participant_id": string | null;
+                    "catalog_match_id": number | null;
                     "created_at": string | null;
                     "event_type": string;
                     "id": string;
                     "idempotency_key": string;
                     "payload": NonNullable<Json>;
+                    "provider_observation_version": number | null;
+                    "room_match_id": string | null;
                     "sequence_number": number;
                     "session_id": string;
                 };
                 Insert: {
-                    "actor_participant_id": string;
+                    "actor_kind"?: string;
+                    "actor_participant_id"?: string | null;
+                    "catalog_match_id"?: number | null;
                     "created_at"?: string | null;
                     "event_type": string;
                     "id"?: string;
                     "idempotency_key": string;
                     "payload": NonNullable<Json>;
+                    "provider_observation_version"?: number | null;
+                    "room_match_id"?: string | null;
                     "sequence_number": number;
                     "session_id": string;
                 };
                 Update: {
-                    "actor_participant_id"?: string;
+                    "actor_kind"?: string;
+                    "actor_participant_id"?: string | null;
+                    "catalog_match_id"?: number | null;
                     "created_at"?: string | null;
                     "event_type"?: string;
                     "id"?: string;
                     "idempotency_key"?: string;
                     "payload"?: NonNullable<Json>;
+                    "provider_observation_version"?: number | null;
+                    "room_match_id"?: string | null;
                     "sequence_number"?: number;
                     "session_id"?: string;
                 };
@@ -451,6 +463,32 @@ export type Database = {
                         ];
                         isOneToOne: false;
                         referencedRelation: "participants";
+                        referencedColumns: [
+                            "session_id",
+                            "id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "gameplay_events_provider_catalog_match";
+                        columns: [
+                            "room_match_id",
+                            "catalog_match_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "matches";
+                        referencedColumns: [
+                            "id",
+                            "catalog_match_id"
+                        ];
+                    },
+                    {
+                        foreignKeyName: "gameplay_events_provider_room_match";
+                        columns: [
+                            "session_id",
+                            "room_match_id"
+                        ];
+                        isOneToOne: false;
+                        referencedRelation: "matches";
                         referencedColumns: [
                             "session_id",
                             "id"
@@ -473,41 +511,53 @@ export type Database = {
                 Row: {
                     "away_score": number;
                     "away_team_name": string;
+                    "catalog_match_id": number | null;
                     "created_at": string | null;
                     "home_score": number;
                     "home_team_name": string;
                     "id": string;
                     "kickoff_at": string | null;
+                    "last_applied_observation_version": number | null;
+                    "last_provider_applied_at": string | null;
                     "session_id": string;
                     "source_league_code": string | null;
                     "source_match_id": string | null;
                     "source_provider": string;
+                    "tracking_started_observation_version": number | null;
                 };
                 Insert: {
                     "away_score"?: number;
                     "away_team_name": string;
+                    "catalog_match_id"?: number | null;
                     "created_at"?: string | null;
                     "home_score"?: number;
                     "home_team_name": string;
                     "id"?: string;
                     "kickoff_at"?: string | null;
+                    "last_applied_observation_version"?: number | null;
+                    "last_provider_applied_at"?: string | null;
                     "session_id": string;
                     "source_league_code"?: string | null;
                     "source_match_id"?: string | null;
                     "source_provider": string;
+                    "tracking_started_observation_version"?: number | null;
                 };
                 Update: {
                     "away_score"?: number;
                     "away_team_name"?: string;
+                    "catalog_match_id"?: number | null;
                     "created_at"?: string | null;
                     "home_score"?: number;
                     "home_team_name"?: string;
                     "id"?: string;
                     "kickoff_at"?: string | null;
+                    "last_applied_observation_version"?: number | null;
+                    "last_provider_applied_at"?: string | null;
                     "session_id"?: string;
                     "source_league_code"?: string | null;
                     "source_match_id"?: string | null;
                     "source_provider"?: string;
+                    "tracking_started_observation_version"?: number | null;
                 };
                 Relationships: [
                     {
@@ -1032,6 +1082,13 @@ export type Database = {
                     "session_ids": (string)[];
                 };
                 Returns: number;
+            };
+            "read_saved_matches": {
+                Args: {
+                    "catalog_match_ids": (string)[];
+                    "projection"?: string;
+                };
+                Returns: Json;
             };
             "reassign_participant_matches": {
                 Args: {

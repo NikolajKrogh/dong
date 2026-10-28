@@ -1,6 +1,10 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
+function discoveryResult(matches: unknown[]) {
+  return { matches, groups: [], availability: "available", retryAfterSeconds: null };
+}
+
 const mockUseGameStore = jest.fn();
 const mockDiscoverMatches = jest.fn();
 
@@ -22,6 +26,52 @@ jest.mock("../../utils/teamLogos", () => ({
 }));
 
 describe("useMatchData", () => {
+  it("uses bundled league names without a catalog request", async () => {
+    let latest!: ReturnType<typeof import("../../hooks/useMatchData").useMatchData>;
+    const Probe = () => { latest = require("../../hooks/useMatchData").useMatchData("2026-05-24"); return null; };
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(<Probe />); });
+    expect(mockDiscoverMatches).toHaveBeenCalledWith({ leagueCodes: ["eng.1", "usa.1"], requestedAt: "2026-05-24T00:00:00.000Z" });
+    expect(latest.availableLeagues).toEqual([
+      expect.objectContaining({ code: "eng.1", name: "Premier League" }),
+      expect.objectContaining({ code: "usa.1", name: "MLS" }),
+    ]);
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+  it("ignores a delayed response from an earlier selected date", async () => {
+    let resolveOld!: (value: unknown) => void;
+    mockDiscoverMatches
+      .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
+      .mockResolvedValueOnce(discoveryResult([{
+        id: "new",
+        catalogMatchId: "222",
+        league: "eng.1",
+        homeTeam: "New Home",
+        awayTeam: "New Away",
+        startDateTime: "2026-05-25T19:00:00Z",
+        status: "scheduled",
+      }]));
+    let latest!: ReturnType<typeof import("../../hooks/useMatchData").useMatchData>;
+    const Probe = ({ date }: { date: string }) => {
+      latest = require("../../hooks/useMatchData").useMatchData(date);
+      return null;
+    };
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(<Probe date="2026-05-24" />); });
+    await TestRenderer.act(async () => { renderer.update(<Probe date="2026-05-25" />); });
+    await TestRenderer.act(async () => {
+      resolveOld(discoveryResult([{
+        id: "old",
+        league: "eng.1",
+        homeTeam: "Old Home",
+        awayTeam: "Old Away",
+        startDateTime: "2026-05-24T19:00:00Z",
+        status: "scheduled",
+      }]));
+    });
+    expect(latest.apiData[0].matches[0]).toMatchObject({ id: "new", catalogMatchId: "222", team1: "New Home" });
+    await TestRenderer.act(async () => renderer.unmount());
+  });
   const configuredLeagues = [
     { code: "eng.1", name: "Premier League", category: "Europe" },
     { code: "usa.1", name: "MLS", category: "USA, Mexico & CONCACAF" },
@@ -40,7 +90,7 @@ describe("useMatchData", () => {
         }) => unknown,
       ) => selector({ configuredLeagues }),
     );
-    mockDiscoverMatches.mockResolvedValue([
+    mockDiscoverMatches.mockResolvedValue(discoveryResult([
       {
         id: "match-1",
         league: "eng.1",
@@ -62,7 +112,7 @@ describe("useMatchData", () => {
           away: 2,
         },
       },
-    ]);
+    ]));
     globalWithFetch.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ events: [], leagues: [] }),
@@ -71,6 +121,41 @@ describe("useMatchData", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("keeps healthy matches with a named partial-results notice and retries without clearing them", async () => {
+    const healthyMatch = {
+      id: "healthy", league: "eng.1", homeTeam: "Arsenal", awayTeam: "Chelsea",
+      startDateTime: "2026-05-24T19:00:00Z", status: "scheduled",
+    };
+    mockDiscoverMatches.mockResolvedValueOnce({
+      matches: [healthyMatch], availability: "partial", retryAfterSeconds: 30,
+      groups: [{ leagueCode: "usa.1", availability: "pending", isStale: true }],
+    });
+    let latest!: ReturnType<typeof import("../../hooks/useMatchData").useMatchData>;
+    const Probe = () => {
+      latest = require("../../hooks/useMatchData").useMatchData("2026-05-24");
+      return null;
+    };
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(<Probe />); });
+    expect(latest.apiData[0].matches[0].id).toBe("healthy");
+    expect(latest.availabilityMessage).toContain("MLS");
+    expect(latest.availabilityMessage).toContain("may be missing or out of date");
+    expect(latest.availableLeagues).toEqual(configuredLeagues);
+
+    mockDiscoverMatches.mockRejectedValueOnce(new Error("fetch failed"));
+    await TestRenderer.act(async () => { await latest.retry(); });
+    expect(latest.apiData[0].matches[0].id).toBe("healthy");
+    expect(latest.isError).toBe(true);
+
+    mockDiscoverMatches.mockResolvedValueOnce(discoveryResult([healthyMatch]));
+    await TestRenderer.act(async () => { await latest.retry(); });
+    expect(latest.availabilityMessage).toBe("");
+    expect(latest.errorMessage).toBe("");
+    expect(latest.isError).toBe(false);
+    expect(mockDiscoverMatches).toHaveBeenCalledTimes(3);
+    await TestRenderer.act(async () => renderer.unmount());
   });
 
   it("loads grouped match data through the command API client", async () => {
@@ -159,7 +244,7 @@ describe("useMatchData", () => {
       (selector: (state: { configuredLeagues: unknown[] }) => unknown) =>
         selector({ configuredLeagues: multiLeague }),
     );
-    mockDiscoverMatches.mockResolvedValueOnce([
+    mockDiscoverMatches.mockResolvedValueOnce(discoveryResult([
       {
         id: "league-match",
         league: "eng.1",
@@ -176,7 +261,7 @@ describe("useMatchData", () => {
         startDateTime: "2026-05-25T19:00:00Z",
         status: "scheduled",
       },
-    ]);
+    ]));
 
     let observedHook:
       | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>
@@ -218,7 +303,7 @@ describe("useMatchData", () => {
   });
 
   it("returns empty grouped results when the command API returns no matches", async () => {
-    mockDiscoverMatches.mockResolvedValueOnce([]);
+    mockDiscoverMatches.mockResolvedValueOnce(discoveryResult([]));
 
     let observedHook:
       | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>

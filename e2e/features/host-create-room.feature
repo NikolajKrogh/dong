@@ -8,9 +8,9 @@ Feature: Host Create Room
         And a 6-digit numeric join code is displayed
         And the host display name appears in the participant list
 
-    Scenario: Create Room button is hidden for unauthenticated users
+    Scenario: Hosting requires sign-in
         Given the guest room app is running on web
-        Then the Create Room button is not visible
+        Then hosting asks the signed-out user to sign in
 
     Scenario: A host resumes a lobby from its canonical URL
         Given the host room service is mocked

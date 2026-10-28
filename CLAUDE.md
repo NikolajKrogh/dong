@@ -131,12 +131,12 @@ reconnects — reverse tunnels do not persist across USB re-attach.
 - **State**: Zustand + AsyncStorage is canonical on-device. Supabase Postgres backs multiplayer/synced state. No other persistence layer.
 - **Cloud queries**: TanStack Query owns account-scoped Friends/History server data in memory; auth changes cancel/remove private caches and fence delayed callbacks. See [development workflow](docs/development-workflow.md) for boundaries, generated contracts and migration tooling.
 - **Auth**: Supabase Auth. Signed-in = host. Guests join via room code and are session-scoped identities.
-- **Match discovery**: client calls `GET /v1/matches` on the Java proxy (not ESPN directly). The proxy applies a configurable in-memory TTL cache (default `PT5M`).
+- **Match Catalog**: maintained clients discover through `discover-matches`, maintain finite solo tracking, and read saved individual matches through `read_saved_matches`. Postgres owns source demand, budgets, leases and room replay; the bounded Edge monitor is the sole maintained ESPN transport. Java `GET /v1/matches` forwards for compatibility without a source cache or fallback. Acquisition and the owned Cron job stay disabled until reviewed activation.
 - **Tamagui**: design system foundation. New UI work should use Tamagui components and move toward the palette defined in `styles/`.
 - **Supabase project ref**: `qccvlhblytuedgmlqfef` (MCP config in `.mcp.json`).
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/029-web-android-ux/plan.md
+at specs/030-reduce-espn-requests/plan.md
 <!-- SPECKIT END -->

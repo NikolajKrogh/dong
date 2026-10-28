@@ -30,7 +30,7 @@ import {
 } from "../utils/guestRoom";
 import { confirmGuestRoomEnded, isGuestRoomEnded } from "../utils/guestRoomTermination";
 import { getSupabaseClient } from "../lib/supabase";
-import { getGuestRoomRpcClient, getProviderScoreRefreshClient, getRoomRpcClient, mapGameplayError } from "../utils/supabaseClient";
+import { getGuestRoomRpcClient, getRoomRpcClient, mapGameplayError } from "../utils/supabaseClient";
 import { generateIdempotencyKey } from "../utils/commandApiClient";
 import {
   roomSnapshotToGameState,
@@ -263,7 +263,6 @@ interface ResetRoomRuntimeParams {
   generationRef: MutableRefObject<number>;
   refreshInFlightRef: MutableRefObject<number | null>;
   guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>;
-  lastProviderRefreshAtRef: MutableRefObject<number>;
   completionInFlightRef: MutableRefObject<boolean>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
   commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
@@ -276,7 +275,6 @@ const resetRoomRuntimeForIdentity = ({
   generationRef,
   refreshInFlightRef,
   guestGrantRef,
-  lastProviderRefreshAtRef,
   completionInFlightRef,
   pendingRef,
   commandsRef,
@@ -287,7 +285,6 @@ const resetRoomRuntimeForIdentity = ({
   generationRef.current += 1;
   refreshInFlightRef.current = null;
   guestGrantRef.current = null;
-  lastProviderRefreshAtRef.current = 0;
   completionInFlightRef.current = false;
   pendingRef.current = [];
   commandsRef.current.clear();
@@ -406,7 +403,6 @@ interface RefreshActiveGameRoomParams {
   generationRef: MutableRefObject<number>;
   refreshInFlightRef: MutableRefObject<number | null>;
   guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>;
-  lastProviderRefreshAtRef: MutableRefObject<number>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
   commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
@@ -428,7 +424,6 @@ const refreshActiveGameRoom = async ({
   generationRef,
   refreshInFlightRef,
   guestGrantRef,
-  lastProviderRefreshAtRef,
   pendingRef,
   commandsRef,
   snapshotRef,
@@ -476,20 +471,6 @@ const refreshActiveGameRoom = async ({
         grant.guestToken,
       );
     } else {
-      const now = Date.now();
-      if (now - lastProviderRefreshAtRef.current >= 60_000) {
-        lastProviderRefreshAtRef.current = now;
-        try {
-          await getProviderScoreRefreshClient().refreshProviderScores(
-            sessionId,
-            generateIdempotencyKey(),
-          );
-        } catch (providerError) {
-          // A provider outage must not hide the last accepted room snapshot;
-          // the next scheduled pass will retry the refresh.
-          console.warn("Provider score refresh unavailable", providerError);
-        }
-      }
       if (generationRef.current !== generation) return null;
       nextSnapshot = await getRoomRpcClient().getRoomSnapshot(sessionId);
     }
@@ -1018,7 +999,6 @@ export const useActiveGameRoomSync = () => {
   const mountedRef = useRef(false);
   const refreshInFlightRef = useRef<number | null>(null);
   const guestGrantRef = useRef<GuestRoomSessionGrant | null>(null);
-  const lastProviderRefreshAtRef = useRef(0);
   const completionInFlightRef = useRef(false);
 
   const identity = `${context.mode}:${context.accessKind}:${context.participantId}:${context.sessionId}:${accessLost}`;
@@ -1046,7 +1026,6 @@ export const useActiveGameRoomSync = () => {
       generationRef,
       refreshInFlightRef,
       guestGrantRef,
-      lastProviderRefreshAtRef,
       completionInFlightRef,
       pendingRef,
       commandsRef,
@@ -1109,7 +1088,6 @@ export const useActiveGameRoomSync = () => {
         generationRef,
         refreshInFlightRef,
         guestGrantRef,
-        lastProviderRefreshAtRef,
         pendingRef,
         commandsRef,
         snapshotRef,

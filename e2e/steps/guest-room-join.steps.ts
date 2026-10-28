@@ -265,10 +265,8 @@ Given(
 );
 
 When("the user opens the guest join flow", async ({ page }) => {
-  const homeJoinAction = page.getByText("Join Room as Guest", { exact: true });
-
-  await homeJoinAction.scrollIntoViewIfNeeded();
-  await homeJoinAction.click();
+  await page.getByTestId("home-start-game-button").click();
+  await page.getByRole("button", { name: "Join a room", exact: true }).click();
 });
 
 When(

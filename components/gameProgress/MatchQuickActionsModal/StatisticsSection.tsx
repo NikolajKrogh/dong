@@ -20,43 +20,43 @@ export const StatisticsSection = ({
   return (
     <View style={styles.statisticsContainer}>
       <PossessionCircle
-        homeValue={homeStats.possession ?? 0}
-        awayValue={awayStats.possession ?? 0}
+        homeValue={homeStats.possession}
+        awayValue={awayStats.possession}
       />
 
       <StatProgressBar
-        homeValue={homeStats.shotsOnGoal ?? 0}
-        awayValue={awayStats.shotsOnGoal ?? 0}
+        homeValue={homeStats.shotsOnGoal}
+        awayValue={awayStats.shotsOnGoal}
         label="Shots on Goal"
       />
 
       <StatProgressBar
-        homeValue={homeStats.shotAttempts ?? 0}
-        awayValue={awayStats.shotAttempts ?? 0}
+        homeValue={homeStats.shotAttempts}
+        awayValue={awayStats.shotAttempts}
         label="Shot Attempts"
       />
 
       <StatProgressBar
-        homeValue={homeStats.fouls ?? 0}
-        awayValue={awayStats.fouls ?? 0}
+        homeValue={homeStats.fouls}
+        awayValue={awayStats.fouls}
         label="Fouls"
       />
 
       <StatProgressBar
-        homeValue={homeStats.yellowCards ?? 0}
-        awayValue={awayStats.yellowCards ?? 0}
+        homeValue={homeStats.yellowCards}
+        awayValue={awayStats.yellowCards}
         label="Yellow Cards"
       />
 
       <StatProgressBar
-        homeValue={homeStats.redCards ?? 0}
-        awayValue={awayStats.redCards ?? 0}
+        homeValue={homeStats.redCards}
+        awayValue={awayStats.redCards}
         label="Red Cards"
       />
 
       <StatProgressBar
-        homeValue={homeStats.cornerKicks ?? 0}
-        awayValue={awayStats.cornerKicks ?? 0}
+        homeValue={homeStats.cornerKicks}
+        awayValue={awayStats.cornerKicks}
         label="Corner Kicks"
       />
     </View>

@@ -3,6 +3,7 @@ package com.dong.commandapi.command;
 import com.dong.commandapi.command.dto.CommandRequest;
 import com.dong.commandapi.command.dto.CommandResponse;
 import com.dong.commandapi.security.AuthenticatedHost;
+import com.dong.commandapi.supabase.SupabaseRestClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -46,7 +47,7 @@ public class CommandController {
             @ApiResponse(responseCode = "401", description = "Missing/invalid credentials"),
             @ApiResponse(responseCode = "422", description = "Missing/invalid Idempotency-Key or unknown command")
     })
-    public ResponseEntity<CommandResponse> submit(
+    public ResponseEntity<?> submit(
             @Parameter(description = "Target room id") @PathVariable String roomId,
             @Parameter(description = "Command type (e.g. 'start-game')") @PathVariable String commandType,
             @Parameter(description = "UUID v4 idempotency key")
@@ -63,6 +64,10 @@ public class CommandController {
 
         CommandDispatcher.DispatchResult outcome = dispatcher.dispatch(context);
 
+        if (SupabaseRestClient.isRoomProcessingPending(outcome.result().detail())) {
+            return ResponseEntity.ok(SupabaseRestClient.roomProcessingPending());
+        }
+
         CommandResponse body = new CommandResponse(
                 commandType,
                 roomId,
@@ -71,5 +76,10 @@ public class CommandController {
                 Instant.now());
 
         return ResponseEntity.ok(body);
+    }
+
+    @org.springframework.web.bind.annotation.ExceptionHandler(SupabaseRestClient.RoomProcessingPendingException.class)
+    public ResponseEntity<?> roomProcessingPending() {
+        return ResponseEntity.ok(SupabaseRestClient.roomProcessingPending());
     }
 }

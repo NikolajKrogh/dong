@@ -4,6 +4,7 @@ import com.dong.commandapi.command.idempotency.IdempotencyDecision;
 import com.dong.commandapi.command.idempotency.IdempotencyService;
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
+import com.dong.commandapi.supabase.SupabaseRestClient;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -57,7 +58,11 @@ public class CommandDispatcher {
             throw ex;
         }
 
-        idempotencyService.complete(idempotencyKey, result, context.host());
+        if (SupabaseRestClient.isRoomProcessingPending(result.detail())) {
+            idempotencyService.release(idempotencyKey, context.host());
+        } else {
+            idempotencyService.complete(idempotencyKey, result, context.host());
+        }
         return new DispatchResult(idempotencyKey, result);
     }
 

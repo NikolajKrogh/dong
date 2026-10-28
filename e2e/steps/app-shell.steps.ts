@@ -297,7 +297,8 @@ When("the home screen loads", async ({ page }) => {
 
 When("the user navigates to setup", async ({ page }) => {
   await waitForBrowserFlowReady(page);
-  await page.getByText("Start New Game").click();
+  await page.getByTestId("home-start-game-button").click();
+  await page.getByRole("button", { name: "Play on this device", exact: true }).click();
   await expect(page.getByPlaceholder("Enter player name")).toBeVisible();
 });
 

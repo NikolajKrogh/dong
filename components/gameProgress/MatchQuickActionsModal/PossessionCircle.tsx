@@ -14,14 +14,15 @@ export const PossessionCircle = ({
   homeValue,
   awayValue,
 }: {
-  homeValue: number;
-  awayValue: number;
+  homeValue: number | null;
+  awayValue: number | null;
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const total = homeValue + awayValue;
-  const normalizedHome = total > 0 ? Math.round((homeValue / total) * 100) : 0;
-  const normalizedAway = total > 0 ? Math.round((awayValue / total) * 100) : 0;
+  const complete = homeValue !== null && awayValue !== null;
+  const total = (homeValue ?? 0) + (awayValue ?? 0);
+  const normalizedHome = complete && total > 0 ? Math.round((homeValue / total) * 100) : 0;
+  const normalizedAway = complete && total > 0 ? Math.round((awayValue / total) * 100) : 0;
 
   const size = 90; // Diameter of the doughnut
   const strokeWidth = 18; // Thickness of the doughnut ring
@@ -51,7 +52,7 @@ export const PossessionCircle = ({
 
   return (
     <View style={styles.possessionContainer}>
-      <Text style={styles.statValue}>{normalizedHome}%</Text>
+      <Text style={styles.statValue}>{homeValue === null ? "–" : `${homeValue}%`}</Text>
 
       <View style={styles.possessionCircleContainer}>
         <Text style={styles.statProgressLabel}>Possession</Text>
@@ -85,7 +86,7 @@ export const PossessionCircle = ({
         </View>
       </View>
 
-      <Text style={styles.statValue}>{normalizedAway}%</Text>
+      <Text style={styles.statValue}>{awayValue === null ? "–" : `${awayValue}%`}</Text>
     </View>
   );
 };

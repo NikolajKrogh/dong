@@ -61,39 +61,6 @@ export interface GuestRoomRpcClient {
   }): Promise<GameplayCommandResult>;
 }
 
-interface ProviderScoreRefreshResult {
-  matchId: string;
-  sourceMatchId: string;
-  provider: "espn";
-  homeScore: number;
-  awayScore: number;
-  sequenceNumber: number;
-  changed: boolean;
-  replayed: boolean;
-}
-
-interface ProviderScoreRefreshResponse {
-  sessionId: string;
-  requestId: string;
-  status: "updated" | "partial" | "not_due";
-  refreshedAt: string | null;
-  results: ProviderScoreRefreshResult[];
-  warnings: {
-    leagueCode?: string;
-    code:
-      | "provider_unavailable"
-      | "invalid_provider_response"
-      | "match_not_found";
-  }[];
-}
-
-export interface ProviderScoreRefreshClient {
-  refreshProviderScores(
-    sessionId: string,
-    idempotencyKey: string,
-  ): Promise<ProviderScoreRefreshResponse>;
-}
-
 export interface RoomRpcClient {
   saveRunningGameConfiguration(input: SaveRunningGameInput): Promise<RoomSnapshot>;
   joinRoomAsRegistered(joinCode: string): Promise<RegisteredJoinResponse>;
@@ -196,6 +163,7 @@ const REASSIGNMENT_ERROR_CODES = new Set<ReassignmentErrorCode>(
 );
 
 const GAMEPLAY_ERROR_MESSAGES: Record<GameplayErrorCode, string> = {
+  room_processing_pending: "Accepted match updates are still being applied. Try again shortly.",
   not_authenticated: "Sign-in is required for this action.",
   not_room_participant: "You are no longer an active participant in this room.",
   participant_inactive: "That participant is no longer active.",
@@ -273,15 +241,25 @@ export interface HostRoomRpcClient {
 let cachedGuestRoomRpcClient: GuestRoomRpcClient | null = null;
 let cachedHostRoomRpcClient: HostRoomRpcClient | null = null;
 let cachedRoomRpcClient: RoomRpcClient | null = null;
-let cachedProviderScoreRefreshClient: ProviderScoreRefreshClient | null = null;
+
+/** Pending commits only saved-source progress, so repeat the original business inputs. */
+async function withRoomProcessingRetry<T extends { data: unknown; error: unknown }>(operation: () => PromiseLike<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const response = await operation();
+    const data = response.data as { ok?: boolean; code?: string } | null;
+    if (response.error || data?.ok !== false || data.code !== "room_processing_pending") return response;
+    if (attempt >= 2) throw new GameplayRpcError("room_processing_pending", GAMEPLAY_ERROR_MESSAGES.room_processing_pending);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+}
 
 export const createGuestRoomRpcClient = (
   client: SupabaseClient<Database> = getSupabaseClient(),
 ): GuestRoomRpcClient => {
   const invoke = async (operation: string, args: Record<string, unknown>) => {
-    const { data, error } = await client.functions.invoke("guest-room-access", {
+    const { data, error } = await withRoomProcessingRetry(() => client.functions.invoke("guest-room-access", {
       body: { operation, args },
-    });
+    }));
     // These command parsers expect transport-style errors. The Edge boundary
     // returns only safe codes, never upstream messages or request payloads.
     if (!error && data?.ok === false && ["set_my_room_picks_as_guest", "change_manual_score_as_guest", "change_participant_drink_as_guest"].includes(operation)) {
@@ -414,32 +392,6 @@ export const createGuestRoomRpcClient = (
   };
 };
 
-export const createProviderScoreRefreshClient = (
-  client: SupabaseClient<Database> = getSupabaseClient(),
-): ProviderScoreRefreshClient => ({
-  async refreshProviderScores(sessionId, idempotencyKey) {
-    const { data, error } = await client.functions.invoke(
-      "refresh-provider-scores",
-      {
-        body: { sessionId },
-        headers: { "Idempotency-Key": idempotencyKey },
-      },
-    );
-    if (error) throw error;
-    if (!data || typeof data !== "object") {
-      throw new Error(
-        "Supabase refresh-provider-scores returned no response payload.",
-      );
-    }
-    return data as ProviderScoreRefreshResponse;
-  },
-});
-
-export const getProviderScoreRefreshClient = () => {
-  cachedProviderScoreRefreshClient ??= createProviderScoreRefreshClient();
-  return cachedProviderScoreRefreshClient;
-};
-
 export const getGuestRoomRpcClient = () => {
   cachedGuestRoomRpcClient ??= createGuestRoomRpcClient();
 
@@ -532,9 +484,9 @@ export const createRoomRpcClient = (
     },
 
     async leaveRoomAsMember(sessionId) {
-      const { data, error } = await client
+      const { data, error } = await withRoomProcessingRetry(() => client
         .rpc("leave_room_as_member", { session_id: sessionId })
-        .overrideTypes<MemberLeaveResponse, { merge: false }>();
+        .overrideTypes<MemberLeaveResponse, { merge: false }>());
 
       if (error) {
         throw error;
@@ -547,12 +499,12 @@ export const createRoomRpcClient = (
     },
 
     async leaveRoomAsHost(sessionId, successorParticipantId) {
-      const { data, error } = await client
+      const { data, error } = await withRoomProcessingRetry(() => client
         .rpc("leave_room_as_host", {
           session_id: sessionId,
           successor_participant_id: successorParticipantId ?? undefined,
         })
-        .overrideTypes<HostLeaveResponse, { merge: false }>();
+        .overrideTypes<HostLeaveResponse, { merge: false }>());
 
       if (error) {
         throw error;
@@ -568,9 +520,9 @@ export const createRoomRpcClient = (
     },
 
     async endGameSession(sessionId) {
-      const { data, error } = await client
+      const { data, error } = await withRoomProcessingRetry(() => client
         .rpc("end_game_session", { session_id: sessionId })
-        .overrideTypes<EndGameSessionResponse, { merge: false }>();
+        .overrideTypes<EndGameSessionResponse, { merge: false }>());
 
       if (error) {
         throw error;
@@ -586,12 +538,12 @@ export const createRoomRpcClient = (
     },
 
     async saveRunningGameConfiguration(input) {
-      const { data, error } = await client.rpc("save_running_game_configuration", {
+      const { data, error } = await withRoomProcessingRetry(() => client.rpc("save_running_game_configuration", {
         session_id: input.sessionId,
         configuration: input.configuration as unknown as Json,
         expected_token: input.expectedToken,
         idempotency_key: input.idempotencyKey,
-      }).overrideTypes<RoomSnapshot, { merge: false }>();
+      }).overrideTypes<RoomSnapshot, { merge: false }>());
       if (error) throw error;
       if (!data || typeof data !== "object" || Array.isArray(data) || "Error" in data) {
         throw new Error("No saved room configuration was returned.");
@@ -600,14 +552,14 @@ export const createRoomRpcClient = (
     },
 
     async reassignParticipantMatches(input) {
-      const { data, error } = await client
+      const { data, error } = await withRoomProcessingRetry(() => client
         .rpc("reassign_participant_matches", {
           session_id: input.sessionId,
           participant_id: input.participantId,
           match_ids: input.matchIds,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<ReassignParticipantMatchesResponse, { merge: false }>();
+        .overrideTypes<ReassignParticipantMatchesResponse, { merge: false }>());
 
       if (error) {
         throw mapReassignmentError(error) ?? error;
@@ -623,7 +575,7 @@ export const createRoomRpcClient = (
     },
 
     async changeManualScore(input) {
-      const { data, error } = await client
+      const { data, error } = await withRoomProcessingRetry(() => client
         .rpc("change_manual_score", {
           session_id: input.sessionId,
           match_id: input.matchId,
@@ -631,7 +583,7 @@ export const createRoomRpcClient = (
           delta_goals: input.deltaGoals,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<GameplayCommandResult, { merge: false }>();
+        .overrideTypes<GameplayCommandResult, { merge: false }>());
 
       if (error) {
         throw mapGameplayError(error) ?? error;
@@ -640,14 +592,14 @@ export const createRoomRpcClient = (
     },
 
     async changeParticipantDrink(input) {
-      const { data, error } = await client
+      const { data, error } = await withRoomProcessingRetry(() => client
         .rpc("change_participant_drink", {
           session_id: input.sessionId,
           participant_id: input.participantId,
           delta_half_drinks: input.deltaHalfDrinks,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<GameplayCommandResult, { merge: false }>();
+        .overrideTypes<GameplayCommandResult, { merge: false }>());
 
       if (error) {
         throw mapGameplayError(error) ?? error;
@@ -667,9 +619,9 @@ export const createRoomRpcClient = (
           ? { source_league_code: request.sourceLeagueCode }
           : {}),
       };
-      const { data, error } = await (request.sourceLeagueCode
+      const { data, error } = await withRoomProcessingRetry(() => (request.sourceLeagueCode
         ? client.rpc("add_room_match_v2", { ...args, source_league_code: request.sourceLeagueCode })
-        : client.rpc("add_room_match", args));
+        : client.rpc("add_room_match", args)));
 
       if (error) {
         throw error;
@@ -685,10 +637,10 @@ export const createRoomRpcClient = (
     async addRoomMatches(sessionId, requests) {
       // camelCase keys: the RPC reads the payload with ->> using these exact
       // names, so the request objects travel verbatim.
-      const { data, error } = await client.rpc("add_room_matches", {
+      const { data, error } = await withRoomProcessingRetry(() => client.rpc("add_room_matches", {
         session_id: sessionId,
         matches: requests.map((request) => ({ ...request })),
-      });
+      }));
 
       if (error) {
         throw error;
@@ -699,10 +651,10 @@ export const createRoomRpcClient = (
     },
 
     async removeRoomMatch(sessionId, matchId) {
-      const { error } = await client.rpc("remove_room_match", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("remove_room_match", {
         session_id: sessionId,
         match_id: matchId,
-      });
+      }));
 
       if (error) {
         throw error;
@@ -710,10 +662,10 @@ export const createRoomRpcClient = (
     },
 
     async removeRoomMatches(sessionId, matchIds) {
-      const { error } = await client.rpc("remove_room_matches", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("remove_room_matches", {
         session_id: sessionId,
         match_ids: matchIds,
-      });
+      }));
 
       if (error) {
         throw error;
@@ -721,10 +673,10 @@ export const createRoomRpcClient = (
     },
 
     async setCommonMatch(sessionId, matchId) {
-      const { error } = await client.rpc("set_common_match", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("set_common_match", {
         session_id: sessionId,
         match_id: matchId,
-      });
+      }));
 
       if (error) {
         throw error;
@@ -732,13 +684,13 @@ export const createRoomRpcClient = (
     },
 
     async setRoomAssignments(sessionId, assignments) {
-      const { error } = await client.rpc("set_room_assignments", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("set_room_assignments", {
         session_id: sessionId,
         assignments: assignments.map((assignment) => ({
           participantId: assignment.participantId,
           matchId: assignment.matchId,
         })),
-      });
+      }));
 
       if (error) {
         throw error;
@@ -746,11 +698,11 @@ export const createRoomRpcClient = (
     },
 
     async setRoomAssignmentSettings(sessionId, settings) {
-      const { error } = await client.rpc("set_room_assignment_settings", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("set_room_assignment_settings", {
         session_id: sessionId,
         matches_per_player: settings.matchesPerPlayer,
         shared_matches_per_pair: settings.sharedMatchesPerPair,
-      });
+      }));
 
       if (error) {
         throw error;
@@ -758,10 +710,10 @@ export const createRoomRpcClient = (
     },
 
     async setRoomAssignmentMode(sessionId, mode) {
-      const { error } = await client.rpc("set_room_assignment_mode", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("set_room_assignment_mode", {
         session_id: sessionId,
         mode,
-      });
+      }));
 
       if (error) {
         throw error;
@@ -769,10 +721,10 @@ export const createRoomRpcClient = (
     },
 
     async setMyRoomPicks(sessionId, matchIds) {
-      const { error } = await client.rpc("set_my_room_picks", {
+      const { error } = await withRoomProcessingRetry(() => client.rpc("set_my_room_picks", {
         session_id: sessionId,
         match_ids: matchIds,
-      });
+      }));
 
       if (error) {
         throw error;

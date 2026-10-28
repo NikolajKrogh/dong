@@ -17,11 +17,24 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PersistentIdempotencyServiceTest {
+
+    @Test
+    void pendingCannotBeCompletedEvenWhenCalledDirectly() {
+        SupabaseRestClient rpc = mock(SupabaseRestClient.class);
+        PersistentIdempotencyService service = new PersistentIdempotencyService(rpc);
+        UUID key = UUID.randomUUID();
+        AuthenticatedHost host = new AuthenticatedHost("host", "authenticated", "token");
+        service.complete(key, new CommandResult(CommandResult.Status.ACCEPTED,
+                Map.of("ok", false, "code", "room_processing_pending", "retryAfterSeconds", 1)), host);
+        verify(rpc).call(eq("release_command_idempotency"), eq(Map.of("idempotency_key", key.toString())), eq("token"));
+        verify(rpc, never()).call(eq("complete_command_idempotency"), any(), anyString());
+    }
 
     private final SupabaseRestClient supabaseRestClient = mock(SupabaseRestClient.class);
     private final PersistentIdempotencyService service = new PersistentIdempotencyService(supabaseRestClient);

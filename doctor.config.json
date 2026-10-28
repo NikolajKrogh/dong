@@ -1,5 +1,31 @@
 {
   "ignore": {
-    "files": [".tamagui/**", ".features-gen/**", "command-api/target/**"]
+    "files": [
+      ".tamagui/**",
+      ".features-gen/**",
+      "command-api/target/**",
+      ".agents/**",
+      ".supabase/**",
+      "web-build/**"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "scripts/measure-match-catalog-storage.mjs",
+          "scripts/test-match-catalog-concurrency.mjs"
+        ],
+        "rules": [
+          "react-doctor/server-sequential-independent-await",
+          "react-doctor/async-await-in-loop"
+        ]
+      },
+      {
+        "files": [
+          "supabase/functions/_shared/football-matches/footballMatchRequestHandlers.ts",
+          "supabase/functions/_shared/football-matches/espnMatchNormalizer.ts"
+        ],
+        "rules": ["react-doctor/js-set-map-lookups"]
+      }
+    ]
   }
 }

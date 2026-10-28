@@ -1,3 +1,7 @@
+import { getFootballMatchService } from "./footballMatchService";
+import type { FootballMatchService, MatchDiscoveryResult, SavedMatch } from "../types/footballMatch";
+import { GameplayRpcError } from "../types/room";
+
 interface CommandApiConfig {
   baseUrl: string;
 }
@@ -27,6 +31,7 @@ type NormalizedMatchStatus =
 
 export interface NormalizedMatch {
   id: string;
+  catalogMatchId?: string;
   league: string;
   homeTeam: string;
   awayTeam: string;
@@ -36,8 +41,20 @@ export interface NormalizedMatch {
   venue?: string;
 }
 
+interface NormalizedMatchDiscoveryResult extends Omit<MatchDiscoveryResult, "matches"> {
+  matches: NormalizedMatch[];
+}
+
 export interface MatchDiscoveryApiClient {
-  discoverMatches(request: MatchDiscoveryRequest): Promise<NormalizedMatch[]>;
+  discoverMatches(request: MatchDiscoveryRequest): Promise<NormalizedMatchDiscoveryResult>;
+}
+
+function normalizedStatus(lifecycle: SavedMatch["lifecycle"]): NormalizedMatchStatus {
+  if (lifecycle === "finished") return "final";
+  if (lifecycle === "live") return "live";
+  if (lifecycle === "postponed") return "postponed";
+  if (lifecycle === "canceled" || lifecycle === "abandoned") return "canceled";
+  return "scheduled";
 }
 
 let cachedMatchDiscoveryApiClient: MatchDiscoveryApiClient | null = null;
@@ -70,29 +87,6 @@ const getCommandApiConfig = (): CommandApiConfig => {
   return { baseUrl };
 };
 
-const buildMatchDiscoveryUrl = (
-  config: CommandApiConfig,
-  request: MatchDiscoveryRequest,
-) => {
-  const normalizedBaseUrl = config.baseUrl.endsWith("/")
-    ? config.baseUrl.slice(0, -1)
-    : config.baseUrl;
-
-  const queryParts = request.leagueCodes.map(
-    (leagueCode) => `leagueCode=${encodeURIComponent(leagueCode)}`,
-  );
-
-  if (request.requestedAt) {
-    queryParts.push(`requestedAt=${encodeURIComponent(request.requestedAt)}`);
-  }
-
-  const queryString = queryParts.join("&");
-
-  return queryString.length > 0
-    ? `${normalizedBaseUrl}/v1/matches?${queryString}`
-    : `${normalizedBaseUrl}/v1/matches`;
-};
-
 const readErrorMessage = async (response: Response) => {
   try {
     const payload = (await response.json()) as CommandApiErrorResponse;
@@ -111,46 +105,28 @@ const readErrorMessage = async (response: Response) => {
   return `Command API request failed with status ${response.status}.`;
 };
 
-// Allow the production Java service time to start after scaling to zero.
-const MATCH_DISCOVERY_TIMEOUT_MS = 30_000;
 
-const createMatchDiscoveryApiClient = (
-  fetchFn: typeof fetch = fetch,
-  config: CommandApiConfig = getCommandApiConfig(),
+export const createMatchDiscoveryApiClient = (
+  footballMatchService: Pick<FootballMatchService, "discoverMatches"> = getFootballMatchService(),
 ): MatchDiscoveryApiClient => {
   return {
     async discoverMatches(request) {
-      const controller = new AbortController();
-      const timeout = setTimeout(
-        () => controller.abort(),
-        MATCH_DISCOVERY_TIMEOUT_MS,
-      );
-      let response: Response;
-
-      try {
-        response = await fetchFn(buildMatchDiscoveryUrl(config, request), {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-          },
-          signal: controller.signal,
-        });
-      } catch (error) {
-        // A stalled connection aborts via the timeout above; surface it as a
-        // clear, client-safe message rather than the raw AbortError.
-        if (controller.signal.aborted) {
-          throw new Error("Match discovery request timed out.");
-        }
-        throw error;
-      } finally {
-        clearTimeout(timeout);
-      }
-
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response));
-      }
-
-      return (await response.json()) as NormalizedMatch[];
+      const codes = [...new Set(request.leagueCodes.map(code => code.trim()).filter(Boolean))];
+      if (!codes.length) return { matches: [], groups: [], availability: "available", retryAfterSeconds: null };
+      // Preserve the selected calendar date, including offset-aware legacy callers.
+      const date = request.requestedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
+      const result = await footballMatchService.discoverMatches({ leagueCodes: codes, date });
+      return { ...result, matches: result.matches.map(match => ({
+        id: match.identity.sourceEventId,
+        catalogMatchId: match.catalogMatchId,
+        league: match.identity.leagueCode,
+        homeTeam: match.homeTeam.name,
+        awayTeam: match.awayTeam.name,
+        startDateTime: match.kickoffAt ?? "",
+        status: normalizedStatus(match.lifecycle),
+        ...(match.homeScore !== null && match.awayScore !== null ? { score: { home: match.homeScore, away: match.awayScore } } : {}),
+        ...(match.venue?.name ? { venue: match.venue.name } : {}),
+      })) };
     },
   };
 };
@@ -248,7 +224,13 @@ const createStartGameApiClient = (
         throw new Error(await readErrorMessage(response));
       }
 
-      return (await response.json()) as StartGameCommandResponse;
+      const payload = await response.json();
+      // Java already performs the bounded pending continuation. Never multiply
+      // those retries or mistake its final pending envelope for a started game.
+      if (payload?.ok === false && payload.code === "room_processing_pending") {
+        throw new GameplayRpcError("room_processing_pending", "Accepted match updates are still being applied. Try again shortly.");
+      }
+      return payload as StartGameCommandResponse;
     },
   };
 };

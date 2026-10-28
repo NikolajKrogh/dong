@@ -25,6 +25,7 @@ export interface RoomParticipantSummary {
 
 export interface RoomMatchSummary {
   id: string;
+  catalogMatchId?: string | null;
   sourceProvider: string;
   sourceMatchId: string | null;
   sourceLeagueCode?: string | null;
@@ -80,6 +81,8 @@ export interface RoomSnapshot {
   /** Monotonic room event fence used to reject stale poll responses. */
   lastEventSequence?: number;
   lastScoresCheckedAt?: string | null;
+  providerAvailabilityReason?: string | null;
+  roomProcessingPending?: boolean;
   configurationToken?: string;
   commonMatchId: string | null;
   assignmentMode: AssignmentMode;
@@ -148,6 +151,7 @@ export type GameplayCommandType =
   | "completion";
 
 export type GameplayErrorCode =
+  | "room_processing_pending"
   | "not_authenticated"
   | "not_room_participant"
   | "participant_inactive"
