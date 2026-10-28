@@ -30,10 +30,10 @@ The older blueprint and inventory describe the pre-migration snapshot. This jour
 | M0 | Baseline checks, agreed standard and migration journal | Complete |
 | M1 | PreferencesHeader, GameProgressTabs and SetupGameTabs pilot | Complete |
 | M2 | History feature ownership and mirrored tests | Complete |
-| M3 | Home, Preferences and Account/Auth ownership | Complete for Home/Preferences/account hooks; auth forms remain for M6 |
+| M3 | Home, Preferences and Account/Auth ownership | Complete; auth forms completed in M6a |
 | M4 | Game setup and match-selection ownership | Complete |
 | M5 | Gameplay, rooms and football-match client ownership | Complete (M5a, M5b, M5c) |
-| M6 | Shared names, import-policy coverage and final verification | Planned |
+| M6 | Shared names, import-policy coverage and final verification | Complete; browser/accessibility findings recorded below |
 
 Each milestone includes a commit after its checks. Split a milestone further if dependencies or failures make a smaller passing batch preferable. Preserve errors, validation, cancellation, persisted keys, test IDs and user-visible copy.
 
@@ -215,11 +215,11 @@ These are follow-up candidates, not changes to be bundled into this migration. P
 
 | Current file | Evidence / maintenance problem | Suggested follow-up |
 | --- | --- | --- |
-| store/store.ts | 573 lines combine persisted game state, preferences, history and normalization. Features depend on this shared owner. | Identify cohesive internal modules while retaining one persistence/state interface; do not split stores mechanically. |
-| utils/supabaseClient.ts | 740 lines expose room/gameplay/guest operations and transport/error handling. | Group internal operations behind the existing client interface and retain validation/idempotency semantics. |
+| store/gameStore.ts (formerly store/store.ts) | 573 lines combine persisted game state, preferences, history and normalization. Features depend on this shared owner. | Identify cohesive internal modules while retaining one persistence/state interface; do not split stores mechanically. |
+| features/rooms/roomRpcClient.ts (formerly utils/supabaseClient.ts) | 740 lines expose room/gameplay/guest operations and transport/error handling. | Group internal operations behind the existing client interface and retain validation/idempotency semantics. |
 | features/history/HistoryScreen.tsx (formerly app/history.tsx) | 757 lines combine route state, filtering, cloud status, layout and multiple UI subviews. | Extract cohesive internal screen modules only where the interface gets simpler, retaining the existing tested flow. |
 | features/game-setup/createRandomAssignments.ts (formerly utils/setupGameAssignments.ts) | shuffle sorts with a random comparator, which is biased; pair allocation and validation share one module. | Review uniform shuffling and deterministic random-source testing in a separate behavior change. |
-| features/game-setup/useMatchListFilters.ts and utils/matchUtils.ts | Team-name cleanup and date/time filtering responsibilities are spread across hook and pure utility modules. | Review one canonical normalization/filtering owner, with edge-case tests before changing matching behavior. |
+| features/game-setup/useMatchListFilters.ts and features/football-matches/matchFilters.ts | Team-name cleanup and date/time filtering responsibilities are spread across hook and pure utility modules. | Review one canonical normalization/filtering owner, with edge-case tests before changing matching behavior. |
 
 The old root components/index.ts also contained empty statements and only setup exports; those statements were removed when the file became features/game-setup/index.ts. The obsolete useTeamFiltering shim and its fake hook mock were removed as part of M4 path maintenance.
 
@@ -462,3 +462,38 @@ The last technical-root tests now follow their actual implementation: the room-e
 | __tests__/utils/matchDiscoveryCatalog.test.ts | __tests__/features/football-matches/matchDiscoveryCatalog.test.ts | Match the implementation owner without changing assertions or suite selection. |
 
 M6c validation: three relocated suites passed without changing their assertions. Final web axe run: all 12 route/viewport combinations loaded with zero page errors but failed the zero-violations assertion. Baseline accessibility comparison remains pending; the initial baseline failed readiness before axe ran.
+
+## Final verification — 2026-10-28
+
+- All 296 recorded move steps resolve to existing final files, including intermediate pilot renames; all 16 migrated route entry files still exist and forward to their named implementations. The original app route set is preserved.
+- An AST-based comparison checked 280 pre-migration production modules against their final owners. After normalizing imports/re-exports/comments, CRLF/LF, the agreed identifier renames, rebased asset requires and the identical auth-code call extraction, no implementation-body differences remained. The deliberately removed useTeamFiltering re-export shim is the explicit exception. This supports behavior preservation; it is not hosted/device acceptance.
+- Full Jest run: 160 suites / 1,043 tests passed. After the final three test-only relocations, all three relocated suites / 21 tests passed. Typecheck, lint and Knip passed after those relocations.
+- Final React Doctor: 100/100, 339 changed files scanned, no issues reported.
+- Existing Home phone-layout Playwright run: 2 passed. Representative BDD run: 3 passed (Home hydration, Preferences menu, phone setup), 3 failed as detailed below.
+- Temporary Playwright/axe audit: Home, Preferences, Appearance, History, Setup and Auth each loaded on phone and desktop with no page errors (12 route/viewport combinations). All 12 zero-violation assertions failed on the accessibility findings below.
+- An archived baseline could not reliably serve its entry bundle (404/500); its attempted browser/axe runs are invalid for regression comparison. The scratch source snapshot was archived under ignored node_modules cache, and its temporary dependency junction was removed. No baseline-equivalence claim is made for the browser findings.
+- Java, database schemas/migrations, deployed endpoints, generated contracts, assets and original contributor Markdown documents were not changed. Existing package/skill work and older untracked audit/blueprint files remain outside the commits. No push or PR was performed.
+
+### Browser and accessibility follow-up
+
+These findings need their own behavior/accessibility work; changing their UI or replacing their acceptance expectations is outside this naming/layout migration. Their source bodies are unchanged under the comparison above, but a live baseline comparison was not achieved.
+
+| Area | Observed finding | Next investigation |
+| --- | --- | --- |
+| Host configure/start BDD | Arsenal fixture never appears; screen shows transport_unavailable | Reconcile discovery mocks with the maintained Edge discovery path before changing application behavior. |
+| Guest roster/history BDD | Expected Room Lobby text never appears | Reconcile the scenario state and current lobby UI, then verify host/guest transition expectations. |
+| Browser keyboard navigation BDD | Home expects a Friends link; observed Home shows Game Stats and Settings | Update the journey only after confirming the intended navigation contract; retain real keyboard/browser-Back coverage. |
+| Home (phone/desktop) | color-contrast: 1 node; label-content-name-mismatch: 1 node | Inspect rendered action/card names and text colors against their backgrounds. |
+| Preferences (phone/desktop) | label-content-name-mismatch: 2 nodes | Ensure accessible names contain the actual visible labels, accounting for icon text. |
+| Appearance (phone/desktop) | label: 1 critical node | Give the rendered setting input an associated accessible label. |
+| History (phone/desktop) | aria-required-parent: 3 critical nodes; color-contrast: 2 nodes | Check tab/tablist semantics and the relevant text/background colors. |
+| Setup (phone/desktop) | color-contrast: 1 node | Inspect the flagged text/background pair. |
+| Auth (phone/desktop) | color-contrast: 1 node | Inspect the flagged text/background pair. |
+
+Reproduce the representative BDD run with npm run bdd:gen, then npx playwright test --config=playwright.config.ts --project=chromium-phone --workers=1 --grep "Shell launches after hydration|Preferences screen shows|Setup flow stays usable|A host selects matches|Host and guest refresh|Home links support". The axe audit used a temporary ignored test harness and a temporary axe-core installation, without adding an application dependency.
+
+### Final layout and intentional exceptions
+
+Features now include account, friends, history, home, preferences, game-setup, game-progress, rooms, football-matches and onboarding. Reusable UI lives in components/ui; platform adapters stay in platform; state/hydration in store; global theme/tokens in styles; SDK/query setup in lib; cross-runtime contracts/helpers in types/shared. utils/commandApiClient.ts intentionally remains shared until its mixed command/discovery responsibilities are separately reviewed. Framework route names, generated types, historical migrations, component-owned support names and existing test-selection qualifiers are preserved exceptions. No speculative Service/Strategy/Visitor abstractions were introduced.
+
+The journal is the current migration record. The older untracked blueprint/audit/inventory are pre-migration snapshots and were not rewritten. The refactor-later ledger above records the larger modules, random-sort concern, normalization duplication and mixed client responsibilities for a future scoped change.
