@@ -32,7 +32,7 @@ The older blueprint and inventory describe the pre-migration snapshot. This jour
 | M2 | History feature ownership and mirrored tests | Complete |
 | M3 | Home, Preferences and Account/Auth ownership | Complete for Home/Preferences/account hooks; auth forms remain for M6 |
 | M4 | Game setup and match-selection ownership | Complete |
-| M5 | Gameplay, rooms and football-match client ownership | Planned |
+| M5 | Gameplay, rooms and football-match client ownership | Complete (M5a, M5b, M5c) |
 | M6 | Shared names, import-policy coverage and final verification | Planned |
 
 Each milestone includes a commit after its checks. Split a milestone further if dependencies or failures make a smaller passing batch preferable. Preserve errors, validation, cancellation, persisted keys, test IDs and user-visible copy.
@@ -328,3 +328,73 @@ Lobby/guest UI, room synchronization and configuration hooks, credential/session
 Refactor later: features/rooms/RoomLobbyScreen.tsx (formerly app/lobby/[sessionId].tsx) has roughly 1,400 lines combining host/member eligibility, wizard state, assignments and rendering. features/rooms/useActiveGameRoomSync.ts exceeds 1,300 lines combining identity fencing, polling, optimistic mutation replay and completion. Review internal modules behind their existing interfaces, preserving the concurrency and guest-access tests, instead of splitting them merely by line count. The room RPC refactor candidate above now lives at features/rooms/roomRpcClient.ts.
 
 M5b validation: 31 affected suites / 274 tests passed, with typecheck, lint and Knip passing. The route wrapper is RoomLobbyScreen and its existing internal authenticated-content implementation is RoomLobbyContent, avoiding a name collision without changing membership gating. M5a affected run comprised 26 suites / 196 tests, all passing.
+
+## M5c — Gameplay implementation
+
+Progress UI, goal scoring/toast logic, reducers, synchronization controller and progress styles now share game-progress ownership. Component-owned subdirectories retain their PascalCase names. MatchQuickActionsModal/index.tsx becomes MatchQuickActionsModal/MatchQuickActionsModal.tsx so editor tabs identify the implementation; incoming imports point to the named file, with no temporary index shim. useMatchProcessing inserts selected matches into a configured game, so it and selectGameplayMatches belong to game-setup rather than a generic hooks/utils folder.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/components/gameProgress/FooterButtons.platform.test.tsx | __tests__/features/game-progress/FooterButtons.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/GameActionsSheet.platform.test.tsx | __tests__/features/game-progress/GameActionsSheet.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/GameProgressTabs.platform.test.tsx | __tests__/features/game-progress/GameProgressTabs.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/GoalToast.accessibility.test.tsx | __tests__/features/game-progress/GoalToast.accessibility.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/GoalToast.test.tsx | __tests__/features/game-progress/GoalToast.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/MatchCatalogDetails.platform.test.tsx | __tests__/features/game-progress/MatchCatalogDetails.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/MatchesGridContainer.platform.test.tsx | __tests__/features/game-progress/MatchesGridContainer.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/ModalWrappers.platform.test.tsx | __tests__/features/game-progress/ModalWrappers.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/PlayersList.platform.test.tsx | __tests__/features/game-progress/PlayersList.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/RoomStatusModal.platform.test.tsx | __tests__/features/game-progress/RoomStatusModal.platform.test.tsx | Mirror the source implementation. |
+| __tests__/components/gameProgress/ScoreControls.disabled.test.tsx | __tests__/features/game-progress/ScoreControls.disabled.test.tsx | Mirror the source implementation. |
+| __tests__/hooks/gameProgress/goalScoring.test.ts | __tests__/features/game-progress/goalScoring.test.ts | Mirror the source implementation. |
+| __tests__/hooks/gameProgress/matchMigration.test.ts | __tests__/features/game-progress/matchMigration.test.ts | Mirror the source implementation. |
+| __tests__/hooks/gameProgress/sourceStatus.test.ts | __tests__/features/game-progress/sourceStatus.test.ts | Mirror the source implementation. |
+| __tests__/hooks/gameProgress/toastQueueReducer.test.ts | __tests__/features/game-progress/toastQueueReducer.test.ts | Mirror the source implementation. |
+| __tests__/hooks/gameProgress/uiReducer.test.ts | __tests__/features/game-progress/uiReducer.test.ts | Mirror the source implementation. |
+| components/gameProgress/EndGameModal.tsx | features/game-progress/EndGameModal.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/FooterButtons.tsx | features/game-progress/FooterButtons.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/GameActionsSheet.tsx | features/game-progress/GameActionsSheet.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/GameProgressTabs.tsx | features/game-progress/GameProgressTabs.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/GoalToast.tsx | features/game-progress/GoalToast.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/GoalScorersSection.tsx | features/game-progress/MatchQuickActionsModal/GoalScorersSection.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/MatchHeader.tsx | features/game-progress/MatchQuickActionsModal/MatchHeader.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/ModalTabBar.tsx | features/game-progress/MatchQuickActionsModal/ModalTabBar.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/PlayersSection.tsx | features/game-progress/MatchQuickActionsModal/PlayersSection.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/PossessionCircle.tsx | features/game-progress/MatchQuickActionsModal/PossessionCircle.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/ScoreControls.tsx | features/game-progress/MatchQuickActionsModal/ScoreControls.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/StatProgressBar.tsx | features/game-progress/MatchQuickActionsModal/StatProgressBar.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/StatisticsSection.tsx | features/game-progress/MatchQuickActionsModal/StatisticsSection.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/index.tsx | features/game-progress/MatchQuickActionsModal/MatchQuickActionsModal.tsx | Expose the modal implementation by name. |
+| components/gameProgress/MatchQuickActionsModal/styles.ts | features/game-progress/MatchQuickActionsModal/styles.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchQuickActionsModal/types.ts | features/game-progress/MatchQuickActionsModal/types.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/LastUpdatedFooter.tsx | features/game-progress/MatchesGrid/LastUpdatedFooter.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/MatchGridItem.tsx | features/game-progress/MatchesGrid/MatchGridItem.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/MatchListItem.tsx | features/game-progress/MatchesGrid/MatchListItem.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/MatchesGridContainer.tsx | features/game-progress/MatchesGrid/MatchesGridContainer.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/MatchesHeader.tsx | features/game-progress/MatchesGrid/MatchesHeader.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/SortModal.tsx | features/game-progress/MatchesGrid/SortModal.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/index.ts | features/game-progress/MatchesGrid/index.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MatchesGrid/types.ts | features/game-progress/MatchesGrid/types.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/MultiplayerGameStatus.tsx | features/game-progress/MultiplayerGameStatus.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/PlayersList.tsx | features/game-progress/PlayersList.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| components/gameProgress/RoomStatusModal.tsx | features/game-progress/RoomStatusModal.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| hooks/gameProgress/goalScoring.ts | features/game-progress/goalScoring.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| hooks/gameProgress/matchMigration.ts | features/game-progress/matchMigration.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| hooks/gameProgress/sourceStatus.ts | features/game-progress/sourceStatus.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| hooks/gameProgress/toastQueueReducer.ts | features/game-progress/toastQueueReducer.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| hooks/gameProgress/uiReducer.ts | features/game-progress/uiReducer.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| hooks/useGameProgressController.ts | features/game-progress/useGameProgressController.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| __tests__/hooks/useGameProgressController.multiplayer.test.ts | __tests__/features/game-progress/useGameProgressController.multiplayer.test.ts | Mirror the source implementation. |
+| __tests__/hooks/useGameProgressController.test.ts | __tests__/features/game-progress/useGameProgressController.test.ts | Mirror the source implementation. |
+| hooks/useGoalToastQueue.ts | features/game-progress/useGoalToastQueue.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| __tests__/hooks/useGoalToastQueue.test.ts | __tests__/features/game-progress/useGoalToastQueue.test.ts | Mirror the source implementation. |
+| hooks/useMatchQuickActionsAnimations.ts | features/game-progress/useMatchQuickActionsAnimations.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| styles/gameProgressStyles.ts | features/game-progress/gameProgressStyles.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| app/gameProgress.tsx | features/game-progress/GameProgressScreen.tsx | Collect feature implementation while preserving gameplay and route behavior. |
+| __tests__/app/gameProgress.platform.test.tsx | __tests__/features/game-progress/GameProgressScreen.platform.test.tsx | Mirror the source implementation. |
+| hooks/useMatchProcessing.ts | features/game-setup/useMatchProcessing.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| __tests__/hooks/useMatchProcessing.test.ts | __tests__/features/game-setup/useMatchProcessing.test.ts | Mirror the source implementation. |
+| utils/selectGameplayMatches.ts | features/game-setup/selectGameplayMatches.ts | Collect feature implementation while preserving gameplay and route behavior. |
+| __tests__/utils/selectGameplayMatches.test.ts | __tests__/features/game-setup/selectGameplayMatches.test.ts | Mirror the source implementation. |
+
+M5c validation: 60 affected suites / 424 tests passed, with typecheck, lint and Knip passing. Existing test IDs and gameplay logic remain unchanged.

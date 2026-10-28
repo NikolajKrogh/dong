@@ -3,7 +3,7 @@ import Head from "expo-router/head";
 import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
 import RandomMatchesToast from "../features/game-setup/RandomMatchesToast";
-import { goalToastConfig } from "../components/gameProgress/GoalToast";
+import { goalToastConfig } from "../features/game-progress/GoalToast";
 import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
 import { AccountAuthProvider } from "../features/account";

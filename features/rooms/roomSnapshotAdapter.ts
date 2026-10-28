@@ -1,7 +1,7 @@
 import type { GuestRoomSnapshot } from "../../types/guestRoom";
 import type { RoomSnapshot } from "../../types/room";
 import type { Match, Player } from "../../store/store";
-import { selectGameplayMatches } from "../../utils/selectGameplayMatches";
+import { selectGameplayMatches } from "../game-setup/selectGameplayMatches";
 
 export type CompatibleRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 

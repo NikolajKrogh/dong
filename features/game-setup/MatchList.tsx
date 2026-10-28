@@ -15,7 +15,7 @@ import {
   normalizeMatchTeamName,
   useMatchListFilters,
 } from "./useMatchListFilters";
-import { useMatchProcessing } from "../../hooks/useMatchProcessing";
+import { useMatchProcessing } from "./useMatchProcessing";
 import { useTeamData } from "../football-matches/useTeamData";
 import { filterMatchesByDateAndTime } from "../football-matches/matchFilters";
 import { PlatformAnimation } from "../../platform";

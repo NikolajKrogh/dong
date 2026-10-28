@@ -29,7 +29,7 @@ jest.mock("react-native-toast-message", () => {
 });
 
 jest.mock("../../features/game-setup/RandomMatchesToast", () => ({}));
-jest.mock("../../components/gameProgress/GoalToast", () => ({
+jest.mock("../../features/game-progress/GoalToast", () => ({
   goalToastConfig: { success: () => null },
 }));
 

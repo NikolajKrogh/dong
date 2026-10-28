@@ -14,7 +14,7 @@ import { ShellScreen } from "../../components/ui";
 import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";
 import { Player, useGameStore } from "../../store/store";
 import { createRandomAssignments } from "./createRandomAssignments";
-import { selectGameplayMatches } from "../../utils/selectGameplayMatches";
+import { selectGameplayMatches } from "./selectGameplayMatches";
 import { isWideLayout } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
