@@ -1,7 +1,7 @@
-import { createMatchDiscoveryApiClient } from "../../utils/commandApiClient";
-import { normalizeEspnScoreboard } from "../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
-import { liveBoard } from "../fixtures/matchCatalog/scoreboards";
-import type { SavedMatch } from "../../types/footballMatch";
+import { createMatchDiscoveryApiClient } from "../../../utils/commandApiClient";
+import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
+import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
+import type { SavedMatch } from "../../../types/footballMatch";
 
 const saved: SavedMatch = {
   ...normalizeEspnScoreboard(liveBoard, "eng.1").matches[0],

@@ -1,10 +1,10 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { AccessibilityInfo, BackHandler } from "react-native";
-import { useRoomEndedExit } from "../../platform/navigation/useRoomEndedExit";
+import { useRoomEndedExit } from "../../../platform/navigation/useRoomEndedExit";
 
 let mockInteractive = true;
-jest.mock("../../platform/visibility/useAppVisibility", () => ({
+jest.mock("../../../platform/visibility/useAppVisibility", () => ({
   useAppVisibility: () => ({ isInteractive: mockInteractive }),
 }));
 

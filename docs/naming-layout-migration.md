@@ -449,4 +449,16 @@ Account, Friends, History and Preferences retain focused public indexes. The new
 
 ESLint now checks feature-to-route imports for every feature TypeScript directory, preserves the focused-index rules for Account/Friends/History/Preferences (including nested/alias paths), and follows the renamed roomRpcClient when rejecting raw transport imports from screens. Named public entry files in the new modules remain allowed; there is no claim of universal private-file enforcement. Knip drops the now-empty root hooks glob and includes shared runtime helpers explicitly.
 
-M6b validation: full Jest suite 160/160 suites and 1,043/1,043 tests; typecheck, lint and Knip passed. An assertion-based ESLint check verified rejection of private Account imports and acceptance of its public interface for TS, TSX and nested callers. Focused route-helper mocks retain the real helper exports. The three broader failing browser journeys were reproduced on archived pre-migration commit 36a6b71 with the same dependencies: missing Arsenal fixture, missing Room Lobby text, and the stale Home Friends-link expectation. Those are recorded baseline failures rather than changed by a naming migration.
+M6b validation: full Jest suite 160/160 suites and 1,043/1,043 tests; typecheck, lint and Knip passed. An assertion-based ESLint check verified rejection of private Account imports and acceptance of its public interface for TS, TSX and nested callers. Focused route-helper mocks retain the real helper exports. The three broader failing browser journeys currently concern a missing Arsenal fixture, missing Room Lobby text, and a Home Friends-link expectation. The first archived-baseline attempt failed to hydrate, so it does not establish equivalence; baseline comparison remains pending. Do not interpret the failed baseline run as proof that the current failures predate this migration.
+
+## M6c — Remaining test ownership
+
+The last technical-root tests now follow their actual implementation: the room-ended platform hook, server guest ingress, and football-match discovery contract. Shared color/theme tests stay under styles because they verify the shared theme, despite mentioning a feature.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/hooks/useRoomEndedExit.test.ts | __tests__/platform/navigation/useRoomEndedExit.test.ts | Match the implementation owner without changing assertions or suite selection. |
+| __tests__/utils/guestIngress.test.ts | __tests__/supabase/guestIngress.test.ts | Match the implementation owner without changing assertions or suite selection. |
+| __tests__/utils/matchDiscoveryCatalog.test.ts | __tests__/features/football-matches/matchDiscoveryCatalog.test.ts | Match the implementation owner without changing assertions or suite selection. |
+
+M6c validation: three relocated suites passed without changing their assertions. Final web axe run: all 12 route/viewport combinations loaded with zero page errors but failed the zero-violations assertion. Baseline accessibility comparison remains pending; the initial baseline failed readiness before axe ran.
