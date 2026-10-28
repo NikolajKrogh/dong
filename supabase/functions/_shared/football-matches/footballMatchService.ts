@@ -254,7 +254,7 @@ export async function replaceSoloTracking(
   }
 }
 
-export type RequestPurpose = 'live' | 'discovery' | 'completion';
+type RequestPurpose = 'live' | 'discovery' | 'completion';
 export type DeferredWork = { ok: false; code: string };
 export interface WorkerSlot {
   ok: true;
