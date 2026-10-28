@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { createHistoryStyles } from "../../styles/historyStyles";
+import { createHistoryStyles } from "./historyStyles";
 import { useColors } from "../../styles/theme";
 /**
  * Tooltip / detail modal for comparison stat.

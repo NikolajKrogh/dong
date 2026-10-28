@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { GameSession } from '../../components/history/historyTypes';
+import type { GameSession } from './historyTypes';
 import { useAccountAuth } from '../../hooks/useAccountAuth';
 import { useGameStore } from '../../store/store';
 import { getSupabaseClient, hasSupabasePublicConfig } from '../../lib/supabase';

@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import * as z from 'zod/mini';
 import { throwIfAborted } from '../../platform/abort';
 import type { Database } from '../../types/database';
-import type { GameSession } from '../../components/history/historyTypes';
+import type { GameSession } from './historyTypes';
 import { mapCompletedSession } from './historyRepository';
 import type { Person } from '../friends';
 

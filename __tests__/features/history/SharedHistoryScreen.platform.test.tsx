@@ -14,7 +14,7 @@ jest.mock('../../../components/preferences/SettingsPage',() => (props:Record<str
   require('react').createElement('Page',props,props.children));
 jest.mock('../../../components/ui',() => ({ShellActionButton:(props:Record<string,unknown>) =>
   require('react').createElement('Action',props)}));
-jest.mock('../../../components/history/GameDetailsModal',() => (props:Record<string,unknown>) =>
+jest.mock('../../../features/history/GameDetailsModal',() => (props:Record<string,unknown>) =>
   require('react').createElement('GameDetails',props));
 const stats=(id:string,name:string) => ({account_id:id,username:name,games_participated:3,total_drinks:12,average_drinks:4});
 const game={id:'shared',date:'2026-10-01T12:00Z',players:[{id:'p',name:'Recorded name',drinksTaken:2,leftAt:'2026-10-01T11:30Z'}],

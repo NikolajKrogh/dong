@@ -1,7 +1,7 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
-import { GameSession } from "../../../components/history/historyTypes";
+import { GameSession } from "../../../features/history/historyTypes";
 
 jest.mock("react-native", () => ({
   Image: "Image",
@@ -34,7 +34,7 @@ jest.mock("../../../components/AppIcon", () => {
   return { __esModule: true, AppIcon: MockAppIcon, default: MockAppIcon };
 });
 
-jest.mock("../../../components/history/HistoryTeamBadge", () => ({
+jest.mock("../../../features/history/HistoryTeamBadge", () => ({
   __esModule: true,
   default: () => null,
 }));
@@ -60,7 +60,7 @@ const makeGame = (overrides: Partial<GameSession> = {}): GameSession => ({
 
 const renderGame = (game: GameSession, onDetailsPress = jest.fn()) => {
   const GameHistoryItem =
-    require("../../../components/history/GameHistoryItem").default;
+    require("../../../features/history/GameHistoryItem").default;
   const renderer = actCreate(
     React.createElement(GameHistoryItem, { game, onDetailsPress }),
   );

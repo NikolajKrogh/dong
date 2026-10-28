@@ -1,7 +1,7 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
-import { actCreate } from "../../test-utils/render";
+import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -93,16 +93,16 @@ jest.mock("expo-router", () => ({
   useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
-jest.mock("../../utils/navigation/useStoreHydration", () => ({ useStoreHydration: () => true }));
-jest.mock("../../platform/navigation/taskNavigation", () => ({ TaskOverlay: ({open,onClose,children}:any) => children({open,dismiss:onClose,runAfterDismiss:(action:()=>void)=>action()}) }));
-jest.mock("../../features/history/HistoryStatistics", () => (props:unknown) =>
-  require("react").createElement(require("../../components/history/OverallStats"),props));
+jest.mock("../../../utils/navigation/useStoreHydration", () => ({ useStoreHydration: () => true }));
+jest.mock("../../../platform/navigation/taskNavigation", () => ({ TaskOverlay: ({open,onClose,children}:any) => children({open,dismiss:onClose,runAfterDismiss:(action:()=>void)=>action()}) }));
+jest.mock("../../../features/history/HistoryStatistics", () => (props:unknown) =>
+  require("react").createElement(require("../../../features/history/OverallStats"),props));
 
-jest.mock("../../features/history", () => ({
+jest.mock("../../../features/history", () => ({
   useHistory: () => ({ ...mockHistoryStore, ...mockCloudState, refresh: mockRefresh }),
   useHistoryCoplayerContext: () => [],
 }));
-jest.mock("../../features/friends", () => ({
+jest.mock("../../../features/friends", () => ({
   useFriends: () => {
     const [loadedPages, setLoadedPages] = require("react").useState(0);
     const friend = {
@@ -139,7 +139,7 @@ jest.mock("../../features/friends", () => ({
   },
 }));
 
-jest.mock("../../styles/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     primary: "#123456",
     textPrimary: "#111111",
@@ -148,11 +148,11 @@ jest.mock("../../styles/theme", () => ({
   }),
 }));
 
-jest.mock("../../styles/historyStyles", () => ({
+jest.mock("../../../features/history/historyStyles", () => ({
   createHistoryStyles: (...args: unknown[]) => mockCreateHistoryStyles(...args),
 }));
 
-jest.mock("../../components/ui", () => {
+jest.mock("../../../components/ui", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 
@@ -168,9 +168,9 @@ jest.mock("../../components/ui", () => {
   };
 });
 
-jest.mock("../../components/AppIcon", () => () => null);
+jest.mock("../../../components/AppIcon", () => () => null);
 
-jest.mock("../../components/history/GameHistoryItem", () => {
+jest.mock("../../../features/history/GameHistoryItem", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 
@@ -181,7 +181,7 @@ jest.mock("../../components/history/GameHistoryItem", () => {
     });
 });
 
-jest.mock("../../components/history/GameDetailsModal", () => {
+jest.mock("../../../features/history/GameDetailsModal", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 
@@ -192,7 +192,7 @@ jest.mock("../../components/history/GameDetailsModal", () => {
     });
 });
 
-jest.mock("../../components/history/PlayerStatsList", () => {
+jest.mock("../../../features/history/PlayerStatsList", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 
@@ -203,7 +203,7 @@ jest.mock("../../components/history/PlayerStatsList", () => {
     });
 });
 
-jest.mock("../../components/history/OverallStats", () => {
+jest.mock("../../../features/history/OverallStats", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 
@@ -214,7 +214,7 @@ jest.mock("../../components/history/OverallStats", () => {
     });
 });
 
-jest.mock("../../components/history/SortHistoryModal", () => {
+jest.mock("../../../features/history/SortHistoryModal", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 
@@ -230,18 +230,18 @@ jest.mock("../../components/history/SortHistoryModal", () => {
   };
 });
 
-jest.mock("../../components/history/historyUtils", () => ({
+jest.mock("../../../features/history/historyUtils", () => ({
   calculateLifetimePlayerStats: () => mockPlayerStats,
   calculateTotalDrinks: () => 2,
   calculateTotalGoals: () => 1,
 }));
 
 const rerenderHistoryScreen = (tree: ReturnType<typeof actCreate>) => {
-  TestRenderer.act(() => tree.update(React.createElement(require("../../app/history").default)));
+  TestRenderer.act(() => tree.update(React.createElement(require("../../../features/history/HistoryScreen").default)));
 };
 
 const renderHistoryScreen = () => {
-  const HistoryScreen = require("../../app/history").default;
+  const HistoryScreen = require("../../../features/history/HistoryScreen").default;
 
   return actCreate(React.createElement(HistoryScreen));
 };

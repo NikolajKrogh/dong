@@ -51,7 +51,7 @@ describe("SortHistoryModal responsive layout", () => {
   it("calls onSortChange when a sort option is pressed", () => {
     const onSortChange = jest.fn();
     const SortHistoryModal =
-      require("../../../components/history/SortHistoryModal").default;
+      require("../../../features/history/SortHistoryModal").default;
 
     const renderer = actCreate(
       React.createElement(SortHistoryModal, {
@@ -83,7 +83,7 @@ describe("SortHistoryModal responsive layout", () => {
     });
 
     const SortHistoryModal =
-      require("../../../components/history/SortHistoryModal").default;
+      require("../../../features/history/SortHistoryModal").default;
 
     const renderer = actCreate(
       React.createElement(SortHistoryModal, {

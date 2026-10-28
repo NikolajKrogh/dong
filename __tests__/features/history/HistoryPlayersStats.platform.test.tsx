@@ -3,9 +3,9 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
-import PlayerStatsList from "../../../components/history/PlayerStatsList";
-import OverallStats from "../../../components/history/OverallStats";
-import { GameSession, PlayerStat } from "../../../components/history/historyTypes";
+import PlayerStatsList from "../../../features/history/PlayerStatsList";
+import OverallStats from "../../../features/history/OverallStats";
+import { GameSession, PlayerStat } from "../../../features/history/historyTypes";
 
 const mockDimensions = jest.fn(() => ({ width: 390, height: 844, scale: 1, fontScale: 1 }));
 jest.mock("react-native", () => new Proxy({
@@ -25,9 +25,9 @@ jest.mock("../../../styles/theme", () => ({
   darkColors: require("../../../styles/palette").colors,
   useColors: () => ({ surface: "#fff", primary: "#0275d8", primaryLight: "#e3f2fd", textPrimary: "#111", textMuted: "#666", border: "#ddd", backgroundSubtle: "#eee" }),
 }));
-jest.mock("../../../components/history/PlayerDetailsModal", () => (props: unknown) =>
+jest.mock("../../../features/history/PlayerDetailsModal", () => (props: unknown) =>
   require("react").createElement("PlayerDetailsModal", props as any));
-jest.mock("../../../components/history/PlayerComparisonModal", () => (props: unknown) =>
+jest.mock("../../../features/history/PlayerComparisonModal", () => (props: unknown) =>
   require("react").createElement("PlayerComparisonModal", props as any));
 
 const render = (element: React.ReactElement) => actCreate(<TamaguiTestProvider>{element}</TamaguiTestProvider>);

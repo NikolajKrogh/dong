@@ -1,19 +1,19 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { useHistory } from '../../features/history/useHistory';
-import { loadCloudHistory } from '../../features/history/historyRepository';
-import { getAccountScope, queryClient, setAccountScope } from '../../lib/queryClient';
-import { useAccountAuth } from '../../hooks/useAccountAuth';
-import { useGameStore } from '../../store/store';
+import { useHistory } from '../../../features/history/useHistory';
+import { loadCloudHistory } from '../../../features/history/historyRepository';
+import { getAccountScope, queryClient, setAccountScope } from '../../../lib/queryClient';
+import { useAccountAuth } from '../../../hooks/useAccountAuth';
+import { useGameStore } from '../../../store/store';
 
-jest.mock('../../hooks/useAccountAuth', () => ({ useAccountAuth: jest.fn() }));
-jest.mock('../../lib/supabase', () => ({ getSupabaseClient: jest.fn(() => ({})), hasSupabasePublicConfig: () => true }));
-jest.mock('../../features/history/historyRepository', () => ({
-  ...jest.requireActual('../../features/history/historyRepository'), loadCloudHistory: jest.fn(),
+jest.mock('../../../hooks/useAccountAuth', () => ({ useAccountAuth: jest.fn() }));
+jest.mock('../../../lib/supabase', () => ({ getSupabaseClient: jest.fn(() => ({})), hasSupabasePublicConfig: () => true }));
+jest.mock('../../../features/history/historyRepository', () => ({
+  ...jest.requireActual('../../../features/history/historyRepository'), loadCloudHistory: jest.fn(),
 }));
 const session = (id: string) => ({ id, date: '', players: [], matches: [], commonMatchId: null, playerAssignments: {}, matchesPerPlayer: 1 });
 const mockReadSavedMatches = jest.fn();
-jest.mock('../../utils/footballMatchService', () => ({ getFootballMatchService: () => ({ readSavedMatches: mockReadSavedMatches }) }));
+jest.mock('../../../utils/footballMatchService', () => ({ getFootballMatchService: () => ({ readSavedMatches: mockReadSavedMatches }) }));
 const renderers: TestRenderer.ReactTestRenderer[] = [];
 function renderHook<T>(hook: () => T) {
   const result = { current: undefined as T };

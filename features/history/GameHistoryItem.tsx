@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AppIcon, { type AppIconName } from "../AppIcon";
+import AppIcon, { type AppIconName } from "../../components/AppIcon";
 import { GameSession } from "./historyTypes";
 import { useColors } from "../../styles/theme";
 import {

@@ -6,7 +6,7 @@ import {
   mapDepartureResult,
   mergeHistory,
 } from "../../../features/history";
-import type { GameSession } from "../../../components/history/historyTypes";
+import type { GameSession } from "../../../features/history/historyTypes";
 
 interface QueryRequest {
   source: "summaries" | "early" | "links";

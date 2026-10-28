@@ -5,8 +5,8 @@ import {
   formatModalDate,
   getPlayerHeadToHeadStats,
   getPlayerIdentityKey,
-} from "../../components/history/historyUtils";
-import type { GameSession, Player } from "../../components/history/historyTypes";
+} from "../../../features/history/historyUtils";
+import type { GameSession, Player } from "../../../features/history/historyTypes";
 
 const buildSession = (
   id: string,

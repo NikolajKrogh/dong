@@ -26,7 +26,7 @@ jest.mock("../../../styles/theme", () => ({
   }),
 }));
 
-jest.mock("../../../styles/historyStyles", () => ({
+jest.mock("../../../features/history/historyStyles", () => ({
   createHistoryStyles: () =>
     new Proxy(
       {
@@ -41,8 +41,8 @@ jest.mock("../../../styles/historyStyles", () => ({
     ),
 }));
 
-jest.mock("../../../components/history/historyUtils", () => ({
-  ...jest.requireActual("../../../components/history/historyUtils"),
+jest.mock("../../../features/history/historyUtils", () => ({
+  ...jest.requireActual("../../../features/history/historyUtils"),
   formatModalDate: () => "Apr 24, 2026",
 }));
 
@@ -84,7 +84,7 @@ describe("PlayerDetailsModal responsive layout", () => {
 
   it("returns null when no player is selected", () => {
     const PlayerDetailsModal =
-      require("../../../components/history/PlayerDetailsModal").default;
+      require("../../../features/history/PlayerDetailsModal").default;
 
     const renderer = actCreate(
       React.createElement(PlayerDetailsModal, {
@@ -107,7 +107,7 @@ describe("PlayerDetailsModal responsive layout", () => {
     });
 
     const PlayerDetailsModal =
-      require("../../../components/history/PlayerDetailsModal").default;
+      require("../../../features/history/PlayerDetailsModal").default;
 
     const renderer = actCreate(
       React.createElement(PlayerDetailsModal, {

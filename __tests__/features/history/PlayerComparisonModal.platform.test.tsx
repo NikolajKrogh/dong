@@ -1,8 +1,8 @@
 import React from "react";
 import { act } from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
-import { GameSession } from "../../../components/history/historyTypes";
-import { calculateLifetimePlayerStats } from "../../../components/history/historyUtils";
+import { GameSession } from "../../../features/history/historyTypes";
+import { calculateLifetimePlayerStats } from "../../../features/history/historyUtils";
 
 let mockLayout = { contentWidth: 800, fontScale: 1, isDesktop: true };
 jest.mock("react-native", () => ({
@@ -28,7 +28,7 @@ jest.mock("../../../styles/theme", () => ({
     primaryLight: "lightblue",
   }),
 }));
-jest.mock("../../../components/history/HistoryModalFrame", () => ({
+jest.mock("../../../features/history/HistoryModalFrame", () => ({
   __esModule: true,
   default: ({
     children,
@@ -37,14 +37,14 @@ jest.mock("../../../components/history/HistoryModalFrame", () => ({
     children: (layout: typeof mockLayout) => React.ReactNode;
   }) => require("react").createElement("Frame", props, children(mockLayout)),
 }));
-jest.mock("../../../components/history/TooltipModal", () => ({
+jest.mock("../../../features/history/TooltipModal", () => ({
   __esModule: true,
   default: (props: object) => require("react").createElement("Tooltip", props),
 }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 
 const PlayerComparisonModal =
-  require("../../../components/history/PlayerComparisonModal").default;
+  require("../../../features/history/PlayerComparisonModal").default;
 const game = (
   id: string,
   date: string,

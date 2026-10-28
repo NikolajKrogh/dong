@@ -2,7 +2,7 @@ import React from 'react';
 import TestRenderer from 'react-test-renderer';
 import { actCreate } from '../../../test-utils/render';
 import { TamaguiTestProvider } from '../../../test-utils/tamagui';
-import PlayerStatsList from '../../../components/history/PlayerStatsList';
+import PlayerStatsList from '../../../features/history/PlayerStatsList';
 import PeopleList from '../../../features/friends/PeopleList';
 
 jest.mock('@expo/vector-icons', () => ({ Ionicons: () => null }));
@@ -13,9 +13,9 @@ jest.mock('../../../features/friends/FriendActions', () => ({
     testID: 'friend-actions',
   }),
 }));
-jest.mock('../../../components/history/PlayerDetailsModal', () => (props: unknown) =>
+jest.mock('../../../features/history/PlayerDetailsModal', () => (props: unknown) =>
   require('react').createElement('PersonalDetails', props));
-jest.mock('../../../components/history/PlayerComparisonModal', () => () => null);
+jest.mock('../../../features/history/PlayerComparisonModal', () => () => null);
 
 const accountId = '00000000-0000-4000-8000-000000000002';
 const player = {

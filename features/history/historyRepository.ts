@@ -3,7 +3,7 @@ import type { Database } from "../../types/database";
 import { throwIfAborted } from "../../platform/abort";
 import * as z from "zod/mini";
 
-import type { GameSession, Match, Player } from "../../components/history/historyTypes";
+import type { GameSession, Match, Player } from "./historyTypes";
 
 const HISTORY_PAGE_SIZE = 500;
 

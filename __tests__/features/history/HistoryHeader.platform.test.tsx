@@ -27,7 +27,7 @@ jest.mock("../../../styles/theme", () => ({
   }),
 }));
 
-jest.mock("../../../styles/historyStyles", () => ({
+jest.mock("../../../features/history/historyStyles", () => ({
   createHistoryStyles: () => ({
     pageHeader: {},
     pageHeaderWide: { testStyle: "pageHeaderWide" },
@@ -55,7 +55,7 @@ describe("HistoryHeader responsive layout", () => {
     const onBack = jest.fn();
     const onOpenSortModal = jest.fn();
     const HistoryHeader =
-      require("../../../components/history/HistoryHeader").default;
+      require("../../../features/history/HistoryHeader").default;
 
     const renderer = actCreate(
       React.createElement(HistoryHeader, {
@@ -92,7 +92,7 @@ describe("HistoryHeader responsive layout", () => {
     });
 
     const HistoryHeader =
-      require("../../../components/history/HistoryHeader").default;
+      require("../../../features/history/HistoryHeader").default;
 
     const renderer = actCreate(
       React.createElement(HistoryHeader, {

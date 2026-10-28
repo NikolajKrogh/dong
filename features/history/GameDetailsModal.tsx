@@ -11,8 +11,8 @@ import {
 } from "./historyUtils";
 import MatchCard from "./MatchCard";
 import HistoryModalFrame from "./HistoryModalFrame";
-import { ShellActionButton } from "../ui/ShellActionButton";
-import type { Person } from "../../features/friends";
+import { ShellActionButton } from "../../components/ui/ShellActionButton";
+import type { Person } from "../friends";
 
 interface GameDetailsModalProps {
   visible: boolean;

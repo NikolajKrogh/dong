@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, RefreshControl, ScrollView } from 'react-native';
 import { Text, XStack, YStack } from 'tamagui';
-import type { GameSession } from '../../components/history/historyTypes';
+import type { GameSession } from './historyTypes';
 import { ShellActionButton } from '../../components/ui';
 import type { Person, useFriends } from '../friends';
 import type { AccountStats } from './socialHistoryRepository';

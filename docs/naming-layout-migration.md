@@ -29,7 +29,7 @@ The older blueprint and inventory describe the pre-migration snapshot. This jour
 | --- | --- | --- |
 | M0 | Baseline checks, agreed standard and migration journal | Complete |
 | M1 | PreferencesHeader, GameProgressTabs and SetupGameTabs pilot | Complete |
-| M2 | History feature ownership and mirrored tests | Planned |
+| M2 | History feature ownership and mirrored tests | Complete |
 | M3 | Home, Preferences and Account/Auth ownership | Planned |
 | M4 | Game setup and match-selection ownership | Planned |
 | M5 | Gameplay, rooms and football-match client ownership | Planned |
@@ -66,3 +66,45 @@ Exact path maps, dependency-driven exceptions, checks and results are appended b
 ## Verification strategy
 
 Use existing Jest/component tests for behavior and import resolution, TypeScript, ESLint and Knip for static checks. Run affected tests per batch and the whole suite at completion. Use existing web Playwright journeys and axe where runtime verification is relevant and available; no new Android exploration is required for path-only changes. Run React Doctor after React changes. Existing diagnostics must be recorded separately from introduced regressions. No hosted service deployment or database migration is part of this cleanup.
+
+## M2 — History ownership
+
+History screens, modal UI, formatting/statistics, layout/types and styles now share the existing History module. The /history entry remains at app/history.tsx and forwards to the named HistoryScreen implementation; it is a framework route entry, not a temporary compatibility shim. Existing filenames already describe their responsibilities, so they retain their names during relocation. Tests follow their implementations, including history utility and hook tests previously filed under technical roots.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/components/history/GameDetailsModal.platform.test.tsx | __tests__/features/history/GameDetailsModal.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/GameHistoryItem.test.tsx | __tests__/features/history/GameHistoryItem.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/HistoryHeader.platform.test.tsx | __tests__/features/history/HistoryHeader.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/HistoryModalWeb.test.tsx | __tests__/features/history/HistoryModalWeb.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/HistoryPlayersStats.platform.test.tsx | __tests__/features/history/HistoryPlayersStats.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/HistoryStatistics.platform.test.tsx | __tests__/features/history/HistoryStatistics.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/HistoryTeamBadge.test.tsx | __tests__/features/history/HistoryTeamBadge.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/PlayerComparisonModal.platform.test.tsx | __tests__/features/history/PlayerComparisonModal.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/PlayerDetailsModal.platform.test.tsx | __tests__/features/history/PlayerDetailsModal.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/SharedHistoryNavigation.platform.test.tsx | __tests__/features/history/SharedHistoryNavigation.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/SharedHistoryScreen.platform.test.tsx | __tests__/features/history/SharedHistoryScreen.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/components/history/SortHistoryModal.platform.test.tsx | __tests__/features/history/SortHistoryModal.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+| components/history/GameDetailsModal.tsx | features/history/GameDetailsModal.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/GameHistoryItem.tsx | features/history/GameHistoryItem.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/HistoryHeader.tsx | features/history/HistoryHeader.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/HistoryModalFrame.tsx | features/history/HistoryModalFrame.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/HistoryTeamBadge.tsx | features/history/HistoryTeamBadge.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/MatchCard.tsx | features/history/MatchCard.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/OverallStats.tsx | features/history/OverallStats.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/PlayerComparisonModal.tsx | features/history/PlayerComparisonModal.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/PlayerDetailsModal.tsx | features/history/PlayerDetailsModal.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/PlayerStatsList.tsx | features/history/PlayerStatsList.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/SortHistoryModal.tsx | features/history/SortHistoryModal.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/TooltipModal.tsx | features/history/TooltipModal.tsx | Collect History-owned implementation behind the existing feature interface. |
+| components/history/historyLayout.ts | features/history/historyLayout.ts | Collect History-owned implementation behind the existing feature interface. |
+| components/history/historyTypes.ts | features/history/historyTypes.ts | Collect History-owned implementation behind the existing feature interface. |
+| components/history/historyUtils.ts | features/history/historyUtils.ts | Collect History-owned implementation behind the existing feature interface. |
+| styles/historyStyles.ts | features/history/historyStyles.ts | Collect History-owned implementation behind the existing feature interface. |
+| __tests__/utils/historyLayout.test.ts | __tests__/features/history/historyLayout.test.ts | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/utils/historyUtils.test.ts | __tests__/features/history/historyUtils.test.ts | Mirror the History implementation and retain the existing suite behavior. |
+| __tests__/hooks/useHistory.test.ts | __tests__/features/history/useHistory.test.ts | Mirror the History implementation and retain the existing suite behavior. |
+| app/history.tsx | features/history/HistoryScreen.tsx | Make the route entry thin while preserving its URL. |
+| __tests__/app/history.platform.test.tsx | __tests__/features/history/HistoryScreen.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
+
+M2 validation: the full 160-suite / 1,043-test Jest suite passed after relocation, as did typecheck, lint and Knip. The initially supplied plural Jest filter was not recognized by Jest 29, so the run covered the full suite; subsequent focused runs use --testPathPattern.

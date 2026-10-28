@@ -50,7 +50,7 @@ jest.mock("../../../styles/theme", () => ({
   }),
 }));
 
-jest.mock("../../../components/history/HistoryTeamBadge", () => ({
+jest.mock("../../../features/history/HistoryTeamBadge", () => ({
   __esModule: true,
   default: () => null,
 }));
@@ -76,7 +76,7 @@ const mockGame = {
 };
 
 it("offers registered accepted-friend shortcuts from recorded game details",() => {
-  const GameDetailsModal=require("../../../components/history/GameDetailsModal").default;
+  const GameDetailsModal=require("../../../features/history/GameDetailsModal").default;
   const open=jest.fn();
   const renderer=actCreate(<GameDetailsModal visible onClose={jest.fn()} onOpenShared={open}
     game={{...mockGame,players:[{id:"p1",name:"Recorded",accountId:"friend",membershipType:"registered",drinksTaken:4}]}}
@@ -92,7 +92,7 @@ it("offers registered accepted-friend shortcuts from recorded game details",() =
 describe("GameDetailsModal responsive layout", () => {
   it("shows unknown completion dates and empty sections", () => {
     const GameDetailsModal =
-      require("../../../components/history/GameDetailsModal").default;
+      require("../../../features/history/GameDetailsModal").default;
     const renderer = actCreate(
       <GameDetailsModal
         visible
@@ -117,7 +117,7 @@ describe("GameDetailsModal responsive layout", () => {
 
   it("returns null when no game is selected", () => {
     const GameDetailsModal =
-      require("../../../components/history/GameDetailsModal").default;
+      require("../../../features/history/GameDetailsModal").default;
 
     const renderer = actCreate(
       React.createElement(GameDetailsModal, {
@@ -132,7 +132,7 @@ describe("GameDetailsModal responsive layout", () => {
 
   it("shows preserved early leavers and their final assignments", () => {
     const GameDetailsModal =
-      require("../../../components/history/GameDetailsModal").default;
+      require("../../../features/history/GameDetailsModal").default;
     const renderer = actCreate(
       React.createElement(GameDetailsModal, {
         visible: true,
@@ -158,7 +158,7 @@ describe("GameDetailsModal responsive layout", () => {
     });
 
     const GameDetailsModal =
-      require("../../../components/history/GameDetailsModal").default;
+      require("../../../features/history/GameDetailsModal").default;
 
     const renderer = actCreate(
       React.createElement(GameDetailsModal, {
@@ -195,7 +195,7 @@ describe("GameDetailsModal responsive layout", () => {
         fontScale: Number(fontScale),
       });
       const GameDetailsModal =
-        require("../../../components/history/GameDetailsModal").default;
+        require("../../../features/history/GameDetailsModal").default;
       const renderer = actCreate(
         <GameDetailsModal visible onClose={jest.fn()} game={mockGame} />,
       );
@@ -221,7 +221,7 @@ describe("GameDetailsModal responsive layout", () => {
 
   it("keeps twelve full names and wrapping assignments and wires both dismissal actions", () => {
     const GameDetailsModal =
-      require("../../../components/history/GameDetailsModal").default;
+      require("../../../features/history/GameDetailsModal").default;
     const onClose = jest.fn();
     const players = Array.from({ length: 12 }, (_, index) => ({
       id: `p${index}`,

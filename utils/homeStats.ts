@@ -1,8 +1,8 @@
-import type { GameSession, Player } from "../components/history/historyTypes";
+import type { GameSession, Player } from "../features/history/historyTypes";
 import {
   calculateLifetimePlayerStats,
   type PlayerStatsSession,
-} from "../components/history/historyUtils";
+} from "../features/history/historyUtils";
 
 export type HomeStatsPlayer = Player;
 

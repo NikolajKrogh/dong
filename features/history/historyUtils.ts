@@ -5,7 +5,7 @@ import {
   PlayerStat,
   HeadToHeadStats,
 } from "./historyTypes";
-import { getHistoryTimestamp } from "../../features/history/historyDate";
+import { getHistoryTimestamp } from "./historyDate";
 
 export type PlayerStatsSession = Pick<GameSession, "id" | "date" | "players">;
 

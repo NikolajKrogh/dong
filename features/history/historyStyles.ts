@@ -4,8 +4,8 @@ import {
   ViewStyle,
   ImageStyle,
 } from "react-native";
-import type { lightColors as Light, darkColors as Dark } from "./theme";
-import { androidElevationFallback, hexWithAlpha } from "./shadows";
+import type { lightColors as Light, darkColors as Dark } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 type Colors = typeof Light | typeof Dark;
 
 interface HistoryLayoutOptions {

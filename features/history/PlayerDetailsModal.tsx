@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PlayerStat, GameSession } from "./historyTypes";
-import { createHistoryStyles } from "../../styles/historyStyles";
+import { createHistoryStyles } from "./historyStyles";
 import { useColors } from "../../styles/theme";
 import { findPlayerByIdentityKey, formatModalDate } from "./historyUtils";
 

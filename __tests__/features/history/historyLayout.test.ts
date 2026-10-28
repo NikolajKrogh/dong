@@ -1,5 +1,5 @@
-import { buildHistoryRows } from "../../components/history/historyLayout";
-import type { GameSession } from "../../components/history/historyTypes";
+import { buildHistoryRows } from "../../../features/history/historyLayout";
+import type { GameSession } from "../../../features/history/historyTypes";
 
 const game = (id: string, date: string): GameSession => ({ id, date, players: [], matches: [], commonMatchId: null, playerAssignments: {}, matchesPerPlayer: 0 });
 

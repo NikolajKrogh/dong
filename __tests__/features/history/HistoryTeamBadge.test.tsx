@@ -37,7 +37,7 @@ describe("HistoryTeamBadge", () => {
 
   it("shows initials when no hardcoded or cached logo is available", () => {
     const HistoryTeamBadge =
-      require("../../../components/history/HistoryTeamBadge").default;
+      require("../../../features/history/HistoryTeamBadge").default;
 
     const renderer = actCreate(
       React.createElement(HistoryTeamBadge, { teamName: "Manchester United" }),
@@ -52,7 +52,7 @@ describe("HistoryTeamBadge", () => {
   it("replaces a failed cached logo with initials in the same badge size", async () => {
     mockGetTeamLogo.mockResolvedValue("https://example.test/logo.png");
     const HistoryTeamBadge =
-      require("../../../components/history/HistoryTeamBadge").default;
+      require("../../../features/history/HistoryTeamBadge").default;
 
     const renderer = actCreate(
       React.createElement(HistoryTeamBadge, { teamName: "Manchester United" }),
