@@ -102,14 +102,24 @@ export function useLiveScores(
       const linked = new Map<string, string>();
       // Only recover explicit legacy selection metadata; never scan configured leagues.
       const scopes = new Map(legacy.slice(0, 20).map(match => [`${match.sourceLeagueCode}:${new Date(match.kickoffAt).toISOString().slice(0, 10)}`, match]));
-      for (const selected of scopes.values()) {
-        const result = await footballMatchService.discoverMatches({ leagueCodes: [selected.sourceLeagueCode], date: new Date(selected.kickoffAt).toISOString().slice(0, 10) });
-        if (generationRef.current !== generation) return;
-        for (const saved of result.matches) {
-          const match = legacy.find(candidate => candidate.sourceLeagueCode === saved.identity.leagueCode && (candidate.sourceMatchId ?? candidate.id) === saved.identity.sourceEventId);
-          if (match) linked.set(match.id, saved.catalogMatchId);
+      const pendingScopes = [...scopes.values()];
+      async function recoverLegacyScopes(): Promise<void> {
+        if (generationRef.current !== generation || controller.signal.aborted || !pendingScopes.length) return;
+        // Limit client recovery to two requests; provider acquisition remains server-owned.
+        const results = await Promise.all(pendingScopes.splice(0, 2).map(selected =>
+          footballMatchService.discoverMatches({ leagueCodes: [selected.sourceLeagueCode], date: new Date(selected.kickoffAt).toISOString().slice(0, 10) }),
+        ));
+        if (generationRef.current !== generation || controller.signal.aborted) return;
+        for (const result of results) {
+          for (const saved of result.matches) {
+            const match = legacy.find(candidate => candidate.sourceLeagueCode === saved.identity.leagueCode && (candidate.sourceMatchId ?? candidate.id) === saved.identity.sourceEventId);
+            if (match) linked.set(match.id, saved.catalogMatchId);
+          }
         }
+        return recoverLegacyScopes();
       }
+      await recoverLegacyScopes();
+      if (generationRef.current !== generation || controller.signal.aborted) return;
       const ids = [...new Set(current.matches.flatMap(match => {
         const id = match.catalogMatchId ?? linked.get(match.id);
         return id ? [id] : [];

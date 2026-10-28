@@ -150,11 +150,13 @@ async function issueSoloTrackingGrant(
     throw new FootballMatchOperationError('configuration_required');
   }
   decodeCapability(currentKey, 'configuration_required');
-  const nonceDigest = await sha256Hex(nonce, crypto);
-  const creationDigest = await sha256Hex(
-    encoder.encode(JSON.stringify({ operationId, catalogMatchIds, creationNonce })),
-    crypto,
-  );
+  const [nonceDigest, creationDigest] = await Promise.all([
+    sha256Hex(nonce, crypto),
+    sha256Hex(
+      encoder.encode(JSON.stringify({ operationId, catalogMatchIds, creationNonce })),
+      crypto,
+    ),
+  ]);
   const prepared = preparedTrackingIssuanceSchema.safeParse(
     requireSuccessfulDatabaseResult(
       await database.prepareSolo({
