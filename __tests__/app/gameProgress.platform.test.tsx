@@ -137,7 +137,7 @@ jest.mock("../../components/ui", () => {
   };
 });
 
-jest.mock("../../components/gameProgress/TabNavigation", () => {
+jest.mock("../../components/gameProgress/GameProgressTabs", () => {
   const ReactLocal = require("react");
   const ReactNativeLocal = require("react-native");
 

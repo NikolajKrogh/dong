@@ -9,12 +9,12 @@ import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "../../styles/setupGameStyles";
 import { useColors } from "../../styles/theme";
 
-interface TabNavigationProps {
+interface SetupGameTabsProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-const TabNavigation: React.FC<TabNavigationProps> = ({
+const SetupGameTabs: React.FC<SetupGameTabsProps> = ({
   activeTab,
   setActiveTab,
 }) => {
@@ -87,4 +87,4 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   );
 };
 
-export default TabNavigation;
+export default SetupGameTabs;

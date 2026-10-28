@@ -5,10 +5,10 @@ import { createUserPreferencesStyles } from "../../styles/userPreferencesStyles"
 import { useColors } from "../../styles/theme";
 
 /**
- * HeaderProps
- * @description Props for the Header component.
+ * PreferencesHeaderProps
+ * @description Props for the PreferencesHeader component.
  */
-interface HeaderProps {
+interface PreferencesHeaderProps {
   /** Header title text. */
   title: string;
   /** Callback when back button pressed. */
@@ -16,12 +16,12 @@ interface HeaderProps {
 }
 
 /**
- * Header component.
+ * PreferencesHeader component.
  * @description Displays a surface-colored header bar with a title and back button.
- * @param {HeaderProps} props Component props.
+ * @param {PreferencesHeaderProps} props Component props.
  * @returns {JSX.Element} Header UI.
  */
-const Header: React.FC<HeaderProps> = ({ title, onBack }) => {
+const PreferencesHeader: React.FC<PreferencesHeaderProps> = ({ title, onBack }) => {
   const colors = useColors();
   const { headerStyles } = React.useMemo(
     () => createUserPreferencesStyles(colors),
@@ -39,4 +39,4 @@ const Header: React.FC<HeaderProps> = ({ title, onBack }) => {
   );
 };
 
-export default Header;
+export default PreferencesHeader;

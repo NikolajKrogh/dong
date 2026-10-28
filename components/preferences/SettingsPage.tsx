@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ShellScreen } from "../ui";
 import { isWideLayout } from "../../styles/responsive";
 import { useColors } from "../../styles/theme";
-import Header from "./Header";
+import PreferencesHeader from "./PreferencesHeader";
 
 export default function SettingsPage({
   title,
@@ -30,7 +30,7 @@ export default function SettingsPage({
       contentMaxWidth={isWideLayout(width) ? 960 : undefined}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-        <Header
+        <PreferencesHeader
           title={title}
           onBack={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace(title === "Settings" ? "/" : "/userPreferences")))}
         />

@@ -72,12 +72,12 @@ describe("TabNavigation platform adoption", () => {
 
   it("keeps visible tab buttons available alongside the shared swipe adapter", () => {
     const setActiveTab = jest.fn();
-    const TabNavigation =
-      require("../../../components/gameProgress/TabNavigation").default;
+    const GameProgressTabs =
+      require("../../../components/gameProgress/GameProgressTabs").default;
 
     const renderer = actCreate(
       React.createElement(
-        TabNavigation,
+        GameProgressTabs,
         {
           activeTab: "matches",
           setActiveTab,
@@ -115,12 +115,12 @@ describe("TabNavigation platform adoption", () => {
     });
 
     const setActiveTab = jest.fn();
-    const TabNavigation =
-      require("../../../components/gameProgress/TabNavigation").default;
+    const GameProgressTabs =
+      require("../../../components/gameProgress/GameProgressTabs").default;
 
     const renderer = actCreate(
       React.createElement(
-        TabNavigation,
+        GameProgressTabs,
         {
           activeTab: "matches",
           setActiveTab,

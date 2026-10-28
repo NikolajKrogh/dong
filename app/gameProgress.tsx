@@ -17,7 +17,7 @@ import { MultiplayerGameStatus } from "../components/gameProgress/MultiplayerGam
 import MatchesGrid from "../components/gameProgress/MatchesGrid/";
 import MatchQuickActionsModal from "../components/gameProgress/MatchQuickActionsModal";
 import PlayersList from "../components/gameProgress/PlayersList";
-import TabNavigation from "../components/gameProgress/TabNavigation";
+import GameProgressTabs from "../components/gameProgress/GameProgressTabs";
 import useGameProgressController from "../hooks/useGameProgressController";
 import { useGuestRoomSession } from "../hooks/useGuestRoomSession";
 import { useRoomExit } from "../hooks/useRoomExit";
@@ -113,7 +113,7 @@ const GameProgressScreen = () => {
             onRefresh={() => void activeGame.refresh()}
             onRetryMutation={(id) => void activeGame.retryMutation(id)}
           />
-          <TabNavigation
+          <GameProgressTabs
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             matchesCount={matches.length}
@@ -154,7 +154,7 @@ const GameProgressScreen = () => {
                 disabled={controlsDisabled}
               />
             </View>
-          </TabNavigation>
+          </GameProgressTabs>
 
           <View style={styles.footerContainer}>
             <FooterButtons

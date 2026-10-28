@@ -42,12 +42,12 @@ jest.mock("../../../styles/setupGameStyles", () => ({
   default: () => mockStyles,
 }));
 
-const renderTabNavigation = (activeTab = "players") => {
-  const TabNavigation =
-    require("../../../components/setupGame/TabNavigation").default;
+const renderSetupGameTabs = (activeTab = "players") => {
+  const SetupGameTabs =
+    require("../../../components/setupGame/SetupGameTabs").default;
 
   return actCreate(
-    React.createElement(TabNavigation, {
+    React.createElement(SetupGameTabs, {
       activeTab,
       setActiveTab: jest.fn(),
     }),
@@ -66,7 +66,7 @@ describe("Setup TabNavigation responsive layout", () => {
   });
 
   it("keeps the compact tab container on phone-sized viewports", () => {
-    const renderer = renderTabNavigation();
+    const renderer = renderSetupGameTabs();
     const root = renderer.root.findByProps({
       testID: "SetupTabNavigationRoot",
     });
@@ -90,7 +90,7 @@ describe("Setup TabNavigation responsive layout", () => {
       fontScale: 1,
     });
 
-    const renderer = renderTabNavigation("matches");
+    const renderer = renderSetupGameTabs("matches");
     const root = renderer.root.findByProps({
       testID: "SetupTabNavigationRoot",
     });

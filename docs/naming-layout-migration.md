@@ -28,7 +28,7 @@ The older blueprint and inventory describe the pre-migration snapshot. This jour
 | Milestone | Scope | Status |
 | --- | --- | --- |
 | M0 | Baseline checks, agreed standard and migration journal | Complete |
-| M1 | PreferencesHeader, GameProgressTabs and SetupGameTabs pilot | Planned |
+| M1 | PreferencesHeader, GameProgressTabs and SetupGameTabs pilot | Complete |
 | M2 | History feature ownership and mirrored tests | Planned |
 | M3 | Home, Preferences and Account/Auth ownership | Planned |
 | M4 | Game setup and match-selection ownership | Planned |
@@ -54,6 +54,8 @@ Each milestone includes a commit after its checks. Split a milestone further if 
 | components/setupGame/TabNavigation.tsx | components/setupGame/SetupGameTabs.tsx | Distinguishes setup player/match/assignment tabs from progress tabs. Ownership move comes with Game setup. |
 
 Rename the exported symbols, prop types and mirrored test basenames together. Keep test IDs and rendered behavior unchanged. No compatibility re-export files are needed because internal consumers are updated in the same commit.
+
+Applied all three source renames and the corresponding three test renames using git mv. Updated SettingsPage, the progress route and its test mock. Validation: four affected suites / 12 tests passed, typecheck passed, lint passed. The baseline suite contains 160 suites / 1,043 tests, all passing. React Doctor is running as an additional review; its results will be recorded before the next milestone.
 
 ## Planned ownership decisions
 

@@ -14,10 +14,10 @@ import { PlatformSwipeTabs } from "../../platform";
 import AppIcon, { AppIconName } from "../AppIcon";
 
 /**
- * Props for the TabNavigation component.
+ * Props for the GameProgressTabs component.
  * @interface
  */
-interface TabNavigationProps {
+interface GameProgressTabsProps {
   /** The currently active tab's identifier string. */
   activeTab: string;
   /** Setter invoked to change the active tab. */
@@ -35,11 +35,11 @@ interface TabNavigationProps {
 /**
  * Tab navigation with swipe gestures and animated transitions.
  * @component
- * @param {TabNavigationProps} props Component props.
+ * @param {GameProgressTabsProps} props Component props.
  * @returns {React.ReactElement} Rendered tab navigation UI.
  * @description Renders a tab bar (matches / players) with counts and icons. Users can switch tabs by tapping or via horizontal swipe gestures handled with Reanimated + Gesture Handler. Horizontal gestures are suppressed when a predominantly vertical scroll is detected to avoid interference with list scrolling. Applies an optional RefreshControl only to the first tab's content.
  */
-const TabNavigation: React.FC<TabNavigationProps> = ({
+const GameProgressTabs: React.FC<GameProgressTabsProps> = ({
   activeTab,
   setActiveTab,
   children,
@@ -148,4 +148,4 @@ const TabNavigation: React.FC<TabNavigationProps> = ({
   );
 };
 
-export default TabNavigation;
+export default GameProgressTabs;
