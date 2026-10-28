@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 insert into private.provider_matches(league_id,source_event_id,home_name,away_name,lifecycle,is_completed,observation_version,last_projection_sequence)
 select id,'roster-query','Home','Away','finished',true,0,200 from private.provider_leagues where league_code='eng.1';
 select private.accept_provider_match_details((select id from private.provider_matches where source_event_id='roster-query'),200,

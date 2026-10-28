@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Match, useGameStore } from "../store/store";
 import { FOOTBALL_MATCH_PROVIDER } from "../types/footballMatch";
-import type { SavedMatch, SoloTrackingSelection } from "../types/footballMatch";
+import type { SavedMatch } from "../types/footballMatch";
 import type { MatchWithScore } from "../types/matchScores";
 import { getFootballMatchService } from "../utils/footballMatchService";
 import { generateIdempotencyKey } from "../utils/commandApiClient";

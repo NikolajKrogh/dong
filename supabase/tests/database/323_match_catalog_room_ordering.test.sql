@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 create temporary table ordering_context as select gen_random_uuid() as host,gen_random_uuid() as room,gen_random_uuid() as match;
 insert into auth.users(id,aud,role,email,email_confirmed_at,created_at,updated_at,raw_app_meta_data,raw_user_meta_data,is_sso_user,is_anonymous)
 select host,'authenticated','authenticated',host::text||'@order.test',now(),now(),now(),'{}','{}',false,false from ordering_context;

@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 select is(private.set_catalog_ownership('catalog',1)->>'code','configuration_required','unconfigured acquisition cannot be activated');
 select is(private.configure_catalog_limits(30,5000)->>'ok','true','operator can supply explicit finite provider budgets');
 select is(private.set_catalog_ownership('catalog',1)->>'workerGeneration','2','activation increments ownership generation');

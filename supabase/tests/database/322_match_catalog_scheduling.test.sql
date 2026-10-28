@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 insert into private.provider_matches(league_id,source_event_id,home_name,away_name,lifecycle,kickoff_at,kickoff_validity)
 select id,'schedule-event','Home','Away','scheduled','2030-01-01 12:00Z','confirmed' from private.provider_leagues where league_code='eng.1';
 select is(private.catalog_match_due_at(m,'2030-01-01 11:59Z'),timestamptz '2030-01-01 12:00Z','known kickoff is dormant until its exact start') from private.provider_matches m where source_event_id='schedule-event';

@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 select ok(to_regclass('private.provider_match_rosters') is not null,'compact participation has a queryable shared relation');
 select ok(not has_table_privilege('anon','private.provider_match_rosters','select'),'rosters require sanitized saved projection');
 select ok(not has_function_privilege('service_role','private.maintain_catalog_storage()','execute'),'API credential cannot perform retention/measurements');

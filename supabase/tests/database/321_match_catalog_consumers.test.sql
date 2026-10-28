@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 
 select ok(private.accept_compact_provider_match((select g.id from private.provider_request_groups g join private.provider_leagues l on l.id=g.league_id where l.league_code='eng.1' limit 1),100,
   jsonb_set('{"identity":{"provider":"espn","leagueCode":"eng.1","sourceEventId":"catalog-event","sourceCompetitionId":"catalog-competition"},"homeTeam":{"sourceTeamId":"h","name":"Home"},"awayTeam":{"sourceTeamId":"a","name":"Away"},"kickoffValidity":"confirmed","lifecycle":"live","homeScore":2,"awayScore":1,"availability":"available"}'::jsonb,'{kickoffAt}',to_jsonb(clock_timestamp()-interval '5 minutes')),clock_timestamp()),'seed accepted shared fact');

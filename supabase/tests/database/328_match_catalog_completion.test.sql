@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 update private.provider_budget_state set ownership_mode='catalog',rolling_limit=30,daily_limit=5000,optional_work_allowed=true,new_demand_allowed=true where provider='espn';
 insert into private.provider_matches(league_id,source_event_id,home_name,away_name,lifecycle,is_completed,completed_at)
 select id,'completion-cap','Home','Away','finished',true,clock_timestamp()-interval '6 minutes' from private.provider_leagues where league_code='eng.1';

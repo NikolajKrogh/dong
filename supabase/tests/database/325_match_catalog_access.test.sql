@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 
 select ok(not rolcanlogin and not rolsuper and not rolcreaterole and not rolbypassrls,
   'owned backend group cannot log in directly, manage roles or bypass RLS') from pg_roles where rolname='match_catalog_backend';

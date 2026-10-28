@@ -1,6 +1,6 @@
 /* global Deno */
 // Backend integration harness, not an app/E2E test. Only the disposable feature030 profile is accepted.
-// DENO_DIR=.supabase/deno-cache npx deno@2.9.6 run --no-lock --cached-only --allow-env --allow-read=.supabase/feature030/supabase/config.toml,supabase/tests/fixtures/match_catalog.sql --allow-net=127.0.0.1 scripts/test-match-catalog-concurrency.mjs
+// DENO_DIR=.supabase/deno-cache npx deno@2.9.6 run --no-lock --cached-only --allow-env --allow-read=.supabase/feature030/supabase/config.toml,supabase/tests/fixtures/match_catalog.sql.inc --allow-net=127.0.0.1 scripts/test-match-catalog-concurrency.mjs
 import process from 'node:process';
 // eslint-disable-next-line import/no-unresolved -- Deno resolves this pinned npm module.
 import postgres from 'npm:postgres@3.4.9';
@@ -91,7 +91,7 @@ async function prepare() {
     originals = { policy, slots, groups: existing, usage, counters };
     await transaction`update private.provider_budget_state set ownership_mode='catalog',rolling_limit=30,daily_limit=5000,daily_count=0,usage_day=${date}::date,cooldown_until=null,pause_reason=null,new_demand_allowed=true,optional_work_allowed=false where provider='espn'`;
     // Reuse the same fixed allowlist and disposable seed as pgTAP; add only the other three requested scopes.
-    await transaction.unsafe(await Deno.readTextFile(new URL('../supabase/tests/fixtures/match_catalog.sql', import.meta.url)));
+    await transaction.unsafe(await Deno.readTextFile(new URL('../supabase/tests/fixtures/match_catalog.sql.inc', import.meta.url)));
     await transaction`insert into private.provider_request_groups(provider,league_id,resource_kind,request_date,next_attempt_at)
       select 'espn',id,'scoreboard',${date}::date,clock_timestamp() from private.provider_leagues where provider='espn' and league_code=any(${transaction.array(codes)}::text[]) on conflict(provider,scope_key) do nothing`;
     groups = await transaction`select g.*,l.league_code from private.provider_request_groups g join private.provider_leagues l on l.id=g.league_id where l.league_code=any(${transaction.array(codes)}::text[]) and g.resource_kind='scoreboard' and g.request_date=${date}::date order by l.league_code`;

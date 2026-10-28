@@ -1,6 +1,6 @@
 begin;
 select no_plan();
-\ir ../fixtures/match_catalog.sql
+\ir ../fixtures/match_catalog.sql.inc
 create temporary table application_match as
 select jsonb_build_object('identity',jsonb_build_object('provider','espn','leagueCode','eng.1','sourceEventId','application-event'),
   'homeTeam',jsonb_build_object('name','Home','sourceTeamId','app-h'),'awayTeam',jsonb_build_object('name','Away','sourceTeamId','app-a'),

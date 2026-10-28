@@ -1,6 +1,6 @@
 /* global Deno */
 // Local backend sizing, not an app/E2E test. Deno's allow-net must remain loopback-only.
-// DENO_DIR=.supabase/deno-cache npx deno@2.9.6 run --cached-only --node-modules-dir=none --allow-env --allow-read=.supabase/feature030/supabase/config.toml,supabase/tests/fixtures/match_catalog_measurements.sql --allow-write=specs/030-reduce-espn-requests/validation --allow-net=127.0.0.1 scripts/measure-match-catalog-storage.mjs
+// DENO_DIR=.supabase/deno-cache npx deno@2.9.6 run --cached-only --node-modules-dir=none --allow-env --allow-read=.supabase/feature030/supabase/config.toml,supabase/tests/fixtures/match_catalog_measurements.sql.inc --allow-write=specs/030-reduce-espn-requests/validation --allow-net=127.0.0.1 scripts/measure-match-catalog-storage.mjs
 // eslint-disable-next-line import/no-unresolved -- Deno resolves the same pinned owned adapter dependency.
 import postgres from 'npm:postgres@3.4.9';
 
@@ -90,7 +90,7 @@ try {
     await sql.begin(async transaction => {
       await transaction`set local statement_timeout='60s'`;
       await transaction`select set_config('match_catalog.measurement_marker',${marker},true)`;
-      await transaction.unsafe(await Deno.readTextFile(new URL('supabase/tests/fixtures/match_catalog_measurements.sql',root)));
+      await transaction.unsafe(await Deno.readTextFile(new URL('supabase/tests/fixtures/match_catalog_measurements.sql.inc',root)));
       await transaction.unsafe('analyze private.provider_matches,private.provider_match_observations,private.provider_match_rosters,private.provider_match_team_stats,private.provider_match_goals,private.provider_goal_participants,private.provider_goal_revisions,private.provider_teams,private.provider_athletes,public.matches,public.game_sessions,public.participants,public.assignments,public.gameplay_events,cron.job_run_details');
       const after = await sizes(transaction);
       const relations = difference(before,after);
