@@ -10,7 +10,7 @@ const mockBack=jest.fn(),mockReplace=jest.fn();
 const mockRouteParams = {accountId:'00000000-0000-4000-8000-000000000001',returnTo:'/history'};
 jest.mock('expo-router',() => ({useLocalSearchParams:() => mockRouteParams,
   useRouter:() => ({canGoBack:() => false,back:mockBack,replace:mockReplace})}));
-jest.mock('../../../components/preferences/SettingsPage',() => (props:Record<string,unknown>) =>
+jest.mock('../../../features/preferences/SettingsPage',() => (props:Record<string,unknown>) =>
   require('react').createElement('Page',props,props.children));
 jest.mock('../../../components/ui',() => ({ShellActionButton:(props:Record<string,unknown>) =>
   require('react').createElement('Action',props)}));

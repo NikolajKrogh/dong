@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text } from 'tamagui';
-import SettingsPage from '../../components/preferences/SettingsPage';
+import { SettingsPage } from '../preferences';
 import { ShellActionButton } from '../../components/ui';
 import PeopleList from './PeopleList';
 import { useFriends } from './useFriends';

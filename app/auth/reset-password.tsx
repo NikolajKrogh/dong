@@ -6,7 +6,7 @@ import { useLocalSearchParams } from "expo-router";
 import AuthHeader from "../../components/auth/AuthHeader";
 import PasswordResetForm from "../../components/auth/PasswordResetForm";
 import { ShellScreen } from "../../components/ui";
-import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
+import { normalizeAccountFlowReturnTo } from "../../features/account";
 import { useColors } from "../../styles/theme";
 
 const PasswordResetScreen = () => {

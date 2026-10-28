@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AuthForm from "../../components/auth/AuthForm";
 import AuthHeader from "../../components/auth/AuthHeader";
 import { ShellScreen } from "../../components/ui";
-import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
+import { normalizeAccountFlowReturnTo } from "../../features/account";
 import { useColors } from "../../styles/theme";
 
 const AuthScreen = () => {

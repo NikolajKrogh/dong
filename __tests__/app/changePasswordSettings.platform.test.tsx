@@ -11,11 +11,11 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
-jest.mock("../../hooks/useAccountAuth", () => ({
+jest.mock("../../features/account", () => ({
   normalizeAccountFlowReturnTo: (value: string) => value?.startsWith("/") ? value : null,
 }));
 
-jest.mock("../../components/preferences/SettingsPage", () => ({ title, children, onBack }: any) => {
+jest.mock("../../features/preferences/SettingsPage", () => ({ title, children, onBack }: any) => {
   const R = require("react");
   const RN = require("react-native");
   return R.createElement(RN.View, null,

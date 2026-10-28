@@ -1,0 +1,424 @@
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  TextInput,
+  FlatList,
+  Image,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { createUserPreferencesStyles } from "./preferencesStyles";
+import { useColors } from "../../styles/theme";
+import {
+  AVAILABLE_LEAGUES,
+  LEAGUE_CATEGORIES,
+  LeagueEndpoint,
+} from "../../constants/leagues";
+import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+
+/**
+ * Props for add league modal.
+ * @description Controls modal visibility, league selection state and search; supplies callbacks for selection toggling, bulk add and closing.
+ * @property visible Whether the modal is currently shown.
+ * @property onClose Callback fired to request closing the modal (after internal reset logic runs).
+ * @property configuredLeagues Leagues already persisted / in use (excluded from selectable list).
+ * @property selectedLeagues Leagues currently picked in this modal (pending confirmation).
+ * @property setSelectedLeagues Replaces the full pending selection array.
+ * @property toggleLeagueSelection Toggles a single league in the pending selection set.
+ * @property handleAddSelectedLeagues Commits the currently selected leagues (e.g., adds to store) then typically closes the modal.
+ * @property searchQuery Current text query for filtering leagues by name/code.
+ * @property setSearchQuery Setter to update the search query (debounce handled upstream if needed).
+ */
+interface AddLeagueModalProps {
+  /** Modal visibility flag. */
+  visible: boolean;
+  /** Called when modal should close. */
+  onClose: () => void;
+  /** Already configured leagues. */
+  configuredLeagues: LeagueEndpoint[];
+  /** Currently selected (pending add) leagues. */
+  selectedLeagues: LeagueEndpoint[];
+  /** Replace selected leagues list. */
+  setSelectedLeagues: (leagues: LeagueEndpoint[]) => void;
+  /** Toggle a league's selection state. */
+  toggleLeagueSelection: (league: LeagueEndpoint) => void;
+  /** Commit adding selected leagues. */
+  handleAddSelectedLeagues: () => void;
+  /** Current search query. */
+  searchQuery: string;
+  /** Update search query. */
+  setSearchQuery: (query: string) => void;
+}
+
+/**
+ * Single league list item.
+ * @description Shows league logo, name and selection state; press toggles selection.
+ * @param props Item props.
+ * @returns {JSX.Element} Rendered league row.
+ */
+interface LeagueItemProps {
+  league: LeagueEndpoint;
+  isSelected: boolean;
+  onToggleLeague: (league: LeagueEndpoint) => void;
+}
+
+const LeagueItem = React.memo(function LeagueItem({
+  league,
+  isSelected,
+  onToggleLeague,
+}: LeagueItemProps) {
+  const colors = useColors();
+  const { addLeagueModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
+  const { logoSource, isLoading: isLogoLoading } = useLeagueLogo(league.name, league.code);
+  const handlePress = React.useCallback(
+    () => onToggleLeague(league),
+    [league, onToggleLeague],
+  );
+  const logoPlaceholderIcon = isLogoLoading ? "hourglass-outline" : "football-outline";
+  const logoPlaceholder = (
+    <View
+      style={[
+        addLeagueModalStyles.leagueLogo,
+        { backgroundColor: colors.backgroundSubtle },
+      ]}
+    >
+      <Ionicons
+        name={logoPlaceholderIcon}
+        size={16}
+        color={colors.textMuted}
+      />
+    </View>
+  );
+  let logoContent = logoPlaceholder;
+  if (!isLogoLoading && logoSource) {
+    logoContent = (
+      <Image
+        source={logoSource}
+        style={addLeagueModalStyles.leagueLogo}
+        resizeMode="contain"
+      />
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={[
+        addLeagueModalStyles.availableLeagueItem,
+        isSelected && addLeagueModalStyles.selectedLeagueItem,
+      ]}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
+      {/* Logo section */}
+      <View style={addLeagueModalStyles.leagueLogoContainer}>
+        {logoContent}
+      </View>
+
+      <View style={addLeagueModalStyles.leagueItemContent}>
+        <View style={{ justifyContent: "center", minHeight: 32 }}>
+          <Text style={addLeagueModalStyles.availableLeagueName}>
+            {league.name}
+          </Text>
+        </View>
+      </View>
+
+      <Ionicons
+        name={isSelected ? "checkmark-circle" : "add-circle-outline"}
+        size={22}
+        color={isSelected ? colors.success : colors.secondary}
+      />
+    </TouchableOpacity>
+  );
+});
+
+/**
+ * Add leagues modal.
+ * @description Search/filter and select leagues to add; excludes already configured leagues.
+ * @param {AddLeagueModalProps} props Component props.
+ * @returns {JSX.Element} Modal content.
+ */
+const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
+  visible,
+  onClose,
+  configuredLeagues,
+  selectedLeagues,
+  setSelectedLeagues,
+  toggleLeagueSelection,
+  handleAddSelectedLeagues,
+  searchQuery,
+  setSearchQuery,
+}) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>("Europe");
+  const colors = useColors();
+  const { manageLeaguesModalStyles, addLeagueModalStyles } = React.useMemo(
+    () => createUserPreferencesStyles(colors),
+    [colors]
+  );
+
+  /**
+   * Close handler.
+   * @description Resets search and category then triggers onClose.
+   */
+  const resetFiltersAndCloseModal = React.useCallback(() => {
+    setSearchQuery("");
+    setSelectedCategory("Europe");
+    onClose();
+  }, [onClose, setSearchQuery]);
+
+  // Filter leagues by search query and already configured leagues
+  const filteredLeagues = AVAILABLE_LEAGUES.filter(
+    (league) =>
+      !configuredLeagues.some(
+        (configuredLeague) => configuredLeague.code === league.code
+      ) &&
+      (searchQuery === "" ||
+        league.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        league.code.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  // Group leagues by category or show search results
+  const leaguesToDisplay = searchQuery
+    ? filteredLeagues
+    : filteredLeagues.filter((league) => (league.category ?? "Other") === selectedCategory);
+  const categories = [...new Set([
+    ...LEAGUE_CATEGORIES,
+    ...AVAILABLE_LEAGUES.map(league => league.category ?? "Other"),
+  ])];
+  const selectedLeagueCodes = React.useMemo(
+    () => new Set(selectedLeagues.map((league) => league.code)),
+    [selectedLeagues],
+  );
+  const renderLeagueItem = React.useCallback(
+    ({ item }: { item: LeagueEndpoint }) => (
+      <LeagueItem
+        league={item}
+        isSelected={selectedLeagueCodes.has(item.code)}
+        onToggleLeague={toggleLeagueSelection}
+      />
+    ),
+    [selectedLeagueCodes, toggleLeagueSelection],
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      onRequestClose={resetFiltersAndCloseModal}
+    >
+      <SafeAreaView style={manageLeaguesModalStyles.modalSafeArea}>
+        <View style={manageLeaguesModalStyles.header}>
+          <TouchableOpacity
+            onPress={resetFiltersAndCloseModal}
+            style={manageLeaguesModalStyles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+          <Text style={manageLeaguesModalStyles.headerTitle}>Add Leagues</Text>
+          <View style={{ width: 44 }} />
+        </View>
+
+        <View style={manageLeaguesModalStyles.contentContainer}>
+          {/* Search Bar */}
+          <View style={addLeagueModalStyles.searchContainer}>
+            <Ionicons
+              name="search"
+              size={20}
+              color={colors.textMuted}
+              style={addLeagueModalStyles.searchIcon}
+            />
+            <TextInput
+              style={addLeagueModalStyles.searchInput}
+              placeholder="Search leagues..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery("")}
+                style={addLeagueModalStyles.clearSearch}
+              >
+                <Ionicons
+                  name="close-circle"
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Category Tabs - ScrollView is always rendered, content is conditional */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={addLeagueModalStyles.categoryTabsContainer}
+            contentContainerStyle={addLeagueModalStyles.categoryTabsContent}
+          >
+            {!searchQuery &&
+              categories.map((category) => (
+                <TouchableOpacity
+                  key={category}
+                  style={[
+                    addLeagueModalStyles.categoryTab,
+                    selectedCategory === category &&
+                      addLeagueModalStyles.categoryTabSelected,
+                  ]}
+                  onPress={() => setSelectedCategory(category)}
+                >
+                  <Text
+                    style={[
+                      addLeagueModalStyles.categoryTabText,
+                      selectedCategory === category &&
+                        addLeagueModalStyles.categoryTabTextSelected,
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {category}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+          </ScrollView>
+
+          {/* League count and selection controls */}
+          <View style={manageLeaguesModalStyles.leagueHeaderRow}>
+            <Text style={manageLeaguesModalStyles.leagueCountText}>
+              {leaguesToDisplay.length > 0 && (
+                <>
+                  {leaguesToDisplay.length}{" "}
+                  {leaguesToDisplay.length === 1 ? "league" : "leagues"}{" "}
+                  available
+                </>
+              )}
+              {leaguesToDisplay.length > 0 &&
+                selectedLeagues.length > 0 &&
+                " • "}
+              {selectedLeagues.length > 0 &&
+                `${selectedLeagues.length} selected`}
+            </Text>
+
+            {leaguesToDisplay.length > 0 && (
+              <View style={addLeagueModalStyles.selectionControls}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const leaguesToSelect = leaguesToDisplay.filter(
+                      (league) =>
+                        !selectedLeagues.some(
+                          (selectedLeague) => selectedLeague.code === league.code
+                        )
+                    );
+                    setSelectedLeagues([
+                      ...selectedLeagues,
+                      ...leaguesToSelect,
+                    ]);
+                  }}
+                  style={addLeagueModalStyles.actionPill}
+                >
+                  <Ionicons
+                    name="checkmark-circle-outline"
+                    size={14}
+                    color={colors.primary}
+                    style={{ marginRight: 4 }}
+                  />
+                  <Text style={addLeagueModalStyles.actionPillText}>All</Text>
+                </TouchableOpacity>
+
+                {selectedLeagues.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      const remainingSelectedLeagues = selectedLeagues.filter(
+                        (selectedLeague) =>
+                          !leaguesToDisplay.some(
+                            (displayedLeague) => displayedLeague.code === selectedLeague.code
+                          )
+                      );
+                      setSelectedLeagues(remainingSelectedLeagues);
+                    }}
+                    style={[
+                      addLeagueModalStyles.actionPill,
+                      { backgroundColor: colors.dangerLight },
+                    ]}
+                  >
+                    <Ionicons
+                      name="close-circle-outline"
+                      size={14}
+                      color={colors.danger}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      style={[
+                        addLeagueModalStyles.actionPillText,
+                        { color: colors.danger },
+                      ]}
+                    >
+                      Clear
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Flex wrapper for League List or Empty State */}
+          <View style={{ flex: 1, width: "100%" }}>
+            {leaguesToDisplay.length > 0 ? (
+              <FlatList
+                data={leaguesToDisplay}
+                keyExtractor={(item) => item.code}
+                contentContainerStyle={
+                  manageLeaguesModalStyles.leagueListContent
+                }
+                showsVerticalScrollIndicator={false}
+                renderItem={renderLeagueItem}
+              />
+            ) : (
+              <View style={manageLeaguesModalStyles.emptyState}>
+                <View style={manageLeaguesModalStyles.emptyStateIcon}>
+                  <Ionicons
+                    name="football-outline"
+                    size={50}
+                    color={colors.primaryDark}
+                  />
+                </View>
+                <Text style={manageLeaguesModalStyles.emptyStateTitle}>
+                  No leagues found
+                </Text>
+                <Text style={manageLeaguesModalStyles.emptyStateMessage}>
+                  {searchQuery ? "Try a different search term" : "No leagues available in this category"}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Add Selected Button */}
+          {selectedLeagues.length > 0 && (
+            <TouchableOpacity
+              style={[
+                addLeagueModalStyles.addSelectedButton,
+                { marginHorizontal: 16, marginBottom: 16 },
+              ]}
+              onPress={handleAddSelectedLeagues}
+            >
+              <Text style={addLeagueModalStyles.addButtonText}>
+                Add {selectedLeagues.length}{" "}
+                {selectedLeagues.length === 1 ? "League" : "Leagues"}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
+export default AddLeagueModal;

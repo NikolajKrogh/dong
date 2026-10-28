@@ -3,7 +3,7 @@ import { RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, XStack, YStack } from 'tamagui';
 import { ShellActionButton } from '../../components/ui';
-import SettingsPage from '../../components/preferences/SettingsPage';
+import { SettingsPage } from '../preferences';
 import FriendSearchField from './FriendSearchField';
 import PeopleList from './PeopleList';
 import RequestsPanel from './RequestsPanel';

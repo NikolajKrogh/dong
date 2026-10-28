@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, YStack } from 'tamagui';
-import SettingsPage from '../../components/preferences/SettingsPage';
+import { SettingsPage } from '../preferences';
 import { normalizeAccountUsername } from '../account';
 import FriendSearchField from './FriendSearchField';
 import PeopleList from './PeopleList';

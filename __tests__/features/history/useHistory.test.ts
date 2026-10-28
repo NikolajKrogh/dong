@@ -3,10 +3,10 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { useHistory } from '../../../features/history/useHistory';
 import { loadCloudHistory } from '../../../features/history/historyRepository';
 import { getAccountScope, queryClient, setAccountScope } from '../../../lib/queryClient';
-import { useAccountAuth } from '../../../hooks/useAccountAuth';
+import { useAccountAuth } from '../../../features/account';
 import { useGameStore } from '../../../store/store';
 
-jest.mock('../../../hooks/useAccountAuth', () => ({ useAccountAuth: jest.fn() }));
+jest.mock('../../../features/account', () => ({ useAccountAuth: jest.fn() }));
 jest.mock('../../../lib/supabase', () => ({ getSupabaseClient: jest.fn(() => ({})), hasSupabasePublicConfig: () => true }));
 jest.mock('../../../features/history/historyRepository', () => ({
   ...jest.requireActual('../../../features/history/historyRepository'), loadCloudHistory: jest.fn(),

@@ -6,7 +6,7 @@ import RandomMatchesToast from "../components/setupGame/RandomMatchesToast";
 import { goalToastConfig } from "../components/gameProgress/GoalToast";
 import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
-import { AccountAuthProvider } from "../hooks/useAccountAuth";
+import { AccountAuthProvider } from "../features/account";
 import { useGuestRoomEndedNavigation } from "../hooks/useGuestRoomEndedNavigation";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../lib/queryClient';

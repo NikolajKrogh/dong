@@ -25,7 +25,7 @@ const mockClearContext = jest.fn();
 const mockExitRoom = jest.fn();
 const mockEndGame = jest.fn(async () => true);
 
-jest.mock("../../../hooks/useAccountAuth", () => ({
+jest.mock("../../../features/account", () => ({
   useAccountAuth: () => ({ status: "ready", account: { id: "account-1" } }),
 }));
 jest.mock("../../../hooks/useMyActiveRoom", () => ({

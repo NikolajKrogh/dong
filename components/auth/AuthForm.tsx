@@ -16,7 +16,7 @@ import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth as useAccountAuthState,
-} from "../../hooks/useAccountAuth";
+} from "../../features/account";
 import { getSupabaseClient } from "../../lib/supabase";
 import { ShellActionButton, ShellCard } from "../ui";
 

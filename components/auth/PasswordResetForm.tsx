@@ -8,7 +8,7 @@ import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth,
-} from "../../hooks/useAccountAuth";
+} from "../../features/account";
 import { getSupabaseClient } from "../../lib/supabase";
 import { ShellActionButton, ShellCard } from "../ui";
 

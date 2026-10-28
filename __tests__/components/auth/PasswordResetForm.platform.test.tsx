@@ -62,8 +62,8 @@ getSupabaseClient: jest.fn(() => ({
   }))
 }));
 
-jest.mock("../../../hooks/useAccountAuth", () => {
-  const actual = jest.requireActual("../../../hooks/useAccountAuth");
+jest.mock("../../../features/account", () => {
+  const actual = jest.requireActual("../../../features/account");
 
   return {
     ...actual,

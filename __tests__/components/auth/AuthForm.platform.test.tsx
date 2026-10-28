@@ -105,10 +105,10 @@ jest.mock("tamagui", () => {
   };
 });
 
-jest.mock("../../../hooks/useAccountAuth", () => {
+jest.mock("../../../features/account", () => {
   const actual = jest.requireActual<
-    typeof import("../../../hooks/useAccountAuth")
-  >("../../../hooks/useAccountAuth");
+    typeof import("../../../features/account")
+  >("../../../features/account");
 
   return {
     ...actual,

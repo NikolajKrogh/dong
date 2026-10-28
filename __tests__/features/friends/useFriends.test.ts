@@ -4,13 +4,13 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFriends, refreshFriends } from '../../../features/friends/useFriends';
 import { actOnFriend, listFriends } from '../../../features/friends/friendsRepository';
-import { useAccountAuth } from '../../../hooks/useAccountAuth';
+import { useAccountAuth } from '../../../features/account';
 import { queryClient, setAccountScope } from '../../../lib/queryClient';
 
 // Cache cleanup is explicit in this suite; avoid React Query's five-minute GC timer.
 beforeAll(() => queryClient.setDefaultOptions({ queries: { staleTime: 30_000, retry: false, gcTime: Infinity }, mutations: { retry: false, networkMode: 'always' } }));
 
-jest.mock('../../../hooks/useAccountAuth', () => ({ useAccountAuth: jest.fn() }));
+jest.mock('../../../features/account', () => ({ ...jest.requireActual('../../../features/account'), useAccountAuth: jest.fn() }));
 jest.mock('../../../lib/supabase', () => ({ getSupabaseClient: () => ({}) }));
 jest.mock('../../../platform/visibility', () => ({ useAppVisibility: () => ({ isInteractive: true }) }));
 jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => () => void) => require('react').useEffect(callback, [callback]) }));

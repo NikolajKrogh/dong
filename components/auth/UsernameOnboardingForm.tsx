@@ -8,7 +8,7 @@ import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth,
-} from "../../hooks/useAccountAuth";
+} from "../../features/account";
 import { ShellActionButton, ShellCard } from "../ui";
 
 interface UsernameOnboardingFormProps {

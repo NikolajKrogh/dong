@@ -30,7 +30,7 @@ The older blueprint and inventory describe the pre-migration snapshot. This jour
 | M0 | Baseline checks, agreed standard and migration journal | Complete |
 | M1 | PreferencesHeader, GameProgressTabs and SetupGameTabs pilot | Complete |
 | M2 | History feature ownership and mirrored tests | Complete |
-| M3 | Home, Preferences and Account/Auth ownership | Planned |
+| M3 | Home, Preferences and Account/Auth ownership | Complete for Home/Preferences/account hooks; auth forms remain for M6 |
 | M4 | Game setup and match-selection ownership | Planned |
 | M5 | Gameplay, rooms and football-match client ownership | Planned |
 | M6 | Shared names, import-policy coverage and final verification | Planned |
@@ -108,3 +108,61 @@ History screens, modal UI, formatting/statistics, layout/types and styles now sh
 | __tests__/app/history.platform.test.tsx | __tests__/features/history/HistoryScreen.platform.test.tsx | Mirror the History implementation and retain the existing suite behavior. |
 
 M2 validation: the full 160-suite / 1,043-test Jest suite passed after relocation, as did typecheck, lint and Knip. The initially supplied plural Jest filter was not recognized by Jest 29, so the run covered the full suite; subsequent focused runs use --testPathPattern.
+
+## M3 — Home, Preferences and account hooks
+
+Home UI, calculations, styles and its room-action hook move together. Preferences UI and route implementations move together; indexStyles becomes homeStyles and userPreferencesStyles becomes preferencesStyles to name the owning feature instead of an entry filename or legacy route. Account auth/session/settings hooks and auth-route helpers belong beside accountRepository. Existing route URLs remain thin entry points. The shared onboarding screen remains temporarily at its current location pending the final shared-ownership review.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/components/preferences/AccountSection.platform.test.tsx | __tests__/features/preferences/AccountSection.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/components/preferences/AppearanceSettings.platform.test.tsx | __tests__/features/preferences/AppearanceSettings.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/components/preferences/LeagueSettings.platform.test.tsx | __tests__/features/preferences/LeagueSettings.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/components/preferences/PreferencesHeader.accessibility.test.tsx | __tests__/features/preferences/PreferencesHeader.accessibility.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/components/preferences/ProfileSection.platform.test.tsx | __tests__/features/preferences/ProfileSection.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/components/preferences/SelectDefaultLeaguesModal.platform.test.tsx | __tests__/features/preferences/SelectDefaultLeaguesModal.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/components/preferences/SoundNotificationSettings.platform.test.tsx | __tests__/features/preferences/SoundNotificationSettings.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| components/home/CancelGameModal.tsx | features/home/CancelGameModal.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/home/CurrentGameCard.tsx | features/home/CurrentGameCard.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/home/HistoryStatsCard.tsx | features/home/HistoryStatsCard.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/home/HomeGameActions.tsx | features/home/HomeGameActions.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/home/HomeSplash.tsx | features/home/HomeSplash.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/home/JoinRoomModal.tsx | features/home/JoinRoomModal.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/home/StartGameSheet.tsx | features/home/StartGameSheet.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/AccountAvatar.tsx | features/preferences/AccountAvatar.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/AccountSection.tsx | features/preferences/AccountSection.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/AddLeagueModal.tsx | features/preferences/AddLeagueModal.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/AppearanceSettings.tsx | features/preferences/AppearanceSettings.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/LeagueSettings.tsx | features/preferences/LeagueSettings.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/ManageLeaguesModal.tsx | features/preferences/ManageLeaguesModal.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/PreferencesHeader.tsx | features/preferences/PreferencesHeader.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/ProfileSection.tsx | features/preferences/ProfileSection.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/SelectDefaultLeaguesModal.tsx | features/preferences/SelectDefaultLeaguesModal.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/SettingsMenuRow.tsx | features/preferences/SettingsMenuRow.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/SettingsPage.tsx | features/preferences/SettingsPage.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| components/preferences/SoundNotificationSettings.tsx | features/preferences/SoundNotificationSettings.tsx | Keep implementation with its owning feature; retain its descriptive role. |
+| app/index.tsx | features/home/HomeScreen.tsx | Named feature implementation behind the unchanged route. |
+| __tests__/app/index.platform.test.tsx | __tests__/features/home/HomeScreen.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| app/userPreferences.tsx | features/preferences/PreferencesScreen.tsx | Named feature implementation behind the unchanged route. |
+| __tests__/app/userPreferences.platform.test.tsx | __tests__/features/preferences/PreferencesScreen.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+| styles/indexStyles.ts | features/home/homeStyles.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| styles/userPreferencesStyles.ts | features/preferences/preferencesStyles.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| utils/homeStats.ts | features/home/homeStats.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| __tests__/utils/homeStats.test.ts | __tests__/features/home/homeStats.test.ts | Mirror source ownership and preserve the existing test qualifier. |
+| hooks/useHomeRoomActions.ts | features/home/useHomeRoomActions.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| __tests__/hooks/useHomeRoomActions.exit.test.ts | __tests__/features/home/useHomeRoomActions.exit.test.ts | Mirror source ownership and preserve the existing test qualifier. |
+| __tests__/hooks/useHomeRoomActions.guestStart.test.ts | __tests__/features/home/useHomeRoomActions.guestStart.test.ts | Mirror source ownership and preserve the existing test qualifier. |
+| app/userPreferences/appearance.tsx | features/preferences/AppearanceSettingsScreen.tsx | Named feature implementation behind the unchanged route. |
+| app/userPreferences/leagues.tsx | features/preferences/LeagueSettingsScreen.tsx | Named feature implementation behind the unchanged route. |
+| app/userPreferences/profile.tsx | features/preferences/ProfileSettingsScreen.tsx | Named feature implementation behind the unchanged route. |
+| app/userPreferences/sound.tsx | features/preferences/SoundSettingsScreen.tsx | Named feature implementation behind the unchanged route. |
+| hooks/useAccountAuth.ts | features/account/useAccountAuth.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| hooks/useAccountSessionSync.ts | features/account/useAccountSessionSync.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| hooks/useAccountSettingsSync.ts | features/account/useAccountSettingsSync.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| __tests__/hooks/useAccountAuth.test.ts | __tests__/features/account/useAccountAuth.test.ts | Mirror source ownership and preserve the existing test qualifier. |
+| utils/accountAuthRoutes.ts | features/account/accountAuthRoutes.ts | Keep implementation with its owning feature; retain its descriptive role. |
+| __tests__/app/userPreferencesProfile.platform.test.tsx | __tests__/features/preferences/ProfileSettingsScreen.platform.test.tsx | Mirror source ownership and preserve the existing test qualifier. |
+
+M3 validation: 37 affected suites / 263 tests passed; typecheck, lint and Knip passed. Account implementation imports repository/username siblings directly rather than its own public index to avoid a circular import. Cross-feature consumers use the account public interface; partial Jest mocks retain the other exports they need. Home statistics uses explicitly exported History types/calculations. Preferences exposes its route screens and the shared SettingsPage used by Friends/History. Removed obsolete hook convenience re-exports rather than retaining unused compatibility aliases. The renamed AppearanceSettingsScreen and PreferencesScreen exports now match their filenames.
+
+React Doctor pilot review: the sandbox invocation stalled without a result and was stopped; no successful diagnostic score is claimed. A later unrestricted run will be used for final verification.

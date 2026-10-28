@@ -31,7 +31,7 @@ let mockMembershipError: string | null = null;
 const mockMembershipRefresh = jest.fn();
 const mockUseRoomLobby = jest.fn((..._args: unknown[]) => mockLobby);
 
-jest.mock("../../../hooks/useAccountAuth", () => ({
+jest.mock("../../../features/account", () => ({
   useAccountAuth: () => ({ status: mockAuthStatus, account: { id: "account-1" } }),
 }));
 jest.mock("../../../hooks/useMyActiveRoom", () => ({

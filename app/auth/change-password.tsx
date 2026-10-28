@@ -3,8 +3,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { KeyboardAvoidingView, Platform } from "react-native";
 
 import ChangePasswordForm from "../../components/auth/ChangePasswordForm";
-import SettingsPage from "../../components/preferences/SettingsPage";
-import { normalizeAccountFlowReturnTo } from "../../hooks/useAccountAuth";
+import { SettingsPage } from "../../features/preferences";
+import { normalizeAccountFlowReturnTo } from "../../features/account";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
