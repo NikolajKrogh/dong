@@ -93,6 +93,7 @@ jest.mock("../../../features/rooms/useGuestRoomJoin", () => ({
 }));
 
 jest.mock("../../../features/account", () => ({
+  buildAccountAuthRoute: jest.requireActual("../../../features/account/accountAuthRoutes").buildAccountAuthRoute,
   useAccountAuth: () => mockUseAccountAuth(),
 }));
 

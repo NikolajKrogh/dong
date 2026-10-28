@@ -1,8 +1,7 @@
 import React from 'react';
 import { Text, YStack } from 'tamagui';
 import { ShellActionButton } from '../../components/ui';
-import { useAccountAuth } from '../account';
-import { buildAccountAuthRoute } from '../account/accountAuthRoutes';
+import { useAccountAuth, buildAccountAuthRoute } from '../account';
 
 export default function FriendsAccessScreen({ returnTo }: { returnTo: string }) {
   const { status } = useAccountAuth();

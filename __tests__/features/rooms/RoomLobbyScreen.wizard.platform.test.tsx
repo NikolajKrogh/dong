@@ -32,6 +32,7 @@ const mockMembershipRefresh = jest.fn();
 const mockUseRoomLobby = jest.fn((..._args: unknown[]) => mockLobby);
 
 jest.mock("../../../features/account", () => ({
+  buildAccountAuthRoute: jest.requireActual("../../../features/account/accountAuthRoutes").buildAccountAuthRoute,
   useAccountAuth: () => ({ status: mockAuthStatus, account: { id: "account-1" } }),
 }));
 jest.mock("../../../features/rooms/useMyActiveRoom", () => ({

@@ -2,6 +2,11 @@
 const expoConfig = require("eslint-config-expo/flat");
 const { defineConfig } = require("eslint/config");
 
+const featureImportPatterns = [
+  { group: ["**/app/**"], message: "Features cannot depend on routes." },
+  { group: ["account", "friends", "history", "preferences"].map(name => `**/${name}/**`), message: "Use this feature's public index." },
+];
+
 module.exports = defineConfig([
   expoConfig,
   {
@@ -49,20 +54,16 @@ module.exports = defineConfig([
   {
     files: ["app/friends/**/*.tsx", "app/userPreferences/profile.tsx", "features/**/*.tsx"],
     rules: { "no-restricted-imports": ["error", { patterns: [
-      { group: ["**/app/**"], message: "Features cannot depend on routes." },
-      { group: ["**/lib/supabase", "@supabase/supabase-js", "**/utils/supabaseClient"], message: "Screens use feature repositories/hooks, not raw database transport." },
-      { group: ["**/features/*/*", "@/features/*/*"], message: "Import another feature through its public index." }
+      ...featureImportPatterns,
+      { group: ["**/lib/supabase", "@supabase/supabase-js", "**/rooms/roomRpcClient"], message: "Screens use feature hooks/operations, not raw database transport." }
     ] }] }
   },
   {
     files: ["lib/**/*.{ts,tsx}"],
     rules: { "no-restricted-imports": ["error", { patterns: [{ group: ["**/app/**", "**/features/**"], message: "Infrastructure cannot depend on features or routes." }] }] }
   },
-  ...["account", "friends", "history"].map(feature => ({
-    files: [`features/${feature}/**/*.ts`],
-    rules: { "no-restricted-imports": ["error", { patterns: [
-      { group: ["**/app/**"], message: "Features cannot depend on routes." },
-      { group: ["account", "friends", "history"].filter(name => name !== feature).flatMap(name => [`../${name}/*`, `**/features/${name}/*`]), message: "Use the other feature's public index." }
-    ] }] }
-  })),
+  {
+    files: ["features/**/*.ts"],
+    rules: { "no-restricted-imports": ["error", { patterns: featureImportPatterns }] },
+  },
 ]);

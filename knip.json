@@ -14,7 +14,7 @@
     "app/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",
     "features/**/*.{ts,tsx}",
-    "hooks/**/*.{ts,tsx}",
+    "shared/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}",
     "platform/**/*.{ts,tsx}",
     "store/**/*.{ts,tsx}",

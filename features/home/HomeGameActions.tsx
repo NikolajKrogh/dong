@@ -12,7 +12,7 @@ import { useHomeRoomActions } from "./useHomeRoomActions";
 import { useGameStore } from "../../store/gameStore";
 import createStyles from "./homeStyles";
 import { useColors } from "../../styles/theme";
-import { buildAccountAuthRoute } from "../account/accountAuthRoutes";
+import { buildAccountAuthRoute } from "../account";
 import { endSoloTracking } from "../football-matches/soloTrackingService";
 
 interface HomeGameActionsProps {
