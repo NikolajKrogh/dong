@@ -10,14 +10,14 @@ import Toast from "react-native-toast-message";
 
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { useMatchData } from "../../hooks/useMatchData";
+import { useMatchData } from "../football-matches/useMatchData";
 import {
   normalizeMatchTeamName,
   useMatchListFilters,
 } from "./useMatchListFilters";
 import { useMatchProcessing } from "../../hooks/useMatchProcessing";
-import { useTeamData } from "../../hooks/useTeamData";
-import { filterMatchesByDateAndTime } from "../../utils/matchUtils";
+import { useTeamData } from "../football-matches/useTeamData";
+import { filterMatchesByDateAndTime } from "../football-matches/matchFilters";
 import { PlatformAnimation } from "../../platform";
 import { Match, useGameStore } from "../../store/store";
 import AppIcon from "../../components/AppIcon";

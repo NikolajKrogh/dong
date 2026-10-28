@@ -78,7 +78,7 @@ jest.mock("expo-linear-gradient", () => ({
   },
 }));
 
-jest.mock("../../../utils/teamLogos", () => ({
+jest.mock("../../../features/football-matches/teamLogos", () => ({
   getTeamLogoWithFallback: jest.fn(() => null),
 }));
 

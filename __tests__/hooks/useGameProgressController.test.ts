@@ -5,7 +5,7 @@ import Toast from "react-native-toast-message";
 import TestRenderer from "react-test-renderer";
 
 import useGameProgressController from "../../hooks/useGameProgressController";
-import { useLiveScores } from "../../hooks/useLiveScores";
+import { useLiveScores } from "../../features/football-matches/useLiveScores";
 import { useAppVisibility, useGoalSound } from "../../platform";
 import { useGameStore } from "../../store/store";
 
@@ -14,7 +14,7 @@ jest.mock("react-native-toast-message", () => ({
   default: { show: jest.fn() },
 }));
 
-jest.mock("../../hooks/useLiveScores", () => ({
+jest.mock("../../features/football-matches/useLiveScores", () => ({
   useLiveScores: jest.fn(),
 }));
 

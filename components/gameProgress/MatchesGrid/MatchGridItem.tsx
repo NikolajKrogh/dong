@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { createGameProgressStyles } from "../../../styles/gameProgressStyles";
 import { useColors } from "../../../styles/theme";
-import { useTeamLogo } from "../../../hooks/useTeamLogo";
+import { useTeamLogo } from "../../../features/football-matches/useTeamLogo";
 import AppIcon from "../../AppIcon";
 import { MatchItemProps } from "./types";
 

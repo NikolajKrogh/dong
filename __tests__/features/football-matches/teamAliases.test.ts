@@ -2,7 +2,7 @@ import {
   TEAM_ALIASES,
   TEAM_CODE_MAP,
   getFullTeamName,
-} from "../../utils/teamAliases";
+} from "../../../features/football-matches/teamAliases";
 
 describe("Team Aliases and Codes", () => {
   describe("TEAM_ALIASES", () => {

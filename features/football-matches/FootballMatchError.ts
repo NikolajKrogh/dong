@@ -1,5 +1,5 @@
-import { FOOTBALL_MATCH_ERROR_CODES } from '../types/footballMatch';
-import type { FootballMatchErrorCode } from '../types/footballMatch';
+import { FOOTBALL_MATCH_ERROR_CODES } from '../../types/footballMatch';
+import type { FootballMatchErrorCode } from '../../types/footballMatch';
 
 export class FootballMatchError extends Error {
   constructor(

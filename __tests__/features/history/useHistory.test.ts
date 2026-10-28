@@ -13,7 +13,7 @@ jest.mock('../../../features/history/historyRepository', () => ({
 }));
 const session = (id: string) => ({ id, date: '', players: [], matches: [], commonMatchId: null, playerAssignments: {}, matchesPerPlayer: 1 });
 const mockReadSavedMatches = jest.fn();
-jest.mock('../../../utils/footballMatchService', () => ({ getFootballMatchService: () => ({ readSavedMatches: mockReadSavedMatches }) }));
+jest.mock('../../../features/football-matches/footballMatchService', () => ({ getFootballMatchService: () => ({ readSavedMatches: mockReadSavedMatches }) }));
 const renderers: TestRenderer.ReactTestRenderer[] = [];
 function renderHook<T>(hook: () => T) {
   const result = { current: undefined as T };

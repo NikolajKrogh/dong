@@ -1,10 +1,10 @@
-import { createFootballMatchService, getFootballMatchService, FootballMatchError } from '../../utils/footballMatchService';
-import { getSupabaseClient } from '../../lib/supabase';
-import { normalizeEspnScoreboard } from '../../supabase/functions/_shared/football-matches/espnMatchNormalizer';
-import { liveBoard } from '../fixtures/matchCatalog/scoreboards';
-import type { SavedMatch } from '../../types/footballMatch';
+import { createFootballMatchService, getFootballMatchService, FootballMatchError } from '../../../features/football-matches/footballMatchService';
+import { getSupabaseClient } from '../../../lib/supabase';
+import { normalizeEspnScoreboard } from '../../../supabase/functions/_shared/football-matches/espnMatchNormalizer';
+import { liveBoard } from '../../fixtures/matchCatalog/scoreboards';
+import type { SavedMatch } from '../../../types/footballMatch';
 
-jest.mock('../../lib/supabase', () => ({ getSupabaseClient: jest.fn() }));
+jest.mock('../../../lib/supabase', () => ({ getSupabaseClient: jest.fn() }));
 
 const saved: SavedMatch = {
   ...normalizeEspnScoreboard(liveBoard, 'eng.1').matches[0], catalogMatchId: '9007199254740993', observationVersion: '1',

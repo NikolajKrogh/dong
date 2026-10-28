@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { useLiveScores } from "./useLiveScores";
-import { usePersistedTeamLogos } from "./usePersistedTeamLogos";
+import { useLiveScores } from "../features/football-matches/useLiveScores";
+import { usePersistedTeamLogos } from "../features/football-matches/usePersistedTeamLogos";
 import { useGoalToastQueue } from "./useGoalToastQueue";
 import {
   gameProgressUiReducer,

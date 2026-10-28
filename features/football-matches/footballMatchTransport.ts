@@ -1,6 +1,6 @@
-import { getSupabaseClient } from '../lib/supabase';
-import type { MatchDiscoverySelection, SoloTrackingSelection } from '../types/footballMatch';
-import { FootballMatchError, toFootballMatchError } from './footballMatchError';
+import { getSupabaseClient } from '../../lib/supabase';
+import type { MatchDiscoverySelection, SoloTrackingSelection } from '../../types/footballMatch';
+import { FootballMatchError, toFootballMatchError } from './FootballMatchError';
 
 export interface FootballMatchTransport {
   invoke(

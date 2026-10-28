@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import AppIcon from "../../components/AppIcon";
-import { MatchData } from "../../utils/matchUtils";
+import { MatchData } from "../football-matches/matchFilters";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import {

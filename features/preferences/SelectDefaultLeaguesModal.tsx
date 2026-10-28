@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { createUserPreferencesStyles } from "./preferencesStyles";
 import { useColors } from "../../styles/theme";
 import { LeagueEndpoint } from "../../constants/leagues";
-import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { useLeagueLogo } from "../football-matches/useLeagueLogo";
 
 /**
  * Props for default leagues modal.

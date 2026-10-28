@@ -11,7 +11,7 @@ import TestRenderer from "react-test-renderer";
 
 import { useMatchProcessing } from "../../hooks/useMatchProcessing";
 import type { Match } from "../../store/store";
-import type { MatchData } from "../../utils/matchUtils";
+import type { MatchData } from "../../features/football-matches/matchFilters";
 
 interface HarnessResult {
   matches: Match[];

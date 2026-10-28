@@ -18,7 +18,7 @@ import {
   LEAGUE_CATEGORIES,
   LeagueEndpoint,
 } from "../../constants/leagues";
-import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { useLeagueLogo } from "../football-matches/useLeagueLogo";
 
 /**
  * Props for add league modal.

@@ -1,24 +1,24 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { useGameStore, type Match } from "../../store/store";
-import { useLiveScores } from "../../hooks/useLiveScores";
-import { normalizeEspnScoreboard } from "../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
-import { liveBoard } from "../fixtures/matchCatalog/scoreboards";
-import type { SavedMatch } from "../../types/footballMatch";
-import { FootballMatchError } from "../../utils/footballMatchService";
+import { useGameStore, type Match } from "../../../store/store";
+import { useLiveScores } from "../../../features/football-matches/useLiveScores";
+import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
+import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
+import type { SavedMatch } from "../../../types/footballMatch";
+import { FootballMatchError } from "../../../features/football-matches/footballMatchService";
 
 const mockRead = jest.fn();
 const mockTracking = jest.fn();
 const mockDiscovery = jest.fn();
-jest.mock("../../utils/footballMatchService", () => ({
-  ...jest.requireActual("../../utils/footballMatchService"),
+jest.mock("../../../features/football-matches/footballMatchService", () => ({
+  ...jest.requireActual("../../../features/football-matches/footballMatchService"),
   getFootballMatchService: () => ({
     readSavedMatches: mockRead,
     replaceSoloTracking: mockTracking,
     discoverMatches: mockDiscovery,
   }),
 }));
-jest.mock("../../platform/guestCredential", () => ({ generateToken: jest.fn(async () => "12".repeat(32)) }));
+jest.mock("../../../platform/guestCredential", () => ({ generateToken: jest.fn(async () => "12".repeat(32)) }));
 
 const match: Match = {
   id: "event-100",

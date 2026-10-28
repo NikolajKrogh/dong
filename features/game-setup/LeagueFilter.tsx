@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, Image, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { useLeagueLogo } from "../football-matches/useLeagueLogo";
 import { LeagueEndpoint } from "../../constants/leagues";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";

@@ -13,7 +13,7 @@ import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { Match } from "../../store/store";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
 
 /**
  * Props for common match selector.

@@ -1,18 +1,18 @@
-import { actCreate } from "../../test-utils/render";
+import { actCreate } from "../../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
-import { usePersistedTeamLogos } from "../../hooks/usePersistedTeamLogos";
-import { useGameStore, type Match } from "../../store/store";
+import { usePersistedTeamLogos } from "../../../features/football-matches/usePersistedTeamLogos";
+import { useGameStore, type Match } from "../../../store/store";
 import {
   cacheTeamLogo,
   clearOverriddenLogos,
   getHardcodedTeamLogoOnly,
   getTeamLogo,
-} from "../../utils/teamLogos";
+} from "../../../features/football-matches/teamLogos";
 
-jest.mock("../../utils/teamLogos", () => ({
+jest.mock("../../../features/football-matches/teamLogos", () => ({
   cacheTeamLogo: jest.fn(),
   clearOverriddenLogos: jest.fn(),
   getHardcodedTeamLogoOnly: jest.fn(),

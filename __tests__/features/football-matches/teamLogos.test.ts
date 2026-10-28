@@ -1,4 +1,4 @@
-import { getTeamLogo, getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { getTeamLogo, getTeamLogoWithFallback } from "../../../features/football-matches/teamLogos";
 
 // Define an interface for the mock logos with an index signature
 interface MockLogos {
@@ -7,10 +7,10 @@ interface MockLogos {
 
 // Mock the TEAM_LOGOS object to avoid actual require calls
 // We only need a subset for testing purposes
-jest.mock("../../utils/teamLogos", () => {
+jest.mock("../../../features/football-matches/teamLogos", () => {
   // Require necessary functions *inside* the factory
-  const { cleanTeamName } = require("../../utils/matchUtils");
-  const originalModule = jest.requireActual("../../utils/teamLogos");
+  const { cleanTeamName } = require("../../../features/football-matches/matchFilters");
+  const originalModule = jest.requireActual("../../../features/football-matches/teamLogos");
 
   // Apply the interface to mockLogos
   const mockLogos: MockLogos = {

@@ -15,7 +15,7 @@ jest.mock("react-native", () => ({
   View: "View",
 }));
 
-jest.mock("../../../utils/teamLogos", () => ({
+jest.mock("../../../features/football-matches/teamLogos", () => ({
   getHardcodedTeamLogoOnly: mockGetHardcodedTeamLogoOnly,
   getTeamLogo: mockGetTeamLogo,
 }));

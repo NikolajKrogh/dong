@@ -65,7 +65,7 @@ jest.mock("../../../features/game-setup/setupGameStyles", () => ({
   default: () => mockStyles,
 }));
 
-jest.mock("../../../utils/teamLogos", () => ({
+jest.mock("../../../features/football-matches/teamLogos", () => ({
   getTeamLogoWithFallback: () => null,
 }));
 

@@ -8,27 +8,27 @@ function discoveryResult(matches: unknown[]) {
 const mockUseGameStore = jest.fn();
 const mockDiscoverMatches = jest.fn();
 
-jest.mock("../../store/store", () => ({
+jest.mock("../../../store/store", () => ({
   useGameStore: (
     selector: (state: { configuredLeagues: unknown[] }) => unknown,
   ) => mockUseGameStore(selector),
 }));
 
-jest.mock("../../utils/commandApiClient", () => ({
+jest.mock("../../../utils/commandApiClient", () => ({
   getMatchDiscoveryApiClient: () => ({
     discoverMatches: mockDiscoverMatches,
   }),
 }));
 
-jest.mock("../../utils/teamLogos", () => ({
+jest.mock("../../../features/football-matches/teamLogos", () => ({
   cacheTeamLogo: jest.fn(),
   cacheLeagueLogo: jest.fn(),
 }));
 
 describe("useMatchData", () => {
   it("uses bundled league names without a catalog request", async () => {
-    let latest!: ReturnType<typeof import("../../hooks/useMatchData").useMatchData>;
-    const Probe = () => { latest = require("../../hooks/useMatchData").useMatchData("2026-05-24"); return null; };
+    let latest!: ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>;
+    const Probe = () => { latest = require("../../../features/football-matches/useMatchData").useMatchData("2026-05-24"); return null; };
     let renderer!: TestRenderer.ReactTestRenderer;
     await TestRenderer.act(async () => { renderer = TestRenderer.create(<Probe />); });
     expect(mockDiscoverMatches).toHaveBeenCalledWith({ leagueCodes: ["eng.1", "usa.1"], requestedAt: "2026-05-24T00:00:00.000Z" });
@@ -51,9 +51,9 @@ describe("useMatchData", () => {
         startDateTime: "2026-05-25T19:00:00Z",
         status: "scheduled",
       }]));
-    let latest!: ReturnType<typeof import("../../hooks/useMatchData").useMatchData>;
+    let latest!: ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>;
     const Probe = ({ date }: { date: string }) => {
-      latest = require("../../hooks/useMatchData").useMatchData(date);
+      latest = require("../../../features/football-matches/useMatchData").useMatchData(date);
       return null;
     };
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -132,9 +132,9 @@ describe("useMatchData", () => {
       matches: [healthyMatch], availability: "partial", retryAfterSeconds: 30,
       groups: [{ leagueCode: "usa.1", availability: "pending", isStale: true }],
     });
-    let latest!: ReturnType<typeof import("../../hooks/useMatchData").useMatchData>;
+    let latest!: ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>;
     const Probe = () => {
-      latest = require("../../hooks/useMatchData").useMatchData("2026-05-24");
+      latest = require("../../../features/football-matches/useMatchData").useMatchData("2026-05-24");
       return null;
     };
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -160,11 +160,11 @@ describe("useMatchData", () => {
 
   it("loads grouped match data through the command API client", async () => {
     let observedHook:
-      | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>
+      | ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>
       | undefined;
 
     const Probe = () => {
-      const { useMatchData } = require("../../hooks/useMatchData");
+      const { useMatchData } = require("../../../features/football-matches/useMatchData");
 
       observedHook = useMatchData("2026-05-24");
       return null;
@@ -264,11 +264,11 @@ describe("useMatchData", () => {
     ]));
 
     let observedHook:
-      | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>
+      | ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>
       | undefined;
 
     const Probe = () => {
-      const { useMatchData } = require("../../hooks/useMatchData");
+      const { useMatchData } = require("../../../features/football-matches/useMatchData");
 
       observedHook = useMatchData("2026-05-24");
       return null;
@@ -306,11 +306,11 @@ describe("useMatchData", () => {
     mockDiscoverMatches.mockResolvedValueOnce(discoveryResult([]));
 
     let observedHook:
-      | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>
+      | ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>
       | undefined;
 
     const Probe = () => {
-      const { useMatchData } = require("../../hooks/useMatchData");
+      const { useMatchData } = require("../../../features/football-matches/useMatchData");
 
       observedHook = useMatchData("2026-05-24");
       return null;
@@ -344,11 +344,11 @@ describe("useMatchData", () => {
     mockDiscoverMatches.mockRejectedValueOnce(new Error("fetch failed"));
 
     let observedHook:
-      | ReturnType<typeof import("../../hooks/useMatchData").useMatchData>
+      | ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>
       | undefined;
 
     const Probe = () => {
-      const { useMatchData } = require("../../hooks/useMatchData");
+      const { useMatchData } = require("../../../features/football-matches/useMatchData");
 
       observedHook = useMatchData("2026-05-24");
       return null;

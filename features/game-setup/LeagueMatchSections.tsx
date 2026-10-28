@@ -2,7 +2,7 @@ import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { AVAILABLE_LEAGUES, type LeagueEndpoint } from "../../constants/leagues";
 import { useGameStore } from "../../store/store";
-import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { useLeagueLogo } from "../football-matches/useLeagueLogo";
 import type { Match } from "../../store/store";
 import { useColors } from "../../styles/theme";
 import { SelectableMatchList } from "./SelectableMatchList";

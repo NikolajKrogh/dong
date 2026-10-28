@@ -4,7 +4,7 @@ import { act } from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 import LeagueFilter from "../../../features/game-setup/LeagueFilter";
 
-jest.mock("../../../hooks/useLeagueLogo", () => ({
+jest.mock("../../../features/football-matches/useLeagueLogo", () => ({
   useLeagueLogo: () => ({ logoSource: { uri: "league-logo" }, isLoading: false }),
 }));
 jest.mock("../../../styles/theme", () => ({ useColors: () => ({ textPrimary: "black" }) }));

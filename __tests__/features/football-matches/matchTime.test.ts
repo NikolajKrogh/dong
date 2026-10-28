@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
-import { formatMatchTime } from "../../utils/matchTime";
+import { formatMatchTime } from "../../../features/football-matches/matchTime";
 
 /**
  * `Match.startTime` is deliberately loose — match discovery writes a local

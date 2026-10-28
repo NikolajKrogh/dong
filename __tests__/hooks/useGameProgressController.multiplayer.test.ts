@@ -6,7 +6,7 @@ import {
   useActiveGameRoomSync,
   type ActiveGameRoomSync,
 } from "../../hooks/useActiveGameRoomSync";
-import { useLiveScores } from "../../hooks/useLiveScores";
+import { useLiveScores } from "../../features/football-matches/useLiveScores";
 import { useAppVisibility, useGoalSound } from "../../platform";
 import { useGameStore } from "../../store/store";
 
@@ -19,7 +19,7 @@ let mockGameParams: { gameTab?: string | string[] } = {};
 jest.mock("../../hooks/useActiveGameRoomSync", () => ({
   useActiveGameRoomSync: jest.fn(),
 }));
-jest.mock("../../hooks/useLiveScores", () => ({
+jest.mock("../../features/football-matches/useLiveScores", () => ({
   useLiveScores: jest.fn(),
 }));
 jest.mock("../../platform", () => ({

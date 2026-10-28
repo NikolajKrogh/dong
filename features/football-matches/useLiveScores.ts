@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Match, useGameStore } from "../store/store";
-import { FOOTBALL_MATCH_PROVIDER } from "../types/footballMatch";
-import type { SavedMatch } from "../types/footballMatch";
-import type { MatchWithScore } from "../types/matchScores";
-import { getFootballMatchService } from "../utils/footballMatchService";
-import { generateIdempotencyKey } from "../utils/commandApiClient";
-import { generateToken } from "../platform/guestCredential";
-import { encodeBase64Url } from "../shared/encoding/base64url";
-import { endSoloTracking, settleTrackingRejection } from "../utils/soloTracking";
+import { Match, useGameStore } from "../../store/store";
+import { FOOTBALL_MATCH_PROVIDER } from "../../types/footballMatch";
+import type { SavedMatch } from "../../types/footballMatch";
+import type { MatchWithScore } from "../../types/matchScores";
+import { getFootballMatchService } from "./footballMatchService";
+import { generateIdempotencyKey } from "../../utils/commandApiClient";
+import { generateToken } from "../../platform/guestCredential";
+import { encodeBase64Url } from "../../shared/encoding/base64url";
+import { endSoloTracking, settleTrackingRejection } from "./soloTrackingService";
 
 function sameSelection(left: string[], right: string[]): boolean {
   return JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());

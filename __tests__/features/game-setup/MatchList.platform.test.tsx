@@ -98,15 +98,15 @@ jest.mock("../../../features/game-setup/setupGameStyles", () => ({
   default: () => mockStyles,
 }));
 
-jest.mock("../../../hooks/useLeagueLogo", () => ({
+jest.mock("../../../features/football-matches/useLeagueLogo", () => ({
   useLeagueLogo: () => ({ logoSource: { uri: "league-logo" }, isLoading: false }),
 }));
 
-jest.mock("../../../hooks/useMatchData", () => ({
+jest.mock("../../../features/football-matches/useMatchData", () => ({
   useMatchData: () => mockMatchDataState,
 }));
 
-jest.mock("../../../hooks/useTeamData", () => ({
+jest.mock("../../../features/football-matches/useTeamData", () => ({
   useTeamData: () => ({
     isLoading: false,
     isError: false,
@@ -115,8 +115,8 @@ jest.mock("../../../hooks/useTeamData", () => ({
   }),
 }));
 
-jest.mock("../../../utils/matchUtils", () => ({
-  ...jest.requireActual("../../../utils/matchUtils"),
+jest.mock("../../../features/football-matches/matchFilters", () => ({
+  ...jest.requireActual("../../../features/football-matches/matchFilters"),
   filterMatchesByDateAndTime: jest.fn((matches) => matches),
 }));
 

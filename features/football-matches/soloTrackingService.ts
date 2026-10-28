@@ -1,6 +1,6 @@
-import { useGameStore } from "../store/store";
-import type { FootballMatchErrorCode, SoloTrackingSelection } from "../types/footballMatch";
-import { generateIdempotencyKey } from "./commandApiClient";
+import { useGameStore } from "../../store/store";
+import type { FootballMatchErrorCode, SoloTrackingSelection } from "../../types/footballMatch";
+import { generateIdempotencyKey } from "../../utils/commandApiClient";
 import { FootballMatchError, getFootballMatchService } from "./footballMatchService";
 
 const definitiveTrackingErrors = new Set<FootballMatchErrorCode>([

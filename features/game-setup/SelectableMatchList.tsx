@@ -5,8 +5,8 @@ import { FlatList, Image, Platform, Text, TouchableOpacity, View } from "react-n
 
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { formatMatchTime } from "../../utils/matchTime";
-import { getTeamLogoWithFallback } from "../../utils/teamLogos";
+import { formatMatchTime } from "../football-matches/matchTime";
+import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
 import AppIcon from "../../components/AppIcon";
 
 /**

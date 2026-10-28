@@ -226,3 +226,39 @@ The old root components/index.ts also contained empty statements and only setup 
 React Doctor unrestricted review after M3: 100/100, 128 changed files scanned, no issues reported. The sandbox browser run stalled during worker launch and was stopped; an unrestricted run is now pending, so browser success is not yet claimed.
 
 M4 validation: 17 affected suites / 112 tests passed; typecheck, lint and Knip passed. Removed hooks/useTeamFiltering.ts after its sole production consumer and fixture moved to the canonical filter. No assignment algorithm behavior was changed; its random-sort issue is recorded for later review.
+
+## M5a — Football-match client ownership
+
+Discovery, saved-match operations, solo tracking, filters/time formatting, and team/league presentation resources now live in football-matches. FootballMatchError is class-based and uses the agreed PascalCase. soloTracking becomes soloTrackingService because it coordinates tracking grant lifecycle and failures; matchUtils becomes matchFilters for its date/time/team filtering role. Cross-runtime match contracts remain in types/footballMatch.ts and Edge handlers retain their deployment paths. Shared commandApiClient stays outside the feature: it combines Java command delivery/idempotency with a match-discovery facade and needs a separately reviewed split before it can have one owner.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| hooks/useMatchData.ts | features/football-matches/useMatchData.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/hooks/useMatchData.test.tsx | __tests__/features/football-matches/useMatchData.test.tsx | Mirror the football-match implementation and preserve test behavior. |
+| hooks/useTeamData.ts | features/football-matches/useTeamData.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| hooks/useLiveScores.ts | features/football-matches/useLiveScores.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/hooks/useLiveScores.test.tsx | __tests__/features/football-matches/useLiveScores.test.tsx | Mirror the football-match implementation and preserve test behavior. |
+| hooks/useLeagueLogo.ts | features/football-matches/useLeagueLogo.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/hooks/useLeagueLogo.test.ts | __tests__/features/football-matches/useLeagueLogo.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| hooks/useTeamLogo.ts | features/football-matches/useTeamLogo.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/hooks/useTeamLogo.test.ts | __tests__/features/football-matches/useTeamLogo.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| hooks/usePersistedTeamLogos.ts | features/football-matches/usePersistedTeamLogos.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/hooks/usePersistedTeamLogos.test.ts | __tests__/features/football-matches/usePersistedTeamLogos.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| utils/footballMatchService.ts | features/football-matches/footballMatchService.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/utils/footballMatchService.test.ts | __tests__/features/football-matches/footballMatchService.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| utils/footballMatchSchemas.ts | features/football-matches/footballMatchSchemas.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| utils/footballMatchTransport.ts | features/football-matches/footballMatchTransport.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| utils/footballMatchError.ts | features/football-matches/FootballMatchError.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| utils/soloTracking.ts | features/football-matches/soloTrackingService.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| utils/matchTime.ts | features/football-matches/matchTime.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/utils/matchTime.test.ts | __tests__/features/football-matches/matchTime.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| utils/matchUtils.ts | features/football-matches/matchFilters.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/utils/matchUtils.test.ts | __tests__/features/football-matches/matchFilters.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| utils/teamLogos.ts | features/football-matches/teamLogos.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/utils/teamLogos.test.ts | __tests__/features/football-matches/teamLogos.test.ts | Mirror the football-match implementation and preserve test behavior. |
+| utils/teamAliases.ts | features/football-matches/teamAliases.ts | Colocate football-match implementation and resources; apply the responsibility/class naming rule. |
+| __tests__/utils/teamAliases.test.ts | __tests__/features/football-matches/teamAliases.test.ts | Mirror the football-match implementation and preserve test behavior. |
+
+Refactor later: utils/commandApiClient.ts mixes a match-discovery facade, Java command HTTP handling and shared idempotency keys. Separate those existing responsibilities behind their actual interfaces before moving the shared command/idempotency portion into lib; avoid making infrastructure depend on a feature public index.
+
+M5a validation: typecheck, lint and Knip passed; affected football/setup/history tests passed (details below). Existing phone-sized Home Playwright journeys: 2 passed in 24.7 seconds after the Home/Preferences/setup moves.

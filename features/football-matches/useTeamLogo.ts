@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ImageSourcePropType } from "react-native";
-import { getHardcodedTeamLogoOnly, getTeamLogo } from "../utils/teamLogos";
+import { getHardcodedTeamLogoOnly, getTeamLogo } from "./teamLogos";
 
-const DEFAULT_LOGO = require("../assets/images/teams/default.png");
+const DEFAULT_LOGO = require("../../assets/images/teams/default.png");
 
 /** Resolve the bundled logo first, then the persisted API logo, then the default. */
 export const useTeamLogo = (teamName: string): ImageSourcePropType => {

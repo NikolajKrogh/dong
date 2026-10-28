@@ -6,7 +6,7 @@ import { useGameStore } from '../../store/store';
 import { getSupabaseClient, hasSupabasePublicConfig } from '../../lib/supabase';
 import { getAccountScope, queryClient } from '../../lib/queryClient';
 import { loadCloudHistory, mergeHistory } from './historyRepository';
-import { getFootballMatchService } from '../../utils/footballMatchService';
+import { getFootballMatchService } from '../football-matches/footballMatchService';
 
 export interface UseHistoryResult {
   history: GameSession[]; loading: boolean; error: string | null; refresh: () => Promise<void>; accountId: string | null;

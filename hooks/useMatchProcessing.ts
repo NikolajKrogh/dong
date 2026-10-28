@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FOOTBALL_MATCH_PROVIDER } from "../types/footballMatch";
-import { MatchData } from "../utils/matchUtils";
+import { MatchData } from "../features/football-matches/matchFilters";
 import { Match } from "../store/store";
 
 /**

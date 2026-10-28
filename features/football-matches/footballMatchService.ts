@@ -4,8 +4,8 @@ import type {
   MatchDiscoveryResult,
   MatchDiscoverySelection,
   SavedMatchesResult,
-} from '../types/footballMatch';
-import { FootballMatchError, toFootballMatchError } from './footballMatchError';
+} from '../../types/footballMatch';
+import { FootballMatchError, toFootballMatchError } from './FootballMatchError';
 import {
   MAX_SAVED_MATCH_IDS,
   normalizeSavedMatchIds,
@@ -19,7 +19,7 @@ import {
 import { createSupabaseFootballMatchTransport } from './footballMatchTransport';
 import type { FootballMatchTransport } from './footballMatchTransport';
 
-export { FootballMatchError } from './footballMatchError';
+export { FootballMatchError } from './FootballMatchError';
 
 const SAVED_MATCH_BATCH_SIZES = { live: MAX_SAVED_MATCH_IDS, history: 20 } as const;
 const DISCOVERY_BATCH_SIZE = 16;

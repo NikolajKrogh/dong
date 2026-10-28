@@ -4,7 +4,7 @@ import TestRenderer from "react-test-renderer";
 
 import { LeagueEndpoint } from "../../../constants/leagues";
 import { useMatchListFilters } from "../../../features/game-setup/useMatchListFilters";
-import { TeamWithLeague } from "../../../utils/matchUtils";
+import { TeamWithLeague } from "../../../features/football-matches/matchFilters";
 
 type HookResult = ReturnType<typeof useMatchListFilters>;
 

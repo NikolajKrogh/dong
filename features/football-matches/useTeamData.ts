@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { TeamWithLeague } from "../utils/matchUtils";
+import type { TeamWithLeague } from "./matchFilters";
 
 const EMPTY_TEAMS: TeamWithLeague[] = [];
 const EMPTY_LEAGUES: string[] = [];

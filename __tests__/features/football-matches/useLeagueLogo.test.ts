@@ -1,11 +1,11 @@
-import { actCreate } from "../../test-utils/render";
+import { actCreate } from "../../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
-import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { useLeagueLogo } from "../../../features/football-matches/useLeagueLogo";
 const flushQuery = async () => {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
   await new Promise<void>((resolve) => setTimeout(resolve, 0));

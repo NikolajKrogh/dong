@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Image, Text, View } from "react-native";
 import type { ImageSourcePropType } from "react-native";
-import { getHardcodedTeamLogoOnly, getTeamLogo } from "../../utils/teamLogos";
+import { getHardcodedTeamLogoOnly, getTeamLogo } from "../football-matches/teamLogos";
 import { useColors } from "../../styles/theme";
 
 interface HistoryTeamBadgeProps {

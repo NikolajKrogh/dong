@@ -4,10 +4,10 @@ import React from "react";
 import { ImageSourcePropType } from "react-native";
 import TestRenderer from "react-test-renderer";
 
-import { useTeamLogo } from "../../hooks/useTeamLogo";
-import { getHardcodedTeamLogoOnly, getTeamLogo } from "../../utils/teamLogos";
+import { useTeamLogo } from "../../../features/football-matches/useTeamLogo";
+import { getHardcodedTeamLogoOnly, getTeamLogo } from "../../../features/football-matches/teamLogos";
 
-jest.mock("../../utils/teamLogos", () => ({
+jest.mock("../../../features/football-matches/teamLogos", () => ({
   getHardcodedTeamLogoOnly: jest.fn(),
   getTeamLogo: jest.fn(),
 }));
@@ -16,7 +16,7 @@ const mockGetHardcodedTeamLogoOnly = jest.mocked(getHardcodedTeamLogoOnly);
 const mockGetTeamLogo = jest.mocked(getTeamLogo);
 let queryClient: QueryClient;
 
-const DEFAULT_LOGO = require("../../assets/images/teams/default.png");
+const DEFAULT_LOGO = require("../../../assets/images/teams/default.png");
 const HARDCODED_LOGO = { testUri: "hardcoded-arsenal" } as ImageSourcePropType;
 // Drain both the lookup promise and React Query's scheduled observer notification.
 const flushQuery = () => jest.runAllTimersAsync();

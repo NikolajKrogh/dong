@@ -8,7 +8,7 @@ jest.mock("../../../platform/navigation/taskNavigation", () => ({
     open, dismiss: onClose, runAfterDismiss: (action: () => void) => { onClose(); action(); },
   }),
 }));
-jest.mock("../../../hooks/useLeagueLogo", () => ({ useLeagueLogo: () => ({ logoSource: null, isLoading: false }) }));
+jest.mock("../../../features/football-matches/useLeagueLogo", () => ({ useLeagueLogo: () => ({ logoSource: null, isLoading: false }) }));
 jest.mock("@expo/vector-icons", () => ({ Ionicons: () => null }));
 jest.mock("react-native-safe-area-context", () => ({ SafeAreaView: "View" }));
 

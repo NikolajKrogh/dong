@@ -2,7 +2,7 @@ import { useCallback, useMemo, useReducer } from "react";
 
 import { LeagueEndpoint } from "../../constants/leagues";
 import { formatDateIsoValue } from "../../platform/date-input/normalizeValue";
-import { TeamWithLeague } from "../../utils/matchUtils";
+import { TeamWithLeague } from "../football-matches/matchFilters";
 
 const DEFAULT_SELECTED_LEAGUES: LeagueEndpoint[] = [
   { name: "Premier League", code: "eng.1" },

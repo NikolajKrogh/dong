@@ -14,7 +14,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { Player } from "../../../store/store";
-import { useTeamLogo } from "../../../hooks/useTeamLogo";
+import { useTeamLogo } from "../../../features/football-matches/useTeamLogo";
 import { useMatchQuickActionsAnimations } from "../../../hooks/useMatchQuickActionsAnimations";
 import { useColors } from "../../../styles/theme";
 import { MatchHeader } from "./MatchHeader";

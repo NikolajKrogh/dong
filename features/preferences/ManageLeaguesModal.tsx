@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { createUserPreferencesStyles } from "./preferencesStyles";
 import { LeagueEndpoint } from "../../constants/leagues";
-import { useLeagueLogo } from "../../hooks/useLeagueLogo";
+import { useLeagueLogo } from "../football-matches/useLeagueLogo";
 import { useColors } from "../../styles/theme";
 
 /** Props for `ManageLeaguesModal`. */

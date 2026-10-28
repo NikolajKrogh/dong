@@ -1,4 +1,4 @@
-import { getFootballMatchService } from "./footballMatchService";
+import { getFootballMatchService } from "../features/football-matches/footballMatchService";
 import type { FootballMatchService, MatchDiscoveryResult, SavedMatch } from "../types/footballMatch";
 import { GameplayRpcError } from "../types/room";
 
