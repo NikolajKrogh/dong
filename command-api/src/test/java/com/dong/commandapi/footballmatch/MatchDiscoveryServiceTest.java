@@ -1,8 +1,8 @@
-package com.dong.commandapi.match;
+package com.dong.commandapi.footballmatch;
 
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
-import com.dong.commandapi.match.dto.NormalizedMatch;
+import com.dong.commandapi.footballmatch.dto.NormalizedMatch;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

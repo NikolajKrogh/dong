@@ -497,3 +497,20 @@ Reproduce the representative BDD run with npm run bdd:gen, then npx playwright t
 Features now include account, friends, history, home, preferences, game-setup, game-progress, rooms, football-matches and onboarding. Reusable UI lives in components/ui; platform adapters stay in platform; state/hydration in store; global theme/tokens in styles; SDK/query setup in lib; cross-runtime contracts/helpers in types/shared. utils/commandApiClient.ts intentionally remains shared until its mixed command/discovery responsibilities are separately reviewed. Framework route names, generated types, historical migrations, component-owned support names and existing test-selection qualifiers are preserved exceptions. No speculative Service/Strategy/Visitor abstractions were introduced.
 
 The journal is the current migration record. The older untracked blueprint/audit/inventory are pre-migration snapshots and were not rewritten. The refactor-later ledger above records the larger modules, random-sort concern, normalization duplication and mixed client responsibilities for a future scoped change.
+
+## M7 — Java football-match vocabulary
+
+The Java package com.dong.commandapi.match becomes com.dong.commandapi.footballmatch, including its dto subpackage and matching test package. This aligns the football-match domain name with TypeScript features/football-matches while retaining Java lowercase package syntax and existing PascalCase class/record names. Package declarations and imports change; the /v1/matches endpoint and DTO wire values remain unchanged. This explicitly extends the earlier client-only migration; the previous Java exclusion applied through M6.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| command-api/src/main/java/com/dong/commandapi/match/MatchCatalogClient.java | command-api/src/main/java/com/dong/commandapi/footballmatch/MatchCatalogClient.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/main/java/com/dong/commandapi/match/MatchDiscoveryController.java | command-api/src/main/java/com/dong/commandapi/footballmatch/MatchDiscoveryController.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/main/java/com/dong/commandapi/match/MatchDiscoveryService.java | command-api/src/main/java/com/dong/commandapi/footballmatch/MatchDiscoveryService.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/main/java/com/dong/commandapi/match/MatchQuery.java | command-api/src/main/java/com/dong/commandapi/footballmatch/MatchQuery.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/main/java/com/dong/commandapi/match/dto/NormalizedMatch.java | command-api/src/main/java/com/dong/commandapi/footballmatch/dto/NormalizedMatch.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/test/java/com/dong/commandapi/match/MatchCatalogClientTest.java | command-api/src/test/java/com/dong/commandapi/footballmatch/MatchCatalogClientTest.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/test/java/com/dong/commandapi/match/MatchDiscoveryControllerTest.java | command-api/src/test/java/com/dong/commandapi/footballmatch/MatchDiscoveryControllerTest.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+| command-api/src/test/java/com/dong/commandapi/match/MatchDiscoveryServiceTest.java | command-api/src/test/java/com/dong/commandapi/footballmatch/MatchDiscoveryServiceTest.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
+
+All eight files were mechanically checked to differ only by the package/import namespace. Full Maven clean verify passed: 92 tests, zero failures/errors; JaCoCo coverage checks passed. The old compiled match package is absent after the clean build. Unrelated package/skill work remains excluded.

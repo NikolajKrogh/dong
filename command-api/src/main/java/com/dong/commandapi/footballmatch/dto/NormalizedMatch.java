@@ -1,4 +1,4 @@
-package com.dong.commandapi.match.dto;
+package com.dong.commandapi.footballmatch.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonValue;

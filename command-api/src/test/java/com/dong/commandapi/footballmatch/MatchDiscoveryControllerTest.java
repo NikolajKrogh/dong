@@ -1,4 +1,4 @@
-package com.dong.commandapi.match;
+package com.dong.commandapi.footballmatch;
 
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;

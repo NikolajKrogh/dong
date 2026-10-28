@@ -1,6 +1,6 @@
-package com.dong.commandapi.match;
+package com.dong.commandapi.footballmatch;
 
-import com.dong.commandapi.match.dto.NormalizedMatch;
+import com.dong.commandapi.footballmatch.dto.NormalizedMatch;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
