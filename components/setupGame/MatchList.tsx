@@ -216,6 +216,9 @@ const MatchList: FC<MatchListProps> = ({
 
   const {
     isLoading: isMatchLoading,
+    errorMessage: matchErrorMessage,
+    availabilityMessage,
+    retry: retryMatchDiscovery,
     teamsData: matchTeamsData,
     apiData,
     availableLeagues,
@@ -414,6 +417,21 @@ const MatchList: FC<MatchListProps> = ({
     );
   }
 
+  const discoveryMessage = matchErrorMessage || availabilityMessage;
+  const discoveryFeedback = <>
+    {loadingFeedback}
+    {discoveryMessage ? (
+      <View style={styles.errorContainer}>
+        <Text accessibilityRole="alert" style={styles.errorText}>{discoveryMessage}</Text>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Retry loading matches"
+          disabled={isMatchLoading} accessibilityState={{ disabled: isMatchLoading }}
+          onPress={() => { void retryMatchDiscovery(); }} style={{ minHeight: 48, justifyContent: "center" }}>
+          <Text style={{ color: colors.primary }}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    ) : null}
+  </>;
+
   return (
     <MatchListView
       matches={matches}
@@ -423,7 +441,7 @@ const MatchList: FC<MatchListProps> = ({
       showSectionTitle={showSectionTitle}
       manualEntry={teamSelection}
       processingState={processingState}
-      loadingFeedback={loadingFeedback}
+      loadingFeedback={discoveryFeedback}
       leagueFilterProps={{
         availableLeagues,
         selectedLeagues,

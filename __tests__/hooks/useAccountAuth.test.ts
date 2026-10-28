@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
-import { LEAGUE_ENDPOINTS } from "../../constants/leagues";
 import {
   AccountAuthProvider,
   SESSION_EXPIRED_MESSAGE,
@@ -28,7 +27,15 @@ const DEFAULT_SYNCED_PREFERENCES = {
   theme: "light" as const,
   soundEnabled: true,
   commonMatchNotificationsEnabled: true,
-  configuredLeagues: LEAGUE_ENDPOINTS,
+  configuredLeagues: [
+    { code: "eng.1", name: "Premier League", category: "Europe" },
+    { code: "eng.2", name: "Championship", category: "Europe" },
+    { code: "ger.1", name: "Bundesliga", category: "Europe" },
+    { code: "esp.1", name: "La Liga", category: "Europe" },
+    { code: "ita.1", name: "Serie A", category: "Europe" },
+    { code: "fra.1", name: "Ligue 1", category: "Europe" },
+    { code: "den.1", name: "Superliga", category: "Europe" },
+  ],
   defaultSelectedLeagues: DEFAULT_SELECTED_LEAGUES,
 };
 
@@ -185,6 +192,23 @@ describe("account auth foundation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useGameStore.setState(DEFAULT_SYNCED_PREFERENCES);
+  });
+
+  it("seeds first settings from bundled defaults without waiting for a catalog request", async () => {
+    mockHasSupabasePublicConfig.mockReturnValue(true);
+    const client = createSupabaseClientMock({ id: "catalog-user", username: "Captain", created_at: null, updated_at: null });
+    const session = { user: { id: "catalog-user" }, access_token: "token" } as Session;
+    client.auth.getSession.mockResolvedValue({ data: { session }, error: null } as never);
+    client.auth.getUser.mockResolvedValue({ data: { user: session.user }, error: null } as never);
+    mockGetSupabaseClient.mockReturnValue(client as unknown as ReturnType<typeof getSupabaseClient>);
+    let auth!: ReturnType<typeof useAccountAuth>;
+    const tree = renderAuthProbe(value => { auth = value; });
+    await TestRenderer.act(async () => { await Promise.resolve(); });
+    expect(auth.status).toBe("ready");
+    expect(client.settings.settingsTable.upsert).toHaveBeenCalledWith(expect.objectContaining({
+      settings_data: expect.objectContaining({ configuredLeagues: DEFAULT_SYNCED_PREFERENCES.configuredLeagues }),
+    }), expect.anything());
+    TestRenderer.act(() => tree.unmount());
   });
 
   it.each(["failed", "signedOut", "signedOutAndBack"])("keeps confirmed identity when a delayed username save is %s", async (outcome) => {

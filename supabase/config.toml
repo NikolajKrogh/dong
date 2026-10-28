@@ -389,6 +389,17 @@ deno_version = 2
 [functions.refresh-provider-scores]
 verify_jwt = false
 
+# Public app keys are checked explicitly inside the two catalog ingresses.
+[functions.discover-matches]
+verify_jwt = false
+
+[functions.solo-match-tracking]
+verify_jwt = false
+
+# Actual auth requires the named match-monitor secret plus a live database dispatch.
+[functions.run-match-monitor]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

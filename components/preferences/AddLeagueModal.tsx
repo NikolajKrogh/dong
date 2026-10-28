@@ -76,11 +76,36 @@ const LeagueItem = React.memo(function LeagueItem({
     () => createUserPreferencesStyles(colors),
     [colors]
   );
-  const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const { logoSource, isLoading: isLogoLoading } = useLeagueLogo(league.name, league.code);
   const handlePress = React.useCallback(
     () => onToggleLeague(league),
     [league, onToggleLeague],
   );
+  const logoPlaceholderIcon = isLogoLoading ? "hourglass-outline" : "football-outline";
+  const logoPlaceholder = (
+    <View
+      style={[
+        addLeagueModalStyles.leagueLogo,
+        { backgroundColor: colors.backgroundSubtle },
+      ]}
+    >
+      <Ionicons
+        name={logoPlaceholderIcon}
+        size={16}
+        color={colors.textMuted}
+      />
+    </View>
+  );
+  let logoContent = logoPlaceholder;
+  if (!isLogoLoading && logoSource) {
+    logoContent = (
+      <Image
+        source={logoSource}
+        style={addLeagueModalStyles.leagueLogo}
+        resizeMode="contain"
+      />
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -93,39 +118,7 @@ const LeagueItem = React.memo(function LeagueItem({
     >
       {/* Logo section */}
       <View style={addLeagueModalStyles.leagueLogoContainer}>
-        {isLoading ? (
-          <View
-            style={[
-              addLeagueModalStyles.leagueLogo,
-              { backgroundColor: colors.backgroundSubtle },
-            ]}
-          >
-            <Ionicons
-              name="hourglass-outline"
-              size={16}
-              color={colors.textMuted}
-            />
-          </View>
-        ) : logoSource ? (
-          <Image
-            source={logoSource}
-            style={addLeagueModalStyles.leagueLogo}
-            resizeMode="contain"
-          />
-        ) : (
-          <View
-            style={[
-              addLeagueModalStyles.leagueLogo,
-              { backgroundColor: colors.backgroundSubtle },
-            ]}
-          >
-            <Ionicons
-              name="football-outline"
-              size={16}
-              color={colors.textMuted}
-            />
-          </View>
-        )}
+        {logoContent}
       </View>
 
       <View style={addLeagueModalStyles.leagueItemContent}>
@@ -173,7 +166,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
    * Close handler.
    * @description Resets search and category then triggers onClose.
    */
-  const handleClose = React.useCallback(() => {
+  const resetFiltersAndCloseModal = React.useCallback(() => {
     setSearchQuery("");
     setSelectedCategory("Europe");
     onClose();
@@ -182,7 +175,9 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
   // Filter leagues by search query and already configured leagues
   const filteredLeagues = AVAILABLE_LEAGUES.filter(
     (league) =>
-      !configuredLeagues.some((l) => l.code === league.code) &&
+      !configuredLeagues.some(
+        (configuredLeague) => configuredLeague.code === league.code
+      ) &&
       (searchQuery === "" ||
         league.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         league.code.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -191,7 +186,11 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
   // Group leagues by category or show search results
   const leaguesToDisplay = searchQuery
     ? filteredLeagues
-    : filteredLeagues.filter((league) => league.category === selectedCategory);
+    : filteredLeagues.filter((league) => (league.category ?? "Other") === selectedCategory);
+  const categories = [...new Set([
+    ...LEAGUE_CATEGORIES,
+    ...AVAILABLE_LEAGUES.map(league => league.category ?? "Other"),
+  ])];
   const selectedLeagueCodes = React.useMemo(
     () => new Set(selectedLeagues.map((league) => league.code)),
     [selectedLeagues],
@@ -212,12 +211,12 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
       visible={visible}
       animationType="slide"
       transparent={false}
-      onRequestClose={handleClose}
+      onRequestClose={resetFiltersAndCloseModal}
     >
       <SafeAreaView style={manageLeaguesModalStyles.modalSafeArea}>
         <View style={manageLeaguesModalStyles.header}>
           <TouchableOpacity
-            onPress={handleClose}
+            onPress={resetFiltersAndCloseModal}
             style={manageLeaguesModalStyles.backButton}
           >
             <Ionicons name="arrow-back" size={24} color={colors.primary} />
@@ -267,7 +266,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
             contentContainerStyle={addLeagueModalStyles.categoryTabsContent}
           >
             {!searchQuery &&
-              LEAGUE_CATEGORIES.map((category) => (
+              categories.map((category) => (
                 <TouchableOpacity
                   key={category}
                   style={[
@@ -314,7 +313,9 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                   onPress={() => {
                     const leaguesToSelect = leaguesToDisplay.filter(
                       (league) =>
-                        !selectedLeagues.some((l) => l.code === league.code)
+                        !selectedLeagues.some(
+                          (selectedLeague) => selectedLeague.code === league.code
+                        )
                     );
                     setSelectedLeagues([
                       ...selectedLeagues,
@@ -335,11 +336,13 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                 {selectedLeagues.length > 0 && (
                   <TouchableOpacity
                     onPress={() => {
-                      const remainingSelected = selectedLeagues.filter(
-                        (league) =>
-                          !leaguesToDisplay.some((l) => l.code === league.code)
+                      const remainingSelectedLeagues = selectedLeagues.filter(
+                        (selectedLeague) =>
+                          !leaguesToDisplay.some(
+                            (displayedLeague) => displayedLeague.code === selectedLeague.code
+                          )
                       );
-                      setSelectedLeagues(remainingSelected);
+                      setSelectedLeagues(remainingSelectedLeagues);
                     }}
                     style={[
                       addLeagueModalStyles.actionPill,
@@ -391,9 +394,7 @@ const AddLeagueModal: React.FC<AddLeagueModalProps> = ({
                   No leagues found
                 </Text>
                 <Text style={manageLeaguesModalStyles.emptyStateMessage}>
-                  {searchQuery
-                    ? "Try a different search term"
-                    : "No leagues available in this category"}
+                  {searchQuery ? "Try a different search term" : "No leagues available in this category"}
                 </Text>
               </View>
             )}

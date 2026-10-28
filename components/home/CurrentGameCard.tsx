@@ -10,8 +10,11 @@ import { useColors } from "../../styles/theme";
 interface CurrentGameCardProps {
   colors: ReturnType<typeof useColors>;
   styles: ReturnType<typeof createStyles>;
-  matchesCount: number;
-  playersCount: number;
+  matchesCount?: number;
+  playersCount?: number;
+  title?: string;
+  cancelLabel?: string;
+  disabled?: boolean;
   onContinue: () => void;
   continueHref?: Href;
   onCancel: () => void;
@@ -25,6 +28,9 @@ export const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
   onContinue,
   continueHref,
   onCancel,
+  title = "Current Game in Progress",
+  cancelLabel = "Cancel Game",
+  disabled = false,
 }) => {
   return (
     <ShellCard
@@ -32,21 +38,24 @@ export const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
       testID="home-current-game-card"
       style={{ marginTop: 16, marginBottom: 16 }}
     >
-      <Text style={styles.sessionTitle}>Current Game in Progress</Text>
-      <View style={styles.sessionInfoRow}>
-        <View style={styles.infoItem}>
-          <AppIcon name="people" size={22} color={colors.primary} />
-          <Text style={styles.infoText}>{playersCount} Players</Text>
+      <Text style={styles.sessionTitle}>{title}</Text>
+      {playersCount !== undefined && matchesCount !== undefined ? (
+        <View style={styles.sessionInfoRow}>
+          <View style={styles.infoItem}>
+            <AppIcon name="people" size={22} color={colors.primary} />
+            <Text style={styles.infoText}>{playersCount} Players</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <AppIcon name="football" size={22} color={colors.primary} />
+            <Text style={styles.infoText}>{matchesCount} Matches</Text>
+          </View>
         </View>
-        <View style={styles.infoItem}>
-          <AppIcon name="football" size={22} color={colors.primary} />
-          <Text style={styles.infoText}>{matchesCount} Matches</Text>
-        </View>
-      </View>
+      ) : null}
 
       <ShellActionButton
         variant="success"
         label="Continue Game"
+        testID="home-continue-game"
         icon={<AppIcon name="play" size={22} color={colors.white} />}
         href={continueHref}
         onPress={continueHref ? undefined : onContinue}
@@ -54,7 +63,9 @@ export const CurrentGameCard: React.FC<CurrentGameCardProps> = ({
 
       <ShellActionButton
         variant="danger"
-        label="Cancel Game"
+        label={cancelLabel}
+        testID="home-cancel-game"
+        disabled={disabled}
         icon={
           <AppIcon name="close-circle-outline" size={22} color={colors.white} />
         }

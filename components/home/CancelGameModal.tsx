@@ -8,6 +8,9 @@ interface CancelGameModalProps {
   styles: ReturnType<typeof createStyles>;
   onRequestClose: () => void;
   onConfirm: () => void;
+  title?: string;
+  message?: string;
+  confirmLabel?: string;
 }
 
 export const CancelGameModal: React.FC<CancelGameModalProps> = ({
@@ -15,6 +18,9 @@ export const CancelGameModal: React.FC<CancelGameModalProps> = ({
   styles,
   onRequestClose,
   onConfirm,
+  title = "Cancel Game",
+  message = "Are you sure you want to cancel the current game? This action cannot be undone.",
+  confirmLabel = "Yes, Cancel Game",
 }) => {
   return (
     <Modal
@@ -25,11 +31,8 @@ export const CancelGameModal: React.FC<CancelGameModalProps> = ({
     >
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>Cancel Game</Text>
-          <Text style={styles.modalText}>
-            Are you sure you want to cancel the current game? This action
-            cannot be undone.
-          </Text>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <Text style={styles.modalText}>{message}</Text>
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.buttonCancel]}
@@ -41,7 +44,7 @@ export const CancelGameModal: React.FC<CancelGameModalProps> = ({
               style={[styles.modalButton, styles.buttonConfirm]}
               onPress={onConfirm}
             >
-              <Text style={styles.textStyle}>Yes, Cancel Game</Text>
+              <Text style={styles.textStyle}>{confirmLabel}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -4,8 +4,8 @@
  */
 export interface MatchWithScore {
   id: string;
-  homeScore: number;
-  awayScore: number;
+  homeScore: number | null;
+  awayScore: number | null;
   isLive: boolean;
   minutesPlayed?: string;
   homeTeam: string;
@@ -16,6 +16,9 @@ export interface MatchWithScore {
   goalScorers?: GoalScorer[];
   homeTeamStatistics?: MatchStatistics;
   awayTeamStatistics?: MatchStatistics;
+  goalsAvailability?: import("./footballMatch").MatchAvailability;
+  hasMoreGoals?: boolean;
+  freshness?: import("./footballMatch").SavedMatch["freshness"];
 }
 
 export interface GoalScorer {
@@ -28,11 +31,11 @@ export interface GoalScorer {
 }
 
 export interface MatchStatistics {
-  shotsOnGoal: number;
-  shotAttempts: number;
-  fouls: number;
-  yellowCards: number;
-  redCards: number;
-  cornerKicks: number;
-  possession: number;
+  shotsOnGoal: number | null;
+  shotAttempts: number | null;
+  fouls: number | null;
+  yellowCards: number | null;
+  redCards: number | null;
+  cornerKicks: number | null;
+  possession: number | null;
 }

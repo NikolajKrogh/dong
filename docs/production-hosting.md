@@ -66,3 +66,40 @@ by a local export.
 
 Supabase Free can pause; an internal Cron job is not a guaranteed availability
 contract. Use Pro if users must always be able to join.
+
+## Feature 030 Match Catalog release
+
+The [cutover/rollback ledger](../specs/030-reduce-espn-requests/validation/rollout.md) lists the exact five migrations, restricted Edge functions, DSN/key provisioning, source fence, 30/5000 budgets and operator activation/pause transactions. These commands are prepared for a later authorized release; no feature030 production deployment is implied. Schema starts with acquisition disabled and the owned Cron job inactive.
+
+The repository currently defines client, database and Java CI, with no publication job or `workflow_dispatch`. These jobs validate source; green CI is not a Cloudflare, Cloud Run or Supabase deployment. Use the reviewed commit SHA when inspecting runs:
+
+```powershell
+$reviewedSha = '<REVIEWED_COMMIT_SHA>'
+gh run list --repo NikolajKrogh/dong --commit $reviewedSha --workflow client-ci.yml --json databaseId,headSha,status,conclusion,url
+gh run list --repo NikolajKrogh/dong --commit $reviewedSha --workflow db-ci.yml --json databaseId,headSha,status,conclusion,url
+gh run list --repo NikolajKrogh/dong --commit $reviewedSha --workflow java-ci.yml --json databaseId,headSha,status,conclusion,url
+```
+
+Paths ignored by each workflow can mean no run exists; absence is not a passed check. The current jobs run lint/type/unused/unit, pgTAP/generated contracts and Maven respectively. No E2E or Android test is added to this release procedure.
+
+For web, keep the existing Pages project and repository integration. The verified repository build remains:
+
+```powershell
+npm ci
+npx expo export --clear --platform web
+```
+
+Publish `dist` through that existing project's reviewed production deployment. The Pages account/project/production branch are external configuration and were not recovered from this repository. Do not invent a new Pages project or claim a GitHub deploy workflow exists. If the existing project intentionally uses approved direct upload, Cloudflare documents `npx wrangler pages deploy dist --project-name <EXISTING_PROJECT_NAME>`; its account credentials and production-branch mapping must first be verified. [Direct-upload reference](https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/).
+
+Java retains the existing Cloud Run service and its public runtime variables above. A later operator must resolve its actual Google project, region and service before this source-build command; these targets and the `gcloud` CLI were unavailable in the current workspace:
+
+```powershell
+$googleProject = '<EXISTING_GOOGLE_PROJECT>'
+$cloudRegion = '<EXISTING_REGION>'
+$cloudService = '<EXISTING_CLOUD_RUN_SERVICE>'
+gcloud run deploy $cloudService --project $googleProject --region $cloudRegion --source .\command-api --set-build-env-vars GOOGLE_RUNTIME_VERSION=17 --update-env-vars SPRING_PROFILES_ACTIVE=prod --allow-unauthenticated --min-instances 0 --max-instances 1 --memory 512Mi
+```
+
+This is a parameterized manual publication command, not an executed/verified target deployment. Preserve the existing Supabase URL/JWKS/public app key and exact production CORS variables; never add the catalog DSN or monitor secret to Java or the client. Inspect actual revision traffic/tags and retire every routable Java revision that still fetches ESPN before source ownership activation. [Current command flags](https://cloud.google.com/sdk/gcloud/reference/run/deploy).
+
+Android build delivery and device testing are **skipped for feature030 at the user's request**. Existing EAS profiles remain unchanged. Refresh maintained web tabs after publication and record supported bundle/revision adoption: old solo bundles can still call ESPN directly, so their traffic cannot be included in an all-client consolidation claim. Hosted release checks remain separate from local unit/database/controlled-transport evidence.

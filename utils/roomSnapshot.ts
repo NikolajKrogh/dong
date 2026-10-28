@@ -22,6 +22,7 @@ export const roomSnapshotToGameState = (snapshot: CompatibleRoomSnapshot) => {
 
   const matches: Match[] = snapshot.matches.map((match) => ({
     id: match.id,
+    catalogMatchId: match.catalogMatchId ?? undefined,
     homeTeam: match.homeTeamName,
     awayTeam: match.awayTeamName,
     homeGoals: match.homeScore ?? 0,

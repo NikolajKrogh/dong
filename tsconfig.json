@@ -2,7 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "allowImportingTsExtensions": true,
     "paths": {
+      "npm:@scure/base@2.4.0": ["./node_modules/@scure/base", "./node_modules/@scure/base/index.js"],
+      "npm:zod@4.4.3": ["./node_modules/zod"],
       "@/*": [
         "./*"
       ]
@@ -16,6 +19,7 @@
   ],
   "exclude": [
     "node_modules",
+    ".supabase",
     "supabase/functions"
   ]
 }

@@ -3,6 +3,9 @@ package com.dong.commandapi.command;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
@@ -113,5 +116,32 @@ class CommandControllerTest {
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(res.getBody()).contains("UNAUTHORIZED");
+    }
+
+    @Test
+    void committedPendingProgressIsAnExactHttp200EnvelopeAndNotTerminalSuccess() {
+        when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
+                .thenReturn(Map.of("outcome", "reserved"));
+        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+                .thenReturn(Map.of("ok", false, "code", "room_processing_pending", "retryAfterSeconds", 1));
+        String key = UUID.randomUUID().toString();
+        ResponseEntity<String> response = post("start-game", key, true);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("\"ok\":false", "\"code\":\"room_processing_pending\"", "\"retryAfterSeconds\":1")
+                .doesNotContain("ACCEPTED", "timestamp", "commandType");
+        verify(supabaseRestClient).call(eq("release_command_idempotency"), eq(Map.of("idempotency_key", key)), anyString());
+        verify(supabaseRestClient, never()).call(eq("complete_command_idempotency"), any(), anyString());
+    }
+
+    @Test
+    void exhaustedRpcPendingRetriesStillReturnHttp200WithoutSuccessCaching() {
+        when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
+                .thenReturn(Map.of("outcome", "reserved"));
+        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+                .thenThrow(new SupabaseRestClient.RoomProcessingPendingException());
+        ResponseEntity<String> response = post("start-game", UUID.randomUUID().toString(), true);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("room_processing_pending").doesNotContain("ACCEPTED");
+        verify(supabaseRestClient, never()).call(eq("complete_command_idempotency"), any(), anyString());
     }
 }

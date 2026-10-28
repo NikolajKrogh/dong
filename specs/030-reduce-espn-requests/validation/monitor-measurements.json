@@ -1,0 +1,116 @@
+{
+  "runDate": "2026-10-26",
+  "profile": "dong-feature030",
+  "databaseBinding": "127.0.0.1:58322/postgres",
+  "schema": "Final M1-M5 clean reset including reschedule_degraded safeguards",
+  "sqlBaseline": {
+    "files": 68,
+    "assertions": 1118,
+    "source": "Coordinator verification before exclusive integration window"
+  },
+  "runtime": {
+    "maxPipeline": 0,
+    "maxPoolConnectionsPerAdapter": 4,
+    "postgresJs": "3.4.9",
+    "deno": "2.9.6",
+    "loginStatementTimeoutSeconds": 10
+  },
+  "source": "loopback fixture HTTP only; external networking denied",
+  "driver": "explicit-module-15-second-ticks plus immediate terminal verification tick",
+  "scenario": "Known future kickoff, live 2-1, then explicitly STATUS_FULL_TIME/completed=true at 3-1",
+  "appClientsDuringMonitoring": 0,
+  "overlap": {
+    "ok": true,
+    "rooms": 100,
+    "selectedRoomMatches": 500,
+    "sharedMatches": 5,
+    "coldReservations": 5,
+    "controlledHttpRequests": 5,
+    "warmConsumers": 100,
+    "soloGrants": 100,
+    "creationCalls": 101,
+    "creationAdmissions": 100,
+    "concurrentCreation": {
+      "requests": 2,
+      "serverIssuances": 1,
+      "replayResponses": 1,
+      "sameToken": true,
+      "currentSelectionVersion": 1,
+      "currentSelectionMatches": true
+    },
+    "extraWarmAttempts": 0,
+    "providerEvents": 500,
+    "replayContinuations": 0,
+    "coldMs": 1142,
+    "warmMs": 3559,
+    "escapedRequests": 0,
+    "localResources": {
+      "scope": "Deno harness process after profile guard through fixture cleanup; excludes imports/startup and PostgreSQL/Edge processes",
+      "cpuUserMs": 234,
+      "cpuSystemMs": 219,
+      "rssStartBytes": 46456832,
+      "rssEndBytes": 89202688,
+      "sampledPeakRssBytes": 89505792,
+      "rssSamplingIntervalMs": 100
+    },
+    "payloads": {
+      "controlledSourceResponseBytes": 2355,
+      "savedResultSerializedBytes": 547194,
+      "savedReadResponses": 101,
+      "excludes": "headers, TLS/TCP overhead, discovery responses, Realtime and hosted egress"
+    }
+  },
+  "monitor": {
+    "ok": true,
+    "mode": "monitor",
+    "driver": "explicit-module-15-second-ticks",
+    "secondFixtureExplicitlyCompleted": true,
+    "rooms": 100,
+    "sharedMatches": 5,
+    "preKickoffHttp": 0,
+    "preKickoffReservations": 0,
+    "controlledHttpRequests": 10,
+    "sourceReservations": 10,
+    "sourceAttemptsPerWindow": 5,
+    "sourceVersions": 10,
+    "providerEvents": 1000,
+    "finishedSharedMatches": 5,
+    "stoppedLiveGroups": 5,
+    "terminalTickExtraHttp": 0,
+    "terminalTickExtraReservations": 0,
+    "firstSourceP95Ms": 7450,
+    "firstRoomP95Ms": 7578,
+    "updateSourceP95Ms": 55219,
+    "updateRoomP95Ms": 55339,
+    "minimumReservationGapMs": 60361,
+    "savedRecoveryMs": 63,
+    "savedReentryExtraHttp": 0,
+    "ticks": 7,
+    "durationMs": 75748,
+    "escapedRequests": 0,
+    "localResources": {
+      "scope": "Deno harness process after profile guard through fixture cleanup; excludes imports/startup and PostgreSQL/Edge processes",
+      "cpuUserMs": 359,
+      "cpuSystemMs": 156,
+      "rssStartBytes": 45006848,
+      "rssEndBytes": 75911168,
+      "sampledPeakRssBytes": 76599296,
+      "rssSamplingIntervalMs": 100
+    },
+    "payloads": {
+      "controlledSourceResponseBytes": 4695,
+      "savedResultSerializedBytes": 546300,
+      "savedReadResponses": 100,
+      "excludes": "headers, TLS/TCP overhead, discovery responses, Realtime and hosted egress"
+    }
+  },
+  "cleanup": "fixture identities and derived completion groups removed; original policy/groups/slots/counters restored; ephemeral backend login dropped",
+  "limitations": [
+    "Explicit driver invokes the real module; it does not test hosted Cron/pg_net/Edge delivery.",
+    "Local PostgreSQL acceptance does not establish hosted Supavisor or certificate acceptance.",
+    "Saved recovery is 100 module reads of explicit final facts, not browser/Android rendering or authenticated app transport.",
+    "CPU/RSS are local Deno process measurements; PostgreSQL/Edge CPU, Realtime volume and hosted egress were not measured.",
+    "The extra terminal tick verifies stopped live demand; future bounded optional completion summaries are covered separately, not excluded forever.",
+    "Two live cadence windows do not establish indefinite monitoring or overloaded latency guarantees."
+  ]
+}

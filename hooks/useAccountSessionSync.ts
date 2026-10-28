@@ -154,7 +154,6 @@ export const useAccountSessionSync = ({
   const syncAuthenticatedSettings = useCallback(
     async (client: SupabaseClient<Database>, userId: string) => {
       const scope = getAccountScope();
-      const localSyncedPreferences = getCurrentSyncedPreferenceState();
       const persistedSyncedSettings = await loadAccountSyncedSettings(
         client,
         userId,
@@ -165,7 +164,7 @@ export const useAccountSessionSync = ({
       if (persistedSyncedSettings) {
         const appliedSyncedPreferences = applySyncedPreferenceState(
           persistedSyncedSettings.settings,
-          localSyncedPreferences,
+          getCurrentSyncedPreferenceState(),
         );
 
         lastSyncedPreferenceSignatureRef.current =
@@ -176,7 +175,7 @@ export const useAccountSessionSync = ({
       const seededSyncedSettings = await saveAccountSyncedSettings(
         client,
         userId,
-        localSyncedPreferences,
+        getCurrentSyncedPreferenceState(),
       );
       if (!isCurrentAccountScope(scope)) return;
 

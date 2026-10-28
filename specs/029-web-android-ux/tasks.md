@@ -161,3 +161,15 @@ Runtime-led assessment on 2026-10-17 checked 20 FRs, 7 SCs, six user stories, th
 Physical trusted-touch follow-up found one additional HIGH partial gap in FR-016/FR-017 after the input ancestry fix: the web PlayerList disabled FlatList computes touch-action:none and blocks ancestor drag, while the setup page still sizes its scroll port from the larger layout viewport during a real IME visual-viewport shrink. Empty/populated gesture checks must establish reachability; programmatic scroll-to assertions are insufficient. Existing requirement, plan and constitution inventories remain unchanged; no backend work is needed.
 
 - [x] T052 [US5] Remove the reproduced web-only touch blockade in components/setupGame/PlayerList.tsx while preserving native behavior, and size the web setup scroll port for the actual visible keyboard viewport in components/setupGame/SetupWizard.tsx. Add trusted drag regressions over empty and populated player lists, preserve focused input identity and 200%-text/landscape final-control bounds, then verify real Android Chrome swipes reach Next with the IME open. Source: FR-016, FR-017, US5/AC2–AC4 (partial, HIGH). Owner C; coordinator integrates and owns physical verification.
+
+
+## Home simplification (2026-10-26)
+
+Approved direction: preserve the logo, colours, Game Stats card/history link and profile control. Home offers one Start New Game entry, or one current-game card. No persistent navigation or additional Home heading.
+
+- [x] Move local play, hosting and joining into a dismissible three-choice sheet. Hosting requires sign-in; joining uses registered identity when signed in and guest entry otherwise. Failed creation stays in the sheet for retry.
+- [x] Reuse the current-game card for solo, registered and guest sessions. Room summaries come from the authoritative snapshot; Continue restores the corresponding flow. Solo cancellation resets only the local game; registered departure reuses the existing host-handover/member-exit confirmation; guest departure uses the existing guest leave operation.
+- [x] Move Friends into the signed-in Settings account menu. Keep signed-out Home and Settings free of Friends actions.
+- [x] Adapt existing component/hook tests and existing browser journeys, without adding another E2E suite. Validate phone-sized web rendering and desktop layout. Physical-phone checks remain excluded by the user's instruction.
+
+Skills used: ui-taste (distill/craft), Tamagui, accessibility, react-native-testing, playwright-best-practices, simplify, React Doctor and Ponytail. No schema or API change is needed; use the existing room RPCs and exit safeguards.

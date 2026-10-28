@@ -30,7 +30,7 @@ export const useAccountSettingsSync = ({
 
     const client = getSupabaseClient();
 
-    return useGameStore.subscribe((state) => {
+    const sync = (state: ReturnType<typeof useGameStore.getState>) => {
       if (activeSettingsUserIdRef.current !== user.id) {
         return;
       }
@@ -59,7 +59,10 @@ export const useAccountSettingsSync = ({
           console.error(error);
         },
       );
-    });
+    };
+    const unsubscribe = useGameStore.subscribe(sync);
+    sync(useGameStore.getState());
+    return unsubscribe;
   }, [
     isConfigured,
     user,

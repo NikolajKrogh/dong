@@ -3,6 +3,8 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../test-utils/render";
 
+jest.mock("expo-linking", () => ({ createURL: jest.fn() }));
+
 const mockUseGuestRoomJoin = jest.fn(() => ({
   session: null as GuestRoomSession | null,
   error: null,
@@ -17,6 +19,8 @@ const mockUseAccountAuth = jest.fn(() => ({
 
 const mockRefreshHistory = jest.fn();
 const mockPush = jest.fn();
+const mockGetRoomSnapshot = jest.fn(() => Promise.resolve(null));
+jest.mock("../../utils/supabaseClient", () => ({ getRoomRpcClient: () => ({ getRoomSnapshot: mockGetRoomSnapshot }) }));
 const mockUseHistory = jest.fn();
 jest.mock("../../features/history", () => ({
   useHistory: () => mockUseHistory(),
@@ -29,7 +33,7 @@ const mockUseHostRoomCreate = jest.fn(() => ({
 }));
 
 const mockUseMyActiveRoom = jest.fn(() => ({
-  activeRoom: null as { sessionId: string } | null,
+  activeRoom: null as { sessionId: string; participantId: string; role: string; joinCode: string } | null,
   isLoading: false,
   refresh: jest.fn(),
 }));
@@ -122,11 +126,12 @@ const mockStoreState = {
   players: [] as any[],
   matches: [] as any[],
   history: [] as any[],
+  activeGameContext: { mode: "solo", sessionId: null as string | null },
   resetState: jest.fn(),
 };
 
 jest.mock("../../store/store", () => ({
-  useGameStore: () => mockStoreState,
+  useGameStore: Object.assign(() => mockStoreState, { getState: () => mockStoreState }),
 }));
 
 jest.mock("../../styles/theme", () => ({
@@ -182,6 +187,7 @@ jest.mock("react-native-reanimated", () => ({
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ bottom: 0 }),
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
 
@@ -191,6 +197,9 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
 }));
 
 jest.mock("../../components/AppIcon", () => () => null);
+jest.mock("tamagui", () => ({
+  YStack: ({ children, ...props }: any) => require("react").createElement("View", props, children),
+}));
 
 jest.mock("../../components/OnboardingScreen", () => {
   const RN = require("react-native");
@@ -281,6 +290,10 @@ describe("HomeScreen platform adoption", () => {
       fontScale: 1,
     });
     mockPlatformAnimation.mockClear();
+    mockUseAccountAuth.mockReturnValue({ account: null });
+    mockUseHostRoomCreate.mockReturnValue({ isCreating: false, error: null, createRoom: jest.fn() });
+    mockUseMyActiveRoom.mockReturnValue({ activeRoom: null, isLoading: false, refresh: jest.fn() });
+    mockStoreState.activeGameContext = { mode: "solo", sessionId: null };
     mockStoreState.players = [];
     mockStoreState.matches = [];
     mockStoreState.history = [];
@@ -356,13 +369,12 @@ describe("HomeScreen platform adoption", () => {
     });
   });
 
-  it("opens the guest modal from the home CTA", () => {
+  it("opens guest entry through the game choices", () => {
     const HomeScreen = require("../../app/index").default;
 
     const renderer = actCreate(React.createElement(HomeScreen));
-    const guestJoinButton = renderer.root.findByProps({
-      testID: "home-join-room-button",
-    });
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
+    const guestJoinButton = renderer.root.findByProps({ testID: "home-join-room-button" });
 
     TestRenderer.act(() => {
       guestJoinButton.props.onPress();
@@ -382,7 +394,7 @@ describe("HomeScreen platform adoption", () => {
     });
   });
 
-  it("updates the guest CTA label when a guest room is already active", () => {
+  it("uses the current-game card for an active guest room", () => {
     mockUseGuestRoomJoin.mockReturnValue({
       session: {
         grant: {
@@ -416,7 +428,15 @@ describe("HomeScreen platform adoption", () => {
     const allText = renderer.root.findAllByType(Text);
     const textContents = allText.flatMap((node: any) => node.props.children);
 
-    expect(textContents).toContain("Return to Guest Room");
+    expect(textContents).toContain("Continue Game");
+    expect(textContents).toContain("Leave Room");
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-cancel-game" }).props.onPress());
+    const confirmation = renderer.root.findByType(require("../../components/home/CancelGameModal").CancelGameModal);
+    expect(confirmation.props).toMatchObject({ visible: true, title: "Leave Room" });
+    TestRenderer.act(() => confirmation.props.onConfirm());
+    expect(mockUseGuestRoomJoin.mock.results.at(-1)?.value.leaveRoom).toHaveBeenCalled();
+    expect(mockStoreState.resetState).not.toHaveBeenCalled();
+    expect(renderer.root.findAllByProps({ testID: "home-start-game-button" })).toHaveLength(0);
 
     TestRenderer.act(() => {
       renderer.unmount();
@@ -442,10 +462,61 @@ describe("HomeScreen platform adoption", () => {
     const textContents = allText.flatMap((t: any) => t.props.children);
     expect(textContents).toContain("Continue Game");
     expect(textContents).toContain("Cancel Game");
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-cancel-game" }).props.onPress());
+    const confirmation = renderer.root.findByType(require("../../components/home/CancelGameModal").CancelGameModal);
+    TestRenderer.act(() => confirmation.props.onConfirm());
+    expect(mockStoreState.resetState).toHaveBeenCalledTimes(1);
 
     TestRenderer.act(() => {
       renderer.unmount();
     });
+  });
+
+  it("routes local play and signed-out hosting from the choices", () => {
+    const renderer = actCreate(React.createElement(require("../../app/index").default));
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-play-local" }).props.onPress());
+    expect(mockPush).toHaveBeenLastCalledWith("/setupGame");
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-create-room-button" }).props.onPress());
+    expect(mockPush).toHaveBeenLastCalledWith("/auth?returnTo=%2F");
+    TestRenderer.act(() => renderer.unmount());
+  });
+
+  it("opens registered joining and keeps room-creation errors in the choices until a successful retry", async () => {
+    mockUseAccountAuth.mockReturnValue({ account: { id: "account" } });
+    const createRoom = jest.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    mockUseHostRoomCreate.mockReturnValue({ isCreating: false, error: "Failed to create room.", createRoom });
+    const renderer = actCreate(React.createElement(require("../../app/index").default));
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-join-registered-button" }).props.onPress());
+    expect(renderer.root.findByType(require("../../components/home/JoinRoomModal").JoinRoomModal).props.visible).toBe(true);
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
+    await TestRenderer.act(async () => renderer.root.findByProps({ testID: "home-create-room-button" }).props.onPress());
+    const sheet = () => renderer.root.findByType(require("../../components/home/StartGameSheet").StartGameSheet);
+    expect(sheet().props).toMatchObject({ visible: true, error: "Failed to create room." });
+    await TestRenderer.act(async () => renderer.root.findByProps({ testID: "home-create-room-button" }).props.onPress());
+    expect(sheet().props.visible).toBe(false);
+    TestRenderer.act(() => renderer.unmount());
+  });
+
+  it.each(["owner", "member"])("uses authoritative room counts and the safe %s exit instead of resetting locally", async role => {
+    mockUseAccountAuth.mockReturnValue({ account: { id: "account" } });
+    mockUseMyActiveRoom.mockReturnValue({
+      activeRoom: { sessionId: "room", participantId: "viewer", role, joinCode: "123456" },
+      isLoading: false, refresh: jest.fn(),
+    });
+    mockGetRoomSnapshot.mockResolvedValue({ state: "in_progress", matches: [{ id: "match" }], participants: [{ id: "viewer" }, { id: "other" }] } as never);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => { renderer = TestRenderer.create(React.createElement(require("../../app/index").default)); });
+    const card = renderer.root.findByType(require("../../components/home/CurrentGameCard").CurrentGameCard);
+    expect(card.props.playersCount).toBe(2);
+    expect(card.props.matchesCount).toBe(1);
+    expect(renderer.root.findAllByProps({ testID: "home-start-game-button" })).toHaveLength(0);
+    TestRenderer.act(() => renderer.root.findByProps({ testID: "home-cancel-game" }).props.onPress());
+    expect(renderer.root.findByType(require("../../components/home/JoinRoomModal").JoinRoomModal).props).toMatchObject({ visible: true, leaveOnly: true });
+    expect(mockStoreState.resetState).not.toHaveBeenCalled();
+    TestRenderer.act(() => renderer.unmount());
   });
 
   it.each([
@@ -463,13 +534,10 @@ describe("HomeScreen platform adoption", () => {
 });
 
 
-it.each([null, { id: 'signed-in-account' }])('exposes Friends and local History for account %j', (account) => {
-  mockUseAccountAuth.mockReturnValue({ account });
-  const HomeScreen = require('../../app/index').default;
-  const renderer = actCreate(React.createElement(HomeScreen));
-  expect(renderer.root.findByProps({ testID: 'home-friends-button' }).props).toMatchObject({ label: 'Friends', href: '/friends' });
-  expect(renderer.root.findByProps({ testID: 'home-history-stats-card' }).props).toMatchObject({ href: '/history', 'aria-label': 'Game Stats, view history' });
-  expect(renderer.root.findAllByProps({ testID: 'home-history-button' })).toHaveLength(0);
-  expect(renderer.root.findByProps({ testID: 'open-preferences-button' }).props.accessibilityLabel).toBe('Settings');
+it("keeps Home free of separate Friends and room buttons", () => {
+  const renderer = actCreate(React.createElement(require("../../app/index").default));
+  expect(renderer.root.findAllByProps({ testID: "home-friends-button" })).toHaveLength(0);
+  expect(renderer.root.findAllByProps({ testID: "home-return-to-room" })).toHaveLength(0);
+  expect(renderer.root.findByProps({ testID: "home-history-stats-card" }).props.href).toBe("/history");
   TestRenderer.act(() => renderer.unmount());
 });

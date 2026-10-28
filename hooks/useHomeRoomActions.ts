@@ -9,7 +9,8 @@ import { useHostRoomCreate } from "./useHostRoomCreate";
 import { useMyActiveRoom } from "./useMyActiveRoom";
 import { useRegisteredRoomJoin } from "./useRegisteredRoomJoin";
 import { useRoomExit } from "./useRoomExit";
-import type { MyActiveRoom } from "../types/room";
+import type { MyActiveRoom, RoomSnapshot } from "../types/room";
+import { getRoomRpcClient } from "../utils/supabaseClient";
 
 /**
  * Composes the room join/host/exit hooks used by the home screen (registered
@@ -28,9 +29,32 @@ export const useHomeRoomActions = () => {
     error: createRoomError,
     createRoom,
   } = useHostRoomCreate();
-  const { activeRoom, isLoading: isActiveRoomLoading, error: activeRoomError, refresh: refreshActiveRoom } = useMyActiveRoom(
+  const { activeRoom, isLoading: isActiveRoomLoading, error: membershipError, refresh: refreshActiveRoom } = useMyActiveRoom(
     account?.id ?? null,
   );
+  const [roomDetails, setRoomDetails] = useState<{
+    accountId: string; sessionId: string; snapshot: RoomSnapshot | null; error: string | null;
+  } | null>(null);
+  const roomSessionId = activeRoom?.sessionId;
+  const accountId = account?.id;
+  useEffect(() => {
+    if (!roomSessionId || !accountId) return;
+    let cancelled = false;
+    Promise.resolve().then(() => getRoomRpcClient().getRoomSnapshot(roomSessionId)).then(
+      (snapshot) => {
+        if (!cancelled) setRoomDetails({ accountId, sessionId: roomSessionId, snapshot, error: null });
+      },
+      () => {
+        if (!cancelled) setRoomDetails({ accountId, sessionId: roomSessionId, snapshot: null,
+          error: "Unable to load your room. Check your connection and try again." });
+      },
+    );
+    return () => { cancelled = true; };
+  }, [accountId, roomSessionId]);
+  const currentDetails = roomDetails?.accountId === accountId && roomDetails?.sessionId === roomSessionId
+    ? roomDetails : null;
+  const activeRoomSnapshot = currentDetails?.snapshot ?? null;
+  const activeRoomError = membershipError ?? currentDetails?.error ?? null;
   const {
     isJoining: isJoiningRoom,
     error: joinRoomError,
@@ -142,10 +166,6 @@ export const useHomeRoomActions = () => {
   const handleLeaveGuestJoin = useCallback(async () => {
     await leaveGuestRoom();
   }, [leaveGuestRoom]);
-
-  const guestJoinActionLabel = guestRoomSession
-    ? "Return to Guest Room"
-    : "Join Room as Guest";
 
   // ---------------------------------------------------------------------------
   // A guest joins the game when the host starts it (FR-012), the same way a
@@ -301,6 +321,7 @@ export const useHomeRoomActions = () => {
   return {
     account,
     activeRoom,
+    activeRoomSnapshot,
     isActiveRoomLoading,
     activeRoomError,
     refreshActiveRoom,
@@ -331,7 +352,6 @@ export const useHomeRoomActions = () => {
     setGuestJoinCode,
     guestName,
     setGuestName,
-    guestJoinActionLabel,
     handleReturnToRoom,
     handleSubmitRegisteredJoin,
     handleLeaveCurrentAndSwitch,

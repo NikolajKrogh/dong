@@ -9,6 +9,7 @@ import {
   initialGameProgressUiState,
 } from "./gameProgress/uiReducer";
 import { migrateLegacyMatch } from "./gameProgress/matchMigration";
+import { getMatchSourceStatusMessage } from "./gameProgress/sourceStatus";
 import { LastGoalInfo, updateMatchForGoal } from "./gameProgress/goalScoring";
 import { createGameProgressStyles } from "../styles/gameProgressStyles";
 import { useColors } from "../styles/theme";
@@ -260,6 +261,18 @@ const useGameProgressController = () => {
     if (activeTab !== (gameTab ?? "matches")) router.setParams({ gameTab });
   }, [activeTab, router]);
 
+  const {
+    liveMatches,
+    isPolling,
+    lastUpdated,
+    error: sourceError,
+    startPolling,
+    stopPolling,
+    fetchCurrentScores,
+    captureHistoryDetails,
+    endTracking,
+  } = useLiveScores(matches, handleGoalIncrement, 60000, !activeGame.isMultiplayer);
+
   const handleEndGame = useCallback(() => {
     if (!activeGame.isMultiplayer && matches.length === 0) return;
     if (activeGame.isMultiplayer && (!activeGame.isHost || !activeGame.isEditable)) {
@@ -268,7 +281,7 @@ const useGameProgressController = () => {
     dispatchUi({ type: "setAlertVisible", visible: true });
   }, [activeGame.isEditable, activeGame.isHost, activeGame.isMultiplayer, matches.length]);
 
-  const confirmEndGame = useCallback(() => {
+  const confirmEndGame = useCallback(async () => {
     dispatchUi({ type: "setAlertVisible", visible: false });
     if (activeGame.isMultiplayer) {
       if (!activeGame.isHost || !activeGame.isEditable) {
@@ -277,10 +290,12 @@ const useGameProgressController = () => {
       void activeGame.completeGame().catch(() => undefined);
       return;
     }
+    await captureHistoryDetails?.();
     saveGameToHistory();
+    void endTracking?.();
     resetState();
     router.replace("/");
-  }, [activeGame, resetState, router, saveGameToHistory]);
+  }, [activeGame, resetState, router, saveGameToHistory, captureHistoryDetails, endTracking]);
 
   const cancelEndGame = useCallback(() => {
     dispatchUi({ type: "setAlertVisible", visible: false });
@@ -339,20 +354,6 @@ const useGameProgressController = () => {
     setMatches((prevMatches) => prevMatches.map(migrateLegacyMatch));
   }, [setMatches]);
 
-  const {
-    liveMatches,
-    isPolling,
-    lastUpdated,
-    startPolling,
-    stopPolling,
-    fetchCurrentScores,
-  } = useLiveScores(
-    matches,
-    handleGoalIncrement,
-    60000,
-    !activeGame.isMultiplayer,
-  );
-
   useEffect(() => {
     if (matches.length === 0 || activeGame.isMultiplayer) {
       return;
@@ -384,6 +385,14 @@ const useGameProgressController = () => {
     }
   }, [activeGame, fetchCurrentScores]);
 
+  const sourceStatus = activeGame.isMultiplayer
+    ? activeGame.snapshot ?? {}
+    : {
+        error: sourceError,
+        savedMatches: matches.flatMap(match => match.catalogSnapshot ? [match.catalogSnapshot] : []),
+      };
+  const sourceStatusMessage = getMatchSourceStatusMessage(sourceStatus);
+
   return {
     colors,
     styles,
@@ -401,7 +410,8 @@ const useGameProgressController = () => {
     commonMatchId: commonMatchId ?? "",
     playerAssignments,
     liveMatches,
-    isPolling: activeGame.isMultiplayer ? activeGame.isEditable : isPolling,
+    isPolling: !sourceStatusMessage && (activeGame.isMultiplayer ? activeGame.isEditable : isPolling),
+    sourceStatusMessage,
     lastUpdated: activeGame.isMultiplayer
       ? (activeGame.snapshot?.lastScoresCheckedAt ? new Date(activeGame.snapshot.lastScoresCheckedAt) : null)
       : lastUpdated,

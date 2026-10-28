@@ -5,8 +5,24 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { LEAGUE_ENDPOINTS, LeagueEndpoint } from "../constants/leagues";
+import { LEAGUE_ENDPOINTS, DEFAULT_SELECTED_LEAGUES, type LeagueEndpoint } from "../constants/leagues";
 import type { ActiveGameContext } from "../types/room";
+import type { FootballMatchErrorCode, SavedMatch, SoloTrackingGrant, SoloTrackingSelection } from "../types/footballMatch";
+
+export interface SoloTrackingState {
+  grant: SoloTrackingGrant | null;
+  pending: SoloTrackingSelection | null;
+  /** A definitive denial stops passive retry churn for this selection only. */
+  rejection?: { catalogMatchIds: string[]; code: FootballMatchErrorCode };
+}
+
+function trackingForNewGame(tracking: SoloTrackingState | null): SoloTrackingState | null {
+  if (!tracking) return null;
+  const expiredGrant = tracking.grant && Date.parse(tracking.grant.expiresAt) <= Date.now();
+  if (expiredGrant && (!tracking.pending || "grantToken" in tracking.pending)) return null;
+  if (tracking.rejection) return tracking.grant || tracking.pending ? { grant: tracking.grant, pending: tracking.pending } : null;
+  return tracking;
+}
 
 type ThemeMode = "light" | "dark";
 
@@ -32,17 +48,12 @@ const cloneLeagueEndpoints = (leagues: LeagueEndpoint[]) =>
         },
   );
 
-const createDefaultSelectedLeagues = (): LeagueEndpoint[] => [
-  { name: "Premier League", code: "eng.1", category: "Europe" },
-  { name: "Championship", code: "eng.2", category: "Europe" },
-];
-
 const createDefaultSyncedPreferenceState = (): SyncedPreferenceState => ({
   theme: "light",
   soundEnabled: true,
   commonMatchNotificationsEnabled: true,
   configuredLeagues: cloneLeagueEndpoints(LEAGUE_ENDPOINTS),
-  defaultSelectedLeagues: createDefaultSelectedLeagues(),
+  defaultSelectedLeagues: cloneLeagueEndpoints(DEFAULT_SELECTED_LEAGUES),
 });
 
 const normalizeLeagueEndpoint = (value: unknown): LeagueEndpoint | null => {
@@ -167,6 +178,9 @@ export interface Player {
 export interface Match {
   /** Unique identifier for the match. */
   id: string;
+  catalogMatchId?: string;
+  /** Public saved values only. Captured values survive provider-cache eviction. */
+  catalogSnapshot?: SavedMatch;
   /** Name of the home team. */
   homeTeam: string;
   /** Name of the away team. */
@@ -196,6 +210,40 @@ export interface Match {
    * `timestamptz`, and passing `"15:00"` to one fails the insert outright.
    */
   kickoffAt?: string;
+}
+
+function captureSavedMatch(match: Match, savedById: Map<string, SavedMatch>): Match {
+  const snapshot = match.catalogMatchId ? savedById.get(match.catalogMatchId) : undefined;
+  if (!snapshot) return match;
+
+  const previous = match.catalogSnapshot;
+  if (previous && BigInt(snapshot.observationVersion) < BigInt(previous.observationVersion)) return match;
+
+  const observationMovedBackwards = previous
+    && snapshot.observationVersion === previous.observationVersion
+    && snapshot.freshness.observedAt
+    && previous.freshness.observedAt
+    && Date.parse(snapshot.freshness.observedAt) < Date.parse(previous.freshness.observedAt);
+  if (observationMovedBackwards) return match;
+
+  const newDetails = snapshot.historyDetails;
+  const previousDetails = previous?.historyDetails;
+  const hasOlderUsefulDetails = previousDetails
+    && (!newDetails || ["unavailable", "pending", "deferred"].includes(newDetails.availability));
+  const captured = {
+    ...snapshot,
+    ...(hasOlderUsefulDetails ? { historyDetails: previousDetails } : {}),
+  };
+  if (JSON.stringify(captured) === JSON.stringify(previous)) return match;
+
+  // Keep historical snapshots independent from later API response objects.
+  const copy = JSON.parse(JSON.stringify(captured)) as SavedMatch;
+  return { ...match, catalogSnapshot: copy };
+}
+
+function captureSavedMatchList(matches: Match[], savedById: Map<string, SavedMatch>): Match[] {
+  const captured = matches.map(match => captureSavedMatch(match, savedById));
+  return captured.every((match, index) => match === matches[index]) ? matches : captured;
 }
 
 /**
@@ -231,6 +279,10 @@ interface GameSession {
  * @description Includes current configuration, runtime game data, user preferences, and persisted history along with mutation actions.
  */
 interface GameState {
+  /** Tracking credentials are separate from all exported/local history records. */
+  soloTracking: SoloTrackingState | null;
+  setSoloTracking: (tracking: SoloTrackingState | null) => void;
+  captureSavedMatches: (matches: SavedMatch[]) => void;
   /** Current theme mode for the app. */
   theme: ThemeMode;
   // Current game state
@@ -352,8 +404,9 @@ interface GameState {
  */
 export const useGameStore = create<GameState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // --- Initial State ---
+      soloTracking: null,
       players: [],
       matches: [],
       commonMatchId: null,
@@ -372,6 +425,18 @@ export const useGameStore = create<GameState>()(
       },
 
       // --- Actions ---
+      setSoloTracking: (soloTracking) => set({ soloTracking }),
+      captureSavedMatches: (saved) => set((state) => {
+        if (!saved.length) return state;
+        const savedById = new Map(saved.map(match => [match.catalogMatchId, match]));
+        const matches = captureSavedMatchList(state.matches, savedById);
+        const history = state.history.map(game => {
+          const captured = captureSavedMatchList(game.matches, savedById);
+          return captured === game.matches ? game : { ...game, matches: captured };
+        });
+        if (matches === state.matches && history.every((game, index) => game === state.history[index])) return state;
+        return { matches, history };
+      }),
       setPlayers: (players) =>
         set((state) => ({
           players:
@@ -409,7 +474,10 @@ export const useGameStore = create<GameState>()(
             (l) => l.code !== code,
           ),
         })),
-      resetLeaguesToDefaults: () => set(createDefaultSyncedPreferenceState()),
+      resetLeaguesToDefaults: () => {
+        const defaults = createDefaultSyncedPreferenceState();
+        set({ configuredLeagues: defaults.configuredLeagues, defaultSelectedLeagues: defaults.defaultSelectedLeagues });
+      },
       setDefaultSelectedLeagues: (leagues) =>
         set({ defaultSelectedLeagues: leagues }),
 
@@ -438,7 +506,7 @@ export const useGameStore = create<GameState>()(
             id: Date.now().toString(),
             date: new Date().toISOString(),
             players: state.players,
-            matches: state.matches,
+            matches: JSON.parse(JSON.stringify(state.matches)) as Match[],
             commonMatchId: state.commonMatchId,
             playerAssignments: state.playerAssignments,
             matchesPerPlayer: state.matchesPerPlayer,
@@ -454,7 +522,8 @@ export const useGameStore = create<GameState>()(
         })),
 
       resetState: () =>
-        set({
+        set((state) => ({
+          soloTracking: trackingForNewGame(state.soloTracking),
           players: [],
           matches: [],
           commonMatchId: null,
@@ -468,7 +537,7 @@ export const useGameStore = create<GameState>()(
             lastAppliedSequence: 0,
           },
           // Note: hasVideoPlayed and soundEnabled are intentionally not reset here
-        }),
+        })),
     }),
     {
       // --- Persistence Configuration ---
@@ -482,6 +551,7 @@ export const useGameStore = create<GameState>()(
         playerAssignments: state.playerAssignments,
         matchesPerPlayer: state.matchesPerPlayer,
         history: state.history,
+        soloTracking: state.soloTracking,
         activeGameContext: state.activeGameContext,
         ...serializeSyncedPreferenceState(state),
       }),
@@ -497,7 +567,6 @@ export const applySyncedPreferenceState = (
   fallback = getCurrentSyncedPreferenceState(),
 ) => {
   const nextSyncedPreferences = hydrateSyncedPreferenceState(value, fallback);
-
   useGameStore.setState(nextSyncedPreferences);
 
   return nextSyncedPreferences;

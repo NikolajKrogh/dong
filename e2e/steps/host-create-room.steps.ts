@@ -31,6 +31,7 @@ Given(
 );
 
 When("the host taps the Create Room button", async ({ page }) => {
+  await page.getByTestId("home-start-game-button").click();
   const createRoomButton = page.getByTestId("home-create-room-button");
 
   await createRoomButton.scrollIntoViewIfNeeded();
@@ -68,6 +69,8 @@ Then(
   },
 );
 
-Then("the Create Room button is not visible", async ({ page }) => {
-  await expect(page.getByTestId("home-create-room-button")).toHaveCount(0);
+Then("hosting asks the signed-out user to sign in", async ({ page }) => {
+  await page.getByTestId("home-start-game-button").click();
+  await page.getByRole("button", { name: "Host a room", exact: true }).click();
+  await expect(page).toHaveURL(/\/auth\?returnTo=/);
 });

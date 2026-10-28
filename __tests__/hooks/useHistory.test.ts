@@ -12,6 +12,8 @@ jest.mock('../../features/history/historyRepository', () => ({
   ...jest.requireActual('../../features/history/historyRepository'), loadCloudHistory: jest.fn(),
 }));
 const session = (id: string) => ({ id, date: '', players: [], matches: [], commonMatchId: null, playerAssignments: {}, matchesPerPlayer: 1 });
+const mockReadSavedMatches = jest.fn();
+jest.mock('../../utils/footballMatchService', () => ({ getFootballMatchService: () => ({ readSavedMatches: mockReadSavedMatches }) }));
 const renderers: TestRenderer.ReactTestRenderer[] = [];
 function renderHook<T>(hook: () => T) {
   const result = { current: undefined as T };
@@ -33,6 +35,28 @@ const auth = (id: string | null) => {
   jest.mocked(useAccountAuth).mockReturnValue({ account: id ? { id } : null, status: id ? 'ready' : 'signedOut' } as ReturnType<typeof useAccountAuth>);
 };
 describe('account-scoped cloud history', () => {
+  beforeAll(() => { queryClient.setDefaultOptions({ queries: { staleTime: 30_000, retry: false, gcTime: Infinity } }); });
+  it('captures only bounded already-saved local details on ordinary access and explicit refresh', async () => {
+    auth(null);
+    mockReadSavedMatches.mockResolvedValue({ matches: [], missingCatalogMatchIds: [], availability: 'unavailable' });
+    const matches = Array.from({ length: 24 }, (_, index) => ({
+      id: `source-${index}`,
+      catalogMatchId: String(index + 1),
+      homeTeam: 'Home',
+      awayTeam: 'Away',
+      homeGoals: 1,
+      awayGoals: 0,
+    }));
+    const local = { ...session('local'), matches };
+    useGameStore.setState({ history: [local] });
+    const { result } = renderHook(() => useHistory());
+    await waitFor(() => expect(mockReadSavedMatches).toHaveBeenCalledTimes(1));
+    const firstTwentyIds = Array.from({ length: 20 }, (_, index) => String(index + 1));
+    expect(mockReadSavedMatches).toHaveBeenCalledWith(firstTwentyIds, { projection: 'history' });
+    await act(async () => result.current.refresh());
+    expect(mockReadSavedMatches).toHaveBeenCalledTimes(2);
+    expect(result.current.history[0].matches[0]).toMatchObject({ homeGoals: 1, awayGoals: 0 });
+  });
   beforeEach(() => { queryClient.clear(); setAccountScope(null); useGameStore.setState({ history: [session('local')] as never }); });
   afterEach(() => { act(() => renderers.splice(0).forEach(renderer => renderer.unmount())); queryClient.clear(); setAccountScope(null); });
   it('combines local history with canonical cloud data without importer links', async () => {

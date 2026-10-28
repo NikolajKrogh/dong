@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { FOOTBALL_MATCH_PROVIDER } from "../types/footballMatch";
 import { MatchData } from "../utils/matchUtils";
 import { Match } from "../store/store";
 
@@ -85,6 +86,7 @@ export function useMatchProcessing(
       const newMatches = uniqueMatches.map((match) => {
         return {
           id: match.id,
+          catalogMatchId: match.catalogMatchId,
           homeTeam: match.team1,
           awayTeam: match.team2,
           homeGoals: 0,
@@ -95,6 +97,8 @@ export function useMatchProcessing(
           // a local "HH:MM" and is not a valid timestamptz.
           kickoffAt: match.startDateTime,
           sourceLeagueCode: match.leagueCode,
+          sourceProvider: FOOTBALL_MATCH_PROVIDER,
+          sourceMatchId: match.id,
         };
       });
 

@@ -14,11 +14,17 @@ module.exports = defineConfig([
       "test-results/",
       "playwright-report/",
       ".expo/",
+      ".supabase/",
       ".features-gen/",
       "android/app/build/",
       "command-api/target/",
       ".tamagui/",
     ],
+  },
+  {
+    // Deno resolves npm: specifiers; the Edge typecheck validates these modules.
+    files: ["supabase/functions/_shared/football-matches/**/*.ts", "shared/encoding/**/*.ts"],
+    rules: { "import/no-unresolved": ["error", { ignore: ["^npm:"] }] },
   },
   {
     // Metro resolves bundled assets through require(), including on native.

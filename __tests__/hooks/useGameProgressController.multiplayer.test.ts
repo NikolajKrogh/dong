@@ -100,6 +100,7 @@ describe("useGameProgressController multiplayer routing", () => {
     mockGameParams = {};
     mockNavigationReady = true;
     multiplayerSync.status = "ready";
+    multiplayerSync.error = null;
     multiplayerSync.snapshot = null;
     multiplayerSync.isHost = true;
     multiplayerSync.isEditable = true;
@@ -131,6 +132,9 @@ describe("useGameProgressController multiplayer routing", () => {
       liveMatches: [],
       isPolling: false,
       lastUpdated: null,
+      error: null,
+      captureHistoryDetails: jest.fn(async () => undefined),
+      endTracking: jest.fn(async () => undefined),
       startPolling: jest.fn(),
       stopPolling: jest.fn(),
       fetchCurrentScores,
@@ -181,6 +185,32 @@ describe("useGameProgressController multiplayer routing", () => {
     const { renderer, latest } = renderController();
     expect(latest().lastUpdated).toEqual(new Date("2026-10-22T15:00:00Z"));
     expect(latest().refreshing).toBe(false);
+    expect(latest()).toHaveProperty("sourceStatusMessage", null);
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+  it("separates source cooldown feedback from a healthy room connection", async () => {
+    const snapshot = {
+      lastScoresCheckedAt: "2026-10-22T15:00:00Z",
+      providerAvailabilityReason: "provider_cooldown",
+      roomProcessingPending: false,
+    } as NonNullable<ActiveGameRoomSync["snapshot"]>;
+    mockSync.mockReturnValue({ ...multiplayerSync, snapshot });
+    const { renderer, latest } = renderController();
+    expect(latest()).toHaveProperty("sourceStatusMessage", "Live scores are delayed. Saved scores are shown.");
+    expect(latest().activeGame.error).toBeNull();
+    expect(latest().lastUpdated).toEqual(new Date("2026-10-22T15:00:00Z"));
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+  it("shows accepted-score processing without calling it a new source check", async () => {
+    const snapshot = {
+      lastScoresCheckedAt: null,
+      providerAvailabilityReason: null,
+      roomProcessingPending: true,
+    } as NonNullable<ActiveGameRoomSync["snapshot"]>;
+    mockSync.mockReturnValue({ ...multiplayerSync, snapshot });
+    const { renderer, latest } = renderController();
+    expect(latest()).toHaveProperty("sourceStatusMessage", "Score updates are being applied. Saved scores are shown.");
+    expect(latest().lastUpdated).toBeNull();
     await TestRenderer.act(async () => renderer.unmount());
   });
 

@@ -42,7 +42,10 @@ function SettingsAccountContent({ account, status, sessionNotice }: SettingsAcco
           <TText color="$textMuted" fontSize={13}>Signed in</TText>
         </YStack>
       </XStack>
-      {status === "ready" ? <SettingsMenuRow label="Profile & username" icon="person-outline" last onPress={() => router.push("/userPreferences/profile")} /> : null}
+      {status === "ready" ? <>
+        <SettingsMenuRow label="Profile & username" icon="person-outline" onPress={() => router.push("/userPreferences/profile")} />
+        <SettingsMenuRow label="Friends" icon="people-outline" testID="settings-friends-button" last onPress={() => router.push("/friends")} />
+      </> : null}
       {status === "needsUsername" ? (
         <ShellActionButton variant="surface" label="Finish account setup" onPress={() => router.push(buildAccountAuthRoute("/auth/onboarding", "/userPreferences") as never)} />
       ) : null}

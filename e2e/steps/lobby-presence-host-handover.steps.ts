@@ -23,6 +23,7 @@ Given("the room has two registered members", async () => {
 });
 
 Then("the registered Join Room action is visible", async ({ page }) => {
+  await page.getByTestId("home-start-game-button").click();
   const joinButton = page.getByTestId("home-join-registered-button");
   await joinButton.scrollIntoViewIfNeeded();
   await expect(joinButton).toBeVisible({ timeout: 10_000 });

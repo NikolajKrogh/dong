@@ -31,8 +31,6 @@ try {
 // Cache for storing logos fetched from the API
 const logoCache: Record<string, string> = {};
 
-// Cache for league logos from API
-const leagueLogoCache: Record<string, string> = {};
 
 /**
  * Clears cached API logos for teams that have hardcoded assets
@@ -95,36 +93,6 @@ export const cacheTeamLogo = (teamName: string, logoUrl: string): void => {
     }
   }
 };
-
-/**
- * Stores a league logo URL in the cache
- * @param leagueName The name of the league
- * @param logoUrl The URL of the league's logo
- */
-export const cacheLeagueLogo = (leagueName: string, logoUrl: string): void => {
-  if (leagueName && logoUrl) {
-    leagueLogoCache[leagueName] = logoUrl;
-  }
-};
-
-/**
- * Retrieves the cached logo for a given league from memory cache.
- *
- * @param leagueName - The name of the league whose logo is being retrieved.
- * @returns The cached logo as a string if found in memory cache, or `null` if not found.
- *
- * @remarks
- * If the logo is not found in the memory cache, this function returns `null`.
- * Any errors encountered during the retrieval process are logged to the console.
- */
-
-
-/**
- * Get a cached league logo by name
- * @param leagueName The name of the league
- * @returns Promise resolving to the logo URI or null if not found
- */
-
 
 /**
  * Get a cached team logo by name from AsyncStorage

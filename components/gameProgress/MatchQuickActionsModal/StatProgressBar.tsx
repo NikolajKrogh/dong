@@ -4,6 +4,11 @@ import Svg, { Rect } from "react-native-svg";
 import { useColors } from "../../../styles/theme";
 import { createStyles } from "./styles";
 
+function formatStatValue(value: number | null, isPercentage: boolean): string {
+  if (value === null) return "–";
+  return `${value}${isPercentage ? "%" : ""}`;
+}
+
 /**
  * Horizontal bar comparison for a stat (home vs away).
  * @param {{homeValue:number, awayValue:number, label:string, isPercentage?:boolean}} props Component props.
@@ -15,17 +20,16 @@ export const StatProgressBar = ({
   label,
   isPercentage = false,
 }: {
-  homeValue: number;
-  awayValue: number;
+  homeValue: number | null;
+  awayValue: number | null;
   label: string;
   isPercentage?: boolean;
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const maxValue = Math.max(1, homeValue, awayValue); // Ensure maxValue is at least 1 to avoid division by zero
-  const homePercent = (homeValue / maxValue) * 100;
-  const awayPercent = (awayValue / maxValue) * 100;
-
+  const maxValue = Math.max(1, homeValue ?? 0, awayValue ?? 0);
+  const homePercent = homeValue === null ? 0 : (homeValue / maxValue) * 100;
+  const awayPercent = awayValue === null ? 0 : (awayValue / maxValue) * 100;
   const barHeight = 8; // Height of the progress bars
   const totalBarWidth = 100; // Represents 100% width for calculations
   const homeBarWidth = (homePercent / 100) * (totalBarWidth / 2);
@@ -39,13 +43,10 @@ export const StatProgressBar = ({
     <View
       style={styles.statProgressContainer}
       accessible={true}
-      accessibilityLabel={`${label}: Home ${homeValue}${
-        isPercentage ? "%" : ""
-      }, Away ${awayValue}${isPercentage ? "%" : ""}`}
+      accessibilityLabel={`${label}: Home ${homeValue === null ? "unavailable" : formatStatValue(homeValue, isPercentage)}, Away ${awayValue === null ? "unavailable" : formatStatValue(awayValue, isPercentage)}`}
     >
       <Text style={styles.statValue}>
-        {homeValue}
-        {isPercentage ? "%" : ""}
+        {formatStatValue(homeValue, isPercentage)}
       </Text>
 
       <View style={styles.statProgressWrapper}>
@@ -108,8 +109,7 @@ export const StatProgressBar = ({
       </View>
 
       <Text style={styles.statValue}>
-        {awayValue}
-        {isPercentage ? "%" : ""}
+        {formatStatValue(awayValue, isPercentage)}
       </Text>
     </View>
   );

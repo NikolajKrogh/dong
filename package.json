@@ -27,25 +27,35 @@
     "db:types": "node scripts/db-types.mjs",
     "db:types:check": "node scripts/check-db-types.mjs",
     "typecheck": "tsc --noEmit",
-    "typecheck:edge": "npx --yes deno@2.9.6 check --no-lock --node-modules-dir=none supabase/functions/delete-account/index.ts supabase/functions/guest-room-access/index.ts supabase/functions/refresh-provider-scores/index.ts",
+    "typecheck:edge": "npx --yes deno@2.9.6 check --no-lock --node-modules-dir=none supabase/functions/delete-account/index.ts supabase/functions/guest-room-access/index.ts supabase/functions/refresh-provider-scores/index.ts supabase/functions/discover-matches/index.ts supabase/functions/solo-match-tracking/index.ts supabase/functions/run-match-monitor/index.ts",
     "test:unit": "node --no-experimental-webstorage -r ./scripts/jest-ci-env.cjs ./node_modules/jest/bin/jest.js --runInBand --watchAll=false --testPathIgnorePatterns=\"node_modules|e2e|\\.features-gen|platform.test.tsx\"",
     "check:unused": "knip",
+    "check:league-catalog": "node scripts/check-league-catalog.mjs",
     "doctor": "npx react-doctor@latest",
     "test:e2e:schedule": "bddgen --config=playwright.schedule.config.ts && playwright test --config=playwright.schedule.config.ts"
   },
   "jest": {
     "preset": "jest-expo",
+    "moduleNameMapper": {
+      "^npm:@scure/base@2\\.4\\.0$": "@scure/base",
+      "^npm:zod@4\\.4\\.3$": "zod"
+    },
     "resolver": "react-native-worklets/jest/resolver.js",
     "setupFilesAfterEnv": [
       "<rootDir>/jest.setup.ts"
     ],
     "testPathIgnorePatterns": [
+      "<rootDir>/__tests__/fixtures/",
       "/node_modules/",
       "/e2e/playwright/",
-      "/\\.features-gen/"
+      "/\\.features-gen/",
+      "/\\.supabase/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/.supabase/"
     ],
     "transformIgnorePatterns": [
-      "/node_modules/(?!(.pnpm|color|color-string|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|tamagui|@tamagui))",
+      "/node_modules/(?!(.pnpm|@scure|color|color-string|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|tamagui|@tamagui))",
       "/node_modules/react-native-reanimated/plugin/",
       "/node_modules/@react-native/babel-preset/"
     ]
@@ -53,6 +63,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@scure/base": "2.4.0",
     "@supabase/supabase-js": "^2.114.0",
     "@tamagui/animations-react-native": "^2.7.7",
     "@tamagui/portal": "2.7.7",

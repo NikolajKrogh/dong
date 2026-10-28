@@ -75,10 +75,7 @@ public class PersistentIdempotencyService implements IdempotencyService {
                 }
                 case "conflict" -> throw new ApiException(ErrorCode.IDEMPOTENCY_KEY_REUSE);
                 case "in_flight" -> {
-                    if (attempt == IN_FLIGHT_MAX_ATTEMPTS) {
-                        break;
-                    }
-                    sleep();
+                    if (attempt < IN_FLIGHT_MAX_ATTEMPTS) sleep();
                 }
                 default -> throw new ApiException(ErrorCode.INTERNAL_ERROR,
                         "Unexpected reserve_command_idempotency outcome: " + outcome);
@@ -92,6 +89,10 @@ public class PersistentIdempotencyService implements IdempotencyService {
 
     @Override
     public void complete(UUID idempotencyKey, CommandResult result, AuthenticatedHost host) {
+        if (SupabaseRestClient.isRoomProcessingPending(result.detail())) {
+            release(idempotencyKey, host);
+            return;
+        }
         Map<String, Object> params = new HashMap<>();
         params.put("idempotency_key", idempotencyKey.toString());
         params.put("response_status", result.status().name());

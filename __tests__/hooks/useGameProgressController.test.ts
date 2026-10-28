@@ -73,6 +73,9 @@ describe("useGameProgressController (integration)", () => {
       liveMatches: [],
       isPolling: false,
       lastUpdated: null,
+      error: null,
+      captureHistoryDetails: jest.fn(async () => undefined),
+      endTracking: jest.fn(async () => undefined),
       startPolling,
       stopPolling,
       fetchCurrentScores,
@@ -123,6 +126,23 @@ describe("useGameProgressController (integration)", () => {
     TestRenderer.act(() => controller.rerender());
     expect(mockSetParams).toHaveBeenCalledTimes(1);
     expect(mockSetParams).toHaveBeenCalledWith({ gameTab: undefined });
+    await TestRenderer.act(async () => controller.renderer.unmount());
+  });
+  it("surfaces a solo source admission failure without hiding saved matches", async () => {
+    mockUseLiveScores.mockReturnValue({
+      liveMatches: [],
+      isPolling: true,
+      lastUpdated: null,
+      error: "capacity_limited",
+      captureHistoryDetails: jest.fn(async () => undefined),
+      endTracking: jest.fn(async () => undefined),
+      startPolling,
+      stopPolling,
+      fetchCurrentScores,
+    });
+    const controller = renderControllerProbe();
+    expect(controller.getLatest()).toHaveProperty("sourceStatusMessage", "Live tracking could not start. Saved scores are shown.");
+    expect(controller.getLatest().matches).toHaveLength(1);
     await TestRenderer.act(async () => controller.renderer.unmount());
   });
 

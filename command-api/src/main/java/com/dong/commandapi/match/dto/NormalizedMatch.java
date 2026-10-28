@@ -14,10 +14,11 @@ public record NormalizedMatch(
         OffsetDateTime startDateTime,
         MatchStatus status,
         MatchScore score,
-        String venue
+        String venue,
+        String catalogMatchId
 ) {
 
-    public record MatchScore(int home, int away) {
+    public record MatchScore(Integer home, Integer away) {
     }
 
     public enum MatchStatus {
@@ -25,7 +26,11 @@ public record NormalizedMatch(
         LIVE("live"),
         FINAL("final"),
         POSTPONED("postponed"),
-        CANCELED("canceled");
+        CANCELED("canceled"),
+        DELAYED("delayed"),
+        SUSPENDED("suspended"),
+        ABANDONED("abandoned"),
+        UNKNOWN("unknown");
 
         private final String wireValue;
 

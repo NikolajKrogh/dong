@@ -1,5 +1,5 @@
 Read CLAUDE.md
 
 <!-- SPECKIT START -->
-Current feature plan: `specs/029-web-android-ux/plan.md`.
+Current feature plan: `specs/030-reduce-espn-requests/plan.md`.
 <!-- SPECKIT END -->

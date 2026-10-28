@@ -4,6 +4,7 @@ import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -29,10 +30,13 @@ import java.util.Map;
 public class SupabaseRestClient {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
+    private static final int ROOM_PROCESSING_MAX_ATTEMPTS = 3;
 
     private final RestClient restClient;
     private final String anonKey;
+    private final Runnable pendingDelay;
 
+    @Autowired
     public SupabaseRestClient(SupabaseProperties properties) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout((int) TIMEOUT.toMillis());
@@ -42,6 +46,20 @@ public class SupabaseRestClient {
                 .requestFactory(factory)
                 .build();
         this.anonKey = properties.anonKey();
+        this.pendingDelay = () -> {
+            try {
+                Thread.sleep(1_000);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+            }
+        };
+    }
+
+    SupabaseRestClient(RestClient restClient, String anonKey, Runnable pendingDelay) {
+        this.restClient = restClient;
+        this.anonKey = anonKey;
+        this.pendingDelay = pendingDelay;
     }
 
     /**
@@ -54,12 +72,10 @@ public class SupabaseRestClient {
      *                      returns are read as their raw JSON representation)
      */
     public <T> T rpc(String functionName, Map<String, Object> params, String hostBearerToken, Class<T> responseType) {
-        if (!StringUtils.hasText(anonKey)) {
-            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
-                    "Supabase anon key is not configured (SUPABASE_ANON_KEY); cannot call authenticated RPCs.");
-        }
+        requireAnonKey();
         try {
-            return restClient.post()
+            for (int attempt = 1; attempt <= ROOM_PROCESSING_MAX_ATTEMPTS; attempt++) {
+                T result = restClient.post()
                     .uri("/rpc/{fn}", functionName)
                     .header("apikey", anonKey)
                     .header("Authorization", "Bearer " + hostBearerToken)
@@ -67,17 +83,35 @@ public class SupabaseRestClient {
                     .body(params)
                     .retrieve()
                     .body(responseType);
+                if (!isRoomProcessingPending(result)) return result;
+                if (attempt < ROOM_PROCESSING_MAX_ATTEMPTS) {
+                    // Retry the original params and key. Accepted score processing may have
+                    // advanced the sequence; do not silently refresh that precondition.
+                    pendingDelay.run();
+                }
+            }
+            throw new RoomProcessingPendingException();
         } catch (RestClientResponseException ex) {
             throw new SupabaseRpcException(functionName, ex);
         }
     }
 
+    public static boolean isRoomProcessingPending(Object value) {
+        return value instanceof Map<?, ?> result && Boolean.FALSE.equals(result.get("ok"))
+                && "room_processing_pending".equals(result.get("code"));
+    }
+
+    public static Map<String, Object> roomProcessingPending() {
+        return Map.of("ok", false, "code", "room_processing_pending", "retryAfterSeconds", 1);
+    }
+
+    public static final class RoomProcessingPendingException extends RuntimeException {
+        public RoomProcessingPendingException() { super("room_processing_pending"); }
+    }
+
     /** Invokes a {@code void}-returning RPC (no response body expected). */
     public void call(String functionName, Map<String, Object> params, String hostBearerToken) {
-        if (!StringUtils.hasText(anonKey)) {
-            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
-                    "Supabase anon key is not configured (SUPABASE_ANON_KEY); cannot call authenticated RPCs.");
-        }
+        requireAnonKey();
         try {
             restClient.post()
                     .uri("/rpc/{fn}", functionName)
@@ -89,6 +123,13 @@ public class SupabaseRestClient {
                     .toBodilessEntity();
         } catch (RestClientResponseException ex) {
             throw new SupabaseRpcException(functionName, ex);
+        }
+    }
+
+    private void requireAnonKey() {
+        if (!StringUtils.hasText(anonKey)) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE,
+                    "Supabase anon key is not configured (SUPABASE_ANON_KEY); cannot call authenticated RPCs.");
         }
     }
 

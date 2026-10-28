@@ -3,7 +3,7 @@ Feature: Guest Room Join
     Scenario: Join a host room from the home screen
         Given the guest room service is mocked
         And the guest room app is running on web
-        Then the "Join Room as Guest" action should be visible
+        Then the "Start New Game" action should be visible
         When the user opens the guest join flow
         And the guest joins the mocked room as "Casey"
         Then the guest lobby summary should be visible

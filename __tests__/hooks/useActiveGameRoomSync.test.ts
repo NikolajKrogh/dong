@@ -40,16 +40,6 @@ getSupabaseClient: jest.fn(() => ({
 }));
 jest.mock("../../utils/supabaseClient", () => ({
 getGuestRoomRpcClient: jest.fn(),
-getProviderScoreRefreshClient: jest.fn(() => ({
-    refreshProviderScores: jest.fn().mockResolvedValue({
-      sessionId: "session-1",
-      requestId: "00000000-0000-4000-8000-000000000099",
-      status: "updated",
-      refreshedAt: "2026-09-03T00:00:00.000Z",
-      results: [],
-      warnings: [],
-    }),
-  })),
 getRoomRpcClient: jest.fn(),
 mapGameplayError: jest.fn(() => null)
 }));

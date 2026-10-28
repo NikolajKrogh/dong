@@ -29,6 +29,7 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
   useGridLayout,
   setSortModalVisible,
   toggleLayoutMode,
+  sourceStatusMessage,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
@@ -36,45 +37,61 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
   const isWideLayout = width >= 1024;
 
   return (
-    <View style={[styles.header, isWideLayout && styles.headerWide]}>
-      <Text style={styles.headerTitle}>Matches</Text>
+    <>
+      <View style={[styles.header, isWideLayout && styles.headerWide]}>
+        <Text style={styles.headerTitle}>Matches</Text>
 
-      <View style={styles.headerButtons}>
-        {/* Sort button */}
-        <TouchableOpacity
-          style={headerStyles.sortButton}
-          onPress={() => setSortModalVisible(true)}
-        >
-          <Ionicons name="funnel-outline" size={18} color={colors.primary} />
-          <Ionicons
-            name={
-              sortDirection === "asc"
-                ? "arrow-up-outline"
-                : "arrow-down-outline"
-            }
-            size={14}
-            color={colors.primary}
-            style={{ marginLeft: 2 }}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          {/* Sort button */}
+          <TouchableOpacity
+            style={headerStyles.sortButton}
+            onPress={() => setSortModalVisible(true)}
+          >
+            <Ionicons name="funnel-outline" size={18} color={colors.primary} />
+            <Ionicons
+              name={
+                sortDirection === "asc"
+                  ? "arrow-up-outline"
+                  : "arrow-down-outline"
+              }
+              size={14}
+              color={colors.primary}
+              style={{ marginLeft: 2 }}
+            />
+          </TouchableOpacity>
 
-        {/* Layout toggle button */}
-        <TouchableOpacity
-          style={styles.layoutToggleButton}
-          onPress={toggleLayoutMode}
-        >
-          <Ionicons
-            name={useGridLayout ? "list" : "grid"}
-            size={22}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
+          {/* Layout toggle button */}
+          <TouchableOpacity
+            style={styles.layoutToggleButton}
+            onPress={toggleLayoutMode}
+          >
+            <Ionicons
+              name={useGridLayout ? "list" : "grid"}
+              size={22}
+              color={colors.primary}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+      {sourceStatusMessage ? (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[headerStyles.sourceNotice, { color: colors.textSecondary }]}
+        >
+          {sourceStatusMessage}
+        </Text>
+      ) : null}
+    </>
   );
 };
 
 const headerStyles = StyleSheet.create({
+  sourceNotice: {
+    fontSize: 13,
+    marginHorizontal: 8,
+    marginTop: -4,
+    marginBottom: 12,
+  },
   sortButton: {
     flexDirection: "row",
     alignItems: "center",

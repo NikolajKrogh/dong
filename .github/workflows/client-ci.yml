@@ -44,6 +44,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: League catalog consistency
+        run: npm run check:league-catalog
+
       - name: Unused-code gate
         run: npm run check:unused
 
