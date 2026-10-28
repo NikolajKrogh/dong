@@ -10,7 +10,7 @@ import React, { useState } from "react";
 import TestRenderer from "react-test-renderer";
 
 import { useMatchProcessing } from "../../../features/game-setup/useMatchProcessing";
-import type { Match } from "../../../store/store";
+import type { Match } from "../../../store/gameStore";
 import type { MatchData } from "../../../features/football-matches/matchFilters";
 
 interface HarnessResult {

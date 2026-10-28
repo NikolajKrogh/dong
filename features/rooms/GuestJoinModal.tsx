@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack, useTheme } from "tamagui";
 
 import type { GuestRoomSession, GuestRoomSessionStatus } from "../../types/guestRoom";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { ShellActionButton, ShellCard } from "../../components/ui";
 import { GuestJoinForm } from "./GuestJoinForm";
 import { GuestJoinLobby } from "./GuestJoinLobby";

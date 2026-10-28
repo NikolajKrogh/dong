@@ -8,7 +8,7 @@ import {
 } from "../../../features/rooms/useActiveGameRoomSync";
 import { useLiveScores } from "../../../features/football-matches/useLiveScores";
 import { useAppVisibility, useGoalSound } from "../../../platform";
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
@@ -26,7 +26,7 @@ jest.mock("../../../platform", () => ({
   useAppVisibility: jest.fn(),
   useGoalSound: jest.fn(),
 }));
-jest.mock("../../../utils/navigation/useNavigationReady", () => ({
+jest.mock("../../../platform/navigation/useNavigationReady", () => ({
   useNavigationReady: () => mockNavigationReady,
 }));
 

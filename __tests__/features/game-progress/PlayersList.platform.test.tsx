@@ -74,7 +74,7 @@ jest.mock("../../../features/game-progress/gameProgressStyles", () => ({
   createGameProgressStyles: () => mockStyles,
 }));
 
-jest.mock("../../../components/AppIcon", () => () => null);
+jest.mock("../../../components/ui/AppIcon", () => () => null);
 
 const renderPlayersList = (disabled = false) => {
   const PlayersList =

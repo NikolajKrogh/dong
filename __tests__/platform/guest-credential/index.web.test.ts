@@ -5,7 +5,7 @@ import {
   generateToken,
   read,
   write,
-} from "../../platform/guestCredential/index.web";
+} from "../../../platform/guest-credential/index.web";
 
 const originalCrypto = globalThis.crypto;
 const originalWindow = globalThis.window;

@@ -2,13 +2,13 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Text as TText, XStack, YStack } from "tamagui";
 
-import OnboardingScreen from "../../components/OnboardingScreen";
+import OnboardingScreen from "../onboarding/OnboardingScreen";
 import AccountAvatar from "./AccountAvatar";
 import SettingsMenuRow from "./SettingsMenuRow";
 import SettingsPage from "./SettingsPage";
 import { ShellActionButton, ShellCard, ShellSection } from "../../components/ui";
 import { buildAccountAuthRoute, useAccountAuth } from "../account";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { isWebPlatform } from "../../platform/environment";
 
 type SettingsAccountContentProps = Pick<

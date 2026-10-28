@@ -1,4 +1,4 @@
-import { Match, Player } from "../../store/store";
+import { Match, Player } from "../../store/gameStore";
 
 type PlayerAssignments = Record<string, string[]>;
 type PairSharedMatches = Record<string, string[]>;

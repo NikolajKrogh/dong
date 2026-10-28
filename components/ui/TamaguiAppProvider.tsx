@@ -1,7 +1,7 @@
 import React from "react";
 import { TamaguiProvider } from "tamagui";
 import config from "../../tamagui.config";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 
 /**
  * Root Tamagui provider that reads the persisted theme from Zustand

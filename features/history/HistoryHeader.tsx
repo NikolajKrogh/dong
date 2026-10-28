@@ -4,7 +4,7 @@
  */
 import React from "react";
 import { View, TouchableOpacity, Text, useWindowDimensions } from "react-native";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { createHistoryStyles } from "./historyStyles";
 import { useColors } from "../../styles/theme";
 import { SortDirection } from "./SortHistoryModal";

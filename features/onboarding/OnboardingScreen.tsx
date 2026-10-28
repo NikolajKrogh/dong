@@ -1,33 +1,33 @@
 import React, { useState } from "react";
 import { View, Text, Pressable, StyleSheet, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useColors } from "../styles/theme";
-import { PlatformGestureView } from "../platform";
+import { useColors } from "../../styles/theme";
+import { PlatformGestureView } from "../../platform";
 
 const onboardingSteps = [
   {
     title: "Welcome to DONG",
     description:
       "DONG is a Danish football drinking game where goals mean beers. Pick matches, follow the action, and drink up when your teams score!",
-    image: require("../assets/onboarding/screen1.png"),
+    image: require("../../assets/onboarding/screen1.png"),
   },
   {
     title: "Add Players",
     description:
       "Start by adding your friends. Each player picks matches and competes to see who ends up with the most goals—and beers!",
-    image: require("../assets/onboarding/screen2.png"),
+    image: require("../../assets/onboarding/screen2.png"),
   },
   {
     title: "Set Up Your Game",
     description:
       "Choose multiple leagues, and select a number of matches. Everyone also drinks to the shared match — Which is chosen by everyone.",
-    image: require("../assets/onboarding/screen3.png"),
+    image: require("../../assets/onboarding/screen3.png"),
   },
   {
     title: "Track Stats",
     description:
       "Keep track of goals, beers consumed, and who’s winning. Check past games to see which of your friends is the reigning DONG champion!",
-    image: require("../assets/onboarding/screen4.png"),
+    image: require("../../assets/onboarding/screen4.png"),
   },
 ];
 

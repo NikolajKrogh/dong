@@ -1,7 +1,7 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { actCreate } from "../../test-utils/render";
-import AppIcon from "../../components/AppIcon";
+import { actCreate } from "../../../test-utils/render";
+import AppIcon from "../../../components/ui/AppIcon";
 
 jest.mock("@expo/vector-icons", () => {
   const ReactNative = require("react-native");

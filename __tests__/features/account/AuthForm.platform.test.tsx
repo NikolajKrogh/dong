@@ -129,7 +129,7 @@ jest.mock("../../../features/account", () => {
   };
 });
 
-const AuthForm = require("../../../components/auth/AuthForm").default;
+const AuthForm = require("../../../features/account/AuthForm").default;
 const { TamaguiTestProvider } = require("../../../test-utils/tamagui");
 const TestSubject = (props: any) =>
   React.createElement(TamaguiTestProvider, null, React.createElement(AuthForm, props));

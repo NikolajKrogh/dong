@@ -22,7 +22,7 @@ import useGameProgressController from "./useGameProgressController";
 import { useGuestRoomSession } from "../rooms/useGuestRoomSession";
 import { useRoomExit } from "../rooms/useRoomExit";
 import { useRouter } from "expo-router";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { isWideLayout } from "../../styles/responsive";
 
 const GameProgressScreen = () => {

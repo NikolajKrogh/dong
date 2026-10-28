@@ -46,10 +46,10 @@ import { useRoomLobby } from "./useRoomLobby";
 import { useAccountAuth } from "../account";
 import { useMyActiveRoom } from "./useMyActiveRoom";
 import { buildAccountAuthRoute } from "../account/accountAuthRoutes";
-import { useNavigationReady } from "../../utils/navigation/useNavigationReady";
-import { LOBBY_STEPS, parseLobbyStep, resolveStep, sameViewParams, withViewParams, type LobbyStep, type RouteParams } from "../../utils/navigation/viewState";
+import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
+import { LOBBY_STEPS, parseLobbyStep, resolveStep, sameViewParams, withViewParams, type LobbyStep, type RouteParams } from "../../platform/navigation/routeState";
 import { useRoomMatchPool } from "./useRoomMatchPool";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import {
   roomSnapshotToActiveRoster,
   roomSnapshotToGameState,

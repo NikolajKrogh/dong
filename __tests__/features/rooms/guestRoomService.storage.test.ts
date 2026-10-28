@@ -6,13 +6,13 @@ import {
   saveGuestRoomSessionGrant,
   clearGuestRoomSessionGrant,
 } from "../../../features/rooms/guestRoomService";
-import { write, read, clear } from "../../../platform/guestCredential";
-import { useGameStore } from "../../../store/store";
+import { write, read, clear } from "../../../platform/guest-credential";
+import { useGameStore } from "../../../store/gameStore";
 
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn(),
 }));
-jest.mock("../../../platform/guestCredential", () => ({
+jest.mock("../../../platform/guest-credential", () => ({
   read: jest.fn(), write: jest.fn(), clear: jest.fn(), generateToken: jest.fn(),
 }));
 

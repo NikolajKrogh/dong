@@ -10,7 +10,7 @@ import {
 import { isWideLayout } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
-import AppIcon, { AppIconName } from "../../components/AppIcon";
+import AppIcon, { AppIconName } from "../../components/ui/AppIcon";
 
 /**
  * One step of the wizard.

@@ -9,7 +9,7 @@ import Animated, {
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { PlayerSuggestion } from "./usePlayerSuggestions";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 
 /**
  * Props for the PlayerSuggestionDropdown component.

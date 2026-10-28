@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Text } from "tamagui";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { GameSession } from "./historyTypes";
 import { useColors } from "../../styles/theme";
 import { calculateLifetimePlayerStats, calculateTotalGoals, calculateTotalDrinks, formatHistoryDate } from "./historyUtils";

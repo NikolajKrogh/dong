@@ -15,7 +15,7 @@ import {
 import {
   getCurrentSyncedPreferenceState,
   useGameStore,
-} from "../../../store/store";
+} from "../../../store/gameStore";
 import { getSupabaseClient, getSupabasePublicConfig, hasSupabasePublicConfig } from "../../../lib/supabase";
 
 const DEFAULT_SELECTED_LEAGUES = [

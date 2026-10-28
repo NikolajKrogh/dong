@@ -12,15 +12,15 @@ import {
 } from ".";
 import { ShellScreen } from "../../components/ui";
 import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";
-import { Player, useGameStore } from "../../store/store";
+import { Player, useGameStore } from "../../store/gameStore";
 import { createRandomAssignments } from "./createRandomAssignments";
 import { selectGameplayMatches } from "./selectGameplayMatches";
 import { isWideLayout } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { useStoreHydration } from "../../utils/navigation/useStoreHydration";
-import { useNavigationReady } from "../../utils/navigation/useNavigationReady";
-import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams, type SoloStep, type RouteParams } from "../../utils/navigation/viewState";
+import { useGameStoreHydration } from "../../store/useGameStoreHydration";
+import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
+import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams, type SoloStep, type RouteParams } from "../../platform/navigation/routeState";
 
 /**
  * Game setup wizard: players, matches, common match selection, and assignments.
@@ -34,7 +34,7 @@ const SetupGameScreen = () => {
   const navigationReady = useNavigationReady();
   const params = useLocalSearchParams() as RouteParams;
   const requestedStep = parseSoloStep(params);
-  const hydrated = useStoreHydration();
+  const hydrated = useGameStoreHydration();
   const [activeStep, setActiveStep] = useState<SoloStep>("players");
   const [restoreNotice, setRestoreNotice] = useState("");
   const restoredRequest = useRef<string | null>(null);

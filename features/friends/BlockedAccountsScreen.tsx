@@ -6,7 +6,7 @@ import { ShellActionButton } from '../../components/ui';
 import PeopleList from './PeopleList';
 import { useFriends } from './useFriends';
 import FriendsAccessScreen from './FriendsAccessScreen';
-import { parseFriendsTab, type RouteParams } from '../../utils/navigation/viewState';
+import { parseFriendsTab, type RouteParams } from '../../platform/navigation/routeState';
 export default function BlockedAccountsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams() as RouteParams;

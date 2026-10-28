@@ -1,7 +1,7 @@
 import React from "react";
 import SoundNotificationSettings from "./SoundNotificationSettings";
 import SettingsPage from "./SettingsPage";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 
 export default function SoundSettingsScreen() {
   const soundEnabled = useGameStore((state) => state.soundEnabled);

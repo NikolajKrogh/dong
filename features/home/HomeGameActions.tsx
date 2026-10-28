@@ -3,13 +3,13 @@ import { useRouter } from "expo-router";
 import type { Href } from "expo-router";
 import { Text, View } from "react-native";
 
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { ShellActionButton } from "../../components/ui";
 import { CancelGameModal } from "./CancelGameModal";
 import { CurrentGameCard } from "./CurrentGameCard";
 import { StartGameSheet } from "./StartGameSheet";
 import { useHomeRoomActions } from "./useHomeRoomActions";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import createStyles from "./homeStyles";
 import { useColors } from "../../styles/theme";
 import { buildAccountAuthRoute } from "../account/accountAuthRoutes";

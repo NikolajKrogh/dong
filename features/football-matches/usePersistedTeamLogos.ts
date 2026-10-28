@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useGameStore } from '../../store/store';
+import { useGameStore } from '../../store/gameStore';
 import { getTeamLogo, cacheTeamLogo, getHardcodedTeamLogoOnly, clearOverriddenLogos } from './teamLogos';
 
 /**

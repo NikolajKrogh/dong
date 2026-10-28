@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { useGameStore, type Match } from "../../../store/store";
+import { useGameStore, type Match } from "../../../store/gameStore";
 import { useLiveScores } from "../../../features/football-matches/useLiveScores";
 import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
 import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
@@ -18,7 +18,7 @@ jest.mock("../../../features/football-matches/footballMatchService", () => ({
     discoverMatches: mockDiscovery,
   }),
 }));
-jest.mock("../../../platform/guestCredential", () => ({ generateToken: jest.fn(async () => "12".repeat(32)) }));
+jest.mock("../../../platform/guest-credential", () => ({ generateToken: jest.fn(async () => "12".repeat(32)) }));
 
 const match: Match = {
   id: "event-100",

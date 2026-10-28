@@ -2,7 +2,7 @@ import React from "react";
 import { Animated, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "../../../styles/theme";
-import { Player } from "../../../store/store";
+import { Player } from "../../../store/gameStore";
 import { createStyles } from "./styles";
 
 interface PlayersSectionProps {

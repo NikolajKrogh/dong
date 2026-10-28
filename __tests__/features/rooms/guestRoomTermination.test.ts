@@ -1,4 +1,4 @@
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 import { clearGuestRoomSessionGrant } from "../../../features/rooms/guestRoomService";
 import { confirmGuestRoomEnded } from "../../../features/rooms/guestRoomTermination";
 

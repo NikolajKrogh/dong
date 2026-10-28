@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Platform, TouchableOpacity, View } from "react-native";
-import { ScreenReaderHeading } from "../ui/ScreenReaderHeading";
+import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";
 
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";

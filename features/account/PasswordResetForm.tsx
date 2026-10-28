@@ -8,9 +8,9 @@ import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth,
-} from "../../features/account";
-import { getSupabaseClient } from "../../lib/supabase";
-import { ShellActionButton, ShellCard } from "../ui";
+} from ".";
+import { exchangeAccountAuthCode } from "./exchangeAccountAuthCode";
+import { ShellActionButton, ShellCard } from "../../components/ui";
 
 interface PasswordResetFormProps {
   returnTo?: string | null;
@@ -66,7 +66,7 @@ const PasswordResetForm = ({ returnTo, recoveryCode }: PasswordResetFormProps) =
       setIsRecoveringSession(true);
 
       try {
-        const { error } = await getSupabaseClient().auth.exchangeCodeForSession(
+        const { error } = await exchangeAccountAuthCode(
           normalizedRecoveryCode,
         );
         if (error) throw error;

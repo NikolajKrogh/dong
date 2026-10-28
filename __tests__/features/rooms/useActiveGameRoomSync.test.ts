@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import { GameplayRpcError, type RoomSnapshot } from "../../../types/room";
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 import { useAppVisibility } from "../../../platform";
 import {
   applyPendingOverlay,

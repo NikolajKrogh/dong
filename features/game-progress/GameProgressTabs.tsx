@@ -11,7 +11,7 @@ import {
 import { createGameProgressStyles } from "./gameProgressStyles";
 import { useColors } from "../../styles/theme";
 import { PlatformSwipeTabs } from "../../platform";
-import AppIcon, { AppIconName } from "../../components/AppIcon";
+import AppIcon, { AppIconName } from "../../components/ui/AppIcon";
 
 /**
  * Props for the GameProgressTabs component.

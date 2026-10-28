@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { Match } from "../../store/store";
+import type { Match } from "../../store/gameStore";
 import type { RoomSnapshot, RunningGameConfiguration } from "../../types/room";
 import { getRoomRpcClient } from "./roomRpcClient";
 import { generateIdempotencyKey } from "../../utils/commandApiClient";

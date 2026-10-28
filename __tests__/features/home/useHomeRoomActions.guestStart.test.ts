@@ -80,7 +80,7 @@ jest.mock("../../../features/rooms/useGuestRoomJoin", () => ({
   }),
 }));
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector: (state: unknown) => unknown) =>
     selector(mockStoreSetters),
 }));

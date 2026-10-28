@@ -6,7 +6,7 @@ import ManageLeaguesModal from "./ManageLeaguesModal";
 import SelectDefaultLeaguesModal from "./SelectDefaultLeaguesModal";
 import SettingsPage from "./SettingsPage";
 import type { LeagueEndpoint } from "../../constants/leagues";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 
 export default function LeagueSettingsScreen() {
   const configuredLeagues = useGameStore((state) => state.configuredLeagues);

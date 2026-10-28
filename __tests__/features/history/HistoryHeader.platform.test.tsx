@@ -38,7 +38,7 @@ jest.mock("../../../features/history/historyStyles", () => ({
   }),
 }));
 
-jest.mock("../../../components/AppIcon", () => () => null);
+jest.mock("../../../components/ui/AppIcon", () => () => null);
 
 describe("HistoryHeader responsive layout", () => {
   beforeEach(() => {

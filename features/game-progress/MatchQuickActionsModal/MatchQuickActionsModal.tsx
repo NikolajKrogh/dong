@@ -13,7 +13,7 @@ import {
   Animated,
   useWindowDimensions,
 } from "react-native";
-import { Player } from "../../../store/store";
+import { Player } from "../../../store/gameStore";
 import { useTeamLogo } from "../../football-matches/useTeamLogo";
 import { useMatchQuickActionsAnimations } from "../useMatchQuickActionsAnimations";
 import { useColors } from "../../../styles/theme";

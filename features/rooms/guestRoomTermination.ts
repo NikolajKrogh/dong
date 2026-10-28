@@ -1,4 +1,4 @@
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { clearGuestRoomSessionGrant } from "./guestRoomService";
 
 export const isGuestRoomEnded = (sessionId: string | null | undefined) =>

@@ -11,7 +11,7 @@ import type {
   AssignmentPlan,
   RoomAssignmentSettingsRequest,
 } from "../../types/room";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 
 interface AssignmentSettingsPanelProps {
   plan: AssignmentPlan;

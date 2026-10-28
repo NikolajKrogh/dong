@@ -20,7 +20,7 @@ const mockBack = jest.fn();
 let mockPreviousRoute: { name: string; params?: Record<string, string> } | undefined;
 let mockParams: Record<string, string | string[]> = {};
 let mockNavigationReady = true;
-jest.mock("../../../utils/navigation/useNavigationReady", () => ({ useNavigationReady: () => mockNavigationReady }));
+jest.mock("../../../platform/navigation/useNavigationReady", () => ({ useNavigationReady: () => mockNavigationReady }));
 
 const mockLobby: Record<string, unknown> = {};
 const mockSetCommonMatch = jest.fn();
@@ -114,7 +114,7 @@ jest.mock("../../../features/rooms/useRoomExit", () => ({
   }),
 }));
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector: (state: unknown) => unknown) =>
     selector({
       setPlayers: jest.fn(),

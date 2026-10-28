@@ -45,7 +45,7 @@ jest.mock("expo-router", () => ({ useRouter: () => ({ replace: mockReplace }) })
 const mockResetState = jest.fn();
 let mockActiveGameContext = { sessionId: null as string | null,
   participantId: null as string | null, accessKind: "registered" };
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector: (state: unknown) => unknown) => selector({
     activeGameContext: mockActiveGameContext, resetState: mockResetState,
   }),

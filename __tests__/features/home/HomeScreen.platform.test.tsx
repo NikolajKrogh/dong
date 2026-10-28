@@ -131,7 +131,7 @@ const mockStoreState = {
   resetState: jest.fn(),
 };
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: Object.assign(() => mockStoreState, { getState: () => mockStoreState }),
 }));
 
@@ -197,12 +197,12 @@ jest.mock("@react-native-async-storage/async-storage", () => ({
   setItem: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock("../../../components/AppIcon", () => () => null);
+jest.mock("../../../components/ui/AppIcon", () => () => null);
 jest.mock("tamagui", () => ({
   YStack: ({ children, ...props }: any) => require("react").createElement("View", props, children),
 }));
 
-jest.mock("../../../components/OnboardingScreen", () => {
+jest.mock("../../../features/onboarding/OnboardingScreen", () => {
   const RN = require("react-native");
   const R = require("react");
   return ({ onFinish }: { onFinish: () => void }) =>

@@ -3,7 +3,7 @@ import { Modal, Platform, Pressable, ScrollView, Text, View } from "react-native
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { YStack } from "tamagui";
 
-import AppIcon, { type AppIconName } from "../../components/AppIcon";
+import AppIcon, { type AppIconName } from "../../components/ui/AppIcon";
 import createStyles from "./homeStyles";
 import { useColors } from "../../styles/theme";
 

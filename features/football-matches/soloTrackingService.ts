@@ -1,4 +1,4 @@
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import type { FootballMatchErrorCode, SoloTrackingSelection } from "../../types/footballMatch";
 import { generateIdempotencyKey } from "../../utils/commandApiClient";
 import { FootballMatchError, getFootballMatchService } from "./footballMatchService";

@@ -5,7 +5,7 @@ import {
   hydrateSyncedPreferenceState,
   serializeSyncedPreferenceState,
   type SyncedPreferenceState,
-} from "../../store/store";
+} from "../../store/gameStore";
 import { normalizeAccountUsername } from "./username";
 
 const SETTINGS_SELECT_COLUMNS =

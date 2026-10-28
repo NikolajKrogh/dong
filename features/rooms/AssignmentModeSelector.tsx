@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import type { AssignmentMode } from "../../types/room";
 import { AssignmentInfoModal } from "../game-setup/AssignmentControls";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";

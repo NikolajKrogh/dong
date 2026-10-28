@@ -9,7 +9,7 @@ import {
   generateToken,
   read,
   write,
-} from "../../platform/guestCredential/index.native";
+} from "../../../platform/guest-credential/index.native";
 
 jest.mock("expo-crypto", () => ({
   getRandomBytesAsync: jest.fn(),

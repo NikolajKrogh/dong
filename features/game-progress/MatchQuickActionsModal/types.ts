@@ -1,4 +1,4 @@
-import { Match, Player } from "../../../store/store";
+import { Match, Player } from "../../../store/gameStore";
 import { MatchWithScore } from "../../../types/matchScores";
 
 /** Props for MatchQuickActionsModal. */

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { GameSession } from './historyTypes';
 import { useAccountAuth } from '../account';
-import { useGameStore } from '../../store/store';
+import { useGameStore } from '../../store/gameStore';
 import { getSupabaseClient, hasSupabasePublicConfig } from '../../lib/supabase';
 import { getAccountScope, queryClient } from '../../lib/queryClient';
 import { loadCloudHistory, mergeHistory } from './historyRepository';

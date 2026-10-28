@@ -64,7 +64,7 @@ jest.mock("expo-router", () => ({
   useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
 }));
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: () => mockStoreState,
 }));
 
@@ -191,7 +191,7 @@ describe('solo route restoration', () => {
   TestRenderer.act(()=>tree.root.findByProps({testID:'SetupWizard'}).props.onStepChange('common'));expect(mockPush).toHaveBeenCalledWith({pathname:'/setupGame',params:{step:'common'}});
  });
  it('waits for hydration before resolving missing prerequisites', () => {
-  const store=require('../../../store/store').useGameStore;
+  const store=require('../../../store/gameStore').useGameStore;
   let hydrated=false;let finish!:()=>void;
   store.persist={hasHydrated:()=>hydrated,onFinishHydration:(callback:()=>void)=>{finish=callback;return ()=>{};}};
   const oldPlayers=mockStoreState.players;mockStoreState.players=[];mockParams={step:'assign'};

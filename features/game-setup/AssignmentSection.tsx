@@ -9,7 +9,7 @@ import {
 import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { Match, Player } from "../../store/store";
+import { Match, Player } from "../../store/gameStore";
 import { AssignmentCounter, AssignmentInfoModal, AssignmentPanel } from "./AssignmentControls";
 import { MatchSelectionCard } from "./MatchSelectionCard";
 import {

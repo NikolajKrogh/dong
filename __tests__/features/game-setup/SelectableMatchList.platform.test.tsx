@@ -48,7 +48,7 @@ jest.mock("react-native", () => ({
 }));
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: "Ionicons" }));
-jest.mock("../../../components/AppIcon", () => "AppIcon");
+jest.mock("../../../components/ui/AppIcon", () => "AppIcon");
 jest.mock("expo-linear-gradient", () => ({ LinearGradient: "LinearGradient" }));
 
 jest.mock("../../../styles/theme", () => ({

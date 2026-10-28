@@ -38,7 +38,7 @@ jest.mock("../../platform", () => ({
     children,
 }));
 
-jest.mock("../../store/store", () => ({
+jest.mock("../../store/gameStore", () => ({
   useGameStore: Object.assign(
     (selector: (s: any) => any) =>
       selector({ theme: "light" }),

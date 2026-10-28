@@ -1,4 +1,4 @@
-import { historyParams, parseFriendsTab, parseHistoryState, parseSoloStep, resolveStep, SOLO_STEPS, withViewParams } from '../../../utils/navigation/viewState';
+import { historyParams, parseFriendsTab, parseHistoryState, parseSoloStep, resolveStep, SOLO_STEPS, withViewParams } from '../../../platform/navigation/routeState';
 const friendId = '00000000-0000-4000-8000-000000000002';
 it('preserves legacy comparisons while explicit valid tabs take precedence', () => {
  expect(parseHistoryState({friendId})).toMatchObject({tab:'stats',friendId});

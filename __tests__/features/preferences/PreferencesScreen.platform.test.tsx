@@ -21,7 +21,7 @@ jest.mock("../../../features/account", () => ({
   buildAccountAuthRoute: (route: string, returnTo: string) => `${route}?returnTo=${encodeURIComponent(returnTo)}`,
 }));
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector: (state: typeof mockStore) => unknown) => selector(mockStore),
 }));
 
@@ -75,7 +75,7 @@ jest.mock("../../../components/ui", () => ({
   },
 }));
 
-jest.mock("../../../components/OnboardingScreen", () => () => {
+jest.mock("../../../features/onboarding/OnboardingScreen", () => () => {
   const ReactLocal = require("react");
   const RN = require("react-native");
   return ReactLocal.createElement(RN.Text, null, "Onboarding");

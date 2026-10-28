@@ -7,7 +7,7 @@ import Animated, {
   ReduceMotion,
 } from "react-native-reanimated";
 
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { MatchData } from "../football-matches/matchFilters";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";

@@ -6,7 +6,7 @@ import type {
   BatchRoomMatchResult,
   RoomMatchSummary,
 } from "../../types/room";
-import type { Match } from "../../store/store";
+import type { Match } from "../../store/gameStore";
 
 /** Provider recorded for a fixture a host typed in by hand rather than picked from the catalogue. */
 export const MANUAL_SOURCE_PROVIDER = "manual";

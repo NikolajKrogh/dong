@@ -13,10 +13,10 @@ import { getMatchSourceStatusMessage } from "./sourceStatus";
 import { LastGoalInfo, updateMatchForGoal } from "./goalScoring";
 import { createGameProgressStyles } from "./gameProgressStyles";
 import { useColors } from "../../styles/theme";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { useAppVisibility, useGoalSound } from "../../platform";
 import { useActiveGameRoomSync } from "../rooms/useActiveGameRoomSync";
-import { useNavigationReady } from "../../utils/navigation/useNavigationReady";
+import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
 
 const subscribeGameHydration = (onChange: () => void) => {
   const begin = useGameStore.persist.onHydrate(onChange);

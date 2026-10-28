@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { FOOTBALL_MATCH_PROVIDER } from "../../types/footballMatch";
 import { MatchData } from "../football-matches/matchFilters";
-import { Match } from "../../store/store";
+import { Match } from "../../store/gameStore";
 
 /**
  * Provide reliable batch or sequential match insertion.

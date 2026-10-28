@@ -3,7 +3,7 @@ import {
   ApiResponse,
   TeamWithLeague,
 } from "./matchFilters";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { AVAILABLE_LEAGUES, type LeagueEndpoint } from "../../constants/leagues";
 import {
   getMatchDiscoveryApiClient,

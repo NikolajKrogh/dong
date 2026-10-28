@@ -5,7 +5,7 @@ import TestRenderer from "react-test-renderer";
 
 import { useGoalToastQueue } from "../../../features/game-progress/useGoalToastQueue";
 import type { LastGoalInfo } from "../../../features/game-progress/goalScoring";
-import type { Match } from "../../../store/store";
+import type { Match } from "../../../store/gameStore";
 
 jest.mock("react-native-toast-message", () => ({
   __esModule: true,

@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useGameStore } from "../../store/store";
-import { clear as clearCredential, generateToken, read as readCredential, write as writeCredential } from "../../platform/guestCredential";
-import type { GuestCredentialRecord } from "../../platform/guestCredential/types";
+import { useGameStore } from "../../store/gameStore";
+import { clear as clearCredential, generateToken, read as readCredential, write as writeCredential } from "../../platform/guest-credential";
+import type { GuestCredentialRecord } from "../../platform/guest-credential/types";
 
 import type {
   GuestRoomErrorCode,

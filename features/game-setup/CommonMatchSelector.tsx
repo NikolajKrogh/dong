@@ -12,7 +12,7 @@ import {
 import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { Match } from "../../store/store";
+import { Match } from "../../store/gameStore";
 import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
 
 /**

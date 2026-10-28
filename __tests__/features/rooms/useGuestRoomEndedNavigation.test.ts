@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 import { useGuestRoomEndedNavigation } from "../../../features/rooms/useGuestRoomEndedNavigation";
 
 const mockReplace = jest.fn();

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 
 import { migrateLegacyMatch } from "../../../features/game-progress/matchMigration";
-import type { Match } from "../../../store/store";
+import type { Match } from "../../../store/gameStore";
 
 const buildMatch = (overrides: Partial<Match> = {}): Match => ({
   id: "match-1",

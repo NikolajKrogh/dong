@@ -1,9 +1,9 @@
 import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { AVAILABLE_LEAGUES, type LeagueEndpoint } from "../../constants/leagues";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { useLeagueLogo } from "../football-matches/useLeagueLogo";
-import type { Match } from "../../store/store";
+import type { Match } from "../../store/gameStore";
 import { useColors } from "../../styles/theme";
 import { SelectableMatchList } from "./SelectableMatchList";
 

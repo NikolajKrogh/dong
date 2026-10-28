@@ -20,7 +20,7 @@ const mockExit = {
   exitRoom: jest.fn(), confirmSuccessor: jest.fn(), confirmClose: jest.fn(),
 };
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: jest.fn() }) }));
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: Object.assign((selector: (state: typeof mockStore) => unknown) => selector(mockStore), {
     getState: () => mockStore,
   }),

@@ -6,7 +6,7 @@ import {
   usePlayerSuggestions,
   type PlayerSuggestion,
 } from "../../../features/game-setup/usePlayerSuggestions";
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 
 interface HistoryGamePlayer {
   id: string;

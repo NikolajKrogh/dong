@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { roomSnapshotToGameState } from "../rooms/roomSnapshotAdapter";
 import { useAccountAuth } from "../account";
 import { useGuestRoomJoin } from "../rooms/useGuestRoomJoin";

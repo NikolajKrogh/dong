@@ -15,7 +15,7 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
-jest.mock("../../../utils/navigation/useNavigationReady", () => ({ useNavigationReady: () => false }));
+jest.mock("../../../platform/navigation/useNavigationReady", () => ({ useNavigationReady: () => false }));
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -97,7 +97,7 @@ jest.mock("../../../features/rooms/useRoomExit", () => ({
   }),
 }));
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector: (state: unknown) => unknown) =>
     selector({
       clearActiveGameContext: mockClearContext,

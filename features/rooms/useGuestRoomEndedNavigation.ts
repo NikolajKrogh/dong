@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useRootNavigationState, useRouter } from "expo-router";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 
 /** One navigation owner prevents competing Home/game pollers restarting the timer. */
 export const useGuestRoomEndedNavigation = () => {

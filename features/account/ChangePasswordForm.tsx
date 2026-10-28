@@ -3,8 +3,8 @@ import { StyleSheet, TextInput } from "react-native";
 import { Text, YStack } from "tamagui";
 
 import { useColors } from "../../styles/theme";
-import { useAccountAuth } from "../../features/account";
-import { ShellActionButton, ShellCard } from "../ui";
+import { useAccountAuth } from ".";
+import { ShellActionButton, ShellCard } from "../../components/ui";
 
 const ChangePasswordForm = () => {
   const colors = useColors();

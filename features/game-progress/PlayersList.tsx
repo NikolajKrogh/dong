@@ -15,8 +15,8 @@ import Animated, {
 
 import { createGameProgressStyles } from "./gameProgressStyles";
 import { useColors } from "../../styles/theme";
-import { Match, Player } from "../../store/store";
-import AppIcon from "../../components/AppIcon";
+import { Match, Player } from "../../store/gameStore";
+import AppIcon from "../../components/ui/AppIcon";
 
 /** Props for PlayersList. @interface */
 interface PlayersListProps {

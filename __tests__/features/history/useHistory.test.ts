@@ -4,7 +4,7 @@ import { useHistory } from '../../../features/history/useHistory';
 import { loadCloudHistory } from '../../../features/history/historyRepository';
 import { getAccountScope, queryClient, setAccountScope } from '../../../lib/queryClient';
 import { useAccountAuth } from '../../../features/account';
-import { useGameStore } from '../../../store/store';
+import { useGameStore } from '../../../store/gameStore';
 
 jest.mock('../../../features/account', () => ({ useAccountAuth: jest.fn() }));
 jest.mock('../../../lib/supabase', () => ({ getSupabaseClient: jest.fn(() => ({})), hasSupabasePublicConfig: () => true }));

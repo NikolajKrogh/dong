@@ -1,12 +1,16 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
+
 import { actCreate } from "../../../test-utils/render";
 
-import PasswordResetForm from "../../../components/auth/PasswordResetForm";
+import UsernameOnboardingForm from "../../../features/account/UsernameOnboardingForm";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
-const TestSubject: typeof PasswordResetForm = (props) =>
-  React.createElement(TamaguiTestProvider, null, React.createElement(PasswordResetForm, props));
+let mockAuthStatus = "needsUsername";
+const mockDismissTo = jest.fn();
+const mockReplace = jest.fn();
+
+const TestSubject: typeof UsernameOnboardingForm = (props) =>
+  React.createElement(TamaguiTestProvider, null, React.createElement(UsernameOnboardingForm, props));
 
 jest.mock("tamagui", () => {
   const RN = require("react-native");
@@ -20,17 +24,10 @@ jest.mock("tamagui", () => {
     ...actual,
     Text: ({ children, ...props }: any) =>
       ReactLocal.createElement(RN.Text, props, children),
-    XStack: ({ children, ...props }: any) =>
-      ReactLocal.createElement(RN.View, props, children),
     YStack: ({ children, ...props }: any) =>
       ReactLocal.createElement(RN.View, props, children),
   };
 });
-
-const mockExchangeCodeForSession = jest.fn();
-const mockReplace = jest.fn();
-const mockRequestPasswordReset = jest.fn();
-const mockCompletePasswordRecovery = jest.fn();
 
 jest.mock("../../../styles/theme", () => ({
   // Real darkColors/lightColors are still needed: styles/tamaguiThemes.ts
@@ -51,15 +48,8 @@ jest.mock("../../../styles/theme", () => ({
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     replace: mockReplace,
+    dismissTo: mockDismissTo,
   }),
-}));
-
-jest.mock("../../../lib/supabase", () => ({
-getSupabaseClient: jest.fn(() => ({
-    auth: {
-      exchangeCodeForSession: mockExchangeCodeForSession,
-    },
-  }))
 }));
 
 jest.mock("../../../features/account", () => {
@@ -68,18 +58,17 @@ jest.mock("../../../features/account", () => {
   return {
     ...actual,
     useAccountAuth: () => ({
-      account: null,
-      completePasswordRecovery: mockCompletePasswordRecovery,
-      requestPasswordReset: mockRequestPasswordReset,
+      account: { username: null },
       saveUsername: jest.fn(),
       saveProfile: jest.fn(),
-      session: null,
-      sessionNotice: null,
       signIn: jest.fn(),
       signOut: jest.fn(),
       signUp: jest.fn(),
-      status: "signedOut",
-      user: null,
+      requestPasswordReset: jest.fn(),
+      session: { user: { id: "host-1" } },
+      sessionNotice: null,
+      status: mockAuthStatus,
+      user: { id: "host-1" },
     }),
   };
 });
@@ -101,57 +90,32 @@ jest.mock("../../../components/ui", () => ({
 
     return ReactLocal.createElement(
       RN.View,
-      { testID: "ShellActionButton", label, ...props },
+      { testID: "ShellActionButton", ...props },
       label ? ReactLocal.createElement(RN.Text, null, label) : null,
     );
   },
 }));
 
-describe("PasswordResetForm", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+describe("UsernameOnboardingForm", () => {
+  beforeEach(() => { mockAuthStatus = "needsUsername"; jest.clearAllMocks(); });
+
+  it("returns to the existing caller when username onboarding is complete", () => {
+    mockAuthStatus = "ready";
+    actCreate(React.createElement(TestSubject, { returnTo: "/friends?tab=requests" }));
+    expect(mockDismissTo).toHaveBeenCalledWith("/friends?tab=requests");
+    expect(mockReplace).not.toHaveBeenCalled();
+
   });
-
-  it("renders the recovery email request form by default", () => {
-    const tree = actCreate(React.createElement(TestSubject));
-
-    const { Text } = require("react-native");
-    const textNodes = tree.root.findAllByType(Text);
-    const textContents = textNodes.flatMap((node: any) => node.props.children);
-
-    expect(textContents).toContain("Reset your password");
-    expect(textContents).toContain("Send recovery email");
-
-    tree.unmount();
-  });
-
-  it("opens a recovery link and switches to the new-password form", async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
-
+  it("renders the required username onboarding form", () => {
     const tree = actCreate(
-      React.createElement(TestSubject, {
-        recoveryCode: "recovery-code-123",
-      }),
-    );
-
-    await TestRenderer.act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-
-    expect(mockExchangeCodeForSession).toHaveBeenCalledWith(
-      "recovery-code-123",
+      React.createElement(TestSubject),
     );
 
     const { Text } = require("react-native");
     const textNodes = tree.root.findAllByType(Text);
     const textContents = textNodes.flatMap((node: any) => node.props.children);
 
-    expect(textContents).toContain("Set a new password");
-    expect(textContents).toContain("Update password");
-
-    tree.unmount();
+    expect(textContents).toContain("Choose your username");
+    expect(textContents).toContain("Save username");
   });
 });

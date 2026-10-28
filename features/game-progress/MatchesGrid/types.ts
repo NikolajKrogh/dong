@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import type { RefreshControlProps } from "react-native";
-import { Match, Player } from "../../../store/store";
+import { Match, Player } from "../../../store/gameStore";
 import { MatchWithScore } from "../../../types/matchScores";
 
 // Define sorting options

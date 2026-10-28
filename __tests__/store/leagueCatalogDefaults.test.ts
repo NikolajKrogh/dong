@@ -1,4 +1,4 @@
-import { applySyncedPreferenceState, hydrateSyncedPreferenceState, useGameStore } from "../../store/store";
+import { applySyncedPreferenceState, hydrateSyncedPreferenceState, useGameStore } from "../../store/gameStore";
 import { LEAGUE_ENDPOINTS, DEFAULT_SELECTED_LEAGUES } from "../../constants/leagues";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 

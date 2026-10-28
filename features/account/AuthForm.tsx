@@ -16,9 +16,9 @@ import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth as useAccountAuthState,
-} from "../../features/account";
-import { getSupabaseClient } from "../../lib/supabase";
-import { ShellActionButton, ShellCard } from "../ui";
+} from ".";
+import { exchangeAccountAuthCode } from "./exchangeAccountAuthCode";
+import { ShellActionButton, ShellCard } from "../../components/ui";
 
 type AuthMode = "signIn" | "signUp";
 
@@ -682,7 +682,7 @@ const AuthForm = ({ returnTo, confirmationCode }: AuthFormProps) => {
       setIsConfirmingSession(true);
 
       try {
-        const { error } = await getSupabaseClient().auth.exchangeCodeForSession(
+        const { error } = await exchangeAccountAuthCode(
           normalizedConfirmationCode,
         );
         if (error) throw error;

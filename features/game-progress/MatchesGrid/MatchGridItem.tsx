@@ -3,7 +3,7 @@ import { Image, Text, TouchableOpacity, View } from "react-native";
 import { createGameProgressStyles } from "../gameProgressStyles";
 import { useColors } from "../../../styles/theme";
 import { useTeamLogo } from "../../football-matches/useTeamLogo";
-import AppIcon from "../../../components/AppIcon";
+import AppIcon from "../../../components/ui/AppIcon";
 import { MatchItemProps } from "./types";
 
 const MatchGridItem: React.FC<MatchItemProps> = ({

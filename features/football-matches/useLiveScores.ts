@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Match, useGameStore } from "../../store/store";
+import { Match, useGameStore } from "../../store/gameStore";
 import { FOOTBALL_MATCH_PROVIDER } from "../../types/footballMatch";
 import type { SavedMatch } from "../../types/footballMatch";
 import type { MatchWithScore } from "../../types/matchScores";
 import { getFootballMatchService } from "./footballMatchService";
 import { generateIdempotencyKey } from "../../utils/commandApiClient";
-import { generateToken } from "../../platform/guestCredential";
+import { generateToken } from "../../platform/guest-credential";
 import { encodeBase64Url } from "../../shared/encoding/base64url";
 import { endSoloTracking, settleTrackingRejection } from "./soloTrackingService";
 

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 
 /**
  * Represents a player suggestion with calculated statistics.

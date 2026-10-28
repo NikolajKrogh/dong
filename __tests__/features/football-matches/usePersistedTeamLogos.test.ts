@@ -4,7 +4,7 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import { usePersistedTeamLogos } from "../../../features/football-matches/usePersistedTeamLogos";
-import { useGameStore, type Match } from "../../../store/store";
+import { useGameStore, type Match } from "../../../store/gameStore";
 import {
   cacheTeamLogo,
   clearOverriddenLogos,

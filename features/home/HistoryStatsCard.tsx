@@ -2,7 +2,7 @@ import React from "react";
 import { Platform, Text, View } from "react-native";
 import { Link } from "expo-router";
 
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { ShellCard } from "../../components/ui";
 import createStyles from "./homeStyles";
 import { useColors } from "../../styles/theme";

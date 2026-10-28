@@ -1,4 +1,4 @@
-import { describeArc, polarToCartesian } from "../../utils/svgArc";
+import { describeArc, polarToCartesian } from "../../../../features/game-progress/MatchQuickActionsModal/svgArc";
 
 describe("polarToCartesian", () => {
   it.each([

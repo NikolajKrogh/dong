@@ -7,7 +7,7 @@ import TestRenderer from "react-test-renderer";
 import useGameProgressController from "../../../features/game-progress/useGameProgressController";
 import { useLiveScores } from "../../../features/football-matches/useLiveScores";
 import { useAppVisibility, useGoalSound } from "../../../platform";
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 
 jest.mock("react-native-toast-message", () => ({
   __esModule: true,
@@ -24,7 +24,7 @@ const mockSetParams = jest.fn();
 let mockNavigationReady = true;
 let mockGameParams: { gameTab?: string | string[] } = {};
 
-jest.mock("../../../utils/navigation/useNavigationReady", () => ({
+jest.mock("../../../platform/navigation/useNavigationReady", () => ({
   useNavigationReady: () => mockNavigationReady,
 }));
 

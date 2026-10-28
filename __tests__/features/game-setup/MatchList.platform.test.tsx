@@ -78,7 +78,7 @@ jest.mock("../../../platform", () => ({
   ).formatDateIsoValue,
 }));
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector?: (state: unknown) => unknown) => {
     const state = { defaultSelectedLeagues: [], configuredLeagues: [], theme: "light" };
     return selector ? selector(state) : state;

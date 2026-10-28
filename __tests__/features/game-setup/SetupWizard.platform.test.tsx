@@ -55,7 +55,7 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-jest.mock("../../../components/AppIcon", () => () => null);
+jest.mock("../../../components/ui/AppIcon", () => () => null);
 
 jest.mock("../../../styles/theme", () => ({
   useColors: () => ({

@@ -21,7 +21,7 @@ import {
   usePlayerSuggestions,
 } from "./usePlayerSuggestions";
 import { useReducedMotion } from "../../platform/animation/useReducedMotion";
-import { Player } from "../../store/store";
+import { Player } from "../../store/gameStore";
 import PlayerSuggestionDropdown from "./PlayerSuggestionDropdown";
 
 /**

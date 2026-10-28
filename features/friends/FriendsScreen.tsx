@@ -9,7 +9,7 @@ import PeopleList from './PeopleList';
 import RequestsPanel from './RequestsPanel';
 import { useFriends } from './useFriends';
 import FriendsAccessScreen from './FriendsAccessScreen';
-import { parseFriendsTab, type RouteParams } from '../../utils/navigation/viewState';
+import { parseFriendsTab, type RouteParams } from '../../platform/navigation/routeState';
 export default function FriendsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams() as RouteParams;

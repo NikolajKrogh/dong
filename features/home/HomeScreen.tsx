@@ -10,13 +10,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import { HistoryStatsCard } from "./HistoryStatsCard";
 import { HomeGameActions } from "./HomeGameActions";
 import { HomeSplash } from "./HomeSplash";
 import { JoinRoomModal } from "./JoinRoomModal";
 import { GuestJoinModal } from "../rooms/GuestJoinModal";
-import OnboardingScreen from "../../components/OnboardingScreen";
+import OnboardingScreen from "../onboarding/OnboardingScreen";
 import { ShellActionButton, ShellScreen } from "../../components/ui";
 import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";
 import { useHomeRoomActions } from "./useHomeRoomActions";

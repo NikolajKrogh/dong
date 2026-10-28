@@ -4,7 +4,7 @@ import { actCreate } from "../../../test-utils/render";
 
 const mockSetTheme = jest.fn();
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: () => ({
     theme: "light",
     setTheme: mockSetTheme,

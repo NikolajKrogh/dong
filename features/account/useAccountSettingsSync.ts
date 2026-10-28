@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import { useEffect, type MutableRefObject } from "react";
 
-import { serializeSyncedPreferenceState, useGameStore } from "../../store/store";
+import { serializeSyncedPreferenceState, useGameStore } from "../../store/gameStore";
 import {
   buildSyncedPreferenceSignature,
   saveAccountSyncedSettings,

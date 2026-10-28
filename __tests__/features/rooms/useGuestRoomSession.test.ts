@@ -2,7 +2,7 @@ import { actCreate, renderHook } from "../../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { useGameStore } from "../../../store/store";
+import { useGameStore } from "../../../store/gameStore";
 
 import {
   GUEST_ROOM_POLL_INTERVAL_MS,

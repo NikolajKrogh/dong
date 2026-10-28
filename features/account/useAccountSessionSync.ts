@@ -17,7 +17,7 @@ import {
 import {
   applySyncedPreferenceState,
   getCurrentSyncedPreferenceState,
-} from "../../store/store";
+} from "../../store/gameStore";
 import {
   bootstrapAccountRow,
   buildSyncedPreferenceSignature,

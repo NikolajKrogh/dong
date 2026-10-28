@@ -8,7 +8,7 @@ function discoveryResult(matches: unknown[]) {
 const mockUseGameStore = jest.fn();
 const mockDiscoverMatches = jest.fn();
 
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (
     selector: (state: { configuredLeagues: unknown[] }) => unknown,
   ) => mockUseGameStore(selector),

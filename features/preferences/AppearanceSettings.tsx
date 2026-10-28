@@ -9,7 +9,7 @@ import React from "react";
 import { Switch, Text, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import { createUserPreferencesStyles } from "./preferencesStyles";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { ShellCard, ShellSection } from "../../components/ui";
 
 /**

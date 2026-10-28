@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 import GameDetailsModal from "./GameDetailsModal";
 import GameHistoryItem from "./GameHistoryItem";
 import { buildHistoryRows, type HistoryGameRow } from "./historyLayout";
@@ -38,11 +38,11 @@ import { useFriends, type Person } from "../friends";
 import { createHistoryStyles } from "./historyStyles";
 import { isWideLayout } from "../../styles/responsive";
 import { useColors } from "../../styles/theme";
-import { useStoreHydration } from "../../utils/navigation/useStoreHydration";
-import { useNavigationReady } from "../../utils/navigation/useNavigationReady";
+import { useGameStoreHydration } from "../../store/useGameStoreHydration";
+import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
 import { TaskOverlay } from "../../platform/navigation/taskNavigation";
 import { hasDetailListParent, rememberDetailListParent, backToRememberedDetailList } from "../../platform/navigation/detailEntry";
-import { historyParams, parseHistoryState, sameViewParams, withViewParams, type HistoryRouteState, type RouteParams } from "../../utils/navigation/viewState";
+import { historyParams, parseHistoryState, sameViewParams, withViewParams, type HistoryRouteState, type RouteParams } from "../../platform/navigation/routeState";
 
 const TABS = ["Games", "Players", "Stats"];
 const TAB_ICONS = ["calendar-outline", "people-outline", "stats-chart-outline"] as const;
@@ -116,7 +116,7 @@ interface HistoryActions {
 
 const HistoryScreen = () => {
   const historyState = useHistory();
-  const hydrated = useStoreHydration();
+  const hydrated = useGameStoreHydration();
   const params = useLocalSearchParams() as RouteParams;
   const route = parseHistoryState(params, historyState.accountId);
   const { refresh } = historyState;

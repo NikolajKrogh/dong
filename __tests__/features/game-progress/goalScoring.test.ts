@@ -6,7 +6,7 @@ import {
   calculateToastScoreDisplay,
   updateMatchForGoal,
 } from "../../../features/game-progress/goalScoring";
-import type { Match } from "../../../store/store";
+import type { Match } from "../../../store/gameStore";
 
 const buildMatch = (overrides: Partial<Match> = {}): Match => ({
   id: "match-1",

@@ -93,7 +93,7 @@ jest.mock("expo-router", () => ({
   useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
   useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
 }));
-jest.mock("../../../utils/navigation/useStoreHydration", () => ({ useStoreHydration: () => true }));
+jest.mock("../../../store/useGameStoreHydration", () => ({ useGameStoreHydration: () => true }));
 jest.mock("../../../platform/navigation/taskNavigation", () => ({ TaskOverlay: ({open,onClose,children}:any) => children({open,dismiss:onClose,runAfterDismiss:(action:()=>void)=>action()}) }));
 jest.mock("../../../features/history/HistoryStatistics", () => (props:unknown) =>
   require("react").createElement(require("../../../features/history/OverallStats"),props));
@@ -168,7 +168,7 @@ jest.mock("../../../components/ui", () => {
   };
 });
 
-jest.mock("../../../components/AppIcon", () => () => null);
+jest.mock("../../../components/ui/AppIcon", () => () => null);
 
 jest.mock("../../../features/history/GameHistoryItem", () => {
   const ReactLocal = require("react");

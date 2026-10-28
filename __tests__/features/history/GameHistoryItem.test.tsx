@@ -29,7 +29,7 @@ jest.mock("../../../styles/theme", () => ({
   }),
 }));
 
-jest.mock("../../../components/AppIcon", () => {
+jest.mock("../../../components/ui/AppIcon", () => {
   const MockAppIcon = () => null;
   return { __esModule: true, AppIcon: MockAppIcon, default: MockAppIcon };
 });

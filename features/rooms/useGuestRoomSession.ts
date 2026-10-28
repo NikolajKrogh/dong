@@ -27,7 +27,7 @@ import {
   saveGuestRoomSessionGrant,
 } from "./guestRoomService";
 import { getGuestRoomRpcClient } from "./roomRpcClient";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { confirmGuestRoomEnded, isGuestRoomEnded } from "./guestRoomTermination";
 import { mapDepartureResult } from "../history";
 

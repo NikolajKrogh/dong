@@ -1,4 +1,4 @@
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { normalizeEspnScoreboard } from "../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
 import { liveBoard } from "../fixtures/matchCatalog/scoreboards";
 import type { SavedMatch } from "../../types/footballMatch";

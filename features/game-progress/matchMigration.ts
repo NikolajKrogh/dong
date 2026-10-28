@@ -1,4 +1,4 @@
-import { Match } from "../../store/store";
+import { Match } from "../../store/gameStore";
 
 export const migrateLegacyMatch = (match: Match): Match => {
   if (

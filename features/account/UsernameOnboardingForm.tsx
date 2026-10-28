@@ -8,8 +8,8 @@ import {
   buildAccountAuthRoute,
   normalizeAccountFlowReturnTo,
   useAccountAuth,
-} from "../../features/account";
-import { ShellActionButton, ShellCard } from "../ui";
+} from ".";
+import { ShellActionButton, ShellCard } from "../../components/ui";
 
 interface UsernameOnboardingFormProps {
   returnTo?: string | null;

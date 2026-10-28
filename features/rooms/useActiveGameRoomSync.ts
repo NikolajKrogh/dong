@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import { useAppVisibility } from "../../platform";
-import { useGameStore, type Match, type Player } from "../../store/store";
+import { useGameStore, type Match, type Player } from "../../store/gameStore";
 import type { GuestRoomSessionGrant } from "../../types/guestRoom";
 import type {
   ActiveGameContext,

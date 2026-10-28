@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { actCreate } from "../../test-utils/render";
+import { actCreate } from "../../../test-utils/render";
 import { View } from "react-native";
 
 const mockPlatformGestureView = jest.fn(
@@ -10,11 +10,11 @@ const mockPlatformGestureView = jest.fn(
   },
 );
 
-jest.mock("../../platform", () => ({
+jest.mock("../../../platform", () => ({
   PlatformGestureView: mockPlatformGestureView,
 }));
 
-jest.mock("../../styles/theme", () => ({
+jest.mock("../../../styles/theme", () => ({
   useColors: () => ({
     surface: "#ffffff",
     primary: "#123456",
@@ -29,7 +29,7 @@ describe("OnboardingScreen platform adoption", () => {
   it("keeps visible skip and continue controls available", () => {
     const onFinish = jest.fn();
     const OnboardingScreen =
-      require("../../components/OnboardingScreen").default;
+      require("../../../features/onboarding/OnboardingScreen").default;
 
     const renderer = actCreate(
       React.createElement(OnboardingScreen, { onFinish }),

@@ -7,7 +7,7 @@ import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { formatMatchTime } from "../football-matches/matchTime";
 import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
-import AppIcon from "../../components/AppIcon";
+import AppIcon from "../../components/ui/AppIcon";
 
 /**
  * The minimum a match needs to be rendered as selectable.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
-import { Match } from "../../store/store";
+import { Match } from "../../store/gameStore";
 import { MatchWithScore } from "../../types/matchScores";
 
 interface UseMatchQuickActionsAnimationsParams {

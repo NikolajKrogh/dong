@@ -398,3 +398,47 @@ Progress UI, goal scoring/toast logic, reducers, synchronization controller and 
 | __tests__/utils/selectGameplayMatches.test.ts | __tests__/features/game-setup/selectGameplayMatches.test.ts | Mirror the source implementation. |
 
 M5c validation: 60 affected suites / 424 tests passed, with typecheck, lint and Knip passing. Existing test IDs and gameplay logic remain unchanged.
+
+## M6a — Shared placement, authentication and final names
+
+AppIcon is reusable UI and joins components/ui. First-run onboarding has its own small feature, separate from account username onboarding. Account forms and their route implementations join the account module. Their identical code-exchange SDK calls are extracted unchanged into exchangeAccountAuthCode so screens retain a feature-owned operation rather than importing raw SDK setup; existing component tests still verify the same code exchange and error handling. No auth protocol or validation changes.
+
+store/store becomes store/gameStore to identify the persisted state owner; the hydration hook becomes useGameStoreHydration and joins it. Navigation helpers join the existing platform/navigation owner and viewState becomes routeState because it parses/constructs route parameters. guestCredential becomes guest-credential as the domain directory standard requires; all platform variants move together. svgArc has one production consumer in the quick-actions modal and joins that component rather than another shared bucket.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/components/auth/AuthForm.platform.test.tsx | __tests__/features/account/AuthForm.platform.test.tsx | Mirror the source location and name. |
+| __tests__/components/auth/PasswordResetForm.platform.test.tsx | __tests__/features/account/PasswordResetForm.platform.test.tsx | Mirror the source location and name. |
+| __tests__/components/auth/UsernameOnboardingForm.platform.test.tsx | __tests__/features/account/UsernameOnboardingForm.platform.test.tsx | Mirror the source location and name. |
+| components/auth/AuthForm.tsx | features/account/AuthForm.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| components/auth/AuthHeader.tsx | features/account/AuthHeader.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| components/auth/ChangePasswordForm.tsx | features/account/ChangePasswordForm.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| components/auth/PasswordResetForm.tsx | features/account/PasswordResetForm.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| components/auth/UsernameOnboardingForm.tsx | features/account/UsernameOnboardingForm.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| platform/guestCredential/index.native.ts | platform/guest-credential/index.native.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| platform/guestCredential/index.ts | platform/guest-credential/index.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| platform/guestCredential/index.web.ts | platform/guest-credential/index.web.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| platform/guestCredential/types.ts | platform/guest-credential/types.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| components/AppIcon.tsx | components/ui/AppIcon.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| __tests__/components/AppIcon.test.tsx | __tests__/components/ui/AppIcon.test.tsx | Mirror the source location and name. |
+| components/OnboardingScreen.tsx | features/onboarding/OnboardingScreen.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| __tests__/components/OnboardingScreen.platform.test.tsx | __tests__/features/onboarding/OnboardingScreen.platform.test.tsx | Mirror the source location and name. |
+| store/store.ts | store/gameStore.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| utils/navigation/useStoreHydration.ts | store/useGameStoreHydration.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| utils/navigation/useNavigationReady.ts | platform/navigation/useNavigationReady.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| utils/navigation/viewState.ts | platform/navigation/routeState.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| __tests__/utils/navigation/viewState.test.ts | __tests__/platform/navigation/routeState.test.ts | Mirror the source location and name. |
+| __tests__/utils/navigation/detailEntry.test.ts | __tests__/platform/navigation/detailEntry.test.ts | Mirror the source location and name. |
+| utils/svgArc.ts | features/game-progress/MatchQuickActionsModal/svgArc.ts | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| __tests__/utils/svgArc.test.ts | __tests__/features/game-progress/MatchQuickActionsModal/svgArc.test.ts | Mirror the source location and name. |
+| app/auth/index.tsx | features/account/AuthScreen.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| app/auth/onboarding.tsx | features/account/AccountOnboardingScreen.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| app/auth/reset-password.tsx | features/account/PasswordResetScreen.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| app/auth/change-password.tsx | features/account/ChangePasswordScreen.tsx | Apply the ownership/name decision described above; preserve behavior and route URLs. |
+| __tests__/app/changePasswordSettings.platform.test.tsx | __tests__/features/account/ChangePasswordScreen.platform.test.tsx | Mirror the source location and name. |
+| __tests__/platform/guestCredential.native.test.ts | __tests__/platform/guest-credential/index.native.test.ts | Mirror the source location and name. |
+| __tests__/platform/guestCredential.web.test.ts | __tests__/platform/guest-credential/index.web.test.ts | Mirror the source location and name. |
+
+Refactor later: features/account/AuthForm.tsx exceeds 700 lines and combines sign-in/sign-up mode, confirmation links, input handling and feedback UI. Review cohesive form/confirmation operations separately from this relocation. Existing state/RPC follow-up paths are now store/gameStore.ts and features/rooms/roomRpcClient.ts.
+
+M6a validation: the complete 160-suite / 1,043-test Jest suite passed, as did typecheck, lint and Knip. The remaining Knip hint is its obsolete hooks glob after migration; M6b updates configuration coverage. The two existing auth form tests still cover code exchange and failures through the extracted one-operation module.
