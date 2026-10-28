@@ -1,11 +1,11 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { Text, XStack, YStack } from "tamagui";
 
-import { MatchSelectionCard } from "../matchSelection/MatchSelectionCard";
+import { MatchSelectionCard } from "../../features/game-setup/MatchSelectionCard";
 import {
   SelectableMatchList,
   type SelectableMatch,
-} from "../matchSelection/SelectableMatchList";
+} from "../../features/game-setup/SelectableMatchList";
 import { ShellActionButton } from "../ui";
 
 interface PlayerPickPanelProps {

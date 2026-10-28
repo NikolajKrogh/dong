@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import type { AssignmentMode } from "../../types/room";
-import { AssignmentInfoModal } from "../setupGame/AssignmentControls";
+import { AssignmentInfoModal } from "../../features/game-setup/AssignmentControls";
 import AppIcon from "../AppIcon";
 import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
-import createSetupGameStyles from "../../styles/setupGameStyles";
+import createSetupGameStyles from "../../features/game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
 
 const MODES = ["automatic", "host_assigned", "player_picked"] as const;

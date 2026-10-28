@@ -1,0 +1,2196 @@
+import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
+import type { useColors } from "../../styles/theme";
+import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
+
+// --- Base Styles ---
+const makeBaseContainer = (): ViewStyle => ({
+  flex: 1,
+});
+
+const makeBaseCard = (colors: ReturnType<typeof useColors>): ViewStyle => ({
+  backgroundColor: colors.surface,
+  borderRadius: 8,
+  borderWidth: 1,
+  borderColor: colors.border,
+  boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.15)}`,
+  ...androidElevationFallback(2),
+});
+
+const makeBaseInput = (colors: ReturnType<typeof useColors>): TextStyle => ({
+  height: 40,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 4,
+  paddingHorizontal: 10,
+  backgroundColor: colors.backgroundLight,
+  color: colors.textSecondary,
+  fontSize: 15,
+});
+
+const makeBaseButton = (): ViewStyle => ({
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  borderRadius: 8,
+  alignItems: "center",
+  justifyContent: "center",
+  flexDirection: "row",
+});
+
+const makeBaseButtonText = (
+  colors: ReturnType<typeof useColors>,
+): TextStyle => ({
+  color: colors.textLight,
+  fontWeight: "600",
+  fontSize: 16,
+  marginLeft: 8, // Common for icon + text
+});
+
+const makeBaseSectionTitle = (
+  colors: ReturnType<typeof useColors>,
+): TextStyle => ({
+  fontSize: 16,
+  fontWeight: "bold",
+  color: colors.textPrimary,
+  marginBottom: 8,
+});
+
+const makeBaseModalView = (
+  colors: ReturnType<typeof useColors>,
+): ViewStyle => ({
+  margin: 20,
+  backgroundColor: colors.surface,
+  borderRadius: 20,
+  padding: 25, // Increased default padding
+  alignItems: "center",
+  boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+  ...androidElevationFallback(5),
+});
+
+const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
+  StyleSheet.create({
+    safeArea: {
+      ...makeBaseContainer(),
+      backgroundColor: colors.background,
+    },
+    container: {
+      ...makeBaseContainer(),
+    },
+    tabContainer: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      backgroundColor: colors.surface,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tabContainerWide: {
+      alignSelf: "center",
+      width: "100%",
+      maxWidth: 640,
+      borderRadius: 18,
+      paddingHorizontal: 8,
+      marginBottom: 12,
+    },
+    tab: {
+      paddingVertical: 8,
+      paddingHorizontal: 15,
+      borderRadius: 20,
+    },
+    tabWide: {
+      flex: 1,
+      alignItems: "center",
+    },
+    activeTab: {
+      backgroundColor: colors.primary,
+    },
+    tabText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    activeTabText: {
+      color: colors.textLight,
+    },
+    contentContainer: {
+      flex: 1,
+      padding: 20,
+    },
+    section: {
+      marginBottom: 24,
+    },
+    sectionTitle: {
+      ...makeBaseSectionTitle(colors),
+      marginTop: 12, // Keep specific override
+    },
+    input: {
+      ...makeBaseInput(colors),
+      flex: 1,
+      backgroundColor: colors.backgroundSubtle, // Slightly different from baseInput default
+    },
+    teamInput: {
+      ...makeBaseInput(colors), // Apply base and then specific flex
+      flex: 0.45,
+    },
+    addButtonText: {
+      // Often used with primary buttons
+      color: colors.textLight,
+      fontWeight: "bold",
+    },
+    subtleDeleteButton: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.backgroundSubtle + "CC", // 80% opacity
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 10,
+    },
+    instructionText: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginBottom: 16,
+      paddingHorizontal: 8,
+    },
+    assignmentContainer: {
+      ...makeBaseCard(colors),
+      marginVertical: 12,
+      padding: 16,
+    },
+    assignmentItem: {
+      position: "relative",
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      backgroundColor: colors.backgroundSubtle,
+      borderRadius: 6,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    selectedAssignmentItem: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primary, // Or primaryFocus
+    },
+    assignmentItemContent: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      width: "100%",
+      paddingRight: 24,
+    },
+    startButton: {
+      ...makeBaseButton(),
+      backgroundColor: colors.success,
+      paddingVertical: 16, // Larger padding
+      marginVertical: 24,
+    },
+    startButtonText: {
+      ...makeBaseButtonText(colors),
+      fontSize: 18, // Larger text
+    },
+    removeButton: {
+      // Generic, might need more context or make more specific
+      position: "absolute",
+      top: 8,
+      right: 8,
+      zIndex: 1,
+    },
+    randomizeContainer: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderRadius: 8,
+      padding: 16,
+      marginHorizontal: 8,
+      marginBottom: 16,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.textPrimary, 0.15)}`,
+      ...androidElevationFallback(3),
+    },
+    matchCounterContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    matchCountLabel: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.textSecondary,
+    },
+    assignmentCounterLabel: {
+      flex: 1,
+      marginRight: 8,
+    },
+    assignmentDescription: {
+      fontSize: 13,
+      color: colors.textMuted,
+      marginTop: 4,
+    },
+    assignmentModeTabs: {
+      flexDirection: "row",
+      padding: 4,
+      gap: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      backgroundColor: colors.backgroundLight,
+    },
+    assignmentModeTab: {
+      flex: 1,
+      minHeight: 44,
+      justifyContent: "center",
+      alignItems: "center",
+      borderRadius: 7,
+      paddingHorizontal: 2,
+    },
+    assignmentModeLabel: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    assignmentPendingLabel: {
+      fontSize: 13,
+      color: colors.textMuted,
+    },
+    matchItemWrapper: {
+      // Used for layout, no specific visual style from palette
+      marginBottom: 8,
+    },
+    commonMatchList: {
+      gap: 8,
+    },
+    commonMatchListWide: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "stretch",
+      gap: 16,
+    },
+    commonMatchCardWide: {
+      width: "48%",
+      marginBottom: 0,
+    },
+    counter: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    counterButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    counterButtonText: {
+      color: colors.textLight,
+      fontSize: 20,
+      fontWeight: "bold",
+    },
+    counterValue: {
+      fontSize: 20,
+      fontWeight: "bold",
+      marginHorizontal: 16,
+      color: colors.textPrimary,
+    },
+    randomizeButton: {
+      ...makeBaseButton(),
+      backgroundColor: colors.primary,
+    },
+    randomizeButtonText: {
+      ...makeBaseButtonText(colors),
+      // fontSize: 16, // Already in baseButtonText
+    },
+    disabledTabText: {
+      color: colors.textDisabled,
+    },
+    tabContent: {
+      // Often a padding container
+      padding: 16,
+    },
+    compactAssignmentTitle: {
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    compactAssignmentSection: {
+      marginBottom: 0,
+    },
+    compactAssignmentPlayer: {
+      marginTop: 0,
+      marginBottom: 8,
+    },
+    assignmentSection: {
+      // Layout
+      marginBottom: 24,
+    },
+    endButtonContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      padding: 16,
+      gap: 12,
+    },
+    setupButton: {
+      ...makeBaseButton(),
+      flex: 1,
+      backgroundColor: colors.primary,
+    },
+    endButton: {
+      ...makeBaseButton(),
+      flex: 1,
+      backgroundColor: colors.danger,
+    },
+    buttonText: {
+      // Generic button text, can be merged with baseButtonText if identical
+      ...makeBaseButtonText(colors),
+    },
+    centeredView: {
+      // For modal overlay
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: colors.backgroundModalOverlay,
+    },
+    modalView: {
+      ...makeBaseModalView(colors),
+    },
+    modalTitle: {
+      ...makeBaseSectionTitle(colors),
+      fontSize: 20, // Larger for modal title
+      marginBottom: 15,
+      textAlign: "center",
+    },
+    modalText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      marginBottom: 15,
+      textAlign: "center",
+    },
+    modalButtons: {
+      flexDirection: "row",
+      justifyContent: "space-around",
+      width: "100%",
+      marginTop: 10,
+    },
+    button: {
+      // Generic modal button, can be more specific
+      ...makeBaseButton(),
+      borderRadius: 20, // Softer radius for modal buttons
+      paddingVertical: 10, // Adjusted padding
+      paddingHorizontal: 20,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(2),
+      marginHorizontal: 5,
+    },
+    buttonConfirm: {
+      backgroundColor: colors.success,
+    },
+    buttonCancel: {
+      backgroundColor: colors.secondary,
+    },
+    playerCard: {
+      ...makeBaseCard(colors),
+      padding: 12,
+      marginHorizontal: 8,
+      marginBottom: 10,
+    },
+    playerCardHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    playerName: {
+      ...makeBaseSectionTitle(colors),
+      fontSize: 16, // Slightly smaller for card context
+      marginBottom: 0, // Override from baseSectionTitle
+    },
+    smallCounterButton: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      backgroundColor: colors.danger, // Or a more specific color like colors.accentPink
+      justifyContent: "center",
+      alignItems: "center",
+      boxShadow: `0px 1px 1px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
+    },
+    tinyButtonText: {
+      color: colors.textLight,
+      fontSize: 16,
+      fontWeight: "bold",
+    },
+    matchSelectItem: {
+      ...makeBaseCard(colors),
+      margin: 4,
+      padding: 12,
+      minHeight: 60,
+    },
+    matchesGridContainer: {
+      padding: 8,
+      paddingBottom: 80, // For potential floating action buttons
+    },
+    matchListLayout: {
+      gap: 16,
+    },
+    matchListControls: {
+      width: "100%",
+    },
+    matchListResults: {
+      flex: 1,
+      minWidth: 0,
+    },
+    playersListContent: {
+      // Used by FlatList
+      padding: 8,
+      paddingBottom: 80,
+    },
+    playersListWideRow: {
+      justifyContent: "space-between",
+      gap: 12,
+    },
+    matchGridItem: {
+      ...makeBaseCard(colors),
+      margin: 8,
+      padding: 16,
+      minHeight: 80,
+    },
+    matchHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    },
+    matchTeams: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.textSecondary,
+      flex: 1,
+    },
+    commonMatchLabel: {
+      backgroundColor: colors.success, // Or successDark if defined
+      color: colors.textLight,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 16,
+      fontSize: 12,
+      marginTop: 8,
+      alignSelf: "flex-start",
+    },
+    matchText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    textStyle: {
+      // Generic, often for modal button text
+      color: colors.textLight,
+      fontWeight: "bold",
+      textAlign: "center",
+    },
+    wizardContainer: {
+      ...makeBaseContainer(),
+      backgroundColor: colors.background,
+      display: "flex", // Default for RN, can be removed
+      flexDirection: "column",
+    },
+    wizardWideLayout: {
+      flexDirection: "row",
+      alignItems: "stretch",
+      width: "100%",
+      maxWidth: 1120,
+      minWidth: 0,
+      alignSelf: "center",
+      gap: 24,
+      padding: 24,
+    },
+    stepIndicatorContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      paddingVertical: 16,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    stepIndicatorWide: {
+      width: 220,
+      flexDirection: "column",
+      alignItems: "stretch",
+      justifyContent: "flex-start",
+      paddingVertical: 24,
+      paddingHorizontal: 16,
+      borderBottomWidth: 0,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 16,
+    },
+    wizardMainPanel: {
+      flex: 1,
+      minWidth: 0,
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      overflow: "hidden",
+    },
+    stepButton: {
+      minHeight: 48,
+      minWidth: 48,
+      width: 48,
+      justifyContent: "center",
+      alignItems: "center",
+      paddingVertical: 8,
+      paddingHorizontal: 0,
+      borderRadius: 20,
+      backgroundColor: colors.backgroundSubtle,
+    },
+    stepButtonWide: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    activeStepButton: {
+      backgroundColor: colors.primary,
+    },
+    stepButtonLabel: {
+      color: colors.textMuted,
+      fontSize: 15,
+      fontWeight: "600",
+    },
+    stepButtonLabelActive: {
+      color: colors.textLight,
+    },
+    stepText: {
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    activeStepText: {
+      color: colors.textLight,
+      fontWeight: "bold",
+    },
+    stepConnector: {
+      height: 2,
+      flex: 1,
+      minWidth: 4,
+      maxWidth: 40,
+      backgroundColor: colors.borderLight,
+      marginHorizontal: 8,
+    },
+    stepConnectorWide: {
+      flex: 0,
+      minWidth: 2,
+      maxWidth: 2,
+      width: 2,
+      height: 24,
+      marginHorizontal: 0,
+      marginVertical: 8,
+      alignSelf: "center",
+    },
+    activeStepConnector: {
+      backgroundColor: colors.primary,
+    },
+    stepContentScroll: {
+      // Layout
+      flex: 1,
+    },
+    wizardNavigation: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 12,
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLight,
+    },
+    wizardNavigationWide: {
+      justifyContent: "flex-end",
+      gap: 12,
+      paddingHorizontal: 24,
+      paddingVertical: 20,
+    },
+    navButton: {
+      ...makeBaseButton(),
+      backgroundColor: colors.primary,
+      paddingVertical: 10, // Override baseButton if needed
+    },
+    navButtonWide: {
+      minWidth: 148,
+    },
+    navButtonText: {
+      ...makeBaseButtonText(colors),
+      marginHorizontal: 8, // Keep specific if needed
+    },
+    suggestionsContainer: {
+      position: "relative",
+      flex: 0.45, // Layout specific
+      zIndex: 1000, // Ensure suggestions are on top
+    },
+    suggestionsList: {
+      position: "absolute",
+      top: 45, // Adjust based on input height
+      left: 0,
+      right: 0,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 4,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(5),
+    },
+    suggestionItem: {
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLighter,
+    },
+    suggestionItemText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    overlayArea: {
+      // For dismissing suggestions via tap outside
+      position: "absolute",
+      top: 200, // Highly layout dependent
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 900, // Below suggestionsList
+    },
+    modalOverlay: {
+      // Transparent overlay
+      flex: 1,
+      backgroundColor: colors.backgroundModalOverlay + "1A", // 10% opacity
+    },
+    suggestionsModal: {
+      // If suggestions are in a modal structure
+      position: "absolute",
+      backgroundColor: colors.surface,
+      borderRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(5),
+      maxHeight: 300, // Limit height
+      zIndex: 9999, // Highest zIndex
+    },
+    loadingContainer: {
+      padding: 20,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    loadingText: {
+      marginTop: 10,
+      color: colors.primary,
+      fontSize: 16,
+    },
+    errorContainer: {
+      padding: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "row",
+    },
+    errorText: {
+      marginLeft: 8,
+      color: colors.danger,
+      fontSize: 14,
+    },
+    dropdownBox: {
+      ...makeBaseInput(colors),
+      borderRadius: 8, // Softer radius
+      borderColor: colors.borderLight,
+      paddingVertical: 8, // Adjust padding for dropdown
+    },
+    dropdownInput: {
+      // Text style within the dropdownBox
+      color: colors.textSecondary,
+      fontSize: 14,
+    },
+    dropdown: {
+      // The dropdown list itself
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      borderRadius: 6,
+      marginTop: 4,
+      backgroundColor: colors.surface,
+    },
+    dropdownText: {
+      // Text style for items in the dropdown list
+      fontSize: 14,
+      color: colors.textSecondary,
+      paddingHorizontal: 10, // Add padding to items
+      paddingVertical: 10,
+    },
+    filterContainer: {
+      // Layout
+      marginBottom: 15,
+    },
+    filterToggle: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: 10,
+      backgroundColor: colors.primaryLighter,
+      borderRadius: 6,
+    },
+    filterToggleText: {
+      color: colors.primary, // Or textLink
+      fontWeight: "500",
+    },
+    timeFilterControls: {
+      marginTop: 10,
+      padding: 12,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    timeInputGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 10,
+    },
+    timeLabel: {
+      width: 80, // Layout specific
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    filterStatusText: {
+      marginTop: 10,
+      fontSize: 13,
+      color: colors.textMuted,
+      fontStyle: "italic",
+    },
+    addAllButton: {
+      ...makeBaseButton(),
+      backgroundColor: colors.success,
+      paddingVertical: 8, // Smaller padding
+      paddingHorizontal: 16,
+      borderRadius: 4, // Sharper radius
+      marginLeft: 10,
+    },
+    addAllButtonText: {
+      ...makeBaseButtonText(colors),
+      fontWeight: "500", // Slightly less bold
+      fontSize: 15,
+    },
+    clearButton: {
+      // For clearing inputs, often subtle
+      padding: 5,
+    },
+    clearButtonText: {
+      fontSize: 16,
+      color: colors.textMuted, // Or textPlaceholder
+    },
+    emptyListContainer: {
+      padding: 15,
+      alignItems: "center",
+    },
+    emptyListTitleText: {
+      fontSize: 18,
+      fontWeight: "bold",
+      color: colors.textSecondary,
+      marginTop: 12,
+      marginBottom: 8,
+    },
+    emptyListText: {
+      color: colors.textMuted,
+      marginBottom: 10,
+      textAlign: "center",
+      paddingHorizontal: 20,
+    },
+    emptyListSubtitleText: {
+      fontSize: 12,
+      color: colors.textMuted,
+      textAlign: "center",
+      lineHeight: 20,
+      paddingHorizontal: 10,
+    },
+    addNewButton: {
+      ...makeBaseButton(),
+      paddingVertical: 8,
+      backgroundColor: colors.primaryLighter, // Or primaryPale
+      borderRadius: 4,
+      margin: 10, // Layout specific
+    },
+    addNewButtonText: {
+      color: colors.primary, // Or textLink
+      fontSize: 15,
+    },
+    modalContainer: {
+      // Full screen modal overlay
+      ...makeBaseContainer(),
+      backgroundColor: colors.backgroundModalOverlay,
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+    },
+    modalContent: {
+      // Content area within a full screen modal
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      width: "100%",
+      maxHeight: "80%",
+      padding: 10,
+      boxShadow: `0px 2px 3.84px ${hexWithAlpha(colors.textPrimary, 0.25)}`,
+      ...androidElevationFallback(5),
+    },
+    modalHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: 10,
+      paddingBottom: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLighter,
+    },
+    modalSearchInput: {
+      ...makeBaseInput(colors),
+      flex: 1,
+      borderColor: colors.border, // Slightly darker than baseInput default
+      marginRight: 10,
+    },
+    modalCloseButton: {
+      ...makeBaseButton(),
+      paddingVertical: 8, // Smaller padding
+      paddingHorizontal: 10,
+      backgroundColor: colors.backgroundSubtle,
+      borderRadius: 4,
+    },
+    modalCloseText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+    },
+    modalItem: {
+      padding: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLighter,
+    },
+    modalItemText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    searchInput: {
+      ...makeBaseInput(colors), // Apply base and remove conflicting properties
+      borderWidth: 0, // Handled by searchInputContainer
+      backgroundColor: "transparent", // Handled by searchInputContainer
+      flex: 1,
+      height: "100%", // Fill container
+      paddingVertical: 0, // Remove default padding if not needed
+      paddingHorizontal: 0,
+    },
+    leagueFilterContainer: {
+      marginBottom: 10,
+      padding: 10,
+      backgroundColor: colors.background, // Or backgroundLight
+      borderRadius: 8,
+    },
+    leagueFilterLabel: {
+      ...makeBaseSectionTitle(colors),
+      fontSize: 16, // Keep specific
+      marginBottom: 5, // Override base
+    },
+    leagueButtonsContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    leagueButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: colors.backgroundSubtle, // Or neutralMedium
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    leagueButtonSelected: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primaryDark,
+    },
+    leagueButtonText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+    },
+    leagueButtonTextSelected: {
+      color: colors.textLight,
+    },
+    modalItemLeague: {
+      // Subtext in modal items
+      fontSize: 12,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    leagueChipsContainer: {
+      // Layout
+      marginVertical: 8,
+      paddingHorizontal: 16,
+    },
+    leagueChipsScrollContent: {
+      // For ScrollView contentContainerStyle
+      paddingVertical: 8,
+    },
+    leagueChip: {
+      backgroundColor: colors.backgroundSubtle,
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+      marginRight: 8,
+      marginBottom: 4, // For wrapping
+      flexDirection: "row", // For icon + text
+      alignItems: "center",
+    },
+    selectedLeagueChip: {
+      backgroundColor: colors.primaryLight,
+
+      borderWidth: 1,
+    },
+    leagueChipText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    selectedLeagueChipText: {
+      color: colors.primary,
+      fontWeight: "500",
+    },
+    chipLogo: {
+      width: 20,
+      height: 20,
+      resizeMode: "contain",
+      marginRight: 6,
+    } as ImageStyle,
+    chipContainer: {
+      // Generic container for chips if needed
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    filterSectionTitle: {
+      // More specific than baseSectionTitle
+      fontSize: 15,
+      fontWeight: "600", // Bolder
+      color: colors.textPrimary,
+      marginBottom: 10,
+    },
+    inputGroup: {
+      // Layout
+      marginBottom: 12,
+    },
+    labeledInput: {
+      // Layout
+      flex: 1,
+    },
+    inputLabel: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginBottom: 4,
+    },
+    dateInput: {
+      ...makeBaseInput(colors),
+      backgroundColor: colors.backgroundSubtle,
+    },
+    timeInputRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    timeSeparatorText: {
+      color: colors.textMuted,
+      fontSize: 14,
+      marginHorizontal: 5, // Added for spacing
+    },
+    filterSummary: {
+      backgroundColor: colors.primaryLighter, // Or infoLight
+      padding: 10,
+      borderRadius: 6,
+      marginBottom: 16,
+    },
+    matchCountText: {
+      color: colors.primary, // Or textLink
+      fontWeight: "500",
+      fontSize: 14,
+    },
+    filterButtonRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginTop: 8,
+    },
+    resetFilterButton: {
+      ...makeBaseButton(),
+      paddingVertical: 8, // Smaller padding
+      paddingHorizontal: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.backgroundSubtle,
+    },
+    resetFilterText: {
+      color: colors.textMuted,
+      fontSize: 14,
+      marginLeft: 4,
+    },
+    applyFilterButton: {
+      ...makeBaseButton(),
+      paddingVertical: 8, // Smaller padding
+      paddingHorizontal: 12,
+      backgroundColor: colors.primary,
+    },
+    applyFilterText: {
+      ...makeBaseButtonText(colors),
+      fontSize: 14,
+      fontWeight: "500",
+      marginLeft: 4,
+    },
+    expandableCard: {
+      ...makeBaseCard(colors),
+      borderColor: colors.borderSubtle,
+      marginBottom: 16,
+      borderRadius: 10, // Softer radius
+      overflow: "hidden", // For content clipping
+    },
+    expandableCardContent: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 16,
+    },
+    expandableCardLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    expandableCardTitle: {
+      ...makeBaseSectionTitle(colors),
+      fontSize: 16, // Keep specific
+      fontWeight: "600", // Bolder
+      color: colors.textSecondary,
+      marginLeft: 10,
+      marginBottom: 0, // Override base
+    },
+    rightContent: {
+      // Layout
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    compactIndicator: {
+      // For expand/collapse icon
+      marginLeft: 8,
+      padding: 4,
+    },
+    expandedCardContent: {
+      padding: 16,
+      backgroundColor: colors.backgroundLight,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    processingIndicator: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: colors.primaryLighter,
+      padding: 10,
+      borderRadius: 8,
+      marginVertical: 10,
+      borderWidth: 1,
+      borderColor: colors.processingIndicatorBorder,
+    },
+    matchTeamsSection: {
+      // Layout
+      flex: 1,
+      paddingVertical: 6,
+      paddingLeft: 10,
+    },
+    matchTeamRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 3,
+    },
+    matchDivider: {
+      // For "vs" text layout
+      alignItems: "flex-start",
+      marginVertical: 2,
+      paddingLeft: 10,
+    },
+    matchTeamLogo: {
+      width: 24,
+      height: 24,
+      resizeMode: "contain",
+      marginRight: 8,
+    } as ImageStyle,
+    matchTeamName: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      flex: 1,
+      fontWeight: "500",
+    },
+    matchVsText: {
+      fontSize: 12,
+      color: colors.textMuted,
+    },
+    matchActionsContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingRight: 6,
+    },
+    matchSelectionIndicator: {
+      // For checkbox/radio
+      marginRight: 8,
+      padding: 2,
+    },
+    matchDeleteButton: {
+      // Subtle delete
+      padding: 4,
+    },
+    matchAddButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+      marginLeft: 8,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.primary, 0.3)}`,
+      ...androidElevationFallback(4),
+    },
+    matchAddButtonDisabled: {
+      backgroundColor: colors.textDisabled,
+      boxShadow: "none",
+      ...androidElevationFallback(0),
+    },
+    matchEmptyListContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 12,
+      padding: 20,
+      marginTop: 20,
+      marginHorizontal: 8,
+    },
+
+    compactCheckContainer: {
+      // For selection checkmark
+      marginLeft: 2,
+    },
+    sectionHeader: {
+      // Generic header for sections within a screen
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 8,
+    },
+    headerActionsRow: {
+      // For buttons/icons in a section header
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    layoutToggleButton: {
+      // For toggling list/grid view
+      marginRight: 12,
+    },
+    playerContainer: {
+      // Container for a single player's info/actions
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLighter,
+      paddingBottom: 8,
+    },
+    inputContainer: {
+      // More specific than baseInput, often for styled inputs
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      height: 48, // Taller than baseInput
+      backgroundColor: colors.backgroundLight, // Specific background
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      paddingHorizontal: 12,
+    },
+    inputIcon: {
+      marginRight: 8,
+      color: colors.textMuted, // Icon color
+    },
+    textInput: {
+      // Text input style within inputContainer
+      ...makeBaseInput(colors), // Apply base and override
+      flex: 1,
+      height: "100%",
+      borderWidth: 0, // Handled by container
+      backgroundColor: "transparent", // Handled by container
+      paddingHorizontal: 0, // Remove base padding
+    },
+    addButton: {
+      // Generic add button, often square/circular
+      ...makeBaseButton(),
+      width: 48, // Square
+      height: 48,
+      backgroundColor: colors.primary, // Or playerAddButton color
+      borderRadius: 8, // Or 24 for circular
+      paddingVertical: 0, // Override baseButton
+      paddingHorizontal: 0,
+      marginLeft: 10,
+    },
+    addButtonDisabled: {
+      backgroundColor: colors.textDisabled, // Or playerAddButtonDisabled
+    },
+    clearAllButton: {
+      // Prominent clear all action
+      ...makeBaseButton(),
+      marginTop: 20,
+      backgroundColor: colors.danger,
+      alignSelf: "center", // Often centered
+    },
+    clearAllButtonText: {
+      ...makeBaseButtonText(colors),
+      // fontSize: 16, // Already in base
+      // fontWeight: "bold", // Already in base
+    },
+    filterSummaryButton: { paddingHorizontal: 12, paddingVertical: 10, minHeight: 48 },
+    filterSummaryRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+    filterSummaryLabel: { flex: 1, fontSize: 14, fontWeight: "600" },
+    filterSummaryValues: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+    filterSummaryValue: { fontSize: 14, fontWeight: "600" },
+    filterCard: {
+      // Re-declared, ensure consistency or merge
+      ...makeBaseCard(colors),
+      marginBottom: 12,
+      borderRadius: 12, // Softer radius
+      overflow: "hidden",
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(3),
+    },
+    filterCardHeader: {
+      padding: 16,
+      backgroundColor: colors.surface, // Explicit for header part
+    },
+    filterCardContent: {
+      gap: 8,
+      alignItems: "stretch",
+      minWidth: 0,
+    },
+    filterCardContentWide: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    filterTitleContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      minWidth: 0,
+      flexShrink: 1,
+    },
+    filterTitle: {
+      ...makeBaseSectionTitle(colors),
+      fontSize: 16, // Keep specific
+      flexShrink: 1,
+      fontWeight: "600", // Bolder
+      marginLeft: 10,
+      color: colors.textSecondary,
+      marginBottom: 0, // Override base
+    },
+    filterBadgesSection: {
+      flexDirection: "row",
+      alignItems: "center",
+      minWidth: 0,
+      justifyContent: "space-between",
+    },
+    filterBadgesScroll: {
+      // For horizontal scroll of badges
+      maxWidth: "85%", // Layout specific
+    },
+    filterBadgesContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      flex: 1,
+      minWidth: 0,
+      gap: 6,
+    },
+    filterBadge: {
+      backgroundColor: colors.backgroundSubtle,
+      borderRadius: 12,
+      paddingHorizontal: 6,
+      paddingVertical: 5,
+      marginLeft: 0,
+      marginBottom: 4, // For wrapping
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      maxWidth: "100%",
+    },
+    filterBadgeText: {
+      flexShrink: 1,
+      minWidth: 0,
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginLeft: 3,
+    },
+    badgeLogo: {
+      width: 20,
+      height: 20,
+      resizeMode: "contain",
+      marginRight: 2,
+    } as ImageStyle,
+    countBadge: {
+      borderColor: colors.countBadgeBorder,
+      borderRadius: 12,
+      paddingHorizontal: 6,
+      paddingVertical: 5,
+      marginLeft: 6,
+      marginBottom: 4,
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 1,
+      maxWidth: 110,
+    },
+    countBadgeText: {
+      fontSize: 13,
+      color: colors.primary,
+      fontWeight: "500",
+      paddingHorizontal: 2,
+    },
+    noFiltersText: {
+      fontSize: 13,
+      color: colors.textMuted,
+      fontStyle: "italic",
+    },
+    indicatorContainer: {
+      // For expand/collapse icon in filter card
+      width: 28,
+      height: 28,
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: 10,
+      backgroundColor: colors.backgroundLight, // Consistent light bg
+      borderRadius: 14, // Circular
+    },
+    expandedContent: {
+      // Content shown when filter card is expanded
+      backgroundColor: colors.backgroundLight, // Or F9FAFC if defined
+      padding: 16,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle, // Or EAEFF5
+    },
+    filterSection: {
+      // Section within expanded filter content
+      marginBottom: 16,
+    },
+    filterInput: {
+      backgroundColor: colors.backgroundSubtle,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    activeInput: {
+      // When a filter input is active/focused
+      backgroundColor: colors.surface,
+      borderColor: colors.borderLight,
+      borderLeftColor: colors.primaryFocus, // Or 1976d2
+      borderLeftWidth: 4,
+    },
+    inputText: {
+      // Text within filterInput
+      color: colors.textSecondary,
+      fontSize: 15,
+    },
+    activeInputText: {
+      fontWeight: "500",
+      color: colors.textPrimary, // Darker when active
+    },
+    timeInput: {
+      flex: 1,
+      backgroundColor: colors.backgroundSubtle,
+      borderRadius: 8,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    timeSeparator: {
+      marginHorizontal: 10,
+      color: colors.textMuted,
+      fontWeight: "500",
+    },
+    resultsSummary: {
+      // Summary of filter results
+      marginVertical: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    matchCountContainer: {
+      // Container for displaying match count
+      flexDirection: "row",
+      alignItems: "center",
+
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    matchCount: {
+      marginLeft: 6,
+      fontSize: 13,
+      color: colors.textPrimary,
+    },
+    filterActionButton: {
+      ...makeBaseButton(),
+      backgroundColor: colors.primaryFocus, // Or 1976d2
+      borderRadius: 8,
+      paddingVertical: 8, // Smaller padding
+      paddingHorizontal: 12,
+      marginLeft: 10,
+    },
+    filterActionButtonText: {
+      ...makeBaseButtonText(colors),
+      fontSize: 13,
+      marginLeft: 4,
+    },
+    leagueGrid: {
+      // For displaying leagues in a grid
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "flex-start", // Or space-around
+      paddingHorizontal: 8, // Outer padding for the grid
+    },
+    leagueGridItem: {
+      // Individual item in the league grid
+      backgroundColor: colors.backgroundSubtle, // Or f1f3f4
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 16,
+      marginRight: 8, // Spacing between items
+      marginBottom: 8,
+      minWidth: 100, // Ensure some minimum width
+      maxWidth: "46%", // Allow 2 items per row with margin
+      // Add alignItems: 'center' if content needs centering
+    },
+
+    // Player List specific styles (already well-defined, applying palette)
+    playerInputContainer: {
+      // No `flex: 1` here. Its parent (playerInputStack) sits in a row that
+      // aligns to flex-start, so the stack's height comes from its content —
+      // and `flex: 1` on the content sets flexBasis 0 along that same axis,
+      // making the two resolve each other to nothing. The field collapsed to
+      // its text line box (~29px) and quietly discarded the height below.
+      // Width is already filled by the stack.
+      flexDirection: "row",
+      alignItems: "center",
+      height: 50,
+      backgroundColor: colors.backgroundLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+    },
+    playerInputContainerFocused: {
+      borderColor: colors.primaryFocus,
+      backgroundColor: colors.surface,
+    },
+    playerInputStack: {
+      flex: 1,
+      minWidth: 0,
+      position: "relative",
+    },
+    playerInputStackActive: {
+      zIndex: 10,
+    },
+    playerInputIcon: {
+      marginRight: 8,
+      color: colors.textMuted, // Icon color
+    },
+    playerTextInput: {
+      flex: 1,
+      height: "100%",
+      borderWidth: 0,
+      backgroundColor: "transparent",
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: colors.textSecondary,
+      fontSize: 14,
+    },
+    playerAddButton: {
+      ...makeBaseButton(),
+      width: 50, // Square
+      height: 50,
+      backgroundColor: colors.primary,
+      borderRadius: 25, // Circular
+      paddingVertical: 0, // Override base
+      paddingHorizontal: 0,
+      marginLeft: 10,
+      boxShadow: `0px 4px 5px ${hexWithAlpha(colors.primary, 0.3)}`,
+      ...androidElevationFallback(3),
+    },
+    playerAddButtonDisabled: {
+      backgroundColor: colors.textDisabled,
+      boxShadow: "none",
+      ...androidElevationFallback(0),
+    },
+    playerItemContainer: {
+      ...makeBaseCard(colors), // Apply base card style
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 14,
+      paddingHorizontal: 15,
+      borderRadius: 12, // Softer radius
+      marginBottom: 10,
+      borderWidth: 0, // Override baseCard border if not needed
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.05)}`,
+      ...androidElevationFallback(2),
+      overflow: "hidden", // For rounded corners with content
+    },
+    playerItemWide: {
+      flex: 1,
+      minWidth: 0,
+    },
+    playerItemEven: {
+      backgroundColor: colors.primaryLighter,
+    },
+    playerItemOdd: {
+      backgroundColor: colors.playerItemOddBackground,
+    },
+    playerAvatar: {
+      marginRight: 15,
+      width: 40,
+      height: 40,
+      borderRadius: 20, // Circular
+      justifyContent: "center",
+      alignItems: "center",
+      // Background color will be from LinearGradient
+    },
+    playerAvatarText: {
+      fontSize: 18,
+      fontWeight: "bold",
+      color: colors.textLight, // Text on gradient
+    },
+    playerNameText: {
+      flex: 1,
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    playerRemoveButton: {
+      // HitSlop area for the remove icon
+      padding: 5,
+    },
+    playerCount: {
+      fontSize: 14,
+      color: colors.textMuted,
+      marginTop: 5,
+      marginBottom: 10,
+      textAlign: "right",
+    },
+    playerEmptyListContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 40,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 12,
+      padding: 30,
+      marginTop: 20,
+    },
+    playerClearAllButton: {
+      ...makeBaseButton(),
+      marginTop: 15,
+      marginBottom: 10,
+      backgroundColor: colors.danger, // Use semantic danger color
+      alignSelf: "center",
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.danger, 0.2)}`,
+      ...androidElevationFallback(2),
+    },
+    playerClearAllButtonText: {
+      ...makeBaseButtonText(colors),
+      fontSize: 14, // Keep specific size if needed
+    },
+    lottieAnimation: {
+      width: 75,
+      height: 75,
+      alignSelf: "center",
+    } as ViewStyle,
+    inputRow: {
+      flexDirection: "row",
+      marginBottom: 12,
+      alignItems: "center",
+    },
+    playerInputRow: {
+      alignItems: "flex-start",
+    },
+    teamSelectionRowCompact: {
+      flexDirection: "column",
+      alignItems: "stretch",
+      gap: 8,
+    },
+    teamInputWrapper: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    teamSearchField: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.backgroundLight,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      minHeight: 50,
+      paddingVertical: 10,
+    },
+    teamSearchFieldSelected: {
+      borderColor: colors.primaryFocus,
+      backgroundColor: colors.surface,
+    },
+    teamSearchIcon: {
+      marginRight: 8,
+    },
+    teamSearchText: {
+      flex: 1,
+      minWidth: 0,
+      fontSize: 14,
+      color: colors.textSecondary, // Default color
+    },
+    teamSearchTextPlaceholder: {
+      color: colors.textMuted,
+    },
+    teamSearchTextSelected: {
+      color: colors.textPrimary,
+      fontWeight: "500",
+    },
+    teamClearButton: {
+      minWidth: 44,
+      minHeight: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    vsText: {
+      fontWeight: "bold",
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginHorizontal: 10,
+    },
+    matchTimeContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 4,
+      backgroundColor: colors.textPrimary + "0D", // 5% opacity
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+      alignSelf: "flex-start",
+    },
+    matchTimeText: {
+      fontSize: 14,
+      color: colors.primary,
+      fontWeight: "500",
+      marginLeft: 6,
+    },
+    badgeLogoPlaceholder: {
+      width: 20,
+      height: 20,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    chipLogoPlaceholder: {
+      width: 24,
+      height: 24,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: 6,
+    },
+    commonMatchInfoCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.infoLight,
+      padding: 16,
+      borderRadius: 8,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    commonMatchInfoText: {
+      flex: 1,
+      marginLeft: 12,
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    commonMatchItem: {
+      ...makeBaseCard(colors),
+      padding: 16,
+      marginBottom: 12,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    selectedCommonMatchItem: {
+      backgroundColor: colors.primaryLight,
+      borderColor: colors.primary,
+      borderWidth: 2,
+    },
+    commonMatchSelection: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingLeft: 16,
+    },
+    infoButton: {
+      padding: 8,
+    },
+    infoCard: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.infoLight,
+      padding: 16,
+      borderRadius: 8,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+    infoCardText: {
+      flex: 1,
+      marginLeft: 12,
+      fontSize: 14,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    matchCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(3),
+      overflow: "hidden",
+      position: "relative",
+      marginHorizontal: 4,
+    },
+
+    matchCardGradient: {
+      padding: 16,
+    },
+
+    matchTeamsContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      width: "100%",
+    },
+
+    matchTeamColumn: {
+      flex: 2,
+      alignItems: "center",
+      paddingHorizontal: 4,
+    },
+    matchTimeHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 12,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderLighter,
+    },
+    teamLogoPlaceholderText: {
+      color: colors.textLight,
+      fontWeight: "bold",
+      fontSize: 18,
+    },
+
+    logoContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.surface,
+      justifyContent: "center",
+      alignItems: "center",
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(2),
+      borderWidth: 1,
+      borderColor: colors.borderLighter,
+    },
+
+    teamLogo: {
+      width: 36,
+      height: 36,
+      resizeMode: "contain",
+    },
+
+    teamName: {
+      textAlign: "center",
+      fontSize: 14,
+      fontWeight: "500",
+      color: colors.textPrimary,
+      marginTop: 8,
+      paddingHorizontal: 0,
+      width: "100%",
+      flexWrap: "wrap",
+    },
+
+    vsDivider: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingTop: 12,
+    },
+    vsDividerHorizontal: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 8,
+    },
+
+    teamLogoPlaceholder: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+
+    selectedRibbon: {
+      position: "absolute",
+      top: 15,
+      right: -30,
+      backgroundColor: colors.success,
+      paddingVertical: 5,
+      paddingHorizontal: 30,
+      transform: [{ rotate: "45deg" }],
+      boxShadow: `0px 2px 2px ${hexWithAlpha(colors.textPrimary, 0.2)}`,
+      ...androidElevationFallback(3),
+    },
+    selectedRibbonText: {
+      color: colors.textLight,
+      fontSize: 10,
+      fontWeight: "bold",
+      letterSpacing: 0.5,
+    },
+
+    selectedMatchCard: {
+      borderWidth: 2,
+      borderColor: colors.primary,
+      boxShadow: `0px 2px 4px ${hexWithAlpha(colors.primary, 0.3)}`,
+      ...androidElevationFallback(5),
+    },
+
+    selectionCheckmark: {
+      position: "absolute",
+      top: 12,
+      right: 12,
+      zIndex: 2,
+    },
+
+    // Grid view compact match styles
+    compactMatchItem: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+      padding: 8,
+      marginBottom: 6,
+      marginRight: 6,
+      overflow: "hidden",
+      boxShadow: `0px 1px 2px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
+      ...androidElevationFallback(2),
+    },
+
+    selectedCompactMatchItem: {
+      borderWidth: 2,
+      borderColor: colors.primary,
+      backgroundColor: colors.primaryLighter,
+      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.primary, 0.2)}`,
+      ...androidElevationFallback(4),
+    },
+
+    compactMatchContent: {
+      padding: 8,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    compactTeamsContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingBottom: 4,
+    },
+
+    compactTeamWrapper: {
+      width: 32,
+      height: 32,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+
+    compactTeamLogo: {
+      width: 24,
+      height: 24,
+      resizeMode: "contain",
+    } as ImageStyle,
+
+    compactTeamPlaceholder: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+
+    compactTeamPlaceholderText: {
+      color: colors.textLight,
+      fontWeight: "bold",
+      fontSize: 12,
+    },
+
+    compactVsText: {
+      fontSize: 10,
+      fontWeight: "500",
+      color: colors.textMuted,
+      marginHorizontal: 4,
+    },
+
+    compactCheckIndicator: {
+      position: "absolute",
+      bottom: 2,
+      right: 2,
+    },
+
+    // Player header styles
+    playerHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 8,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.borderLight,
+    },
+
+    playerHeaderLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+
+    playerAssignmentName: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: colors.textPrimary,
+    },
+
+    playerBadge: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 12,
+    },
+
+    playerBadgeText: {
+      color: colors.textLight,
+      fontSize: 12,
+      fontWeight: "bold",
+    },
+
+    chevronIcon: {
+      marginRight: 8,
+    },
+
+    assignmentPlayersGrid: {
+      gap: 12,
+    },
+
+    assignmentPlayersGridWide: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      gap: 16,
+    },
+
+    assignmentPlayerCardWide: {
+      width: "48%",
+      marginVertical: 0,
+    },
+
+    gridContainer: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      marginTop: 8,
+      marginBottom: 12,
+      paddingHorizontal: 4,
+    },
+
+    gridItem: {
+      width: "33.3%",
+      paddingRight: 8,
+      marginBottom: 8,
+    },
+    matchListItem: {
+      marginBottom: 12,
+    },
+    playerSuggestionsDropdown: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      marginTop: 4,
+      boxShadow: `0px 6px 12px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(10),
+      overflow: "hidden",
+    },
+    playerSuggestionsDropdownAndroid: {
+      position: "absolute",
+      top: "100%",
+      left: 0,
+      right: 0,
+      width: "100%",
+      boxShadow: `0px 12px 16px ${hexWithAlpha(colors.black, 0.2)}`,
+      ...androidElevationFallback(20),
+      zIndex: 20,
+    },
+    playerSuggestionsList: {
+      paddingBottom: 4,
+    },
+    moreItemsIndicator: {
+      alignItems: "center",
+      paddingVertical: 8,
+      backgroundColor: colors.backgroundLight,
+      marginTop: 2,
+      borderBottomLeftRadius: 16,
+      borderBottomRightRadius: 16,
+    },
+    moreItemsText: {
+      fontSize: 11,
+      color: colors.textMuted,
+      fontStyle: "italic",
+      fontWeight: "500",
+    },
+    playerSuggestionsHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    playerSuggestionsHeaderText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.primary,
+      marginLeft: 6,
+    },
+    playerSuggestionItem: {
+      backgroundColor: colors.surface,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.border,
+    },
+    suggestionContent: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    suggestionInfo: {
+      flex: 1,
+    },
+    suggestionHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 4,
+    },
+    suggestionName: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    suggestionTime: {
+      fontSize: 10,
+      color: colors.textMuted,
+      marginLeft: 8,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      backgroundColor: colors.backgroundLight,
+      borderRadius: 10,
+    },
+    highlightedText: {
+      backgroundColor: colors.warning + "4D",
+      color: colors.textPrimary,
+      fontWeight: "600",
+      borderRadius: 2,
+      paddingHorizontal: 1,
+    },
+    suggestionStats: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: 2,
+    },
+    statItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.backgroundLight,
+      paddingHorizontal: 5,
+      paddingVertical: 2,
+      borderRadius: 8,
+    },
+    statText: {
+      fontSize: 11,
+      color: colors.textMuted,
+      marginLeft: 3,
+      fontWeight: "500",
+    },
+    statDivider: {
+      width: 4,
+      height: 4,
+      backgroundColor: colors.border,
+      marginHorizontal: 6,
+      borderRadius: 2,
+      opacity: 0.5,
+    },
+    matchNumberBadge: {
+      position: "absolute",
+      top: 4,
+      left: 4,
+      backgroundColor: colors.primary,
+      borderRadius: 10,
+      width: 20,
+      height: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 10,
+    },
+    compactMatchNumberBadge: {
+      position: "absolute",
+      top: 2,
+      left: 2,
+      backgroundColor: colors.primary,
+      borderRadius: 7,
+      width: 14,
+      height: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 10,
+    },
+    matchNumberText: {
+      color: colors.textLight,
+      fontSize: 10,
+      fontWeight: "bold",
+    },
+    compactMatchNumberText: {
+      color: colors.textLight,
+      fontSize: 8,
+      fontWeight: "bold",
+    },
+  });
+
+export default createSetupGameStyles;

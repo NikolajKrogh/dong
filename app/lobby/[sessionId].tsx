@@ -23,12 +23,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { Text, YStack } from "tamagui";
 
-import { CommonMatchSelector, MatchList, SetupWizard } from "../../components";
-import type { WizardStep } from "../../components/setupGame/SetupWizard";
+import { CommonMatchSelector, MatchList, SetupWizard } from "../../features/game-setup";
+import type { WizardStep } from "../../features/game-setup/SetupWizard";
 import {
   SelectableMatchList,
   type SelectableMatch,
-} from "../../components/matchSelection/SelectableMatchList";
+} from "../../features/game-setup/SelectableMatchList";
 import { AssignmentModeSelector } from "../../components/lobby/AssignmentModeSelector";
 import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
 import { AssignmentSettingsPanel } from "../../components/lobby/AssignmentSettingsPanel";

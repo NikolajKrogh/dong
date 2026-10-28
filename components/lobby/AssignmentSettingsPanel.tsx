@@ -3,8 +3,8 @@ import { Text, TouchableOpacity, View } from "react-native";
 import {
   AssignmentCounter,
   AssignmentPanel,
-} from "../setupGame/AssignmentControls";
-import createSetupGameStyles from "../../styles/setupGameStyles";
+} from "../../features/game-setup/AssignmentControls";
+import createSetupGameStyles from "../../features/game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
 import type {
   AssignmentMode,

@@ -2,13 +2,13 @@ import React, { useMemo, useState } from "react";
 import { Text, View } from "react-native";
 
 import type { RoomParticipantSummary } from "../../types/room";
-import createSetupGameStyles from "../../styles/setupGameStyles";
+import createSetupGameStyles from "../../features/game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { MatchSelectionCard } from "../matchSelection/MatchSelectionCard";
+import { MatchSelectionCard } from "../../features/game-setup/MatchSelectionCard";
 import {
   SelectableMatchList,
   type SelectableMatch,
-} from "../matchSelection/SelectableMatchList";
+} from "../../features/game-setup/SelectableMatchList";
 
 interface RoomAssignmentPlayersProps {
   participants: RoomParticipantSummary[];

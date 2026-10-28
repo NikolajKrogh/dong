@@ -1,0 +1,111 @@
+import React from "react";
+
+import { actCreate } from "../../../test-utils/render";
+
+const mockUseWindowDimensions = jest.fn(() => ({
+  width: 390,
+  height: 844,
+  scale: 1,
+  fontScale: 1,
+}));
+
+const mockStyles = {
+  tabContainer: { testStyle: "tabContainer" },
+  tabContainerWide: { testStyle: "tabContainerWide", maxWidth: 640 },
+  tab: { testStyle: "tab" },
+  tabWide: { testStyle: "tabWide", flex: 1 },
+  activeTab: { testStyle: "activeTab" },
+  tabText: { testStyle: "tabText" },
+  activeTabText: { testStyle: "activeTabText" },
+};
+
+jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
+  View: "View",
+  Text: "Text",
+  TouchableOpacity: "TouchableOpacity",
+  useWindowDimensions: () => mockUseWindowDimensions(),
+}));
+
+jest.mock("../../../styles/theme", () => ({
+  useColors: () => ({
+    surface: "#ffffff",
+    border: "#dddddd",
+    primary: "#0057ff",
+    textSecondary: "#333333",
+    textLight: "#ffffff",
+  }),
+}));
+
+jest.mock("../../../features/game-setup/setupGameStyles", () => ({
+  __esModule: true,
+  default: () => mockStyles,
+}));
+
+const renderSetupGameTabs = (activeTab = "players") => {
+  const SetupGameTabs =
+    require("../../../features/game-setup/SetupGameTabs").default;
+
+  return actCreate(
+    React.createElement(SetupGameTabs, {
+      activeTab,
+      setActiveTab: jest.fn(),
+    }),
+  );
+};
+
+describe("Setup TabNavigation responsive layout", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseWindowDimensions.mockReturnValue({
+      width: 390,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    });
+  });
+
+  it("keeps the compact tab container on phone-sized viewports", () => {
+    const renderer = renderSetupGameTabs();
+    const root = renderer.root.findByProps({
+      testID: "SetupTabNavigationRoot",
+    });
+    const tabs = renderer.root.findAllByProps({
+      testID: "SetupTabNavigationTab",
+    });
+
+    expect(root.props.style).toEqual([mockStyles.tabContainer, false]);
+    expect(tabs[0].props.style).toEqual([
+      mockStyles.tab,
+      false,
+      mockStyles.activeTab,
+    ]);
+  });
+
+  it("adds the wide tab container treatment on desktop-sized viewports", () => {
+    mockUseWindowDimensions.mockReturnValue({
+      width: 1280,
+      height: 900,
+      scale: 1,
+      fontScale: 1,
+    });
+
+    const renderer = renderSetupGameTabs("matches");
+    const root = renderer.root.findByProps({
+      testID: "SetupTabNavigationRoot",
+    });
+    const tabs = renderer.root.findAllByProps({
+      testID: "SetupTabNavigationTab",
+    });
+
+    expect(root.props.style).toEqual([
+      mockStyles.tabContainer,
+      mockStyles.tabContainerWide,
+    ]);
+    expect(tabs[1].props.style).toEqual([
+      mockStyles.tab,
+      mockStyles.tabWide,
+      mockStyles.activeTab,
+    ]);
+  });
+});

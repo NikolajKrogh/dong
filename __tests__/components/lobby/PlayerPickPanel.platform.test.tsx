@@ -26,11 +26,11 @@ jest.mock("../../../components/ui", () => ({
 // The shared list is exercised by its own suite; here it is reduced to a probe so
 // these tests assert the panel's *decisions* (what is selected, what is disabled,
 // what gets submitted) rather than re-testing the markup.
-jest.mock("../../../components/matchSelection/SelectableMatchList", () => ({
+jest.mock("../../../features/game-setup/SelectableMatchList", () => ({
   SelectableMatchList: "SelectableMatchList",
 }));
 
-jest.mock("../../../components/matchSelection/MatchSelectionCard", () => {
+jest.mock("../../../features/game-setup/MatchSelectionCard", () => {
   // Required inside the factory: jest.mock bodies may not close over
   // out-of-scope variables.
   const mockReact = require("react");

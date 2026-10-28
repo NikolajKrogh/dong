@@ -51,12 +51,12 @@ jest.mock("expo-router", () => ({
 
 // The wizard is stubbed so the steps array it is handed can be inspected
 // directly. Rendering it for real would only ever show step one.
-jest.mock("../../../components", () => ({
+jest.mock("../../../features/game-setup", () => ({
   SetupWizard: "SetupWizard",
   MatchList: "MatchList",
   CommonMatchSelector: "CommonMatchSelector",
 }));
-jest.mock("../../../components/matchSelection/SelectableMatchList", () => ({
+jest.mock("../../../features/game-setup/SelectableMatchList", () => ({
   SelectableMatchList: "SelectableMatchList",
 }));
 

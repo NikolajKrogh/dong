@@ -31,7 +31,7 @@ The older blueprint and inventory describe the pre-migration snapshot. This jour
 | M1 | PreferencesHeader, GameProgressTabs and SetupGameTabs pilot | Complete |
 | M2 | History feature ownership and mirrored tests | Complete |
 | M3 | Home, Preferences and Account/Auth ownership | Complete for Home/Preferences/account hooks; auth forms remain for M6 |
-| M4 | Game setup and match-selection ownership | Planned |
+| M4 | Game setup and match-selection ownership | Complete |
 | M5 | Gameplay, rooms and football-match client ownership | Planned |
 | M6 | Shared names, import-policy coverage and final verification | Planned |
 
@@ -166,3 +166,63 @@ Home UI, calculations, styles and its room-action hook move together. Preference
 M3 validation: 37 affected suites / 263 tests passed; typecheck, lint and Knip passed. Account implementation imports repository/username siblings directly rather than its own public index to avoid a circular import. Cross-feature consumers use the account public interface; partial Jest mocks retain the other exports they need. Home statistics uses explicitly exported History types/calculations. Preferences exposes its route screens and the shared SettingsPage used by Friends/History. Removed obsolete hook convenience re-exports rather than retaining unused compatibility aliases. The renamed AppearanceSettingsScreen and PreferencesScreen exports now match their filenames.
 
 React Doctor pilot review: the sandbox invocation stalled without a result and was stopped; no successful diagnostic score is claimed. A later unrestricted run will be used for final verification.
+
+## M4 — Game setup and match selection
+
+Setup UI, filters, player suggestions, assignment calculation and styles now live in game-setup. Match selection is reused by room configuration through the same owning module rather than a separate technical root. setupGameAssignments becomes createRandomAssignments because its only public operation constructs assignments; no Strategy class is introduced. The old root components index moves into the feature as its public interface, and empty statements are removed. The obsolete useTeamFiltering shim has no hook implementation: callers use the canonical match filter directly.
+
+| Old path | New path | Reason |
+| --- | --- | --- |
+| __tests__/components/matchSelection/MatchSelectionCard.platform.test.tsx | __tests__/features/game-setup/MatchSelectionCard.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/matchSelection/SelectableMatchList.platform.test.tsx | __tests__/features/game-setup/SelectableMatchList.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/AssignmentSection.platform.test.tsx | __tests__/features/game-setup/AssignmentSection.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/CommonMatchSelector.platform.test.tsx | __tests__/features/game-setup/CommonMatchSelector.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/LeagueFilter.platform.test.tsx | __tests__/features/game-setup/LeagueFilter.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/MatchFilter.platform.test.tsx | __tests__/features/game-setup/MatchFilter.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/MatchList.platform.test.tsx | __tests__/features/game-setup/MatchList.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/PlayerList.platform.test.tsx | __tests__/features/game-setup/PlayerList.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/SetupGameTabs.platform.test.tsx | __tests__/features/game-setup/SetupGameTabs.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/SetupWizard.platform.test.tsx | __tests__/features/game-setup/SetupWizard.platform.test.tsx | Mirror game-setup ownership. |
+| __tests__/components/setupGame/TeamSelectionRow.layout.platform.test.tsx | __tests__/features/game-setup/TeamSelectionRow.layout.platform.test.tsx | Mirror game-setup ownership. |
+| components/matchSelection/MatchSelectionCard.tsx | features/game-setup/MatchSelectionCard.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/matchSelection/SelectableMatchList.tsx | features/game-setup/SelectableMatchList.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/AssignmentControls.tsx | features/game-setup/AssignmentControls.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/AssignmentSection.tsx | features/game-setup/AssignmentSection.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/CommonMatchSelector.tsx | features/game-setup/CommonMatchSelector.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/LeagueFilter.tsx | features/game-setup/LeagueFilter.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/LeagueMatchSections.tsx | features/game-setup/LeagueMatchSections.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/MatchFilter.tsx | features/game-setup/MatchFilter.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/MatchList.tsx | features/game-setup/MatchList.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/PlayerList.tsx | features/game-setup/PlayerList.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/PlayerSuggestionDropdown.tsx | features/game-setup/PlayerSuggestionDropdown.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/RandomMatchesToast.tsx | features/game-setup/RandomMatchesToast.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/SetupGameTabs.tsx | features/game-setup/SetupGameTabs.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/SetupWizard.tsx | features/game-setup/SetupWizard.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/setupGame/TeamSelectionRow.tsx | features/game-setup/TeamSelectionRow.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| components/index.ts | features/game-setup/index.ts | Make the existing setup exports the owning feature public interface. |
+| styles/setupGameStyles.ts | features/game-setup/setupGameStyles.ts | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| utils/setupGameAssignments.ts | features/game-setup/createRandomAssignments.ts | Name the exported assignment operation. |
+| hooks/useMatchListFilters.ts | features/game-setup/useMatchListFilters.ts | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| hooks/usePlayerSuggestions.ts | features/game-setup/usePlayerSuggestions.ts | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| __tests__/hooks/useMatchListFilters.test.ts | __tests__/features/game-setup/useMatchListFilters.test.ts | Mirror game-setup ownership. |
+| __tests__/hooks/usePlayerSuggestions.test.ts | __tests__/features/game-setup/usePlayerSuggestions.test.ts | Mirror game-setup ownership. |
+| app/setupGame.tsx | features/game-setup/SetupGameScreen.tsx | Collect setup implementation; preserve behavior and the /setupGame URL. |
+| __tests__/app/setupGame.platform.test.tsx | __tests__/features/game-setup/SetupGameScreen.platform.test.tsx | Mirror game-setup ownership. |
+
+## Refactor later — findings recorded during implementation
+
+These are follow-up candidates, not changes to be bundled into this migration. Preserve existing behavior until their own requirements and tests are agreed.
+
+| Current file | Evidence / maintenance problem | Suggested follow-up |
+| --- | --- | --- |
+| store/store.ts | 573 lines combine persisted game state, preferences, history and normalization. Features depend on this shared owner. | Identify cohesive internal modules while retaining one persistence/state interface; do not split stores mechanically. |
+| utils/supabaseClient.ts | 740 lines expose room/gameplay/guest operations and transport/error handling. | Group internal operations behind the existing client interface and retain validation/idempotency semantics. |
+| features/history/HistoryScreen.tsx (formerly app/history.tsx) | 757 lines combine route state, filtering, cloud status, layout and multiple UI subviews. | Extract cohesive internal screen modules only where the interface gets simpler, retaining the existing tested flow. |
+| features/game-setup/createRandomAssignments.ts (formerly utils/setupGameAssignments.ts) | shuffle sorts with a random comparator, which is biased; pair allocation and validation share one module. | Review uniform shuffling and deterministic random-source testing in a separate behavior change. |
+| features/game-setup/useMatchListFilters.ts and utils/matchUtils.ts | Team-name cleanup and date/time filtering responsibilities are spread across hook and pure utility modules. | Review one canonical normalization/filtering owner, with edge-case tests before changing matching behavior. |
+
+The old root components/index.ts also contained empty statements and only setup exports; those statements were removed when the file became features/game-setup/index.ts. The obsolete useTeamFiltering shim and its fake hook mock were removed as part of M4 path maintenance.
+
+React Doctor unrestricted review after M3: 100/100, 128 changed files scanned, no issues reported. The sandbox browser run stalled during worker launch and was stopped; an unrestricted run is now pending, so browser success is not yet claimed.
+
+M4 validation: 17 affected suites / 112 tests passed; typecheck, lint and Knip passed. Removed hooks/useTeamFiltering.ts after its sole production consumer and fixture moved to the canonical filter. No assignment algorithm behavior was changed; its random-sort issue is recorded for later review.
