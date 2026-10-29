@@ -45,6 +45,8 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
         <View style={styles.headerButtons}>
           {/* Sort button */}
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Sort matches"
             style={headerStyles.sortButton}
             onPress={() => setSortModalVisible(true)}
           >
@@ -63,6 +65,8 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
 
           {/* Layout toggle button */}
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={useGridLayout ? "Switch to match list" : "Switch to match grid"}
             style={styles.layoutToggleButton}
             onPress={toggleLayoutMode}
           >

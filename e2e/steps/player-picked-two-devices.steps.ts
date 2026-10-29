@@ -68,7 +68,7 @@ Given(
     await waitForBrowserFlowReady(secondDevicePage, ["Room Lobby"]);
 
     // Everything a member does lives on the Assign step.
-    const assignStep = secondDevicePage.getByTestId("SetupWizardStep-assign");
+    const assignStep = secondDevicePage.getByTestId("SetupWizardStep-assign").filter({ visible: true });
     await expect(assignStep).toBeVisible({ timeout: PROPAGATION_TIMEOUT_MS });
     await assignStep.click();
   },
@@ -79,22 +79,22 @@ Then(
   async () => {
     const page = secondDevice();
     await expect(
-      page.getByTestId("lobby-assignment-mode-readonly"),
+      page.getByTestId("lobby-assignment-mode-readonly").filter({ visible: true }),
     ).toBeVisible({ timeout: PROPAGATION_TIMEOUT_MS });
     // No Start Game, and the nav bar's second slot is the disabled placeholder.
     await expect(page.getByTestId("lobby-start-game")).toHaveCount(0);
-    await expect(page.getByTestId("SetupWizardFinalDisabled")).toBeVisible();
+    await expect(page.getByTestId("SetupWizardFinalDisabled").filter({ visible: true })).toBeVisible();
     // Nor the host's acquisition UI, on the step where it would live.
-    await page.getByTestId("SetupWizardStep-matches").click();
+    await page.getByTestId("SetupWizardStep-matches").filter({ visible: true }).click();
     await expect(
       page.getByTestId("SetupAddAllFilteredMatchesButton"),
     ).toHaveCount(0);
-    await page.getByTestId("SetupWizardStep-assign").click();
+    await page.getByTestId("SetupWizardStep-assign").filter({ visible: true }).click();
   },
 );
 
 Then("the second member sees their own pick panel", async () => {
-  const panel = secondDevice().getByTestId("lobby-player-pick-panel");
+  const panel = secondDevice().getByTestId("lobby-player-pick-panel").filter({ visible: true });
   await panel.scrollIntoViewIfNeeded();
   await expect(panel).toBeVisible({ timeout: PROPAGATION_TIMEOUT_MS });
 });
@@ -103,7 +103,7 @@ When("the second member picks their first available match", async () => {
   const page = secondDevice();
   // The pick panel lists the pool minus the Common Match (FR-040a), so the
   // first option here is whatever the host left pickable.
-  const option = page.getByTestId(/^lobby-player-pick-panel-option-/).first();
+  const option = page.getByTestId(/^lobby-player-pick-panel-option-/).filter({ visible: true }).first();
   await option.scrollIntoViewIfNeeded();
   await option.click();
 });
@@ -112,7 +112,7 @@ When("the second member releases their pick", async () => {
   const page = secondDevice();
   // Tapping a held pick again releases it — the same control, which is the
   // point of FR-040's release affordance.
-  const option = page.getByTestId(/^lobby-player-pick-panel-option-/).first();
+  const option = page.getByTestId(/^lobby-player-pick-panel-option-/).filter({ visible: true }).first();
   await option.scrollIntoViewIfNeeded();
   await option.click();
 });
@@ -121,7 +121,7 @@ Then(
   `the second member's own pick progress reads {string}`,
   async ({ page: _page }, expected: string) => {
     await expect(
-      secondDevice().getByTestId("lobby-player-pick-panel-count"),
+      secondDevice().getByTestId("lobby-player-pick-panel-count").filter({ visible: true }),
     ).toHaveText(expected, { timeout: PROPAGATION_TIMEOUT_MS });
   },
 );
@@ -130,15 +130,15 @@ Then(
   `the host's device shows the second member at {string}`,
   async ({ page }, expected: string) => {
     // The host never made this write. It arrives on the host's own poll.
-    await page.getByTestId("SetupWizardStep-room").click();
+    await page.getByTestId("SetupWizardStep-room").filter({ visible: true }).click();
     const progress = page.getByTestId(
       `lobby-pick-progress-${SECOND_MEMBER_ID}`,
-    );
+    ).filter({ visible: true });
     await progress.scrollIntoViewIfNeeded();
     await expect(progress).toContainText(expected, {
       timeout: PROPAGATION_TIMEOUT_MS,
     });
-    await page.getByTestId("SetupWizardStep-assign").click();
+    await page.getByTestId("SetupWizardStep-assign").filter({ visible: true }).click();
   },
 );
 
@@ -146,15 +146,15 @@ Then(
   `the second member's device shows the host at {string}`,
   async ({ page: _page }, expected: string) => {
     const page = secondDevice();
-    await page.getByTestId("SetupWizardStep-room").click();
+    await page.getByTestId("SetupWizardStep-room").filter({ visible: true }).click();
     const progress = page.getByTestId(
       `lobby-pick-progress-${HOST_ROOM_PARTICIPANT_ID}`,
-    );
+    ).filter({ visible: true });
     await progress.scrollIntoViewIfNeeded();
     await expect(progress).toContainText(expected, {
       timeout: PROPAGATION_TIMEOUT_MS,
     });
-    await page.getByTestId("SetupWizardStep-assign").click();
+    await page.getByTestId("SetupWizardStep-assign").filter({ visible: true }).click();
   },
 );
 

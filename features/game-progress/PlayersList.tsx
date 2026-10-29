@@ -180,6 +180,8 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
           <View style={styles.controlsContainer}>
             <TouchableOpacity
               testID={`DrinkDecrement-${player.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Decrease drinks consumed by ${player.name}`}
               style={[styles.controlButton, styles.actionButton]}
               disabled={disabled}
               onPress={() => {
@@ -198,6 +200,8 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
 
             <TouchableOpacity
               testID={`DrinkIncrement-${player.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Increase drinks consumed by ${player.name}`}
               style={[styles.controlButton, styles.actionButton]}
               disabled={disabled}
               onPress={() => {

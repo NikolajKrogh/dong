@@ -238,6 +238,13 @@ const readJsonRequestBody = (
 };
 
 const installHostProfileMocks = async (page: Page) => {
+  await page.route("**/rest/v1/rpc/bootstrap_account", async route => {
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 200, headers: corsHeaders });
+      return;
+    }
+    await fulfillJson(route, 200, activeHostProfileState.account);
+  });
   await page.route("**/auth/v1/user**", async (route) => {
     if (route.request().method() === "OPTIONS") {
       await route.fulfill({ status: 200, headers: corsHeaders });

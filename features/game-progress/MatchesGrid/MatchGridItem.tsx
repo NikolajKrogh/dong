@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
 import AppIcon from "../../../components/ui/AppIcon";
 import { useColors } from "../../../styles/theme";
 import { formatMatchScore, getMatchPresentation } from "../../football-matches/matchPresentation";
@@ -89,7 +89,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
+      accessibilityLabel={Platform.OS === "web" ? undefined : `Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
     >
       {/* Common indicator */}
       {match.id === commonMatchId && <View style={styles.commonIndicator} />}
@@ -100,6 +100,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           {/* Home team: Logo on LEFT */}
           <View style={styles.teamLogoContainer}>
             <Image
+              accessibilityLabel={match.homeTeam}
               source={homeTeamLogo}
               style={styles.teamLogo}
               resizeMode="contain"
@@ -117,6 +118,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           {/* Away team: Logo on RIGHT */}
           <View style={styles.teamLogoContainer}>
             <Image
+              accessibilityLabel={match.awayTeam}
               source={awayTeamLogo}
               style={styles.teamLogo}
               resizeMode="contain"

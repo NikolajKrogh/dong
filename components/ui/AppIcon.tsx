@@ -105,7 +105,7 @@ const AppIcon: React.FC<AppIconProps> = ({
 }) => {
   const iconName = ICON_MAP[name];
 
-  return <Ionicons name={iconName} size={size} color={color} style={style} />;
+  return <Ionicons aria-hidden accessible={false} name={iconName} size={size} color={color} style={style} />;
 };
 
 export default AppIcon;

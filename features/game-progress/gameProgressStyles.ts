@@ -262,13 +262,13 @@ export function createGameProgressStyles(colors: Colors) {
     scoreText: {
       fontSize: 18,
       fontWeight: "bold",
-      color: colors.primary,
+      color: colors.primaryDark,
       marginHorizontal: 25,
     },
     gridScoreText: {
       fontSize: 16,
       fontWeight: "bold",
-      color: colors.primary,
+      color: colors.primaryDark,
       marginHorizontal: 8,
     },
     teamScoreContainer: {
@@ -519,7 +519,7 @@ export function createGameProgressStyles(colors: Colors) {
     matchGoalsCount: {
       fontSize: 16,
       fontWeight: "700",
-      color: colors.primary,
+      color: colors.primaryDark,
       marginLeft: 4,
     },
     matchListRightSection: {
@@ -532,7 +532,7 @@ export function createGameProgressStyles(colors: Colors) {
     matchListGoalsCount: {
       fontSize: 16,
       fontWeight: "bold",
-      color: colors.primary,
+      color: colors.primaryDark,
       marginLeft: 4,
     },
 
@@ -1077,7 +1077,7 @@ export function createGameProgressStyles(colors: Colors) {
     backButtonText: {
       marginLeft: 4,
       fontSize: 16,
-      color: colors.primary,
+      color: colors.primaryDark,
     },
     closeButton: {
       marginTop: 16,
@@ -1374,7 +1374,7 @@ export function createGameProgressStyles(colors: Colors) {
       marginLeft: 8,
     },
     activeTabButtonText: {
-      color: colors.primary,
+      color: colors.primaryDark,
       fontWeight: "700",
     },
     tabBadge: {

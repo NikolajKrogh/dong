@@ -269,6 +269,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
   const fadeAnims = useRef<{ [key: string]: Animated.Value }>({});
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const inputFocusedRef = useRef(false);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get player suggestions based on the current input value.
@@ -294,6 +295,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
    * It shows the suggestion dropdown if there is a history of players.
    */
   const handleInputFocus = () => {
+    inputFocusedRef.current = true;
     setIsInputFocused(true);
     if (hasHistory && newPlayerName.trim().length > 0) {
       setShowSuggestions(true);
@@ -305,6 +307,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
    * It hides the suggestion dropdown after a short delay to allow for taps.
    */
   const handleInputBlur = () => {
+    inputFocusedRef.current = false;
     setIsInputFocused(false);
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
@@ -328,7 +331,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
 
     setNewPlayerName(text);
     // Show suggestions only if the input is focused, has history, and contains text.
-    if (hasHistory && isInputFocused && text.length > 0) {
+    if (hasHistory && inputFocusedRef.current && text.length > 0) {
       setShowSuggestions(true);
     } else if (text.length === 0) {
       setShowSuggestions(false);

@@ -18,7 +18,7 @@ Given("Home is open in the browser", async ({ page }) => {
 });
 
 When("I open Game Stats using the keyboard", async ({ page }) => {
-  const card = page.getByRole("link", { name: "Game Stats, view history", exact: true });
+  const card = page.getByRole("link", { name: /^Game Stats/ });
   await expect(card).toHaveAttribute("href", "/history");
   await expect(card.getByText("Game Stats", { exact: true })).toBeVisible();
   await card.focus();

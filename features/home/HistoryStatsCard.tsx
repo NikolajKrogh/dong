@@ -1,12 +1,12 @@
+import { Link } from "expo-router";
 import React from "react";
 import { Platform, Text, View } from "react-native";
-import { Link } from "expo-router";
 
-import AppIcon from "../../components/ui/AppIcon";
 import { ShellCard } from "../../components/ui";
-import createStyles from "./homeStyles";
+import AppIcon from "../../components/ui/AppIcon";
 import { useColors } from "../../styles/theme";
 import type { TopDrinkerInfo } from "./homeStats";
+import createStyles from "./homeStyles";
 
 interface HistoryStatsCardProps {
   colors: ReturnType<typeof useColors>;
@@ -23,20 +23,15 @@ export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
   topDrinkerInfo,
   totalDrinks,
 }) => {
-  return (
-    <Link href="/history" asChild>
+  const accessibleName = `Game Stats, Games Played ${historyLength}${topDrinkerInfo ? `, Top Drinker ${topDrinkerInfo.name} (${topDrinkerInfo.drinks.toFixed(1)})` : ""}, Total Drinks ${totalDrinks.toFixed(1)}, view history`;
+  const card = (
       <ShellCard
         elevated
-        {...(Platform.OS === "web"
-          ? {
-              render: <a href="/history" aria-label="Game Stats, view history" style={{ textDecoration: "none" }} />,
-              role: "link",
-              "aria-label": "Game Stats, view history",
-            }
-          : {
-              accessibilityRole: "link",
-              accessibilityLabel: "Game Stats, view history",
-            })}
+        {...(Platform.OS !== "web" ? {
+          accessibilityRole: "link" as const,
+          accessibilityLabel: accessibleName,
+          testID: "home-history-stats-card",
+        } : {})}
         cursor="pointer"
         focusVisibleStyle={{
           outlineWidth: 2,
@@ -44,7 +39,6 @@ export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
           outlineColor: "$primaryFocus",
           outlineOffset: 3,
         }}
-        testID="home-history-stats-card"
         style={{ marginTop: 16 }}
       >
         <View style={styles.statsHeader}>
@@ -96,6 +90,11 @@ export const HistoryStatsCard: React.FC<HistoryStatsCardProps> = ({
           </View>
         </View>
       </ShellCard>
-    </Link>
   );
+  if (Platform.OS === "web") {
+    return <Link href="/history" testID="home-history-stats-card" style={{ display: "flex", width: "100%", textDecorationLine: "none" }}>
+      {card}
+    </Link>;
+  }
+  return <Link href="/history" asChild>{card}</Link>;
 };

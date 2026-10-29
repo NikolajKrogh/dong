@@ -7,10 +7,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Switch, Text, View } from "react-native";
+import { ShellCard, ShellSection } from "../../components/ui";
+import { useGameStore } from "../../store/gameStore";
 import { useColors } from "../../styles/theme";
 import { createUserPreferencesStyles } from "./preferencesStyles";
-import { useGameStore } from "../../store/gameStore";
-import { ShellCard, ShellSection } from "../../components/ui";
 
 /**
  * AppearanceSettings component
@@ -56,6 +56,7 @@ const AppearanceSettings: React.FC<{ showSectionTitle?: boolean }> = ({ showSect
             <Text style={styles.preferenceLabel}>Dark Mode</Text>
           </View>
           <Switch
+            accessibilityLabel="Dark Mode"
             testID="ThemeSettingSwitch"
             value={theme === "dark"}
             onValueChange={toggleTheme}

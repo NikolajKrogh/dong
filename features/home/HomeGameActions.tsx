@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import type { Href } from "expo-router";
-import { Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 
 import AppIcon from "../../components/ui/AppIcon";
 import { ShellActionButton } from "../../components/ui";
@@ -35,6 +35,20 @@ export function HomeGameActions({ actions: roomActions, colors, styles, wideLayo
   const game = useGameStore();
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
   const [isStartSheetVisible, setIsStartSheetVisible] = useState(false);
+  const pendingChoiceRef = useRef<(() => void) | null>(null);
+  const finishSheetDismissal = useCallback(() => {
+    const action = pendingChoiceRef.current;
+    pendingChoiceRef.current = null;
+    action?.();
+  }, []);
+  const chooseAfterDismissal = (action: () => void) => {
+    pendingChoiceRef.current = action;
+    setIsStartSheetVisible(false);
+  };
+  useEffect(() => {
+    // Web must release the modal's focus trap before navigation freezes Home.
+    if (!isStartSheetVisible && Platform.OS !== "web") finishSheetDismissal();
+  }, [finishSheetDismissal, isStartSheetVisible]);
   const { activeRoom, guestRoomSession } = roomActions;
   const currentGame = getCurrentGameDetails(roomActions, game);
   const openCancelModal = () => setIsConfirmModalVisible(true);
@@ -97,25 +111,21 @@ export function HomeGameActions({ actions: roomActions, colors, styles, wideLayo
       error={roomActions.createRoomError}
       signedIn={roomActions.account !== null}
       onClose={() => setIsStartSheetVisible(false)}
-      onLocal={() => {
-        setIsStartSheetVisible(false);
-        router.push("/setupGame");
-      }}
-      onHost={() => {
+      onDismiss={finishSheetDismissal}
+      onLocal={() => chooseAfterDismissal(() => router.push("/setupGame"))}
+      onHost={() => chooseAfterDismissal(() => {
         if (!roomActions.account) {
-          setIsStartSheetVisible(false);
           router.push(buildAccountAuthRoute("/auth", "/") as never);
           return;
         }
         void roomActions.createRoom().then(created => {
-          if (created) setIsStartSheetVisible(false);
+          if (!created) setIsStartSheetVisible(true);
         });
-      }}
-      onJoin={() => {
-        setIsStartSheetVisible(false);
+      })}
+      onJoin={() => chooseAfterDismissal(() => {
         if (roomActions.account) roomActions.setIsJoinModalVisible(true);
         else roomActions.handleOpenGuestJoin();
-      }}
+      })}
     />
     <CancelGameModal
       visible={isConfirmModalVisible}

@@ -13,12 +13,13 @@ interface StartGameSheetProps {
   error: string | null;
   signedIn: boolean;
   onClose: () => void;
+  onDismiss: () => void;
   onLocal: () => void;
   onHost: () => void;
   onJoin: () => void;
 }
 
-export function StartGameSheet({ visible, busy, error, signedIn, onClose, onLocal, onHost, onJoin }: StartGameSheetProps): React.ReactElement {
+export function StartGameSheet({ visible, busy, error, signedIn, onClose, onDismiss, onLocal, onHost, onJoin }: StartGameSheetProps): React.ReactElement {
   const colors = useColors();
   const styles = createStyles(colors);
   const insets = useSafeAreaInsets();
@@ -30,7 +31,7 @@ export function StartGameSheet({ visible, busy, error, signedIn, onClose, onLoca
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={busy ? undefined : onClose}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={busy ? undefined : onClose} onDismiss={onDismiss}
       onShow={() => closeButton.current?.focus()}>
       <View style={styles.sheetOverlay}>
         <Pressable accessible={false} tabIndex={-1} disabled={busy}

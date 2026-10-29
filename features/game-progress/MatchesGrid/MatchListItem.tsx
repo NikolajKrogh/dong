@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
 import AppIcon from "../../../components/ui/AppIcon";
 import { useColors } from "../../../styles/theme";
 import { formatMatchScore, getMatchPresentation } from "../../football-matches/matchPresentation";
@@ -85,7 +85,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
+      accessibilityLabel={Platform.OS === "web" ? undefined : `Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
     >
       {/* Common indicator */}
       {match.id === commonMatchId && (
@@ -99,7 +99,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         <View style={styles.logosRow}>
           {/* Home team: Logo on LEFT */}
           <View style={styles.matchList_HomeLogoWrapper}>
-            <Image source={homeTeamLogo} style={styles.matchList_LogoImage} />
+            <Image accessibilityLabel={match.homeTeam} source={homeTeamLogo} style={styles.matchList_LogoImage} />
           </View>
 
           <View
@@ -116,7 +116,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 
           {/* Away team: Logo on RIGHT */}
           <View style={styles.matchList_AwayLogoWrapper}>
-            <Image source={awayTeamLogo} style={styles.matchList_LogoImage} />
+            <Image accessibilityLabel={match.awayTeam} source={awayTeamLogo} style={styles.matchList_LogoImage} />
           </View>
         </View>
 

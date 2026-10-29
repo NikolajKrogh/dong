@@ -42,7 +42,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           backgroundColor: colors.primaryLight,
         },
         commonBadgeText: {
-          color: colors.primary,
+          color: colors.primaryDark,
           fontSize: 12,
           fontWeight: "700",
         },

@@ -1,7 +1,7 @@
-import type { GuestRoomSession } from "../../../types/guestRoom";
 import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
+import type { GuestRoomSession } from "../../../types/guestRoom";
 
 jest.mock("expo-linking", () => ({ createURL: jest.fn() }));
 
@@ -24,7 +24,7 @@ jest.mock("../../../features/rooms/roomRpcClient", () => ({ getRoomRpcClient: ()
 const mockUseHistory = jest.fn();
 jest.mock("../../../features/history", () => ({
   useHistory: () => mockUseHistory(),
-  calculateLifetimePlayerStats: jest.requireActual("../../../features/history/historyUtils").calculateLifetimePlayerStats,
+  calculateLifetimePlayerStats: jest.requireActual("../../../features/history/historyCalculations").calculateLifetimePlayerStats,
 }));
 
 const mockUseHostRoomCreate = jest.fn(() => ({
@@ -114,8 +114,10 @@ jest.mock("../../../features/rooms/useRoomExit", () => ({
 }));
 
 jest.mock("expo-router", () => ({
-  Link: ({ children, href }: { children: React.ReactElement; href: string }) =>
-    require("react").cloneElement(children, { href, onPress: () => mockPush(href) }),
+  Link: ({ children, href, asChild, ...props }: { children: React.ReactElement; href: string; asChild?: boolean; [key: string]: unknown }) =>
+    asChild
+      ? require("react").cloneElement(children, { ...props, href, onPress: () => mockPush(href) })
+      : require("react").createElement("a", { ...props, href, onPress: () => mockPush(href) }, children),
   useFocusEffect: (callback: () => void) => {
     require("react").useEffect(callback, [callback]);
   },
@@ -343,7 +345,7 @@ describe("HomeScreen platform adoption", () => {
     const HomeScreen = require("../../../features/home/HomeScreen").default;
     const renderer = actCreate(React.createElement(HomeScreen));
     expect(mockStoreState.history).toEqual([]);
-    const card = renderer.root.findByProps({ testID: "home-history-stats-card" });
+    const card = renderer.root.find((node) => node.type === "a" && node.props.testID === "home-history-stats-card");
     expect(card.props.href).toBe("/history");
     TestRenderer.act(() => card.props.onPress());
     expect(mockPush).toHaveBeenCalledWith("/history");
@@ -381,6 +383,7 @@ describe("HomeScreen platform adoption", () => {
     TestRenderer.act(() => {
       guestJoinButton.props.onPress();
     });
+    TestRenderer.act(() => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet).props.onDismiss());
 
     const modal = renderer.root.findByProps({ testID: "GuestJoinModal" });
     const { Text } = require("react-native");
@@ -478,9 +481,12 @@ describe("HomeScreen platform adoption", () => {
     const renderer = actCreate(React.createElement(require("../../../features/home/HomeScreen").default));
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-play-local" }).props.onPress());
+    expect(mockPush).not.toHaveBeenCalled();
+    TestRenderer.act(() => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet).props.onDismiss());
     expect(mockPush).toHaveBeenLastCalledWith("/setupGame");
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-create-room-button" }).props.onPress());
+    TestRenderer.act(() => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet).props.onDismiss());
     expect(mockPush).toHaveBeenLastCalledWith("/auth?returnTo=%2F");
     TestRenderer.act(() => renderer.unmount());
   });
@@ -492,12 +498,15 @@ describe("HomeScreen platform adoption", () => {
     const renderer = actCreate(React.createElement(require("../../../features/home/HomeScreen").default));
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-join-registered-button" }).props.onPress());
+    TestRenderer.act(() => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet).props.onDismiss());
     expect(renderer.root.findByType(require("../../../features/home/JoinRoomModal").JoinRoomModal).props.visible).toBe(true);
     TestRenderer.act(() => renderer.root.findByProps({ testID: "home-start-game-button" }).props.onPress());
     await TestRenderer.act(async () => renderer.root.findByProps({ testID: "home-create-room-button" }).props.onPress());
+    await TestRenderer.act(async () => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet).props.onDismiss());
     const sheet = () => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet);
     expect(sheet().props).toMatchObject({ visible: true, error: "Failed to create room." });
     await TestRenderer.act(async () => renderer.root.findByProps({ testID: "home-create-room-button" }).props.onPress());
+    await TestRenderer.act(async () => renderer.root.findByType(require("../../../features/home/StartGameSheet").StartGameSheet).props.onDismiss());
     expect(sheet().props.visible).toBe(false);
     TestRenderer.act(() => renderer.unmount());
   });
@@ -540,6 +549,6 @@ it("keeps Home free of separate Friends and room buttons", () => {
   const renderer = actCreate(React.createElement(require("../../../features/home/HomeScreen").default));
   expect(renderer.root.findAllByProps({ testID: "home-friends-button" })).toHaveLength(0);
   expect(renderer.root.findAllByProps({ testID: "home-return-to-room" })).toHaveLength(0);
-  expect(renderer.root.findByProps({ testID: "home-history-stats-card" }).props.href).toBe("/history");
+  expect(renderer.root.find((node) => node.type === "a" && node.props.testID === "home-history-stats-card").props.href).toBe("/history");
   TestRenderer.act(() => renderer.unmount());
 });

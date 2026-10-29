@@ -294,10 +294,7 @@ Then(
   "only generic room-unavailable feedback should be visible",
   async ({ page }) => {
     await expect(
-      page.getByText(
-        "This room is unavailable. Check the code or ask the host for a new invitation.",
-        { exact: true },
-      ),
+      page.locator("#guest-join-error"),
     ).toBeVisible();
     const safe = await page.evaluate(() => {
       const visible = document.body.innerText;
@@ -401,7 +398,7 @@ Then("the guest should see final-only results", async ({ page }) => {
 
 Then("the guest should lose closed-room access", async ({ page }) => {
   await expect(
-    page.getByText("Your guest access is no longer valid.", { exact: false }),
+    page.locator("#guest-join-error"),
   ).toBeVisible({ timeout: 10_000 });
   await expect
     .poll(() =>

@@ -1,15 +1,15 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Text as TText, XStack, YStack } from "tamagui";
 
+import { ShellActionButton, ShellCard, ShellSection } from "../../components/ui";
+import { isWebPlatform } from "../../platform/environment";
+import { useGameStore } from "../../store/gameStore";
+import { buildAccountAuthRoute, useAccountAuth } from "../account";
 import OnboardingScreen from "../onboarding/OnboardingScreen";
 import AccountAvatar from "./AccountAvatar";
 import SettingsMenuRow from "./SettingsMenuRow";
 import SettingsPage from "./SettingsPage";
-import { ShellActionButton, ShellCard, ShellSection } from "../../components/ui";
-import { buildAccountAuthRoute, useAccountAuth } from "../account";
-import { useGameStore } from "../../store/gameStore";
-import { isWebPlatform } from "../../platform/environment";
 
 type SettingsAccountContentProps = Pick<
   ReturnType<typeof useAccountAuth>,
@@ -21,13 +21,13 @@ function SettingsAccountContent({ account, status, sessionNotice }: SettingsAcco
   const displayName = account?.username?.trim();
 
   if (status === "loading") {
-    return <TText color="$textMuted">Loading account...</TText>;
+    return <TText color="$colorMuted">Loading account...</TText>;
   }
   if (status === "signedOut") {
     return (
       <>
         {sessionNotice ? <TText color="$danger">{sessionNotice}</TText> : null}
-        <TText color="$textSecondary">Sign in to create and manage multiplayer rooms.</TText>
+        <TText color="$colorSecondary">Sign in to create and manage multiplayer rooms.</TText>
         <ShellActionButton variant="surface" label="Sign in or create account" onPress={() => router.push(buildAccountAuthRoute("/auth", "/userPreferences") as never)} />
       </>
     );
@@ -38,8 +38,8 @@ function SettingsAccountContent({ account, status, sessionNotice }: SettingsAcco
       <XStack gap="$3" alignItems="center">
         <AccountAvatar letter={displayName?.[0]?.toUpperCase() ?? "?"} />
         <YStack>
-          <TText color="$textPrimary" fontWeight="600" fontSize={16}>{displayName ?? "Account"}</TText>
-          <TText color="$textMuted" fontSize={13}>Signed in</TText>
+          <TText color="$color" fontWeight="600" fontSize={16}>{displayName ?? "Account"}</TText>
+          <TText color="$colorMuted" fontSize={13}>Signed in</TText>
         </YStack>
       </XStack>
       {status === "ready" ? <>
