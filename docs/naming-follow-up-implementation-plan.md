@@ -301,7 +301,8 @@ was introduced.
 - Database: 71 files / 1,170 assertions passed; generated contract drift check passed.
 - Edge entry-point typechecks, client typecheck, lint and Knip passed.
 - React Doctor: 100/100, no findings.
-- Accessibility: 28 cases passed. Final full browser rerun and remote CI are pending
-  before merging the follow-up into the naming branch.
+- Browser: all 142 maintained cases passed in one complete run.
+- Accessibility: all 28 cases passed. Remote CI must pass before merging the follow-up
+  into the naming branch.
 - Physical Android/device acceptance is excluded by agreement. Hosted deployment and
   acquisition/Cron activation remain outside this task.
