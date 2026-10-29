@@ -1,13 +1,14 @@
 import type { User } from "@supabase/supabase-js";
 import { useEffect, type MutableRefObject } from "react";
 
-import { serializeSyncedPreferenceState, useGameStore } from "../../store/gameStore";
+import { getAccountScope, isCurrentAccountScope } from '../../lib/queryClient';
+import { getSupabaseClient } from "../../lib/supabase";
+import { useGameStore } from "../../store/gameStore";
+import { serializeSyncedPreferenceState } from "../../store/syncedPreferences";
 import {
   buildSyncedPreferenceSignature,
   saveAccountSyncedSettings,
 } from './accountRepository';
-import { getSupabaseClient } from "../../lib/supabase";
-import { getAccountScope, isCurrentAccountScope } from '../../lib/queryClient';
 
 interface UseAccountSettingsSyncParams {
   isConfigured: boolean;

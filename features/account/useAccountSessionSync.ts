@@ -14,10 +14,10 @@ import {
   type SetStateAction,
 } from "react";
 
-import {
-  applySyncedPreferenceState,
-  getCurrentSyncedPreferenceState,
-} from "../../store/gameStore";
+import { getAccountScope, isCurrentAccountScope, setAccountScope } from '../../lib/queryClient';
+import { getSupabaseClient } from "../../lib/supabase";
+import { applySyncedPreferenceState, getCurrentSyncedPreferenceState } from "../../store/gameStore";
+import type { Database } from "../../types/database";
 import {
   bootstrapAccountRow,
   buildSyncedPreferenceSignature,
@@ -25,11 +25,8 @@ import {
   saveAccountSyncedSettings,
   type Account,
 } from './accountRepository';
-import { normalizeAccountUsername } from './username';
-import type { Database } from "../../types/database";
-import { getAccountScope, isCurrentAccountScope, setAccountScope } from '../../lib/queryClient';
-import { getSupabaseClient } from "../../lib/supabase";
 import type { AccountAuthStatus } from "./useAccountAuth";
+import { normalizeAccountUsername } from './username';
 
 interface UseAccountSessionSyncParams {
   isConfigured: boolean;

@@ -1,8 +1,8 @@
-import { actCreate } from "../../../test-utils/render";
-import type { Session } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import type { Session } from "@supabase/supabase-js";
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
 import {
   AccountAuthProvider,
@@ -12,11 +12,8 @@ import {
   saveAccountUsername,
   useAccountAuth,
 } from "../../../features/account/useAccountAuth";
-import {
-  getCurrentSyncedPreferenceState,
-  useGameStore,
-} from "../../../store/gameStore";
 import { getSupabaseClient, getSupabasePublicConfig, hasSupabasePublicConfig } from "../../../lib/supabase";
+import { getCurrentSyncedPreferenceState, useGameStore } from "../../../store/gameStore";
 
 const DEFAULT_SELECTED_LEAGUES = [
   { name: "Premier League", code: "eng.1", category: "Europe" },

@@ -1,10 +1,10 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { useHistory } from '../../../features/history/useHistory';
-import { loadCloudHistory } from '../../../features/history/historyRepository';
-import { getAccountScope, queryClient, setAccountScope } from '../../../lib/queryClient';
 import { useAccountAuth } from '../../../features/account';
-import { useGameStore } from '../../../store/gameStore';
+import { loadCloudHistory } from '../../../features/history/historyRepository';
+import { useHistory } from '../../../features/history/useHistory';
+import { getAccountScope, queryClient, setAccountScope } from '../../../lib/queryClient';
+import { useGameStore } from "../../../store/gameStore";
 
 jest.mock('../../../features/account', () => ({ useAccountAuth: jest.fn() }));
 jest.mock('../../../lib/supabase', () => ({ getSupabaseClient: jest.fn(() => ({})), hasSupabasePublicConfig: () => true }));
@@ -36,7 +36,7 @@ const auth = (id: string | null) => {
 };
 describe('account-scoped cloud history', () => {
   beforeAll(() => { queryClient.setDefaultOptions({ queries: { staleTime: 30_000, retry: false, gcTime: Infinity } }); });
-  it('captures only bounded already-saved local details on ordinary access and explicit refresh', async () => {
+  it('keeps ended local history frozen on ordinary access and explicit refresh', async () => {
     auth(null);
     mockReadSavedMatches.mockResolvedValue({ matches: [], missingCatalogMatchIds: [], availability: 'unavailable' });
     const matches = Array.from({ length: 24 }, (_, index) => ({
@@ -50,11 +50,9 @@ describe('account-scoped cloud history', () => {
     const local = { ...session('local'), matches };
     useGameStore.setState({ history: [local] });
     const { result } = renderHook(() => useHistory());
-    await waitFor(() => expect(mockReadSavedMatches).toHaveBeenCalledTimes(1));
-    const firstTwentyIds = Array.from({ length: 20 }, (_, index) => String(index + 1));
-    expect(mockReadSavedMatches).toHaveBeenCalledWith(firstTwentyIds, { projection: 'history' });
     await act(async () => result.current.refresh());
-    expect(mockReadSavedMatches).toHaveBeenCalledTimes(2);
+    expect(mockReadSavedMatches).not.toHaveBeenCalled();
+    expect(result.current.history[0]).toBe(local);
     expect(result.current.history[0].matches[0]).toMatchObject({ homeGoals: 1, awayGoals: 0 });
   });
   beforeEach(() => { queryClient.clear(); setAccountScope(null); useGameStore.setState({ history: [session('local')] as never }); });
