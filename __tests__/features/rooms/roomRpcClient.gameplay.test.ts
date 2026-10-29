@@ -1,11 +1,11 @@
 import {
-  GameplayRpcError,
-  type GameplayActionResult,
-} from "../../../types/room";
-import {
   createGuestRoomRpcClient,
   createRoomRpcClient,
 } from "../../../features/rooms/roomRpcClient";
+import {
+  GameplayRpcError,
+  type GameplayActionResult,
+} from "../../../types/room";
 
 type FakeResult = {
   data: GameplayActionResult | null;
