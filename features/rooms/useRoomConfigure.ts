@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 
 import {
   ROOM_ERROR,
@@ -10,9 +11,8 @@ import {
   type RoomSnapshot,
 } from "../../types/room";
 import {
-  generateIdempotencyKey,
   getStartGameApiClient,
-} from "../../utils/commandApiClient";
+} from "./startGameCommandClient";
 import { getSupabaseClient } from "../../lib/supabase";
 import { getRoomRpcClient } from "./roomRpcClient";
 

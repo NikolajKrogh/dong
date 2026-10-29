@@ -4,7 +4,7 @@ import com.dong.commandapi.command.CommandResult;
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
 import com.dong.commandapi.security.AuthenticatedHost;
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,10 +30,10 @@ public class PersistentIdempotencyService implements IdempotencyService {
     private static final int IN_FLIGHT_MAX_ATTEMPTS = 5;
     private static final long IN_FLIGHT_POLL_DELAY_MS = 100L;
 
-    private final SupabaseRestClient supabaseRestClient;
+    private final SupabaseRpcClient supabaseRpcClient;
 
-    public PersistentIdempotencyService(SupabaseRestClient supabaseRestClient) {
-        this.supabaseRestClient = supabaseRestClient;
+    public PersistentIdempotencyService(SupabaseRpcClient supabaseRpcClient) {
+        this.supabaseRpcClient = supabaseRpcClient;
     }
 
     @Override
@@ -57,7 +57,7 @@ public class PersistentIdempotencyService implements IdempotencyService {
     @SuppressWarnings({"unchecked", "rawtypes"})
     public IdempotencyDecision reserve(UUID idempotencyKey, String commandType, String roomId, AuthenticatedHost host) {
         for (int attempt = 1; attempt <= IN_FLIGHT_MAX_ATTEMPTS; attempt++) {
-            Map<String, Object> response = supabaseRestClient.rpc(
+            Map<String, Object> response = supabaseRpcClient.rpc(
                     "reserve_command_idempotency",
                     Map.of("idempotency_key", idempotencyKey.toString(), "command_type", commandType, "room_id", roomId),
                     host.rawToken(),
@@ -89,7 +89,7 @@ public class PersistentIdempotencyService implements IdempotencyService {
 
     @Override
     public void complete(UUID idempotencyKey, CommandResult result, AuthenticatedHost host) {
-        if (SupabaseRestClient.isRoomProcessingPending(result.detail())) {
+        if (SupabaseRpcClient.isRoomProcessingPending(result.detail())) {
             release(idempotencyKey, host);
             return;
         }
@@ -98,7 +98,7 @@ public class PersistentIdempotencyService implements IdempotencyService {
         params.put("response_status", result.status().name());
         params.put("response_detail", result.detail());
         try {
-            supabaseRestClient.call("complete_command_idempotency", params, host.rawToken());
+            supabaseRpcClient.call("complete_command_idempotency", params, host.rawToken());
         } catch (RuntimeException ex) {
             // The handler already succeeded (its mutation is durable) — a failure to persist the
             // replay cache must not turn a successful command into a 500 for this caller. It does
@@ -112,7 +112,7 @@ public class PersistentIdempotencyService implements IdempotencyService {
     @Override
     public void release(UUID idempotencyKey, AuthenticatedHost host) {
         try {
-            supabaseRestClient.call("release_command_idempotency",
+            supabaseRpcClient.call("release_command_idempotency",
                     Map.of("idempotency_key", idempotencyKey.toString()), host.rawToken());
         } catch (RuntimeException ex) {
             // Best-effort cleanup: a failed release just leaves a stale reservation behind

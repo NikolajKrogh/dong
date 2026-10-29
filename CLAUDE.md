@@ -65,19 +65,38 @@ npm run db:new-migration  # scaffold a new migration file
 ## Project Structure
 
 ```
-app/                      Expo Router screens (auth/, setupGame, gameProgress, history, userPreferences)
-components/               Reusable UI components (grouped by screen domain)
-hooks/                    React hooks — useMatchData, useAccountAuth, useGuestRoomJoin, etc.
+app/                      Thin Expo Router entries; preserve framework route filenames
+features/                 Feature-owned screens, UI, hooks and operations (kebab-case domains)
+components/ui/            Shared reusable UI
 platform/                 Platform abstraction adapters (animation, audio, date-input, visibility, gestures)
 store/                    Zustand store (AsyncStorage-backed)
-utils/                    Shared utilities incl. commandApiClient.ts (match discovery API client)
+lib/                      SDK and query infrastructure setup
+types/                    Shared contracts and generated database types
+shared/                   Helpers shared by client and Edge runtimes
+utils/                    Feature-independent helpers, including idempotencyKey.ts
+features/football-matches/ Match discovery adapter, service, schemas and transport
+features/rooms/           Room lifecycle operations and startGameCommandClient.ts
+supabase/functions/       Edge entry points; shared football-match implementation in _shared/football-matches/
 supabase/migrations/      SQL schema migrations (run in order)
 supabase/tests/database/  pgTAP tests
-command-api/              Spring Boot service (package-by-feature: match/, security/, command/, etc.)
+command-api/              Spring Boot service (footballmatch/, security/, command/, etc.)
 specs/NNN-*/              Feature specifications (spec.md, plan.md, tasks.md, quickstart.md, …)
 e2e/features/             Playwright BDD .feature files
 e2e/steps/                Playwright step definitions
 ```
+
+Feature implementations own their hooks, styles and helpers. Keep shared UI in
+`components/ui`, platform behavior in `platform`, and application state in `store`.
+Use PascalCase for components and dedicated class files, camelCase for function
+modules and `useCamelCase` for hooks. Feature directories use kebab-case; Java
+packages use lowercase and class files use PascalCase. Use role suffixes such as
+Client, Service, Adapter and Repository only when they describe the implementation.
+Java health access uses `SupabaseHealthProbe` / `HttpSupabaseHealthProbe`; authenticated
+RPC access uses `SupabaseRpcClient`. Domain vocabulary should agree across runtimes,
+without forcing identical filenames for different roles or treating projections as
+identical contracts. Prefer narrow named module entry points; Account, Friends,
+History and Preferences expose their focused public indexes. Tests mirror ownership
+under `__tests__/features/<feature>/` or the appropriate shared directory.
 
 ---
 

@@ -1,6 +1,6 @@
 package com.dong.commandapi.command;
 
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import com.dong.commandapi.testsupport.JwksTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 
 /**
  * End-to-end: the {@code start-game} command through the real controller +
- * dispatcher + {@code PersistentIdempotencyService}, with {@link SupabaseRestClient}
+ * dispatcher + {@code PersistentIdempotencyService}, with {@link SupabaseRpcClient}
  * mocked to fake the {@code command_idempotency} store and {@code start_game_session}
  * — covers the double-submit replay and cross-room key-reuse conflict (FR-025/SC-010,
  * specs/020-canonical-assignment-generation).
@@ -44,7 +44,7 @@ class StartGameCommandControllerTest {
     private TestRestTemplate restTemplate;
 
     @MockitoBean
-    private SupabaseRestClient supabaseRestClient;
+    private SupabaseRpcClient supabaseRpcClient;
 
     private String validJwt() {
         return JwksTestSupport.signedJwt("host-1", "authenticated", Instant.now().plusSeconds(300));
@@ -66,7 +66,7 @@ class StartGameCommandControllerTest {
     private void stubInMemoryIdempotencyStore() {
         Map<String, Map<String, Object>> store = new HashMap<>();
 
-        when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
                 .thenAnswer(invocation -> {
                     Map<String, Object> params = invocation.getArgument(1);
                     String key = (String) params.get("idempotency_key");
@@ -93,7 +93,7 @@ class StartGameCommandControllerTest {
                             "responseDetail", existing.get("responseDetail"));
                 });
 
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenReturn(Map.of("status", "started", "sessionId", "room-1"));
 
         org.mockito.Mockito.doAnswer(invocation -> {
@@ -104,7 +104,7 @@ class StartGameCommandControllerTest {
                     reservation.put("responseDetail", params.get("response_detail"));
                     return null;
                 })
-                .when(supabaseRestClient).call(eq("complete_command_idempotency"), any(), anyString());
+                .when(supabaseRpcClient).call(eq("complete_command_idempotency"), any(), anyString());
     }
 
     @Test
@@ -119,7 +119,7 @@ class StartGameCommandControllerTest {
         assertThat(second.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(second.getBody()).contains("\"status\":\"ACCEPTED\"");
 
-        org.mockito.Mockito.verify(supabaseRestClient, org.mockito.Mockito.times(1))
+        org.mockito.Mockito.verify(supabaseRpcClient, org.mockito.Mockito.times(1))
                 .rpc(eq("start_game_session"), any(), anyString(), any());
     }
 

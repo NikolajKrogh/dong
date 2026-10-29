@@ -1,6 +1,4 @@
-import { getFootballMatchService } from "../features/football-matches/footballMatchService";
-import type { FootballMatchService, MatchDiscoveryResult, SavedMatch } from "../types/footballMatch";
-import { GameplayRpcError } from "../types/room";
+import { GameplayRpcError } from "../../types/room";
 
 interface CommandApiConfig {
   baseUrl: string;
@@ -11,53 +9,6 @@ interface CommandApiErrorResponse {
   message?: string;
   timestamp?: string;
 }
-
-export interface MatchDiscoveryRequest {
-  leagueCodes: string[];
-  requestedAt?: string | null;
-}
-
-interface NormalizedMatchScore {
-  home: number;
-  away: number;
-}
-
-type NormalizedMatchStatus =
-  | "scheduled"
-  | "live"
-  | "final"
-  | "postponed"
-  | "canceled";
-
-export interface NormalizedMatch {
-  id: string;
-  catalogMatchId?: string;
-  league: string;
-  homeTeam: string;
-  awayTeam: string;
-  startDateTime: string;
-  status: NormalizedMatchStatus;
-  score?: NormalizedMatchScore;
-  venue?: string;
-}
-
-interface NormalizedMatchDiscoveryResult extends Omit<MatchDiscoveryResult, "matches"> {
-  matches: NormalizedMatch[];
-}
-
-export interface MatchDiscoveryApiClient {
-  discoverMatches(request: MatchDiscoveryRequest): Promise<NormalizedMatchDiscoveryResult>;
-}
-
-function normalizedStatus(lifecycle: SavedMatch["lifecycle"]): NormalizedMatchStatus {
-  if (lifecycle === "finished") return "final";
-  if (lifecycle === "live") return "live";
-  if (lifecycle === "postponed") return "postponed";
-  if (lifecycle === "canceled" || lifecycle === "abandoned") return "canceled";
-  return "scheduled";
-}
-
-let cachedMatchDiscoveryApiClient: MatchDiscoveryApiClient | null = null;
 
 const readTrimmedEnvValue = (value: string | undefined) => {
   if (typeof value !== "string") {
@@ -105,38 +56,6 @@ const readErrorMessage = async (response: Response) => {
   return `Command API request failed with status ${response.status}.`;
 };
 
-
-export const createMatchDiscoveryApiClient = (
-  footballMatchService: Pick<FootballMatchService, "discoverMatches"> = getFootballMatchService(),
-): MatchDiscoveryApiClient => {
-  return {
-    async discoverMatches(request) {
-      const codes = [...new Set(request.leagueCodes.map(code => code.trim()).filter(Boolean))];
-      if (!codes.length) return { matches: [], groups: [], availability: "available", retryAfterSeconds: null };
-      // Preserve the selected calendar date, including offset-aware legacy callers.
-      const date = request.requestedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10);
-      const result = await footballMatchService.discoverMatches({ leagueCodes: codes, date });
-      return { ...result, matches: result.matches.map(match => ({
-        id: match.identity.sourceEventId,
-        catalogMatchId: match.catalogMatchId,
-        league: match.identity.leagueCode,
-        homeTeam: match.homeTeam.name,
-        awayTeam: match.awayTeam.name,
-        startDateTime: match.kickoffAt ?? "",
-        status: normalizedStatus(match.lifecycle),
-        ...(match.homeScore !== null && match.awayScore !== null ? { score: { home: match.homeScore, away: match.awayScore } } : {}),
-        ...(match.venue?.name ? { venue: match.venue.name } : {}),
-      })) };
-    },
-  };
-};
-
-export const getMatchDiscoveryApiClient = () => {
-  cachedMatchDiscoveryApiClient ??= createMatchDiscoveryApiClient();
-
-  return cachedMatchDiscoveryApiClient;
-};
-
 interface StartGameCommandResponse {
   commandType: string;
   roomId: string;
@@ -164,16 +83,6 @@ export interface StartGameApiClient {
     relaxConstraints?: boolean,
   ): Promise<StartGameCommandResponse>;
 }
-
-/** RFC 4122 v4 UUID. No crypto dependency required — this is an idempotency
- * correlation id, not a security credential. */
-export const generateIdempotencyKey = (): string => {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const random = (Math.random() * 16) | 0;
-    const value = c === "x" ? random : (random & 0x3) | 0x8;
-    return value.toString(16);
-  });
-};
 
 const START_GAME_TIMEOUT_MS = 30_000;
 

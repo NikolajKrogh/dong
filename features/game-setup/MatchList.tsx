@@ -15,7 +15,7 @@ import {
   normalizeMatchTeamName,
   useMatchListFilters,
 } from "./useMatchListFilters";
-import { useMatchProcessing } from "./useMatchProcessing";
+import { useMatchBatchInsertion } from "./useMatchBatchInsertion";
 import { useTeamData } from "../football-matches/useTeamData";
 import { filterMatchesByDateAndTime } from "../football-matches/matchFilters";
 import { PlatformAnimation } from "../../platform";
@@ -66,7 +66,7 @@ interface MatchListViewProps {
   showSectionTitle: boolean;
   manualEntry: React.ReactNode;
   loadingFeedback: React.ReactNode;
-  processingState: ReturnType<typeof useMatchProcessing>["processingState"];
+  processingState: ReturnType<typeof useMatchBatchInsertion>["processingState"];
   leagueFilterProps: React.ComponentProps<typeof LeagueFilter>;
   matchFilterProps: React.ComponentProps<typeof MatchFilter>;
   onToggleMatch: (matchId: string) => void;
@@ -168,7 +168,7 @@ const MatchListView = ({
  * - `useMatchData`: Fetches match data for a given date.
  * - `useTeamData`: Fetches team data from league JSON files.
  * - `useMatchListFilters`: Filters teams and matches based on selected leagues/date/time.
- * - `useMatchProcessing`: Handles batch processing of matches.
+ * - `useMatchBatchInsertion`: Handles batch processing of matches.
  *
  * @param {MatchListProps} props - The props for the MatchList component.
  * @return {JSX.Element} A React functional component.
@@ -227,7 +227,7 @@ const MatchList: FC<MatchListProps> = ({
   /**
    * Appends a hand-typed fixture to the pool and clears the two fields.
    *
-   * Declared here, above `useMatchProcessing`, because that hook takes it as its
+   * Declared here, above `useMatchBatchInsertion`, because that hook takes it as its
    * sequential-fallback handler â€” a `const` referenced before its initialiser
    * would be a TDZ error. It replaces what used to be a `handleAddMatch` prop,
    * which every caller had to supply and none of them ever saw invoked: both pass
@@ -250,7 +250,7 @@ const MatchList: FC<MatchListProps> = ({
     }
   };
 
-  const { startProcessing, processingState } = useMatchProcessing(
+  const { startProcessing, processingState } = useMatchBatchInsertion(
     matches,
     setHomeTeam,
     setAwayTeam,

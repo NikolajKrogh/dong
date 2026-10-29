@@ -11,7 +11,7 @@ import { useColors } from "../../styles/theme";
 import {
   calculateTotalGoals,
   calculateTotalDrinks,
-  findTopDrinker,
+  findTopDrinkers,
   formatHistoryDate,
   getPlayerIdentityKey,
 } from "./historyUtils";
@@ -188,7 +188,7 @@ const GameHistoryItem = React.memo(function GameHistoryItem({
   const dateLabel = formatHistoryDate(game.date);
   const totalDrinks = calculateTotalDrinks(game.players);
   const totalGoals = calculateTotalGoals(game.matches);
-  const topDrinkers = findTopDrinker(game.players);
+  const topDrinkers = findTopDrinkers(game.players);
   const commonMatch = game.matches.find((match) => match.id === game.commonMatchId);
   const previewMatch = commonMatch ?? game.matches[0] ?? null;
   const accessibilityLabel = createAccessibilityLabel({
@@ -245,7 +245,7 @@ interface AccessibilityLabelArgs {
   totalDrinks: number;
   totalGoals: number;
   previewMatch: GameSession["matches"][number] | null;
-  topDrinkers: ReturnType<typeof findTopDrinker>;
+  topDrinkers: ReturnType<typeof findTopDrinkers>;
 }
 
 function createAccessibilityLabel({
@@ -360,7 +360,7 @@ function TopDrinkerSummary({
   colors,
 }: {
   game: GameSession;
-  topDrinkers: ReturnType<typeof findTopDrinker>;
+  topDrinkers: ReturnType<typeof findTopDrinkers>;
   styles: HistoryItemStyles;
   colors: HistoryItemColors;
 }) {

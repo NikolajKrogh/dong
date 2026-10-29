@@ -14,7 +14,7 @@ import { Match } from "../../store/gameStore";
  * @param setGlobalMatches Optional state setter enabling fast batch add.
  * @returns API with startProcessing plus processing state.
  */
-export function useMatchProcessing(
+export function useMatchBatchInsertion(
   matches: Match[],
   setHomeTeam: (team: string) => void,
   setAwayTeam: (team: string) => void,

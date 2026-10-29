@@ -38,7 +38,7 @@ export const calculateTotalDrinks = (players: Player[]): number => {
  * @param {Player[]} players Player collection.
  * @returns {Player[]} Array of players with most drinks (multiple if tied).
  */
-export const findTopDrinker = (players: Player[]): Player[] => {
+export const findTopDrinkers = (players: Player[]): Player[] => {
   if (players.length === 0) return [];
   
   const sortedPlayers = [...players].sort(

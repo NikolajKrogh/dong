@@ -1,4 +1,4 @@
-import { generateIdempotencyKey } from "../../utils/commandApiClient";
+import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 
 describe("shared idempotency key generation", () => {
   it("generates RFC 4122 UUIDv4 values for shared web and native callers", () => {

@@ -514,3 +514,58 @@ The Java package com.dong.commandapi.match becomes com.dong.commandapi.footballm
 | command-api/src/test/java/com/dong/commandapi/match/MatchDiscoveryServiceTest.java | command-api/src/test/java/com/dong/commandapi/footballmatch/MatchDiscoveryServiceTest.java | Use the same explicit football-match domain vocabulary across Java and TypeScript. |
 
 All eight files were mechanically checked to differ only by the package/import namespace. Full Maven clean verify passed: 92 tests, zero failures/errors; JaCoCo coverage checks passed. The old compiled match package is absent after the clean build. Unrelated package/skill work remains excluded.
+
+## M8 — Follow-up naming audit — 2026-10-29
+
+The fresh folder-structure, file-name-wizard and naming-analyzer audit found a
+small set of residual role ambiguities. Preserve the established feature layout
+and language conventions; align domain vocabulary without forcing the same name
+onto modules with different responsibilities.
+
+| Old path or symbol | New path or symbol | Reason |
+| --- | --- | --- |
+| utils/commandApiClient.ts (start-game HTTP operations) | features/rooms/startGameCommandClient.ts | Keep the Java command transport with its room lifecycle owner. |
+| utils/commandApiClient.ts (discovery adaptation) | features/football-matches/matchDiscoveryAdapter.ts | This delegates to FootballMatchService, rather than the Java command API. |
+| utils/commandApiClient.ts (generateIdempotencyKey) | utils/idempotencyKey.ts | Keep shared key generation independent of both transport implementations. |
+| __tests__/utils/commandApiClient.idempotency.test.ts | __tests__/utils/idempotencyKey.test.ts | Mirror the shared helper's name. |
+| features/game-setup/useMatchProcessing.ts | features/game-setup/useMatchBatchInsertion.ts | Name the hook's batch/sequential insertion responsibility; update its test filename and all callers/mocks. |
+| features/history/historyUtils.ts: findTopDrinker | findTopDrinkers | The result is an array and supports tied players. |
+| command-api/src/main/java/com/dong/commandapi/supabase/SupabaseClient.java | SupabaseHealthProbe.java in the same package | The interface only checks health. |
+| command-api/src/main/java/com/dong/commandapi/supabase/RestClientSupabaseClient.java | HttpSupabaseHealthProbe.java in the same package | Make the health adapter's purpose explicit. |
+| command-api/src/main/java/com/dong/commandapi/supabase/SupabaseRestClient.java | SupabaseRpcClient.java in the same package | Name the authenticated RPC responsibility; rename its test class/file and update all references. |
+
+CLAUDE.md now documents thin routes, feature-owned hooks/operations, shared
+infrastructure, footballmatch packages, role suffixes and narrow entry points.
+Existing utility exports and wire contracts are preserved. The client extraction
+was checked through TypeScript AST comparison: all 23 non-import top-level
+declarations match the original module, ignoring comments. Java changes rename
+types, constructors, references and related local fields without changing HTTP
+behavior. Existing tests move with their owners; no assertions were weakened.
+
+### Deferred contract review
+
+Java footballmatch and TypeScript football-matches identify the same domain,
+but their projections are not identical contracts. Java NormalizedMatch permits
+nine statuses. The client matchDiscoveryAdapter's NormalizedMatchStatus permits
+scheduled, live, final, postponed and canceled; its mapping changes finished to
+final and abandoned to canceled, and defaults delayed, suspended and unknown to
+scheduled. The shared SavedMatch lifecycle preserves all nine lifecycle states
+(using finished rather than final). Java also permits nullable score sides,
+whereas the client adapter emits a score only when both sides are present.
+These differences need a consumer/contract review and focused behavioral tests
+before changing the mapping. This naming milestone intentionally preserves it.
+
+The broad history helper split and optional useTeamData rename remain separate
+follow-ups, as do the previously recorded browser/accessibility issues. PR #207
+targets multiplayer and already contains M1–M7; this milestone extends that PR.
+
+M8 validation: typecheck, ESLint and Knip passed. The full Jest run passed 159
+suites / 1,025 tests; one suite initially failed to load because its newly split
+mock imported before the named Jest globals initialized. Correcting import order
+and rerunning that suite passed all 18 tests, accounting for all 160 suites /
+1,043 tests. Maven clean verify passed all 92 tests and JaCoCo coverage checks.
+React Doctor scoped to this follow-up (HEAD comparison) scanned 21 files and
+scored 100/100 with no issues. Its default origin/master comparison additionally
+reported an unrelated warning in scripts/test-match-catalog-concurrency.mjs:115;
+that script is unchanged by this milestone. Browser, Android and hosted-service
+checks were not rerun for these implementation-preserving naming changes.

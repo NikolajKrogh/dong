@@ -3,7 +3,7 @@ package com.dong.commandapi.command;
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
 import com.dong.commandapi.security.AuthenticatedHost;
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -37,8 +37,8 @@ import static org.mockito.Mockito.when;
  */
 class StartGameCommandHandlerTest {
 
-    private final SupabaseRestClient supabaseRestClient = mock(SupabaseRestClient.class);
-    private final StartGameCommandHandler handler = new StartGameCommandHandler(supabaseRestClient);
+    private final SupabaseRpcClient supabaseRpcClient = mock(SupabaseRpcClient.class);
+    private final StartGameCommandHandler handler = new StartGameCommandHandler(supabaseRpcClient);
     private final AuthenticatedHost host = new AuthenticatedHost("host-1", "authenticated", "raw-jwt");
 
     private CommandContext ctx(Map<String, Object> payload) {
@@ -52,7 +52,7 @@ class StartGameCommandHandlerTest {
 
     @Test
     void validStartCallsStartGameSessionWithoutRelaxByDefault() {
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenReturn(Map.of("status", "started", "sessionId", "room-1", "relaxedConstraints", false));
 
         CommandResult result = handler.handle(ctx(null));
@@ -63,12 +63,12 @@ class StartGameCommandHandlerTest {
 
     @Test
     void passesRelaxConstraintsTrueThroughToTheRpcWhenSetInThePayload() {
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenReturn(Map.of("status", "started", "sessionId", "room-1", "relaxedConstraints", true));
 
         handler.handle(ctx(Map.of("relaxConstraints", true)));
 
-        verify(supabaseRestClient).rpc(
+        verify(supabaseRpcClient).rpc(
                 eq("start_game_session"),
                 argThat(params -> Boolean.TRUE.equals(params.get("relax_constraints"))),
                 anyString(),
@@ -77,7 +77,7 @@ class StartGameCommandHandlerTest {
 
     @Test
     void absentPayloadDefaultsRelaxConstraintsToFalse() {
-        when(supabaseRestClient.rpc(eq("start_game_session"),
+        when(supabaseRpcClient.rpc(eq("start_game_session"),
                 argThat(params -> Boolean.FALSE.equals(params.get("relax_constraints"))),
                 anyString(), any()))
                 .thenReturn(Map.of("status", "started"));
@@ -89,7 +89,7 @@ class StartGameCommandHandlerTest {
 
     @Test
     void nonBooleanRelaxConstraintsValueDefaultsToFalse() {
-        when(supabaseRestClient.rpc(eq("start_game_session"),
+        when(supabaseRpcClient.rpc(eq("start_game_session"),
                 argThat(params -> Boolean.FALSE.equals(params.get("relax_constraints"))),
                 anyString(), any()))
                 .thenReturn(Map.of("status", "started"));
@@ -99,12 +99,12 @@ class StartGameCommandHandlerTest {
         assertThat(result.status()).isEqualTo(CommandResult.Status.ACCEPTED);
     }
 
-    private static SupabaseRestClient.SupabaseRpcException rpcException(String postgresMessage) {
+    private static SupabaseRpcClient.SupabaseRpcException rpcException(String postgresMessage) {
         byte[] body = ("{\"message\":\"" + postgresMessage + "\"}").getBytes(StandardCharsets.UTF_8);
         RestClientResponseException cause = new RestClientResponseException(
                 "Unprocessable Entity", HttpStatusCode.valueOf(422), "Unprocessable Entity",
                 HttpHeaders.EMPTY, body, StandardCharsets.UTF_8);
-        return new SupabaseRestClient.SupabaseRpcException("start_game_session", cause);
+        return new SupabaseRpcClient.SupabaseRpcException("start_game_session", cause);
     }
 
     /**
@@ -128,7 +128,7 @@ class StartGameCommandHandlerTest {
             "assignment_constraints_unsatisfiable,ASSIGNMENT_CONSTRAINTS_UNSATISFIABLE",
     })
     void mapsStartGameSessionFailuresToTheMatchingErrorCode(String postgresMessage, ErrorCode expected) {
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenThrow(rpcException(postgresMessage));
 
         assertThatThrownBy(() -> handler.handle(ctx(null)))
@@ -139,7 +139,7 @@ class StartGameCommandHandlerTest {
 
     @Test
     void unrecognizedRpcErrorMapsToInternalError() {
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenThrow(rpcException("some_future_guard"));
 
         assertThatThrownBy(() -> handler.handle(ctx(null)))

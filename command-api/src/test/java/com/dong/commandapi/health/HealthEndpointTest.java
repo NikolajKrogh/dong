@@ -1,6 +1,6 @@
 package com.dong.commandapi.health;
 
-import com.dong.commandapi.supabase.SupabaseClient;
+import com.dong.commandapi.supabase.SupabaseHealthProbe;
 import com.dong.commandapi.testsupport.JwksTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,11 +39,11 @@ class HealthEndpointTest {
     private TestRestTemplate restTemplate;
 
     @MockitoBean
-    private SupabaseClient supabaseClient;
+    private SupabaseHealthProbe supabaseHealthProbe;
 
     @Test
     void healthIsUpWhenSupabaseReachable() {
-        when(supabaseClient.isReachable()).thenReturn(true);
+        when(supabaseHealthProbe.isReachable()).thenReturn(true);
 
         ResponseEntity<String> res = restTemplate.getForEntity("/actuator/health", String.class);
 
@@ -54,7 +54,7 @@ class HealthEndpointTest {
 
     @Test
     void healthIsDownWhenSupabaseUnreachable() {
-        when(supabaseClient.isReachable()).thenReturn(false);
+        when(supabaseHealthProbe.isReachable()).thenReturn(false);
 
         ResponseEntity<String> res = restTemplate.getForEntity("/actuator/health", String.class);
 

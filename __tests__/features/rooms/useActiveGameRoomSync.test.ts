@@ -22,7 +22,7 @@ jest.mock("../../../features/rooms/guestRoomService", () => ({
     error instanceof Error && error.message === "guest_access_lost",
   ),
 }));
-jest.mock("../../../utils/commandApiClient", () => ({
+jest.mock("../../../utils/idempotencyKey", () => ({
   generateIdempotencyKey: jest.fn(
     () => "00000000-0000-4000-8000-000000000099",
   ),

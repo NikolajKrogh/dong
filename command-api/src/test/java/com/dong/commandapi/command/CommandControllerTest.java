@@ -25,12 +25,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import com.dong.commandapi.testsupport.JwksTestSupport;
 
 /**
  * US4 — command envelope demonstration. Drives the full chain (auth + dispatch
- * + idempotency seam) with a real signed JWT. {@link SupabaseRestClient} is mocked:
+ * + idempotency seam) with a real signed JWT. {@link SupabaseRpcClient} is mocked:
  * {@code PersistentIdempotencyService} (research.md R7) now calls a real
  * {@code command_idempotency} RPC on every dispatch, and this test is about the
  * controller/dispatch/auth wiring, not live Supabase connectivity.
@@ -46,7 +46,7 @@ class CommandControllerTest {
     private TestRestTemplate restTemplate;
 
     @MockitoBean
-    private SupabaseRestClient supabaseRestClient;
+    private SupabaseRpcClient supabaseRpcClient;
 
     private String validJwt() {
         return JwksTestSupport.signedJwt("host-1", "authenticated", Instant.now().plusSeconds(300));
@@ -71,7 +71,7 @@ class CommandControllerTest {
     @Test
     @SuppressWarnings("unchecked")
     void validRequestReturnsAcceptedEnvelope() {
-        when(supabaseRestClient.rpc(anyString(), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(anyString(), any(), anyString(), any()))
                 .thenReturn(Map.of("outcome", "reserved"));
 
         ResponseEntity<String> res = post("test-command", UUID.randomUUID().toString(), true);
@@ -120,28 +120,28 @@ class CommandControllerTest {
 
     @Test
     void committedPendingProgressIsAnExactHttp200EnvelopeAndNotTerminalSuccess() {
-        when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
                 .thenReturn(Map.of("outcome", "reserved"));
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
                 .thenReturn(Map.of("ok", false, "code", "room_processing_pending", "retryAfterSeconds", 1));
         String key = UUID.randomUUID().toString();
         ResponseEntity<String> response = post("start-game", key, true);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"ok\":false", "\"code\":\"room_processing_pending\"", "\"retryAfterSeconds\":1")
                 .doesNotContain("ACCEPTED", "timestamp", "commandType");
-        verify(supabaseRestClient).call(eq("release_command_idempotency"), eq(Map.of("idempotency_key", key)), anyString());
-        verify(supabaseRestClient, never()).call(eq("complete_command_idempotency"), any(), anyString());
+        verify(supabaseRpcClient).call(eq("release_command_idempotency"), eq(Map.of("idempotency_key", key)), anyString());
+        verify(supabaseRpcClient, never()).call(eq("complete_command_idempotency"), any(), anyString());
     }
 
     @Test
     void exhaustedRpcPendingRetriesStillReturnHttp200WithoutSuccessCaching() {
-        when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
                 .thenReturn(Map.of("outcome", "reserved"));
-        when(supabaseRestClient.rpc(eq("start_game_session"), any(), anyString(), any()))
-                .thenThrow(new SupabaseRestClient.RoomProcessingPendingException());
+        when(supabaseRpcClient.rpc(eq("start_game_session"), any(), anyString(), any()))
+                .thenThrow(new SupabaseRpcClient.RoomProcessingPendingException());
         ResponseEntity<String> response = post("start-game", UUID.randomUUID().toString(), true);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("room_processing_pending").doesNotContain("ACCEPTED");
-        verify(supabaseRestClient, never()).call(eq("complete_command_idempotency"), any(), anyString());
+        verify(supabaseRpcClient, never()).call(eq("complete_command_idempotency"), any(), anyString());
     }
 }

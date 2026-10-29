@@ -14,7 +14,7 @@ jest.mock("../../../store/gameStore", () => ({
   ) => mockUseGameStore(selector),
 }));
 
-jest.mock("../../../utils/commandApiClient", () => ({
+jest.mock("../../../features/football-matches/matchDiscoveryAdapter", () => ({
   getMatchDiscoveryApiClient: () => ({
     discoverMatches: mockDiscoverMatches,
   }),

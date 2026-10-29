@@ -31,7 +31,7 @@ import {
 import { confirmGuestRoomEnded, isGuestRoomEnded } from "./guestRoomTermination";
 import { getSupabaseClient } from "../../lib/supabase";
 import { getGuestRoomRpcClient, getRoomRpcClient, mapGameplayError } from "./roomRpcClient";
-import { generateIdempotencyKey } from "../../utils/commandApiClient";
+import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 import {
   roomSnapshotToGameState,
   type CompatibleRoomSnapshot,

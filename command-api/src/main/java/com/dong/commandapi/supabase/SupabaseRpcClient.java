@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * Calls Supabase PostgREST RPC endpoints under a specific host's own forwarded JWT
- * (research.md R6) — distinct from {@link RestClientSupabaseClient}, which only
+ * (research.md R6) — distinct from {@link HttpSupabaseHealthProbe}, which only
  * performs the unauthenticated health probe. Every call carries the project's
  * {@code apikey} header (required by the API gateway in front of PostgREST) plus
  * the host's {@code Authorization: Bearer <token>}, so Postgres RLS evaluates the
@@ -27,7 +27,7 @@ import java.util.Map;
  * {@code PersistentIdempotencyService} (the {@code command_idempotency} RPCs).
  */
 @Component
-public class SupabaseRestClient {
+public class SupabaseRpcClient {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(10);
     private static final int ROOM_PROCESSING_MAX_ATTEMPTS = 3;
@@ -37,7 +37,7 @@ public class SupabaseRestClient {
     private final Runnable pendingDelay;
 
     @Autowired
-    public SupabaseRestClient(SupabaseProperties properties) {
+    public SupabaseRpcClient(SupabaseProperties properties) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout((int) TIMEOUT.toMillis());
         factory.setReadTimeout((int) TIMEOUT.toMillis());
@@ -56,7 +56,7 @@ public class SupabaseRestClient {
         };
     }
 
-    SupabaseRestClient(RestClient restClient, String anonKey, Runnable pendingDelay) {
+    SupabaseRpcClient(RestClient restClient, String anonKey, Runnable pendingDelay) {
         this.restClient = restClient;
         this.anonKey = anonKey;
         this.pendingDelay = pendingDelay;

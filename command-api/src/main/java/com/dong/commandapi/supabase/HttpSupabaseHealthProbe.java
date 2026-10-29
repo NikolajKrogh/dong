@@ -10,7 +10,7 @@ import org.springframework.web.client.RestClient;
 import java.time.Duration;
 
 /**
- * {@link SupabaseClient} adapter using Spring {@link RestClient} (bundled in
+ * {@link SupabaseHealthProbe} adapter using Spring {@link RestClient} (bundled in
  * spring-web, Boot 3.2+ — no extra dependency). A short timeout keeps the
  * health check cheap.
  *
@@ -22,14 +22,14 @@ import java.time.Duration;
  * the readiness group — was permanently DOWN regardless of Supabase's real state.
  */
 @Component
-public class RestClientSupabaseClient implements SupabaseClient {
+public class HttpSupabaseHealthProbe implements SupabaseHealthProbe {
 
-    private static final Logger log = LoggerFactory.getLogger(RestClientSupabaseClient.class);
+    private static final Logger log = LoggerFactory.getLogger(HttpSupabaseHealthProbe.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     private final RestClient restClient;
 
-    public RestClientSupabaseClient(SupabaseProperties properties) {
+    public HttpSupabaseHealthProbe(SupabaseProperties properties) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout((int) TIMEOUT.toMillis());
         factory.setReadTimeout((int) TIMEOUT.toMillis());

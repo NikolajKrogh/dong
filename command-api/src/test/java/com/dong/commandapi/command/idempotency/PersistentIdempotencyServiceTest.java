@@ -4,7 +4,7 @@ import com.dong.commandapi.command.CommandResult;
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
 import com.dong.commandapi.security.AuthenticatedHost;
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -26,7 +26,7 @@ class PersistentIdempotencyServiceTest {
 
     @Test
     void pendingCannotBeCompletedEvenWhenCalledDirectly() {
-        SupabaseRestClient rpc = mock(SupabaseRestClient.class);
+        SupabaseRpcClient rpc = mock(SupabaseRpcClient.class);
         PersistentIdempotencyService service = new PersistentIdempotencyService(rpc);
         UUID key = UUID.randomUUID();
         AuthenticatedHost host = new AuthenticatedHost("host", "authenticated", "token");
@@ -36,8 +36,8 @@ class PersistentIdempotencyServiceTest {
         verify(rpc, never()).call(eq("complete_command_idempotency"), any(), anyString());
     }
 
-    private final SupabaseRestClient supabaseRestClient = mock(SupabaseRestClient.class);
-    private final PersistentIdempotencyService service = new PersistentIdempotencyService(supabaseRestClient);
+    private final SupabaseRpcClient supabaseRpcClient = mock(SupabaseRpcClient.class);
+    private final PersistentIdempotencyService service = new PersistentIdempotencyService(supabaseRpcClient);
     private final AuthenticatedHost host = new AuthenticatedHost("host-1", "authenticated", "raw-jwt");
 
     @Test
@@ -64,7 +64,7 @@ class PersistentIdempotencyServiceTest {
 
     @SafeVarargs
     private final void stubReserveOutcome(Map<String, Object> first, Map<String, Object>... rest) {
-        when(supabaseRestClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(eq("reserve_command_idempotency"), any(), anyString(), any()))
                 .thenReturn(first, (Object[]) rest);
     }
 
@@ -111,7 +111,7 @@ class PersistentIdempotencyServiceTest {
         IdempotencyDecision decision = service.reserve(UUID.randomUUID(), "start-game", "room-1", host);
 
         assertThat(decision).isInstanceOf(IdempotencyDecision.Replay.class);
-        verify(supabaseRestClient, times(2)).rpc(eq("reserve_command_idempotency"), any(), anyString(), any());
+        verify(supabaseRpcClient, times(2)).rpc(eq("reserve_command_idempotency"), any(), anyString(), any());
     }
 
     @Test
@@ -131,7 +131,7 @@ class PersistentIdempotencyServiceTest {
 
         service.complete(key, result, host);
 
-        verify(supabaseRestClient).call(eq("complete_command_idempotency"), eq(Map.of(
+        verify(supabaseRpcClient).call(eq("complete_command_idempotency"), eq(Map.of(
                 "idempotency_key", key.toString(),
                 "response_status", "ACCEPTED",
                 "response_detail", Map.of("sessionId", "room-1"))), eq("raw-jwt"));
@@ -141,11 +141,11 @@ class PersistentIdempotencyServiceTest {
     void releaseSwallowsFailuresInsteadOfMaskingTheOriginalException() {
         UUID key = UUID.randomUUID();
         doThrow(new RuntimeException("network blip"))
-                .when(supabaseRestClient).call(anyString(), any(), anyString());
+                .when(supabaseRpcClient).call(anyString(), any(), anyString());
 
         service.release(key, host);
 
-        verify(supabaseRestClient).call(eq("release_command_idempotency"), eq(Map.of("idempotency_key", key.toString())), eq("raw-jwt"));
+        verify(supabaseRpcClient).call(eq("release_command_idempotency"), eq(Map.of("idempotency_key", key.toString())), eq("raw-jwt"));
     }
 
     @Test
@@ -153,10 +153,10 @@ class PersistentIdempotencyServiceTest {
         UUID key = UUID.randomUUID();
         CommandResult result = new CommandResult(CommandResult.Status.ACCEPTED, Map.of("sessionId", "room-1"));
         doThrow(new RuntimeException("network blip"))
-                .when(supabaseRestClient).call(anyString(), any(), anyString());
+                .when(supabaseRpcClient).call(anyString(), any(), anyString());
 
         service.complete(key, result, host);
 
-        verify(supabaseRestClient).call(eq("complete_command_idempotency"), any(), eq("raw-jwt"));
+        verify(supabaseRpcClient).call(eq("complete_command_idempotency"), any(), eq("raw-jwt"));
     }
 }

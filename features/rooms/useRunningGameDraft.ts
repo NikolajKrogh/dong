@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { Match } from "../../store/gameStore";
 import type { RoomSnapshot, RunningGameConfiguration } from "../../types/room";
 import { getRoomRpcClient } from "./roomRpcClient";
-import { generateIdempotencyKey } from "../../utils/commandApiClient";
+import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 import { toAddRequest, toDisplayMatch } from "./useRoomMatchPool";
 import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
 

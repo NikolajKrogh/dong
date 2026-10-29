@@ -17,13 +17,13 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-class SupabaseRestClientTest {
+class SupabaseRpcClientTest {
     @Test
     void pendingThenSuccessReturnsTheActualMutationResult() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://rpc.test/rest/v1");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         AtomicInteger waits = new AtomicInteger();
-        SupabaseRestClient client = new SupabaseRestClient(builder.build(), "public-key", waits::incrementAndGet);
+        SupabaseRpcClient client = new SupabaseRpcClient(builder.build(), "public-key", waits::incrementAndGet);
         server.expect(requestTo("http://rpc.test/rest/v1/rpc/end_game_session"))
                 .andRespond(withSuccess("{\"ok\":false,\"code\":\"room_processing_pending\",\"retryAfterSeconds\":1}", MediaType.APPLICATION_JSON));
         server.expect(requestTo("http://rpc.test/rest/v1/rpc/end_game_session"))
@@ -39,7 +39,7 @@ class SupabaseRestClientTest {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://rpc.test/rest/v1");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         AtomicInteger waits = new AtomicInteger();
-        SupabaseRestClient client = new SupabaseRestClient(builder.build(), "public-key", waits::incrementAndGet);
+        SupabaseRpcClient client = new SupabaseRpcClient(builder.build(), "public-key", waits::incrementAndGet);
         Map<String, Object> params = Map.of("session_id", "room", "idempotency_key", "original-key", "expected_sequence", 17);
         for (int i = 0; i < 3; i++) {
             server.expect(requestTo("http://rpc.test/rest/v1/rpc/end_game_session"))
@@ -48,7 +48,7 @@ class SupabaseRestClientTest {
                     .andRespond(withSuccess("{\"ok\":false,\"code\":\"room_processing_pending\",\"retryAfterSeconds\":1}", MediaType.APPLICATION_JSON));
         }
         assertThatThrownBy(() -> client.rpc("end_game_session", params, "original-user-token", Map.class))
-                .isInstanceOf(SupabaseRestClient.RoomProcessingPendingException.class);
+                .isInstanceOf(SupabaseRpcClient.RoomProcessingPendingException.class);
         assertThat(waits.get()).isEqualTo(2);
         server.verify();
     }
@@ -57,14 +57,14 @@ class SupabaseRestClientTest {
     void pendingThenStaleConflictIsNeverRebasedOrRetriedAsSuccess() {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://rpc.test/rest/v1");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
-        SupabaseRestClient client = new SupabaseRestClient(builder.build(), "public-key", () -> { });
+        SupabaseRpcClient client = new SupabaseRpcClient(builder.build(), "public-key", () -> { });
         server.expect(requestTo("http://rpc.test/rest/v1/rpc/end_game_session"))
                 .andRespond(withSuccess("{\"ok\":false,\"code\":\"room_processing_pending\",\"retryAfterSeconds\":1}", MediaType.APPLICATION_JSON));
         server.expect(requestTo("http://rpc.test/rest/v1/rpc/end_game_session"))
                 .andRespond(withStatus(HttpStatus.CONFLICT)
                         .contentType(MediaType.APPLICATION_JSON).body("{\"message\":\"stale_sequence\"}"));
         assertThatThrownBy(() -> client.rpc("end_game_session", Map.of("expected_sequence", 17), "token", Map.class))
-                .isInstanceOf(SupabaseRestClient.SupabaseRpcException.class).extracting("postgresMessage").isEqualTo("stale_sequence");
+                .isInstanceOf(SupabaseRpcClient.SupabaseRpcException.class).extracting("postgresMessage").isEqualTo("stale_sequence");
         server.verify();
     }
 }

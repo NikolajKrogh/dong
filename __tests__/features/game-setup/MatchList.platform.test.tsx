@@ -120,8 +120,8 @@ jest.mock("../../../features/football-matches/matchFilters", () => ({
   filterMatchesByDateAndTime: jest.fn((matches) => matches),
 }));
 
-jest.mock("../../../features/game-setup/useMatchProcessing", () => ({
-  useMatchProcessing: () => ({
+jest.mock("../../../features/game-setup/useMatchBatchInsertion", () => ({
+  useMatchBatchInsertion: () => ({
     startProcessing: mockStartProcessing,
     processingState: {
       isProcessing: false,

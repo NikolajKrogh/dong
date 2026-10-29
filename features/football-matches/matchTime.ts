@@ -8,7 +8,7 @@
  * produced it (see the note on `Match.startTime` in `store/store.ts`) —
  *
  *  * match discovery stores a local `"HH:MM"` display string
- *    (`hooks/useMatchProcessing.ts` ← `MatchData.time`),
+ *    (`hooks/useMatchBatchInsertion.ts` ← `MatchData.time`),
  *  * a room's pool stores the provider's full ISO instant
  *    (`hooks/useRoomMatchPool.ts` ← `RoomMatchSummary.kickoffAt`),
  *  * a hand-typed fixture has none at all.

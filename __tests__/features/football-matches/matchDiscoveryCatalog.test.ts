@@ -1,4 +1,4 @@
-import { createMatchDiscoveryApiClient } from "../../../utils/commandApiClient";
+import { createMatchDiscoveryApiClient } from "../../../features/football-matches/matchDiscoveryAdapter";
 import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
 import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
 import type { SavedMatch } from "../../../types/footballMatch";

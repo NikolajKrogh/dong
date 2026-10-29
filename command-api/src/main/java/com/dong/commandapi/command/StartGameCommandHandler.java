@@ -2,7 +2,7 @@ package com.dong.commandapi.command;
 
 import com.dong.commandapi.error.ApiException;
 import com.dong.commandapi.error.ErrorCode;
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -36,10 +36,10 @@ public class StartGameCommandHandler implements CommandHandler {
 
     public static final String TYPE = "start-game";
 
-    private final SupabaseRestClient supabaseRestClient;
+    private final SupabaseRpcClient supabaseRpcClient;
 
-    public StartGameCommandHandler(SupabaseRestClient supabaseRestClient) {
-        this.supabaseRestClient = supabaseRestClient;
+    public StartGameCommandHandler(SupabaseRpcClient supabaseRpcClient) {
+        this.supabaseRpcClient = supabaseRpcClient;
     }
 
     @Override
@@ -56,7 +56,7 @@ public class StartGameCommandHandler implements CommandHandler {
 
         Map<String, Object> startResult;
         try {
-            startResult = supabaseRestClient.rpc(
+            startResult = supabaseRpcClient.rpc(
                     "start_game_session",
                     Map.of(
                             "session_id", roomId,
@@ -64,7 +64,7 @@ public class StartGameCommandHandler implements CommandHandler {
                             "relax_constraints", relaxConstraints),
                     token,
                     Map.class);
-        } catch (SupabaseRestClient.SupabaseRpcException ex) {
+        } catch (SupabaseRpcClient.SupabaseRpcException ex) {
             throw mapSupabaseError(ex);
         }
 
@@ -90,7 +90,7 @@ public class StartGameCommandHandler implements CommandHandler {
      * raised solely by that RPC's own guards under its row lock — there is no
      * longer a separate optimistic check in this handler to keep in sync with.
      */
-    private ApiException mapSupabaseError(SupabaseRestClient.SupabaseRpcException ex) {
+    private ApiException mapSupabaseError(SupabaseRpcClient.SupabaseRpcException ex) {
         return switch (ex.postgresMessage()) {
             case "room_not_found" -> new ApiException(ErrorCode.ROOM_NOT_FOUND);
             case "forbidden", "not_host" -> new ApiException(ErrorCode.FORBIDDEN);

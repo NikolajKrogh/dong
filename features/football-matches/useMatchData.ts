@@ -9,7 +9,7 @@ import {
   getMatchDiscoveryApiClient,
   type MatchDiscoveryRequest,
   type NormalizedMatch,
-} from "../../utils/commandApiClient";
+} from "./matchDiscoveryAdapter";
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const RAW_NETWORK_ERROR_MESSAGE_REGEX =

@@ -8,7 +8,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-import com.dong.commandapi.supabase.SupabaseClient;
+import com.dong.commandapi.supabase.SupabaseHealthProbe;
 import com.dong.commandapi.supabase.SupabaseProperties;
 
 /**
@@ -19,7 +19,7 @@ import com.dong.commandapi.supabase.SupabaseProperties;
 @Component
 public class SupabaseHealthIndicator implements HealthIndicator {
 
-    private final SupabaseClient supabaseClient;
+    private final SupabaseHealthProbe supabaseHealthProbe;
     private final String url;
     private final Duration cacheTtl;
 
@@ -27,10 +27,10 @@ public class SupabaseHealthIndicator implements HealthIndicator {
     private volatile boolean lastReachable = false;
 
     public SupabaseHealthIndicator(
-            SupabaseClient supabaseClient,
+            SupabaseHealthProbe supabaseHealthProbe,
             SupabaseProperties properties,
             @Value("${command-api.health.supabase.cache-ttl:10s}") Duration cacheTtl) {
-        this.supabaseClient = supabaseClient;
+        this.supabaseHealthProbe = supabaseHealthProbe;
         this.url = properties.url();
         this.cacheTtl = cacheTtl;
     }
@@ -47,7 +47,7 @@ public class SupabaseHealthIndicator implements HealthIndicator {
         if (Duration.between(lastCheckedAt, now).compareTo(cacheTtl) >= 0) {
             synchronized (this) {
                 if (Duration.between(lastCheckedAt, now).compareTo(cacheTtl) >= 0) {
-                    lastReachable = supabaseClient.isReachable();
+                    lastReachable = supabaseHealthProbe.isReachable();
                     lastCheckedAt = now;
                 }
             }

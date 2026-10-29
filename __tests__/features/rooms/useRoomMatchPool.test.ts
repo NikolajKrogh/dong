@@ -191,7 +191,7 @@ describe("useRoomMatchPool", () => {
   });
 
   /**
-   * MatchList and useMatchProcessing both append by passing the *whole* list back.
+   * MatchList and useMatchBatchInsertion both append by passing the *whole* list back.
    * Only the genuinely new entries may be written, or every add would re-add
    * everything already in the room.
    */

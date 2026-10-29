@@ -3,7 +3,7 @@ package com.dong.commandapi.command;
 import com.dong.commandapi.command.dto.CommandRequest;
 import com.dong.commandapi.command.dto.CommandResponse;
 import com.dong.commandapi.security.AuthenticatedHost;
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -64,8 +64,8 @@ public class CommandController {
 
         CommandDispatcher.DispatchResult outcome = dispatcher.dispatch(context);
 
-        if (SupabaseRestClient.isRoomProcessingPending(outcome.result().detail())) {
-            return ResponseEntity.ok(SupabaseRestClient.roomProcessingPending());
+        if (SupabaseRpcClient.isRoomProcessingPending(outcome.result().detail())) {
+            return ResponseEntity.ok(SupabaseRpcClient.roomProcessingPending());
         }
 
         CommandResponse body = new CommandResponse(
@@ -78,8 +78,8 @@ public class CommandController {
         return ResponseEntity.ok(body);
     }
 
-    @org.springframework.web.bind.annotation.ExceptionHandler(SupabaseRestClient.RoomProcessingPendingException.class)
+    @org.springframework.web.bind.annotation.ExceptionHandler(SupabaseRpcClient.RoomProcessingPendingException.class)
     public ResponseEntity<?> roomProcessingPending() {
-        return ResponseEntity.ok(SupabaseRestClient.roomProcessingPending());
+        return ResponseEntity.ok(SupabaseRpcClient.roomProcessingPending());
     }
 }

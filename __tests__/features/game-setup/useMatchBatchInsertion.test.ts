@@ -9,7 +9,7 @@ import {
 import React, { useState } from "react";
 import TestRenderer from "react-test-renderer";
 
-import { useMatchProcessing } from "../../../features/game-setup/useMatchProcessing";
+import { useMatchBatchInsertion } from "../../../features/game-setup/useMatchBatchInsertion";
 import type { Match } from "../../../store/gameStore";
 import type { MatchData } from "../../../features/football-matches/matchFilters";
 
@@ -79,7 +79,7 @@ const renderHarness = (
       ]);
     };
 
-    const hook = useMatchProcessing(
+    const hook = useMatchBatchInsertion(
       matches,
       setHomeTeam,
       setAwayTeam,
@@ -105,7 +105,7 @@ const renderHarness = (
   return { renderer, getLatest: () => latest as HarnessResult };
 };
 
-describe("useMatchProcessing", () => {
+describe("useMatchBatchInsertion", () => {
   describe("batch path (setGlobalMatches provided)", () => {
     it("adds only unique matches in a single setGlobalMatches call and reports skip stats", () => {
       const setGlobalMatches = jest.fn();

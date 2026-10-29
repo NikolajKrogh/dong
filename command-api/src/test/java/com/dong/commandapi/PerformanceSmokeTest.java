@@ -17,7 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 
-import com.dong.commandapi.supabase.SupabaseRestClient;
+import com.dong.commandapi.supabase.SupabaseRpcClient;
 import com.dong.commandapi.testsupport.JwksTestSupport;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
  * Coarse latency guard (SC-002 reject &lt;100ms, SC-007 authenticated
  * &lt;500ms).
  * Generous bounds — catches a misconfigured filter doing blocking I/O, not a
- * micro-benchmark. Warms up first to exclude JIT/context cost. {@link SupabaseRestClient}
+ * micro-benchmark. Warms up first to exclude JIT/context cost. {@link SupabaseRpcClient}
  * is mocked so the authenticated timing measures dispatch/idempotency-store overhead,
  * not a real network round trip to Supabase.
  */
@@ -43,7 +43,7 @@ class PerformanceSmokeTest {
     private TestRestTemplate restTemplate;
 
     @MockitoBean
-    private SupabaseRestClient supabaseRestClient;
+    private SupabaseRpcClient supabaseRpcClient;
 
     private HttpEntity<String> body(boolean auth) {
         HttpHeaders h = new HttpHeaders();
@@ -79,7 +79,7 @@ class PerformanceSmokeTest {
     @Test
     @SuppressWarnings("unchecked")
     void authenticatedRequestIsWithinBudget() {
-        when(supabaseRestClient.rpc(anyString(), any(), anyString(), any()))
+        when(supabaseRpcClient.rpc(anyString(), any(), anyString(), any()))
                 .thenReturn(Map.of("outcome", "reserved"));
 
         timeMillis(true); // warmup

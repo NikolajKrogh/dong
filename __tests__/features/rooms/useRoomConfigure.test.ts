@@ -6,7 +6,8 @@ import {
   useRoomConfigure,
 } from "../../../features/rooms/useRoomConfigure";
 import type { RoomSnapshot } from "../../../types/room";
-import { generateIdempotencyKey, getStartGameApiClient } from "../../../utils/commandApiClient";
+import { generateIdempotencyKey } from "../../../utils/idempotencyKey";
+import { getStartGameApiClient } from "../../../features/rooms/startGameCommandClient";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { getRoomRpcClient } from "../../../features/rooms/roomRpcClient";
 
@@ -18,9 +19,11 @@ jest.mock("../../../features/rooms/roomRpcClient", () => ({
 
 }));
 
-jest.mock("../../../utils/commandApiClient", () => ({
-  generateIdempotencyKey: jest.fn(() => "fixed-idempotency-key"),
+jest.mock("../../../features/rooms/startGameCommandClient", () => ({
   getStartGameApiClient: jest.fn(),
+}));
+jest.mock("../../../utils/idempotencyKey", () => ({
+  generateIdempotencyKey: jest.fn(() => "fixed-idempotency-key"),
 }));
 
 const mockGetRoomRpcClient = jest.mocked(getRoomRpcClient);

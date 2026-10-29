@@ -32,9 +32,9 @@ export interface RoomMatchPool {
   /**
    * Drop-in for the wizard's `setGlobalMatches`, reinterpreted as room mutations.
    *
-   * `MatchList` and `useMatchProcessing` only ever call that setter in two ways:
+   * `MatchList` and `useMatchBatchInsertion` only ever call that setter in two ways:
    * with the current list plus new entries (append — `MatchList.tsx:224`,
-   * `useMatchProcessing.ts:97`), or with `[]` to clear everything
+   * `useMatchBatchInsertion.ts:97`), or with `[]` to clear everything
    * (`MatchList.tsx:241`). So rather than attempting a general two-way diff — which
    * would need per-row identity the store shape does not carry — this handles
    * exactly those two cases and ignores anything else, which is why it can back a
@@ -68,7 +68,7 @@ export const toDisplayMatch = (match: RoomMatchSummary): Match => ({
  * The room needs to know whether a row came from the discovery catalogue, because
  * that linkage is what lets scores be synced back later. `kickoffAt` is the
  * discriminator: match discovery populates it with the provider's ISO instant
- * (`useMatchProcessing`), while a fixture typed by hand has no kickoff at all.
+ * (`useMatchBatchInsertion`), while a fixture typed by hand has no kickoff at all.
  *
  * Deliberately NOT keyed on `startTime`, which looks like the obvious choice and is
  * wrong twice over: discovery puts a *local* `"HH:MM"` display string there, so it
