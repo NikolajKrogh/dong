@@ -5,9 +5,9 @@ import {usePersonalHistoryStats,useSocialHistory,useHistoryCoplayerContext,inval
 import {loadPersonalHistoryStats,loadSocialHistory,loadSharedGames,loadSharedTimeline,loadCoplayerContext} from '../../../features/history/socialHistoryRepository';
 import type {Person} from '../../../features/friends/friendsRepository';
 import {queryClient,setAccountScope} from '../../../lib/queryClient';
-import {useAccountAuth} from '../../../hooks/useAccountAuth';
+import {useAccountAuth} from '../../../features/account';
 jest.mock('../../../features/friends',() => ({parseHistoryPerson:require('../../../features/friends/friendsRepository').parseHistoryPerson}));
-jest.mock('../../../hooks/useAccountAuth',() => ({useAccountAuth:jest.fn()}));
+jest.mock('../../../features/account',() => ({useAccountAuth:jest.fn()}));
 jest.mock('../../../lib/supabase',() => ({getSupabaseClient:() => ({})}));
 let mockInteractive=true;
 jest.mock('../../../platform/visibility',() => ({useAppVisibility:() => ({isInteractive:mockInteractive})}));

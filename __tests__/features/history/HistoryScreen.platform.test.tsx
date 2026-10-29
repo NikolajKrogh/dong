@@ -1,0 +1,577 @@
+import React from "react";
+import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
+
+const mockUseWindowDimensions = jest.fn(() => ({
+  width: 390,
+  height: 844,
+  scale: 1,
+  fontScale: 1,
+}));
+
+const mockGoBack = jest.fn();
+const mockPush = jest.fn();
+const mockReplace = jest.fn();
+const mockRefresh = jest.fn();
+const mockCloudState = { accountId: "account-a" as string | null, loading: false, error: null as string | null };
+const mockRouteParams: Record<string, string | string[] | undefined> = {};
+let mockHistoryFocused = true;
+const mockFriendPagination = {
+  enabled: true,
+  id: "account-a",
+  totalPages: 0,
+  revealAtPage: 0,
+  personId: "00000000-0000-4000-8000-000000000002",
+  fetchCalls: 0,
+  listError: null as Error | null,
+};
+
+const mockHistoryStore = {
+  history: [
+    {
+      id: "g1",
+      date: "2026-04-24T19:00:00.000Z",
+      players: [{ id: "p1", name: "Alice", drinksTaken: 2 }],
+      matches: [
+        {
+          id: "m1",
+          homeTeam: "Arsenal",
+          awayTeam: "Chelsea",
+          homeGoals: 1,
+          awayGoals: 0,
+        },
+      ],
+    },
+  ],
+};
+
+const mockPlayerStats = [
+  { playerId: "p1", playerName: "Alice", totalDrinks: 2, gamesPlayed: 1 },
+];
+
+const mockHistoryStyles = new Proxy(
+  {
+    tabsContainer: { testStyle: "tabsContainer" },
+    tabsContainerWide: { testStyle: "tabsContainerWide" },
+    listContent: { testStyle: "listContent" },
+    listContentWide: { testStyle: "listContentWide" },
+  },
+  {
+    get(target, prop) {
+      if (typeof prop === "string" && prop in target) {
+        return target[prop as keyof typeof target];
+      }
+
+      return {};
+    },
+  },
+);
+
+const mockCreateHistoryStyles = jest.fn((..._args: unknown[]) => mockHistoryStyles);
+
+jest.mock("react-native", () => ({
+  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
+  View: "View",
+  Text: "Text",
+  FlatList: "FlatList",
+  TouchableOpacity: "TouchableOpacity",
+  ScrollView: "ScrollView",
+  ActivityIndicator: "ActivityIndicator",
+  useWindowDimensions: () => mockUseWindowDimensions(),
+}));
+
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock("expo-router", () => ({
+  useIsFocused: () => mockHistoryFocused,
+  useRouter: () => ({ back: mockGoBack, canGoBack: () => true, push: mockPush, replace: mockReplace, setParams: mockReplace }),
+  useNavigation: () => ({ getState: () => ({ routes: [{name:"history",params:{}},{name:"history",params:mockRouteParams}], index: 1 }) }),
+  useLocalSearchParams: () => mockRouteParams,
+  useNavigationContainerRef: () => ({isReady:()=>true,addListener:()=>()=>{}}),
+  useFocusEffect: (callback: () => void) => require("react").useEffect(callback, [callback]),
+}));
+jest.mock("../../../store/useGameStoreHydration", () => ({ useGameStoreHydration: () => true }));
+jest.mock("../../../platform/navigation/taskNavigation", () => ({ TaskOverlay: ({open,onClose,children}:any) => children({open,dismiss:onClose,runAfterDismiss:(action:()=>void)=>action()}) }));
+jest.mock("../../../features/history/HistoryStatistics", () => (props:unknown) =>
+  require("react").createElement(require("../../../features/history/OverallStats"),props));
+
+jest.mock("../../../features/history", () => ({
+  useHistory: () => ({ ...mockHistoryStore, ...mockCloudState, refresh: mockRefresh }),
+  useHistoryCoplayerContext: () => [],
+}));
+jest.mock("../../../features/friends", () => ({
+  useFriends: () => {
+    const [loadedPages, setLoadedPages] = require("react").useState(0);
+    const friend = {
+      account_id: mockFriendPagination.personId,
+      username: "Loaded friend",
+      relationship: "friends",
+      request_id: null,
+    };
+    const hasLoadedTarget = mockFriendPagination.revealAtPage > 0
+      && loadedPages >= mockFriendPagination.revealAtPage;
+
+    return {
+      id: mockFriendPagination.id,
+      enabled: mockFriendPagination.enabled,
+      items: hasLoadedTarget ? [friend] : [],
+      act: jest.fn(),
+      busy: null,
+      actionError: null,
+      refresh: jest.fn(),
+      list: {
+        hasNextPage: loadedPages < mockFriendPagination.totalPages,
+        isLoading: false,
+        isFetching: false,
+        isFetchingNextPage: false,
+        isError: mockFriendPagination.listError !== null,
+        error: mockFriendPagination.listError,
+        fetchNextPage: () => {
+          mockFriendPagination.fetchCalls += 1;
+          setLoadedPages((count: number) => count + 1);
+          return Promise.resolve();
+        },
+      },
+    };
+  },
+}));
+
+jest.mock("../../../styles/theme", () => ({
+  useColors: () => ({
+    primary: "#123456",
+    textPrimary: "#111111",
+    textMuted: "#777777",
+    neutralGray: "#999999",
+  }),
+}));
+
+jest.mock("../../../features/history/historyStyles", () => ({
+  createHistoryStyles: (...args: unknown[]) => mockCreateHistoryStyles(...args),
+}));
+
+jest.mock("../../../components/ui", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  return {
+    ShellActionButton: (props: any) => ReactLocal.createElement(ReactNativeLocal.TouchableOpacity, props,
+      ReactLocal.createElement(ReactNativeLocal.Text, null, props.label)),
+    ShellScreen: ({ children, ...props }: any) =>
+      ReactLocal.createElement(
+        ReactNativeLocal.View,
+        { testID: "ShellScreen", ...props },
+        children,
+      ),
+  };
+});
+
+jest.mock("../../../components/ui/AppIcon", () => () => null);
+
+jest.mock("../../../features/history/GameHistoryItem", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  return (props: any) =>
+    ReactLocal.createElement(ReactNativeLocal.View, {
+      testID: "GameHistoryItem",
+      ...props,
+    });
+});
+
+jest.mock("../../../features/history/GameDetailsModal", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  return (props: any) =>
+    ReactLocal.createElement(ReactNativeLocal.View, {
+      testID: "GameDetailsModal",
+      ...props,
+    });
+});
+
+jest.mock("../../../features/history/PlayerStatsList", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  return (props: any) =>
+    ReactLocal.createElement(ReactNativeLocal.View, {
+      testID: "PlayerStatsList",
+      ...props,
+    });
+});
+
+jest.mock("../../../features/history/OverallStats", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  return (props: any) =>
+    ReactLocal.createElement(ReactNativeLocal.View, {
+      testID: "OverallStats",
+      ...props,
+    });
+});
+
+jest.mock("../../../features/history/SortHistoryModal", () => {
+  const ReactLocal = require("react");
+  const ReactNativeLocal = require("react-native");
+
+  const SortHistoryModal = (props: any) =>
+    ReactLocal.createElement(ReactNativeLocal.View, {
+      testID: "SortHistoryModal",
+      ...props,
+    });
+
+  return {
+    __esModule: true,
+    default: SortHistoryModal,
+  };
+});
+
+jest.mock("../../../features/history/historyCalculations", () => ({
+  calculateLifetimePlayerStats: () => mockPlayerStats,
+  calculateTotalDrinks: () => 2,
+  calculateTotalGoals: () => 1,
+}));
+
+const rerenderHistoryScreen = (tree: ReturnType<typeof actCreate>) => {
+  TestRenderer.act(() => tree.update(React.createElement(require("../../../features/history/HistoryScreen").default)));
+};
+
+const renderHistoryScreen = () => {
+  const HistoryScreen = require("../../../features/history/HistoryScreen").default;
+
+  return actCreate(React.createElement(HistoryScreen));
+};
+
+describe("HistoryScreen responsive layout", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    Object.assign(mockCloudState, { accountId: "account-a", loading: false, error: null });
+    for (const key of Object.keys(mockRouteParams)) delete mockRouteParams[key];
+    Object.assign(mockFriendPagination, {
+      enabled: true,
+      id: "account-a",
+      totalPages: 0,
+      revealAtPage: 0,
+      personId: "00000000-0000-4000-8000-000000000002",
+      fetchCalls: 0,
+      listError: null,
+    });
+    mockUseWindowDimensions.mockReturnValue({
+      width: 390,
+      height: 844,
+      scale: 1,
+      fontScale: 1,
+    });
+  });
+
+  it("wires the history route state into the screen layout", () => {
+    const renderer = renderHistoryScreen();
+    const sortModal = renderer.root.findByProps({ testID: "SortHistoryModal" });
+    const gamesList = renderer.root.findByType(FlatList);
+
+    expect(sortModal.props.visible).toBe(false);
+    expect(sortModal.props.sortField).toBe("date");
+    expect(sortModal.props.sortDirection).toBe("desc");
+    expect(gamesList.props.data).toHaveLength(1);
+    expect(gamesList.props.data[0].id).toBe("g1");
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps history visible during loading and exposes retry on failure", () => {
+    mockCloudState.loading = true;
+    const renderer = renderHistoryScreen();
+    expect(renderer.root.findByType(FlatList).props.data).toHaveLength(1);
+    mockCloudState.loading = false;
+    mockCloudState.error = "Could not load cloud history";
+    rerenderHistoryScreen(renderer);
+    // Locate the reusable action, not the tab or sorting buttons.
+    const action = renderer.root.findAllByType(TouchableOpacity).find((node) => node.props.label === "Retry cloud history")!;
+    TestRenderer.act(() => action.props.onPress());
+    expect(mockRefresh).toHaveBeenCalledTimes(2);
+    expect(renderer.root.findByType(FlatList).props.data).toHaveLength(1);
+  });
+
+  it("clears an open result immediately when the account changes", () => {
+    mockRouteParams.gameId = "g1";
+    const renderer = renderHistoryScreen();
+    expect(renderer.root.findAllByProps({ testID: "GameDetailsModal" })).toHaveLength(1);
+    const previousHistory = mockHistoryStore.history;
+    mockCloudState.accountId = "account-b";
+    mockHistoryStore.history = [];
+    try {
+      rerenderHistoryScreen(renderer);
+      expect(renderer.root.findAllByProps({ testID: "GameDetailsModal" })).toHaveLength(0);
+    } finally { mockHistoryStore.history = previousHistory; }
+  });
+
+  it("passes the same history to player and overall statistics", () => {
+    const renderer = renderHistoryScreen();
+    const pressText = (label: string) => {
+      const text = renderer.root.findAllByType(Text).find((node) => node.props.children === label)!;
+      TestRenderer.act(() => text.parent!.parent!.props.onPress());
+      const destination = mockPush.mock.lastCall![0];
+      for (const key of Object.keys(mockRouteParams)) delete mockRouteParams[key];
+      Object.assign(mockRouteParams, destination.params);
+      rerenderHistoryScreen(renderer);
+    };
+    pressText("Players");
+    expect(renderer.root.findByProps({ testID: "PlayerStatsList" }).props.history).toBe(mockHistoryStore.history);
+    pressText("Stats");
+    expect(renderer.root.findByProps({ testID: "OverallStats" }).props.history).toBe(mockHistoryStore.history);
+  });
+
+  it("places unknown completion dates last in both date sort directions", () => {
+    const original = mockHistoryStore.history;
+    mockHistoryStore.history = [{ ...original[0], id: "unknown", date: "" }, ...original];
+    try {
+      const renderer = renderHistoryScreen();
+      expect(renderer.root.findByType(FlatList).props.data.map((game: { id: string }) => game.id)).toEqual(["g1", "unknown"]);
+      TestRenderer.act(() => renderer.root.findByProps({ testID: "SortHistoryModal" }).props.onSortChange("date"));
+      expect(renderer.root.findByType(FlatList).props.data.map((game: { id: string }) => game.id)).toEqual(["g1", "unknown"]);
+    } finally {
+      mockHistoryStore.history = original;
+    }
+  });
+
+  it("only applies wide history container styles on desktop-wide viewports", () => {
+    let renderer = renderHistoryScreen();
+    let tabsContainer = renderer.root
+      .findAllByType(View)
+      .find(
+        (node) =>
+          Array.isArray(node.props.style) &&
+          node.props.style.includes(mockHistoryStyles.tabsContainer),
+      );
+    let gamesList = renderer.root.findByType(FlatList);
+
+    expect(tabsContainer?.props.style).toContain(
+      mockHistoryStyles.tabsContainer,
+    );
+    expect(tabsContainer?.props.style).not.toContain(
+      mockHistoryStyles.tabsContainerWide,
+    );
+    expect(gamesList.props.contentContainerStyle).toContain(
+      mockHistoryStyles.listContent,
+    );
+    expect(gamesList.props.contentContainerStyle).not.toContain(
+      mockHistoryStyles.listContentWide,
+    );
+
+    TestRenderer.act(() => {
+      renderer.unmount();
+    });
+
+    mockUseWindowDimensions.mockReturnValue({
+      width: 1280,
+      height: 900,
+      scale: 1,
+      fontScale: 1,
+    });
+
+    renderer = renderHistoryScreen();
+    tabsContainer = renderer.root
+      .findAllByType(View)
+      .find(
+        (node) =>
+          Array.isArray(node.props.style) &&
+          node.props.style.includes(mockHistoryStyles.tabsContainer),
+      );
+    gamesList = renderer.root.findByType(FlatList);
+
+    expect(tabsContainer?.props.style).toContain(
+      mockHistoryStyles.tabsContainer,
+    );
+    expect(tabsContainer?.props.style).toContain(
+      mockHistoryStyles.tabsContainerWide,
+    );
+    expect(gamesList.props.contentContainerStyle).toContain(
+      mockHistoryStyles.listContent,
+    );
+    expect(gamesList.props.contentContainerStyle).toContain(
+      mockHistoryStyles.listContentWide,
+    );
+  });
+
+  it.each([
+    { viewport: "phone", width: 390, height: 844, centerContent: false, contentMaxWidth: undefined },
+    { viewport: "desktop", width: 1280, height: 900, centerContent: true, contentMaxWidth: 1120 },
+  ])("configures the shell for a $viewport viewport", ({ width, height, centerContent, contentMaxWidth }) => {
+    mockUseWindowDimensions.mockReturnValue({ width, height, scale: 1, fontScale: 1 });
+    const renderer = renderHistoryScreen();
+    const shell = renderer.root.findByProps({ testID: "ShellScreen" });
+
+    expect(shell.props.centerContent).toBe(centerContent);
+    expect(shell.props.contentMaxWidth).toBe(contentMaxWidth);
+
+    if (centerContent) {
+      expect(shell.props.contentProps.alignSelf).toBe("center");
+      expect(renderer.root.findAllByType(TouchableOpacity).some(
+        (node) => node.props.label === "Refresh history",
+      )).toBe(false);
+    }
+
+  });
+
+  it("loads accepted-friend pages until a route-selected friend is available", () => {
+    const targetId = "00000000-0000-4000-8000-000000000002";
+    Object.assign(mockRouteParams, { friendId: targetId });
+    Object.assign(mockFriendPagination, { totalPages: 3, revealAtPage: 2, personId: targetId });
+
+    const renderer = renderHistoryScreen();
+    const stats = renderer.root.findByProps({ testID: "OverallStats" });
+
+    expect(mockFriendPagination.fetchCalls).toBe(2);
+    expect(stats.props.targetId).toBe(targetId);
+    expect(stats.props.friends.items).toEqual([
+      expect.objectContaining({ account_id: targetId, relationship: "friends" }),
+    ]);
+  });
+
+  it.each([
+    { label: "malformed ids", friendId: "not-an-account-id", enabled: true, accountId: "account-a", listError: null, totalPages: 3 },
+    { label: "the viewer's own id", friendId: "00000000-0000-4000-8000-000000000002", enabled: true, accountId: "00000000-0000-4000-8000-000000000002", listError: null, totalPages: 3 },
+    { label: "disabled friend lists", friendId: "00000000-0000-4000-8000-000000000002", enabled: false, accountId: "account-a", listError: null, totalPages: 3 },
+    { label: "friend-list errors", friendId: "00000000-0000-4000-8000-000000000002", enabled: true, accountId: "account-a", listError: new Error("Unavailable"), totalPages: 3 },
+    { label: "exhausted friend lists", friendId: "00000000-0000-4000-8000-000000000002", enabled: true, accountId: "account-a", listError: null, totalPages: 0 },
+  ])("does not fetch friend pages for $label", ({ friendId, enabled, accountId, listError, totalPages }) => {
+    Object.assign(mockRouteParams, { friendId });
+    Object.assign(mockFriendPagination, { enabled, id: accountId, listError, totalPages });
+
+    renderHistoryScreen();
+
+    expect(mockFriendPagination.fetchCalls).toBe(0);
+  });
+
+  it("updates the selected friend when route params change on the same history screen", () => {
+    const firstTarget = "00000000-0000-4000-8000-000000000002";
+    const nextTarget = "00000000-0000-4000-8000-000000000003";
+    Object.assign(mockRouteParams, { friendId: firstTarget });
+
+    const renderer = renderHistoryScreen();
+    expect(renderer.root.findByProps({ testID: "OverallStats" }).props.targetId).toBe(firstTarget);
+
+    Object.assign(mockRouteParams, { friendId: nextTarget });
+    rerenderHistoryScreen(renderer);
+
+    expect(renderer.root.findByProps({ testID: "OverallStats" }).props.targetId).toBe(nextTarget);
+  });
+
+  it("uses measured content width for columns and preserves order", () => {
+    mockUseWindowDimensions.mockReturnValue({ width: 1400, height: 900, scale: 1, fontScale: 1 });
+    const original = mockHistoryStore.history;
+    mockHistoryStore.history = [...original, { ...original[0], id: "g2" }];
+    try {
+      const renderer = renderHistoryScreen();
+      expect(renderer.root.findByType(FlatList).props.data[0].games.map((game: { id: string }) => game.id)).toEqual(["g1", "g2"]);
+      TestRenderer.act(() => renderer.root.findByProps({ testID: "HistoryContentViewport" }).props.onLayout({ nativeEvent: { layout: { width: 800 } } }));
+      expect(renderer.root.findByType(FlatList).props.data.map((row: { games: unknown[] }) => row.games.length)).toEqual([1, 1]);
+    } finally { mockHistoryStore.history = original; }
+  });
+
+  it.each([
+    { contentWidth: 1023, fontScale: 1, rowSize: 1 },
+    { contentWidth: 1024, fontScale: 1, rowSize: 2 },
+    { contentWidth: 1100, fontScale: 1.6, rowSize: 1 },
+  ])("uses readable game rows at $contentWidth with font scale $fontScale", ({ contentWidth, fontScale, rowSize }) => {
+    mockUseWindowDimensions.mockReturnValue({ width: 1400, height: 900, scale: 1, fontScale });
+    const original = mockHistoryStore.history;
+    mockHistoryStore.history = [...original, { ...original[0], id: "g2" }];
+    try {
+      const renderer = renderHistoryScreen();
+      TestRenderer.act(() => renderer.root.findByProps({ testID: "HistoryContentViewport" }).props.onLayout({ nativeEvent: { layout: { width: contentWidth } } }));
+      expect(renderer.root.findByType(FlatList).props.data[0].games).toHaveLength(rowSize);
+    } finally { mockHistoryStore.history = original; }
+  });
+});
+
+it('keeps Stats accessible when personal history is empty',() => {
+  const original=mockHistoryStore.history;
+  mockHistoryStore.history=[];
+  try {
+    const renderer=renderHistoryScreen();
+    TestRenderer.act(() => renderer.root.findByProps({testID:'HistoryTab-Stats'}).props.onPress());
+    Object.assign(mockRouteParams, mockPush.mock.lastCall![0].params);
+    rerenderHistoryScreen(renderer);
+    expect(renderer.root.findByProps({testID:'OverallStats'}).props.history).toEqual([]);
+    TestRenderer.act(() => renderer.unmount());
+  } finally {mockHistoryStore.history=original;}
+});
+
+
+describe('History route state', () => {
+ beforeEach(()=>{jest.clearAllMocks();for(const key of Object.keys(mockRouteParams))delete mockRouteParams[key];Object.assign(mockCloudState,{accountId:'account-a',loading:false,error:null});});
+ it('keeps the mounted Games list intact while requesting a new Players route', () => {
+  const tree=renderHistoryScreen();
+  TestRenderer.act(()=>tree.root.findByProps({testID:'HistoryTab-Players'}).props.onPress());
+  expect(mockPush).toHaveBeenCalledWith({pathname:'/history',params:{tab:'players'}});
+  expect(tree.root.findByProps({testID:'HistoryTab-Games'}).props.accessibilityState.selected).toBe(true);
+  expect(tree.root.findAllByProps({testID:'PlayerStatsList'})).toHaveLength(0);
+  TestRenderer.act(()=>tree.unmount());
+ });
+ it('hides a detail portal when its route blurs and restores it on Back focus', () => {
+  mockRouteParams.gameId='g1';
+  const tree=renderHistoryScreen();
+  expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(1);
+  try {
+   mockHistoryFocused=false;rerenderHistoryScreen(tree);
+   expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(0);
+   mockHistoryFocused=true;rerenderHistoryScreen(tree);
+   expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(1);
+  } finally {mockHistoryFocused=true;TestRenderer.act(()=>tree.unmount());}
+ });
+ it('restores tab and sort choices and reflects a router Back update', () => {
+  Object.assign(mockRouteParams,{tab:'stats',sort:'goals',direction:'asc'});const tree=renderHistoryScreen();
+  expect(tree.root.findAllByProps({testID:'OverallStats'})).toHaveLength(1);
+  mockRouteParams.tab='games';rerenderHistoryScreen(tree);
+  expect(tree.root.findAllByType(FlatList)).toHaveLength(1);expect(tree.root.findByProps({testID:'SortHistoryModal'}).props.sortField).toBe('goals');
+ });
+ it('restores a known local detail ID and closes to its owned list', () => {
+  mockRouteParams.gameId='g1';const tree=renderHistoryScreen();
+  const detail=tree.root.findByProps({testID:'GameDetailsModal'});TestRenderer.act(()=>detail.props.onClose());
+  expect(mockGoBack).toHaveBeenCalledTimes(1);
+ });
+ it('normalizes an unavailable detail without exposing an empty modal', () => {
+  mockRouteParams.gameId='missing-device-game';const tree=renderHistoryScreen();
+  expect(tree.root.findAllByProps({testID:'GameDetailsModal'})).toHaveLength(0);
+  expect(mockReplace).toHaveBeenCalledWith({tab:undefined,friendId:undefined,gameId:undefined,sort:undefined,direction:undefined});
+  const shell = tree.root.findByProps({ testID: 'ShellScreen' });
+  expect(shell.findAllByType(Text).some(node=>String(node.props.children).includes('unavailable on this device'))).toBe(true);
+  expect(shell.findAll(node => node.props.label === 'Home' && node.props.href === '/').length).toBeGreaterThan(0);
+ });
+});
+
+
+describe('History restoration during a cloud fetch failure', () => {
+ beforeEach(() => {
+  jest.clearAllMocks();
+  for (const key of Object.keys(mockRouteParams)) delete mockRouteParams[key];
+  Object.assign(mockCloudState, { accountId: 'account-a', loading: false, error: 'Could not load cloud history' });
+ });
+ it('opens an available local detail despite the cloud error', () => {
+  mockRouteParams.gameId = 'g1';
+  const tree = renderHistoryScreen();
+  expect(tree.root.findAllByProps({ testID: 'GameDetailsModal' })).toHaveLength(1);
+  TestRenderer.act(() => tree.unmount());
+ });
+ it('keeps an unresolved ID until a successful fetch establishes availability', () => {
+  mockRouteParams.gameId = 'later-cloud-game';
+  const tree = renderHistoryScreen();
+  expect(tree.root.findAllByProps({ testID: 'GameDetailsModal' })).toHaveLength(0);
+  expect(tree.root.findAllByType(Text).some(node => String(node.props.children).includes('unavailable on this device'))).toBe(false);
+  expect(mockReplace).not.toHaveBeenCalledWith(expect.objectContaining({ gameId: undefined }));
+  const original = mockHistoryStore.history;
+  try {
+   mockHistoryStore.history = [...original, { ...original[0], id: 'later-cloud-game' }];
+   mockCloudState.error = null;
+   rerenderHistoryScreen(tree);
+   expect(tree.root.findAllByProps({ testID: 'GameDetailsModal' })).toHaveLength(1);
+  } finally {
+   mockHistoryStore.history = original;
+   TestRenderer.act(() => tree.unmount());
+  }
+ });
+});

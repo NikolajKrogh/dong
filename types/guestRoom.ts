@@ -46,6 +46,7 @@ export interface GuestRoomParticipantSummary {
 
 interface GuestRoomMatchSummary {
   catalogMatchId?: string | null;
+  catalogSnapshot?: import("./footballMatch").SavedMatch | null;
   id: string;
   sourceProvider: string | null;
   sourceMatchId: string | null;

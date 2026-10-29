@@ -2,6 +2,8 @@ import { expect } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 import {
   mockTeamDataCatalogue,
+  mockHostRoomServices,
+  seedHostRoomAuthSession,
   PERSISTED_STORE_KEY,
   seedSoloGameState,
 } from "./browser-flow.helpers";
@@ -9,12 +11,14 @@ import {
 const { Given, When, Then } = createBdd();
 
 Given("Home is open in the browser", async ({ page }) => {
+  await seedHostRoomAuthSession(page);
+  await mockHostRoomServices(page);
   await page.goto("/");
-  await expect(page.getByRole("link", { name: "Friends", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Settings", exact: true })).toBeVisible();
 });
 
 When("I open Game Stats using the keyboard", async ({ page }) => {
-  const card = page.getByRole("link", { name: "Game Stats, view history", exact: true });
+  const card = page.getByRole("link", { name: /^Game Stats/ });
   await expect(card).toHaveAttribute("href", "/history");
   await expect(card.getByText("Game Stats", { exact: true })).toBeVisible();
   await card.focus();
@@ -29,13 +33,18 @@ Then("History opens and browser Back returns Home", async ({ page }) => {
 });
 
 When("I open Friends using the keyboard", async ({ page }) => {
-  await page.getByRole("link", { name: "Friends", exact: true }).focus();
+  await page.getByRole("link", { name: "Settings", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/userPreferences$/);
+  await page.getByTestId("settings-friends-button").focus();
   await page.keyboard.press("Enter");
 });
 
-Then("signed-out Friends offers sign-in and browser Back returns Home", async ({ page }) => {
+Then("Friends opens and browser Back returns through Settings to Home", async ({ page }) => {
   await expect(page).toHaveURL(/\/friends$/);
-  await expect(page.getByRole("link", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Friends", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/userPreferences$/);
   await page.goBack();
   await expect(page).toHaveURL(/\/$/);
 });

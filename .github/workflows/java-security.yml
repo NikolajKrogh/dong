@@ -1,4 +1,4 @@
-name: command-api security scan
+name: game-api security scan
 
 # OWASP dependency-check is slow (downloads the NVD database) so it runs on a
 # weekly schedule and on demand, rather than blocking every pull request.
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: command-api
+        working-directory: game-api
     steps:
       - uses: actions/checkout@v4.1.7
         with:

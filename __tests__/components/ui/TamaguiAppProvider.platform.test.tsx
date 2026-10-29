@@ -3,7 +3,7 @@ import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 let mockTheme = "light";
-jest.mock("../../../store/store", () => ({
+jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector: (state: { theme: string }) => unknown) => selector({ theme: mockTheme }),
 }));
 

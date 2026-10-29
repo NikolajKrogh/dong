@@ -1,7 +1,7 @@
 import React from 'react';
 import { RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import SettingsPage from '../../components/preferences/SettingsPage';
+import { SettingsPage } from '../preferences';
 import { isAccountId } from './socialHistoryRepository';
 import { useSocialHistory } from './useSocialHistory';
 import SharedHistoryContent from './SharedHistoryContent';

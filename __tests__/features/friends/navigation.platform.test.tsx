@@ -9,11 +9,11 @@ jest.mock('expo-router',()=>({useRouter:()=>mockRouter,useLocalSearchParams:()=>
 jest.mock('expo-linking',()=>({createURL:jest.fn()}));
 jest.mock('tamagui',()=>({...jest.requireActual('tamagui'),Text:'Text',XStack:'XStack',YStack:'YStack'}));
 jest.mock('../../../components/ui',()=>({ShellActionButton:'Action'}));
-jest.mock('../../../components/preferences/SettingsPage',()=>({__esModule:true,default:({children,...props}:any)=>require('react').createElement('Page',props,children)}));
+jest.mock('../../../features/preferences',()=>({SettingsPage:({children,...props}:any)=>require('react').createElement('Page',props,children)}));
 jest.mock('../../../features/friends/FriendSearchField',()=>({__esModule:true,default:'Search'}));
 jest.mock('../../../features/friends/PeopleList',()=>({__esModule:true,default:'People'}));
 jest.mock('../../../features/friends/RequestsPanel',()=>({__esModule:true,default:'Requests'}));
-jest.mock('../../../hooks/useAccountAuth',()=>({useAccountAuth:()=>({status:mockStatus})}));
+jest.mock('../../../features/account',()=>({...jest.requireActual('../../../features/account'),useAccountAuth:()=>({status:mockStatus})}));
 jest.mock('../../../features/friends/useFriends',()=>({useFriends:()=>({enabled:mockEnabled,items:[],results:[],list:{},search:{},refresh:jest.fn()})}));
 beforeEach(()=>{jest.clearAllMocks();mockParams={tab:'requests'};mockEnabled=true;mockStatus='ready';mockRouter.canGoBack.mockReturnValue(true);});
 const render=(file:string)=>actCreate(React.createElement(require('../../../test-utils/tamagui').TamaguiTestProvider,null,React.createElement(require('../../../features/friends/'+file).default)));

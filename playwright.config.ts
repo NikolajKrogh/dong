@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 import { defineBddConfig } from "playwright-bdd";
 import {
-  CONFIGURE_START_GAME_COMMAND_API_URL,
+  CONFIGURE_START_GAME_API_URL,
   MOCK_AUTH_ANON_KEY,
   MOCK_AUTH_PUBLISHABLE_KEY,
   MOCK_AUTH_SUPABASE_URL,
@@ -59,9 +59,9 @@ export default defineConfig({
       EXPO_PUBLIC_SUPABASE_ANON_KEY:
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
         MOCK_AUTH_ANON_KEY,
-      EXPO_PUBLIC_COMMAND_API_URL:
-        process.env.EXPO_PUBLIC_COMMAND_API_URL ??
-        CONFIGURE_START_GAME_COMMAND_API_URL,
+      EXPO_PUBLIC_GAME_API_URL:
+        process.env.EXPO_PUBLIC_GAME_API_URL ??
+        CONFIGURE_START_GAME_API_URL,
     },
   },
 });

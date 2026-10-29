@@ -112,7 +112,11 @@ async function prepare() {
     assert(participants.length === 100, 'Each fixture room must retain its trigger-created registered host');
     const matches = roomIds.flatMap(session_id => sources.map(source => ({ id: crypto.randomUUID(), session_id, source_provider: 'espn', source_match_id: source.source_event_id, source_league_code: source.leagueCode, home_team_name: 'Home', away_team_name: 'Away', catalog_match_id: source.id, kickoff_at: kickoff })));
     await transaction`insert into public.matches ${transaction(matches, 'id', 'session_id', 'source_provider', 'source_match_id', 'source_league_code', 'home_team_name', 'away_team_name', 'catalog_match_id', 'kickoff_at')}`;
-    const assignments = matches.map(match => ({ session_id: match.session_id, participant_id: participants.find(participant => participant.session_id === match.session_id).id, match_id: match.id }));
+    const assignments = matches.map(match => {
+      const participant = participants.find(participant => participant.session_id === match.session_id);
+      assert(participant, `Fixture room ${match.session_id} has no registered host participant`);
+      return { session_id: match.session_id, participant_id: participant.id, match_id: match.id };
+    });
     await transaction`insert into public.assignments ${transaction(assignments, 'session_id', 'participant_id', 'match_id')}`;
     const commonIds = matches.filter(match => match.catalog_match_id === sources[0].id).map(match => match.id);
     await transaction`update public.game_sessions room set common_match_id=match.id,state='in_progress' from public.matches match where room.id=match.session_id and match.id=any(${transaction.array(commonIds)}::uuid[])`;
@@ -245,7 +249,7 @@ try {
   server = Deno.serve({ hostname: '127.0.0.1', port: 0, onListen() {} }, async request => {
     const code = new URL(request.url).searchParams.get('league');
     assert(codes.includes(code), 'Unexpected local fixture league');
-    assert(request.headers.get('accept') === 'application/json' && request.headers.get('user-agent')?.startsWith('DONG-command-api/'), 'Owned source headers were not preserved');
+    assert(request.headers.get('accept') === 'application/json' && request.headers.get('user-agent')?.startsWith('DONG-game-api/'), 'Owned source headers were not preserved');
     httpCounts.set(code, (httpCounts.get(code) ?? 0) + 1);
     await new Promise(resolve => setTimeout(resolve, 10));
     return Response.json(board(code));

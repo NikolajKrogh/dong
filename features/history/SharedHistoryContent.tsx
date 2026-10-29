@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Text, XStack, YStack } from 'tamagui';
 import { ShellActionButton } from '../../components/ui';
-import GameDetailsModal from '../../components/history/GameDetailsModal';
+import GameDetailsModal from './GameDetailsModal';
 import type { useSocialHistory } from './useSocialHistory';
 import type { AccountStats } from './socialHistoryRepository';
 

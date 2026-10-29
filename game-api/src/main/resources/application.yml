@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: game-api
+  config:
+    # Load game-api/.env for local development so the service can be started
+    # without exporting anything into the shell. `.env` has no extension Spring
+    # recognises, so [.properties] names the loader; `optional:` keeps startup
+    # working where the file does not exist (CI, containers, prod).
+    #
+    # Both paths are listed because the working directory differs between
+    # `mvnw spring-boot:run` / `java -jar` (run from game-api/) and tooling
+    # launched from the repo root.
+    #
+    # Precedence is deliberate: real OS environment variables outrank imported
+    # config data, so a value exported in the shell — or injected by a container
+    # orchestrator — still wins over anything in .env. The file is a local
+    # default, never an override.
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:./game-api/.env[.properties]
+
+server:
+  port: ${PORT:8080}
+
+supabase:
+  jwks-url: ${SUPABASE_JWKS_URL}
+  url: ${SUPABASE_URL}
+  anon-key: ${SUPABASE_ANON_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs

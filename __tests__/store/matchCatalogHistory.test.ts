@@ -1,7 +1,7 @@
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { normalizeEspnScoreboard } from "../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
-import { liveBoard } from "../fixtures/matchCatalog/scoreboards";
 import type { SavedMatch } from "../../types/footballMatch";
+import { liveBoard } from "../fixtures/matchCatalog/scoreboards";
 const snapshot: SavedMatch = {
   ...normalizeEspnScoreboard(liveBoard, "eng.1").matches[0],
   catalogMatchId: "123",
@@ -34,6 +34,16 @@ const snapshot: SavedMatch = {
 };
 
 describe("self-contained private solo match history", () => {
+  it("never rewrites ended history with newer catalog scores or lifecycle facts", () => {
+    useGameStore.setState({ players: [{ id: "p", name: "Player", drinksTaken: 4 }] });
+    useGameStore.getState().captureSavedMatches([snapshot]);
+    useGameStore.getState().saveGameToHistory();
+    const frozen = JSON.stringify(useGameStore.getState().history);
+    useGameStore.getState().captureSavedMatches([{ ...snapshot, observationVersion: "99", homeScore: 0, lifecycle: "abandoned" }]);
+    expect(JSON.stringify(useGameStore.getState().history)).toBe(frozen);
+    expect(useGameStore.getState().players[0].drinksTaken).toBe(4);
+    expect(useGameStore.getState().matches[0].catalogSnapshot?.lifecycle).toBe("abandoned");
+  });
   beforeEach(() =>
     useGameStore.setState({
       matches: [

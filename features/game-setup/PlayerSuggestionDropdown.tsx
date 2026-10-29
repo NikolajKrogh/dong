@@ -1,0 +1,286 @@
+import React from "react";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+
+import createSetupGameStyles from "./setupGameStyles";
+import { useColors } from "../../styles/theme";
+import { PlayerSuggestion } from "./usePlayerSuggestions";
+import AppIcon from "../../components/ui/AppIcon";
+
+/**
+ * Props for the PlayerSuggestionDropdown component.
+ */
+interface PlayerSuggestionDropdownProps {
+  /** The list of player suggestions to display. */
+  suggestions: PlayerSuggestion[];
+  /** Whether the dropdown is currently visible. */
+  visible: boolean;
+  /** Callback function when a player is selected from the dropdown. */
+  onSelectPlayer: (playerName: string) => void;
+  /** The current search query to highlight matching text. */
+  searchQuery: string;
+}
+
+/**
+ * Props for the SuggestionItem component.
+ */
+interface SuggestionItemProps {
+  /** The player suggestion data for the item. */
+  player: PlayerSuggestion;
+  /** Callback function when the item is selected. */
+  onSelect: (playerName: string) => void;
+  /** The current search query to highlight matching text. */
+  searchQuery: string;
+  /** Theme-aware styles to use inside the item. */
+  styles: ReturnType<typeof createSetupGameStyles>;
+  /** Theme colors for icon tints, etc. */
+  colors: ReturnType<typeof useColors>;
+}
+
+/**
+ * Individual suggestion item component
+ */
+const SuggestionItem: React.FC<SuggestionItemProps> = ({
+  player,
+  onSelect,
+  searchQuery,
+  styles,
+  colors,
+}) => {
+  /**
+   * Handles the press event on a suggestion item.
+   */
+  const handlePress = () => {
+    onSelect(player.name);
+  };
+
+  /**
+   * Formats a date string into a relative time string (e.g., "Today", "Yesterday", "2d ago").
+   * @param {string} dateString The ISO date string to format.
+   * @returns {string} The formatted relative time string.
+   */
+  const formatLastPlayed = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    return `${Math.floor(diffDays / 30)}m ago`;
+  };
+
+  /**
+   * Highlights the matching part of a text string based on a search query.
+   * @param {string} text The text to highlight.
+   * @param {string} highlight The search query to match.
+   * @returns {React.ReactElement} A <Text> component with highlighted parts.
+   */
+  const getHighlightedText = (text: string, highlight: string) => {
+    if (!highlight.trim()) return <Text>{text}</Text>;
+
+    const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const parts = text.split(new RegExp(`(${escapedHighlight})`, "gi"));
+    const lowerText = text.toLowerCase();
+    let nextSearchStart = 0;
+
+    return (
+      <Text>
+        {parts.map((part) => {
+          const lowerPart = part.toLowerCase();
+          const matchStart = lowerText.indexOf(lowerPart, nextSearchStart);
+          const keyStart = matchStart === -1 ? nextSearchStart : matchStart;
+          const key = `${part}-${keyStart}`;
+
+          nextSearchStart = keyStart + part.length;
+
+          return lowerPart === highlight.toLowerCase() ? (
+            <Text key={key} style={styles.highlightedText}>
+              {part}
+            </Text>
+          ) : (
+            <Text key={key}>{part}</Text>
+          );
+        })}
+      </Text>
+    );
+  };
+
+  return (
+    <TouchableOpacity
+      style={styles.playerSuggestionItem}
+      onPress={handlePress}
+      activeOpacity={0.6}
+    >
+      <View style={styles.suggestionContent}>
+        <View style={styles.suggestionInfo}>
+          <View style={styles.suggestionHeader}>
+            <Text style={styles.suggestionName}>
+              {getHighlightedText(player.name, searchQuery)}
+            </Text>
+            <Text style={styles.suggestionTime}>
+              {formatLastPlayed(player.lastPlayed)}
+            </Text>
+          </View>
+          <View style={styles.suggestionStats}>
+            <View style={styles.statItem}>
+              <AppIcon
+                name="game-controller-outline"
+                size={12}
+                color={colors.textMuted}
+              />
+              <Text style={styles.statText}>{player.gamesPlayed}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <AppIcon name="beer-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.statText}>
+                {player.totalDrinks.toFixed(1)}
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <AppIcon
+                name="flash-outline"
+                size={12}
+                color={colors.textMuted}
+              />
+              <Text style={styles.statText}>
+                {player.averageDrinksPerGame.toFixed(1)}/game
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+/**
+ * A dropdown component that displays player suggestions based on user input.
+ * It appears when the user types in the player input field and shows a list of
+ * relevant players from past games. The component prioritizes suggestions based on
+ * match relevance: exact matches first, then names starting with the search query,
+ * followed by names containing the search query elsewhere.
+ *
+ * The dropdown is designed to be compact, showing only 4 players at a time with
+ * a "+X more" indicator when more suggestions are available. It avoids using nested
+ * scrollable views to prevent performance issues when used within ScrollView components.
+ *
+ * @param {PlayerSuggestionDropdownProps} props The props for the component.
+ * @returns {React.ReactElement | null} The rendered dropdown or null if not visible.
+ */
+const PlayerSuggestionDropdown: React.FC<PlayerSuggestionDropdownProps> = ({
+  suggestions,
+  visible,
+  onSelectPlayer,
+  searchQuery,
+}) => {
+  const colors = useColors();
+  const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
+  const fadeProgress = useSharedValue(0);
+  const scaleProgress = useSharedValue(0.95);
+  const maxHeightProgress = useSharedValue(0);
+
+  const sortedSuggestions = React.useMemo(() => {
+    if (!searchQuery.trim()) return suggestions;
+
+    return [...suggestions].sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const query = searchQuery.toLowerCase();
+
+      // Exact match gets highest priority
+      if (aName === query && bName !== query) return -1;
+      if (bName === query && aName !== query) return 1;
+
+      // Starts with gets next priority
+      const aStartsWith = aName.startsWith(query);
+      const bStartsWith = bName.startsWith(query);
+
+      if (aStartsWith && !bStartsWith) return -1;
+      if (bStartsWith && !aStartsWith) return 1;
+
+      // Both either start with query or don't, so no change in order
+      return 0;
+    });
+  }, [suggestions, searchQuery]);
+
+  React.useEffect(() => {
+    if (visible && sortedSuggestions.length > 0) {
+      fadeProgress.value = withTiming(1, { duration: 220 });
+      scaleProgress.value = withTiming(1, { duration: 250 });
+      maxHeightProgress.value = withTiming(400, { duration: 250 });
+    } else {
+      fadeProgress.value = withTiming(0, { duration: 180 });
+      scaleProgress.value = withTiming(0.95, { duration: 200 });
+      maxHeightProgress.value = withTiming(0, { duration: 200 });
+    }
+  }, [
+    visible,
+    sortedSuggestions.length,
+    fadeProgress,
+    scaleProgress,
+    maxHeightProgress,
+  ]);
+
+  const dropdownAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: fadeProgress.value,
+      transform: [{ scale: scaleProgress.value }],
+      maxHeight: maxHeightProgress.value,
+    };
+  });
+
+  // Never return null — keeping the component mounted prevents Android from
+  // dismissing the keyboard when the dropdown first becomes visible (a new
+  // native view mounting adjacent to the focused TextInput triggers a
+  // relayout that Android's IME interprets as a focus loss).
+  // maxHeight/marginTop animate to 0 when hidden so no layout space is taken.
+  return (
+    <Animated.View
+      testID="PlayerSuggestionsDropdown"
+      style={[
+        styles.playerSuggestionsDropdown,
+        Platform.OS === "android" && styles.playerSuggestionsDropdownAndroid,
+        dropdownAnimatedStyle,
+        {
+          pointerEvents:
+            visible && sortedSuggestions.length > 0 ? "auto" : "none",
+        },
+      ]}
+    >
+      <View style={styles.playerSuggestionsHeader}>
+        <AppIcon name="time-outline" size={14} color={colors.primary} />
+        <Text style={styles.playerSuggestionsHeaderText}>Recent Players</Text>
+      </View>
+      <View style={styles.playerSuggestionsList}>
+        {sortedSuggestions.slice(0, 4).map((item) => (
+          <SuggestionItem
+            key={item.name}
+            player={item}
+            onSelect={onSelectPlayer}
+            searchQuery={searchQuery}
+            styles={styles}
+            colors={colors}
+          />
+        ))}
+        {sortedSuggestions.length > 4 && (
+          <View style={styles.moreItemsIndicator}>
+            <Text style={styles.moreItemsText}>{`+${
+              sortedSuggestions.length - 4
+            } more`}</Text>
+          </View>
+        )}
+      </View>
+    </Animated.View>
+  );
+};
+
+export default PlayerSuggestionDropdown;

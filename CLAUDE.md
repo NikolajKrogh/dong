@@ -3,7 +3,7 @@
 This is a polyglot monorepo containing three distinct subsystems:
 
 - **Expo/React Native client** (TypeScript, root) — the DONG mobile/web app
-- **`command-api/`** — Java 17 / Spring Boot 3.5.3 proxy service (own Maven build)
+- **`game-api/`** — Java 17 / Spring Boot 3.5.3 proxy service (own Maven build)
 - **`supabase/`** — PostgreSQL migrations and pgTAP database tests (Supabase CLI)
 - **`python/`** — utility scripts (`crop_icons.py`), not part of the app runtime
 
@@ -26,19 +26,19 @@ npx expo start --dev-client   # dev server (native)
 npx expo start --web          # dev server (web)
 ```
 
-### Java command-api
+### Java game-api
 
 ```powershell
-# Windows (PowerShell) — from repo root or command-api/
-cd command-api
+# Windows (PowerShell) — from repo root or game-api/
+cd game-api
 .\mvnw.cmd clean verify           # full build + tests (what CI runs)
 .\mvnw.cmd test                   # unit + slice tests only
 .\mvnw.cmd spring-boot:run        # run service on :8080 (set env vars first)
 ```
 
-Config for the Java service lives in `command-api/.env`, which Spring Boot loads
+Config for the Java service lives in `game-api/.env`, which Spring Boot loads
 automatically (`spring.config.import` in `application.yml`) — no shell exports needed.
-Start from `cp command-api/.env.example command-api/.env`. It is parsed as a Java
+Start from `cp game-api/.env.example game-api/.env`. It is parsed as a Java
 properties file, so leave values unquoted; real environment variables override it.
 
 Required keys: `SUPABASE_JWKS_URL`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` (the last
@@ -65,19 +65,38 @@ npm run db:new-migration  # scaffold a new migration file
 ## Project Structure
 
 ```
-app/                      Expo Router screens (auth/, setupGame, gameProgress, history, userPreferences)
-components/               Reusable UI components (grouped by screen domain)
-hooks/                    React hooks — useMatchData, useAccountAuth, useGuestRoomJoin, etc.
+app/                      Thin Expo Router entries; preserve framework route filenames
+features/                 Feature-owned screens, UI, hooks and operations (kebab-case domains)
+components/ui/            Shared reusable UI
 platform/                 Platform abstraction adapters (animation, audio, date-input, visibility, gestures)
 store/                    Zustand store (AsyncStorage-backed)
-utils/                    Shared utilities incl. commandApiClient.ts (match discovery API client)
+lib/                      SDK and query infrastructure setup
+types/                    Shared contracts and generated database types
+shared/                   Helpers shared by client and Edge runtimes
+utils/                    Feature-independent helpers, including idempotencyKey.ts
+features/football-matches/ Match discovery adapter, service, schemas and transport
+features/rooms/           Room lifecycle operations and startGameClient.ts
+supabase/functions/       Edge entry points; shared football-match implementation in _shared/football-matches/
 supabase/migrations/      SQL schema migrations (run in order)
 supabase/tests/database/  pgTAP tests
-command-api/              Spring Boot service (package-by-feature: match/, security/, command/, etc.)
+game-api/                 Spring Boot service (footballmatch/, roomaction/, security/, etc.)
 specs/NNN-*/              Feature specifications (spec.md, plan.md, tasks.md, quickstart.md, …)
 e2e/features/             Playwright BDD .feature files
 e2e/steps/                Playwright step definitions
 ```
+
+Feature implementations own their hooks, styles and helpers. Keep shared UI in
+`components/ui`, platform behavior in `platform`, and application state in `store`.
+Use PascalCase for components and dedicated class files, camelCase for function
+modules and `useCamelCase` for hooks. Feature directories use kebab-case; Java
+packages use lowercase and class files use PascalCase. Use role suffixes such as
+Client, Service, Adapter and Repository only when they describe the implementation.
+Java health access uses `SupabaseHealthProbe` / `HttpSupabaseHealthProbe`; authenticated
+RPC access uses `SupabaseRpcClient`. Domain vocabulary should agree across runtimes,
+without forcing identical filenames for different roles or treating projections as
+identical contracts. Prefer narrow named module entry points; Account, Friends,
+History and Preferences expose their focused public indexes. Tests mirror ownership
+under `__tests__/features/<feature>/` or the appropriate shared directory.
 
 ---
 
@@ -100,13 +119,13 @@ Check `.agents/skills/` before any research, planning, implementation, or review
 New features live in `specs/NNN-<slug>/`. A complete spec includes `spec.md`, `plan.md`, `tasks.md`, and `quickstart.md`. Constitution Check is required before Phase 0 research closes and after Phase 1 design.
 
 ### Supabase-first, Java by exception (constitution §IV)
-Use Supabase Auth, Postgres, and RPC by default. The Java `command-api` exists only for orchestration, secrets handling, and external integration (currently: ESPN match proxy). Do not add duplicate CRUD layers.
+Use Supabase Auth, Postgres, and RPC by default. The Java `game-api` exists only for orchestration, secrets handling, and external integration (currently: ESPN match proxy). Do not add duplicate CRUD layers.
 
 ### Env setup
 Copy env values with `npm run auth:env`. To wire the client to the local Java service, add to `.env.local`:
 
 ```env
-EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
+EXPO_PUBLIC_GAME_API_URL=http://localhost:8080
 ```
 
 Restart Expo with `-c` after changing `.env.local` — `EXPO_PUBLIC_*` values are

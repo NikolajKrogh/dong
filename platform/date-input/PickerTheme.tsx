@@ -2,7 +2,7 @@ import React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { MD3DarkTheme, MD3LightTheme, PaperProvider } from "react-native-paper";
 import { en, registerTranslation } from "react-native-paper-dates";
-import { useGameStore } from "../../store/store";
+import { useGameStore } from "../../store/gameStore";
 import { useColors } from "../../styles/theme";
 
 registerTranslation("en", en);

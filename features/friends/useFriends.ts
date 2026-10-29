@@ -2,11 +2,10 @@ import { useInfiniteQuery, useQuery, type InfiniteData } from '@tanstack/react-q
 import { useFocusEffect } from 'expo-router';
 import * as Crypto from 'expo-crypto';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAccountAuth } from '../../hooks/useAccountAuth';
+import { useAccountAuth, normalizeAccountUsername } from '../account';
 import { getSupabaseClient } from '../../lib/supabase';
 import { getAccountScope, isCurrentAccountScope, queryClient } from '../../lib/queryClient';
 import { useAppVisibility } from '../../platform/visibility';
-import { normalizeAccountUsername } from '../account';
 import { actOnFriend, listFriends, searchFriends, SocialError, type FriendAction, type Person, type ListKind, type SocialPage } from './friendsRepository';
 import { friendKeys } from './queryKeys';
 import { invalidateSocialHistory } from '../history';

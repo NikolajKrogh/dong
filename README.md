@@ -9,7 +9,7 @@ playing drinking game **DONG**.
 It provides a digital platform for:
 
 - Managing game rules
-- Retrieving matches in a time window through the command-api proxy
+- Discovering saved football matches through the shared Supabase catalog
 - Retrieving livescores
 
 ## Getting Started
@@ -48,14 +48,16 @@ npx supabase login
 
 After creating or changing `.env.local`, restart Expo so the `EXPO_PUBLIC_*` values are picked up by the bundle.
 
-For local command-api backed match discovery, add the Java service base URL to `.env.local` before running Expo:
+For local start-game requests, add the Java service base URL to `.env.local` before running Expo:
 
 ```env
-EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
+EXPO_PUBLIC_GAME_API_URL=http://localhost:8080
 ```
 
-Restart Expo after adding or changing `EXPO_PUBLIC_COMMAND_API_URL` so the match discovery client uses the updated backend URL.
-The setup-game flow now calls the public Java `GET /v1/matches` endpoint instead of ESPN directly for match discovery, and repeated identical backend lookups are reused inside the configured default `PT5M` cache window.
+Restart Expo after adding or changing `EXPO_PUBLIC_GAME_API_URL` so the start-game client uses the updated backend URL.
+The setup-game flow discovers matches through Supabase `discover-matches`. Java
+`GET /v1/matches` remains a flat discovery projection for direct API callers;
+the shared catalog owns acquisition and freshness, and Java keeps no match cache.
 
 ### Running the app locally
 
@@ -65,8 +67,8 @@ produces failures that look like something else entirely.
 
 | # | What | Command (run from the repo root unless noted) | Needed for |
 | - | ---- | --------------------------------------------- | ---------- |
-| 1 | Java `command-api` | `cd command-api` then `./mvnw.cmd spring-boot:run` (`./mvnw` on macOS/Linux) | Match discovery and Start Game. Without it the setup flow cannot list fixtures. |
-| 2 | Android dev client | `npm run android:dev` | **Physical Android device only.** Establishes reverse tunnels for the command API (`8080`) and Metro (`8081`), starts Metro on IPv4 localhost, and launches the app. |
+| 1 | Java `game-api` | `cd game-api` then `./mvnw.cmd spring-boot:run` (`./mvnw` on macOS/Linux) | Start Game and direct callers of the compatibility match-discovery endpoint. |
+| 2 | Android dev client | `npm run android:dev` | **Physical Android device only.** Establishes reverse tunnels for the game API (`8080`) and Metro (`8081`), starts Metro on IPv4 localhost, and launches the app. |
 | 3 | Expo web server | `npx expo start --web` | Web only. Do not run this separately for the Android flow above. |
 
 **`--dev-client` is not optional for native.** This project depends on
@@ -102,11 +104,11 @@ hosted project, so the local stack is only needed for database work — see
 
 #### Prerequisites for step 1
 
-`command-api` reads `command-api/.env` automatically (via `spring.config.import`
+`game-api` reads `game-api/.env` automatically (via `spring.config.import`
 in `application.yml`), so nothing needs exporting into your shell:
 
 ```bash
-cp command-api/.env.example command-api/.env
+cp game-api/.env.example game-api/.env
 ```
 
 Then fill in `SUPABASE_JWKS_URL`, `SUPABASE_URL` and `SUPABASE_ANON_KEY`. The file
@@ -120,9 +122,9 @@ unaffected.
 | ------- | ----- |
 | Device shows Expo Go, or the dev build will not connect | `npx expo start` was used instead of `npx expo start --dev-client`. See above. |
 | Dev server starts but nothing happens on the device | `--android` was omitted, so nothing launched the app. Add it, press `a` in the CLI, or open the dev build by hand. |
-| App: `Missing command API configuration` | `EXPO_PUBLIC_COMMAND_API_URL` is unset in `.env.local`, or Expo was not restarted with `-c` after adding it. `EXPO_PUBLIC_*` values are inlined at bundle time, so a plain restart keeps serving the old value. |
-| App on device: `Match discovery request timed out` or Metro tries a stale LAN address | The reverse tunnels are missing. Re-run `npm run android:dev` — tunnels do not survive a USB re-attach. The script maps both command-api `8080` and Metro `8081` to localhost. |
-| Web: `NetworkError when attempting to fetch resource` | CORS. `command-api/.env` must contain `spring.profiles.active=dev`; CORS lives in `application-dev.yml` and is off in every other profile. |
+| App: `Missing game API configuration` | `EXPO_PUBLIC_GAME_API_URL` is unset in `.env.local`, or Expo was not restarted with `-c` after adding it. `EXPO_PUBLIC_*` values are inlined at bundle time, so a plain restart keeps serving the old value. |
+| App on device: `Match discovery request timed out` or Metro tries a stale LAN address | The reverse tunnels are missing. Re-run `npm run android:dev` — tunnels do not survive a USB re-attach. The script maps both game-api `8080` and Metro `8081` to localhost. |
+| Web: `NetworkError when attempting to fetch resource` | CORS. `game-api/.env` must contain `spring.profiles.active=dev`; CORS lives in `application-dev.yml` and is off in every other profile. |
 | Health `DOWN`, component `supabase` | `SUPABASE_ANON_KEY` is missing. Supabase's hosted gateway answers `401 No API key found in request` without it. |
 | Health `DOWN`, component `supabaseJwks` | `SUPABASE_JWKS_URL` is wrong or unreachable. It must include the full path, e.g. `https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`. |
 | Match list is empty | Not necessarily a bug — the date picker defaults to today, and there are no fixtures out of season. Pick an in-season date before concluding something is broken. |

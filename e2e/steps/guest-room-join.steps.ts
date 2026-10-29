@@ -3,7 +3,7 @@ import type { Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 
 import { createGuestRoomHostFixture } from "../fixtures";
-import { roomSnapshotToGameState } from "../../utils/roomSnapshot";
+import { roomSnapshotToGameState } from "../../features/rooms/roomSnapshotAdapter";
 import {
   GUEST_ROOM_SESSION_GRANT_STORAGE_KEY,
   HOST_ROOM_PARTICIPANT_ID,
@@ -102,7 +102,9 @@ When(
   async ({ context, baseURL }) => {
     activeRosterHostPage = await context.newPage();
     await seedHostRoomAuthSession(activeRosterHostPage);
-    await mockHostRoomServices(activeRosterHostPage);
+    await mockHostRoomServices(activeRosterHostPage, {
+      activeMembership: { participantId: HOST_ROOM_PARTICIPANT_ID, role: "owner" },
+    });
     setHostRoomSnapshotParticipants([
       {
         id: "guest-mocked-participant",
@@ -123,7 +125,7 @@ When(
       { waitUntil: "commit", timeout: 60_000 },
     );
     await expect(
-      activeRosterHostPage.getByText("Room Lobby", { exact: true }),
+      activeRosterHostPage.getByText("Expired Guest", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
   },
 );
@@ -292,10 +294,7 @@ Then(
   "only generic room-unavailable feedback should be visible",
   async ({ page }) => {
     await expect(
-      page.getByText(
-        "This room is unavailable. Check the code or ask the host for a new invitation.",
-        { exact: true },
-      ),
+      page.locator("#guest-join-error"),
     ).toBeVisible();
     const safe = await page.evaluate(() => {
       const visible = document.body.innerText;
@@ -399,7 +398,7 @@ Then("the guest should see final-only results", async ({ page }) => {
 
 Then("the guest should lose closed-room access", async ({ page }) => {
   await expect(
-    page.getByText("Your guest access is no longer valid.", { exact: false }),
+    page.locator("#guest-join-error"),
   ).toBeVisible({ timeout: 10_000 });
   await expect
     .poll(() =>

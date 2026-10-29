@@ -1,6 +1,7 @@
-import { applySyncedPreferenceState, hydrateSyncedPreferenceState, useGameStore } from "../../store/store";
-import { LEAGUE_ENDPOINTS, DEFAULT_SELECTED_LEAGUES } from "../../constants/leagues";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DEFAULT_SELECTED_LEAGUES, LEAGUE_ENDPOINTS } from "../../constants/leagues";
+import { applySyncedPreferenceState, useGameStore } from "../../store/gameStore";
+import { hydrateSyncedPreferenceState } from "../../store/syncedPreferences";
 
 describe("bundled league defaults", () => {
   beforeEach(() => useGameStore.setState(hydrateSyncedPreferenceState(undefined)));

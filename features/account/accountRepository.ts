@@ -1,11 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../types/database";
 
-import {
-  hydrateSyncedPreferenceState,
-  serializeSyncedPreferenceState,
-  type SyncedPreferenceState,
-} from "../../store/store";
+import { hydrateSyncedPreferenceState, serializeSyncedPreferenceState, type SyncedPreferenceState } from "../../store/syncedPreferences";
 import { normalizeAccountUsername } from "./username";
 
 const SETTINGS_SELECT_COLUMNS =

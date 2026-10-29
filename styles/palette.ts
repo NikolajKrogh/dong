@@ -4,7 +4,7 @@
  */
 export const colors = {
   // --- Primary ---
-  primary: "#0275d8",
+  primary: "#0068c4",
   primaryLight: "#e3f2fd",
   primaryLighter: "#f0f8ff",
   primaryDark: "#0056b3",
@@ -19,11 +19,11 @@ export const colors = {
   neutralGray: "#ccc",
 
   // --- Status: Success ---
-  success: "#28a745",
+  success: "#218539",
   successLight: "#e8f5e9",
   successText: "#fff",
   successDarkText: "#155724",
-  successOwedText: "#388e3c",
+  successOwedText: "#24752a",
 
   // --- Status: Danger/Error ---
   danger: "#dc3545",
@@ -54,7 +54,7 @@ export const colors = {
   // --- Text ---
   textPrimary: "#212529",
   textSecondary: "#333",
-  textMuted: "#6c757d",
+  textMuted: "#626b73",
   textDisabled: "#adb5bd",
   textLight: "#fff",
   textPlaceholder: "#999",
@@ -68,7 +68,7 @@ export const colors = {
 
   // --- Component Specific ---
   awayTeam: "#fd7e14",
-  liveIndicator: "#e74c3c",
+  liveIndicator: "#bc3223",
   owedPositiveBorder: "#e57373",
   owedZeroBorder: "#81c784",
   playerItemOddBackground: "#fff8f0",

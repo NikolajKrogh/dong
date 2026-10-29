@@ -1,13 +1,13 @@
 # Production hosting
 
-Use Cloudflare Pages for the Expo SPA, Cloud Run for `command-api`, and the
+Use Cloudflare Pages for the Expo SPA, Cloud Run for `game-api`, and the
 existing Supabase project. Guests continue to join with a room code from Home.
 `/lobby/<sessionId>` resumes the signed-in account's existing membership;
 participant IDs in query parameters are not used to select a role.
 
 ## Java API on Cloud Run
 
-Deploy the `command-api` directory with source buildpacks and the build
+Deploy the `game-api` directory with source buildpacks and the build
 environment variable `GOOGLE_RUNTIME_VERSION=17`. Its `.gcloudignore` excludes
 local environment files and build artifacts. See Google's
 [Java buildpack configuration](https://docs.cloud.google.com/docs/buildpacks/java).
@@ -18,7 +18,7 @@ SPRING_PROFILES_ACTIVE=prod
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 SUPABASE_JWKS_URL=https://YOUR_PROJECT.supabase.co/auth/v1/.well-known/jwks.json
 SUPABASE_ANON_KEY=YOUR_PUBLIC_KEY
-COMMAND_API_CORS_ALLOWED_ORIGINS=https://YOUR_APP.pages.dev
+GAME_API_CORS_ALLOWED_ORIGINS=https://YOUR_APP.pages.dev
 ```
 
 The service reads Cloud Run's `PORT`. Allow public invocation: match discovery
@@ -97,7 +97,7 @@ Java retains the existing Cloud Run service and its public runtime variables abo
 $googleProject = '<EXISTING_GOOGLE_PROJECT>'
 $cloudRegion = '<EXISTING_REGION>'
 $cloudService = '<EXISTING_CLOUD_RUN_SERVICE>'
-gcloud run deploy $cloudService --project $googleProject --region $cloudRegion --source .\command-api --set-build-env-vars GOOGLE_RUNTIME_VERSION=17 --update-env-vars SPRING_PROFILES_ACTIVE=prod --allow-unauthenticated --min-instances 0 --max-instances 1 --memory 512Mi
+gcloud run deploy $cloudService --project $googleProject --region $cloudRegion --source .\game-api --set-build-env-vars GOOGLE_RUNTIME_VERSION=17 --update-env-vars SPRING_PROFILES_ACTIVE=prod --allow-unauthenticated --min-instances 0 --max-instances 1 --memory 512Mi
 ```
 
 This is a parameterized manual publication command, not an executed/verified target deployment. Preserve the existing Supabase URL/JWKS/public app key and exact production CORS variables; never add the catalog DSN or monitor secret to Java or the client. Inspect actual revision traffic/tags and retire every routable Java revision that still fetches ESPN before source ownership activation. [Current command flags](https://cloud.google.com/sdk/gcloud/reference/run/deploy).

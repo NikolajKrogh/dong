@@ -1,0 +1,111 @@
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+
+type AppIconName =
+  | "add"
+  | "add-circle"
+  | "arrow-back"
+  | "arrow-down"
+  | "arrow-forward"
+  | "arrow-up"
+  | "beer"
+  | "beer-outline"
+  | "checkmark"
+  | "calendar"
+  | "calendar-outline"
+  | "chevron-down"
+  | "chevron-forward"
+  | "close"
+  | "close-circle"
+  | "close-circle-outline"
+  | "exit-outline"
+  | "flame"
+  | "flash-outline"
+  | "football"
+  | "football-outline"
+  | "funnel-outline"
+  | "game-controller-outline"
+  | "git-network"
+  | "home"
+  | "information-circle-outline"
+  | "keypad-outline"
+  | "options-outline"
+  | "people"
+  | "people-outline"
+  | "person-circle-outline"
+  | "person-outline"
+  | "play"
+  | "remove"
+  | "stats-chart-outline"
+  | "time"
+  | "time-outline"
+  | "trash-outline"
+  | "trophy"
+  | "tv-outline";
+
+interface AppIconProps {
+  name: AppIconName;
+  size: number;
+  color: string;
+  style?: any;
+}
+
+type IoniconName = keyof typeof Ionicons.glyphMap;
+
+const ICON_MAP: Record<AppIconName, IoniconName> = {
+  add: "add",
+  "add-circle": "add-circle",
+  "arrow-back": "arrow-back",
+  "arrow-down": "arrow-down",
+  "arrow-forward": "arrow-forward",
+  "arrow-up": "arrow-up",
+  beer: "beer",
+  "beer-outline": "beer-outline",
+  checkmark: "checkmark",
+  calendar: "calendar",
+  "calendar-outline": "calendar-outline",
+  "chevron-down": "chevron-down",
+  "chevron-forward": "chevron-forward",
+  close: "close",
+  "close-circle": "close-circle",
+  "close-circle-outline": "close-circle-outline",
+  "exit-outline": "exit-outline",
+  flame: "flame",
+  "flash-outline": "flash-outline",
+  football: "football",
+  "football-outline": "football-outline",
+  "funnel-outline": "funnel-outline",
+  "game-controller-outline": "game-controller-outline",
+  "git-network": "git-network",
+  home: "home",
+  "information-circle-outline": "information-circle-outline",
+  "keypad-outline": "keypad-outline",
+  "options-outline": "options-outline",
+  people: "people",
+  "people-outline": "people-outline",
+  "person-circle-outline": "person-circle-outline",
+  "person-outline": "person-outline",
+  play: "play",
+  remove: "remove",
+  "stats-chart-outline": "stats-chart-outline",
+  time: "time",
+  "time-outline": "time-outline",
+  "trash-outline": "trash-outline",
+  trophy: "trophy",
+  "tv-outline": "tv-outline",
+};
+
+export type { AppIconName };
+
+const AppIcon: React.FC<AppIconProps> = ({
+  name,
+  size,
+  color,
+  style,
+}) => {
+  const iconName = ICON_MAP[name];
+
+  return <Ionicons aria-hidden accessible={false} name={iconName} size={size} color={color} style={style} />;
+};
+
+export default AppIcon;

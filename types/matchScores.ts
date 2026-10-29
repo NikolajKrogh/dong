@@ -13,6 +13,7 @@ export interface MatchWithScore {
   homeTeamId: string;
   awayTeamId: string;
   status: string;
+  lifecycle?: import("./footballMatch").MatchLifecycle;
   goalScorers?: GoalScorer[];
   homeTeamStatistics?: MatchStatistics;
   awayTeamStatistics?: MatchStatistics;

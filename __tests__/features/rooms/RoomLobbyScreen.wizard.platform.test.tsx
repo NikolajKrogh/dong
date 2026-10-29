@@ -1,0 +1,419 @@
+/**
+ * The pre-start room, rendered as the single-player setup wizard.
+ *
+ * What matters here is that host and member get the *same four steps in the same
+ * order* — SetupWizard's current step is uncontrolled, so a steps array whose
+ * shape changed between the ~4s snapshot polls would remount the wizard and drop
+ * the viewer back to step one mid-edit. The host/member difference lives inside
+ * a step's content and in the final action, never in the array's shape.
+ */
+import React from "react";
+import { act } from "react-test-renderer";
+
+import { actCreate } from "../../../test-utils/render";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+
+const mockReplace = jest.fn();
+const mockPush = jest.fn();
+const mockSetParams = jest.fn();
+const mockBack = jest.fn();
+let mockPreviousRoute: { name: string; params?: Record<string, string> } | undefined;
+let mockParams: Record<string, string | string[]> = {};
+let mockNavigationReady = true;
+jest.mock("../../../platform/navigation/useNavigationReady", () => ({ useNavigationReady: () => mockNavigationReady }));
+
+const mockLobby: Record<string, unknown> = {};
+const mockSetCommonMatch = jest.fn();
+const mockStartGame = jest.fn();
+let mockAuthStatus = "ready";
+let mockActiveRoom: { sessionId: string; participantId: string } | null = { sessionId: "room-1", participantId: "p1" };
+let mockMembershipError: string | null = null;
+const mockMembershipRefresh = jest.fn();
+const mockUseRoomLobby = jest.fn((..._args: unknown[]) => mockLobby);
+
+jest.mock("../../../features/account", () => ({
+  buildAccountAuthRoute: jest.requireActual("../../../features/account/accountAuthRoutes").buildAccountAuthRoute,
+  useAccountAuth: () => ({ status: mockAuthStatus, account: { id: "account-1" } }),
+}));
+jest.mock("../../../features/rooms/useMyActiveRoom", () => ({
+  useMyActiveRoom: () => ({ activeRoom: mockActiveRoom, isLoading: false, error: mockMembershipError, refresh: mockMembershipRefresh }),
+}));
+
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ replace: mockReplace, push: mockPush, dismissTo: jest.fn(), setParams: mockSetParams, back: mockBack, canGoBack: () => !!mockPreviousRoute }),
+  useNavigation: () => ({ getState: () => ({ index: mockPreviousRoute ? 1 : 0, routes: mockPreviousRoute ? [mockPreviousRoute, { name: "lobby/[sessionId]" }] : [{ name: "lobby/[sessionId]" }] }) }),
+  useLocalSearchParams: () => ({ sessionId: "room-1", participantId: "untrusted-id", ...mockParams }),
+  useFocusEffect: (callback: () => void) => require('react').useEffect(callback, [callback]),
+}));
+
+// The wizard is stubbed so the steps array it is handed can be inspected
+// directly. Rendering it for real would only ever show step one.
+jest.mock("../../../features/game-setup", () => ({
+  SetupWizard: "SetupWizard",
+  MatchList: "MatchList",
+  CommonMatchSelector: "CommonMatchSelector",
+}));
+jest.mock("../../../features/game-setup/SelectableMatchList", () => ({
+  SelectableMatchList: "SelectableMatchList",
+}));
+
+jest.mock("../../../components/ui", () => ({
+  ShellScreen: "ShellScreen",
+  ShellActionButton: "ShellActionButton",
+}));
+
+jest.mock("../../../features/rooms/ParticipantList", () => ({
+  ParticipantList: "ParticipantList",
+}));
+jest.mock("../../../features/rooms/PlayerPickPanel", () => ({
+  PlayerPickPanel: "PlayerPickPanel",
+}));
+jest.mock("../../../features/rooms/RoomEndedNotice", () => ({
+  RoomEndedNotice: "RoomEndedNotice",
+}));
+jest.mock("../../../features/rooms/SuccessorChooserModal", () => ({
+  SuccessorChooserModal: "SuccessorChooserModal",
+}));
+
+jest.mock("../../../features/rooms/useRoomLobby", () => ({
+  useRoomLobby: (...args: unknown[]) => mockUseRoomLobby(...args),
+}));
+
+jest.mock("../../../features/rooms/useRoomConfigure", () => ({
+  useRoomConfigure: () => ({
+    isBusy: false,
+    error: null,
+    addMatch: jest.fn(),
+    addMatches: jest.fn(),
+    removeMatch: jest.fn(),
+    removeMatches: jest.fn(),
+    setCommonMatch: mockSetCommonMatch,
+    setAssignments: jest.fn(),
+    setAssignmentSettings: jest.fn(),
+    setAssignmentMode: jest.fn(),
+    setMyPicks: jest.fn(),
+    startGame: mockStartGame,
+    endGame: jest.fn(),
+  }),
+}));
+
+jest.mock("../../../features/rooms/useRoomExit", () => ({
+  useRoomExit: () => ({
+    isExiting: false,
+    error: null,
+    pendingSuccessorChoice: false,
+    eligibleSuccessors: [],
+    needsCloseConfirm: false,
+    exitRoom: jest.fn(),
+    confirmSuccessor: jest.fn(),
+    confirmClose: jest.fn(),
+    cancel: jest.fn(),
+  }),
+}));
+
+jest.mock("../../../store/gameStore", () => ({
+  useGameStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      setPlayers: jest.fn(),
+      setMatches: jest.fn(),
+      setCommonMatchId: jest.fn(),
+      setPlayerAssignments: jest.fn(),
+    }),
+}));
+
+interface LobbyOptions {
+  role?: "owner" | "member";
+  state?: string;
+  poolSize?: number;
+  commonMatchId?: string | null;
+  startable?: boolean;
+}
+
+const setLobby = ({
+  role = "owner",
+  state = "joinable",
+  poolSize = 2,
+  commonMatchId = "m1",
+  startable = true,
+}: LobbyOptions = {}) => {
+  const matches = Array.from({ length: poolSize }, (_, index) => ({
+    id: `m${index + 1}`,
+    homeTeamName: `Home ${index + 1}`,
+    awayTeamName: `Away ${index + 1}`,
+    homeScore: 0,
+    awayScore: 0,
+    kickoffAt: null,
+  }));
+  const participants = [
+    {
+      id: "p1",
+      displayName: "Host",
+      membershipType: "registered",
+      sessionRole: "owner",
+      currentDrinkTotal: 0,
+    },
+  ];
+
+  Object.assign(mockLobby, {
+    snapshot: {
+      sessionId: "room-1",
+      joinCode: "123456",
+      state,
+      commonMatchId,
+      assignmentMode: "automatic",
+      participants,
+      matches,
+      assignments: [],
+      picks: [],
+      assignmentPlan: {
+        participantCount: 1,
+        poolSize,
+        matchesPerPlayer: 1,
+        sharedMatchesPerPair: 0,
+        effectivePerPlayer: 1,
+        requiredPoolSize: 2,
+        relaxedFloor: 1,
+        feasible: startable,
+        startable,
+      },
+    },
+    participants,
+    myRole: role,
+    state,
+    joinCode: role === "owner" ? "123456" : null,
+    roomEnded: state === "closed" || state === "completed",
+    gameStarted: state === "in_progress",
+    error: null,
+    refresh: jest.fn(),
+  });
+};
+
+const renderLobby = () => {
+  const LobbyScreen = require("../../../features/rooms/RoomLobbyScreen").default;
+  return actCreate(
+    React.createElement(
+      TamaguiTestProvider,
+      null,
+      React.createElement(LobbyScreen),
+    ),
+  );
+};
+
+const rerenderLobby = (tree: ReturnType<typeof actCreate>) => {
+  act(() => tree.update(React.createElement(TamaguiTestProvider, null,
+    React.createElement(require("../../../features/rooms/RoomLobbyScreen").default))));
+};
+
+/** The steps array handed to the (stubbed) wizard. */
+const wizardProps = (tree: ReturnType<typeof actCreate>) =>
+  tree.root.findByType("SetupWizard" as unknown as React.ElementType).props;
+
+/** Renders one step's content on its own so it can be queried. */
+const renderStep = (content: React.ReactNode) =>
+  actCreate(React.createElement(TamaguiTestProvider, null, content));
+
+describe("pre-start lobby, as the setup wizard", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockAuthStatus = "ready";
+    mockActiveRoom = { sessionId: "room-1", participantId: "p1" };
+    mockMembershipError = null;
+    mockParams = {};
+    mockNavigationReady = true;
+    mockPreviousRoute = undefined;
+  });
+
+  it("uses server membership instead of the participant query parameter", () => {
+    setLobby({ role: "owner" });
+    const tree = renderLobby();
+    expect(mockUseRoomLobby).toHaveBeenCalledWith("room-1", "p1");
+    tree.unmount();
+  });
+
+  it("offers sign-in with a return URL while signed out", () => {
+    mockAuthStatus = "signedOut";
+    mockActiveRoom = null;
+    const tree = renderLobby();
+    tree.root.findAllByType("ShellActionButton" as unknown as React.ElementType)
+      .find(button => button.props.label === "Continue")!.props.onPress();
+    expect(mockPush).toHaveBeenCalledWith("/auth?returnTo=%2Flobby%2Froom-1");
+    expect(mockUseRoomLobby).not.toHaveBeenCalled();
+    tree.unmount();
+  });
+
+  it("does not load another room's snapshot", () => {
+    mockActiveRoom = { sessionId: "other-room", participantId: "p2" };
+    const tree = renderLobby();
+    expect(mockUseRoomLobby).not.toHaveBeenCalled();
+    expect(JSON.stringify(tree.toJSON())).toContain("not an active member");
+    tree.unmount();
+  });
+
+  it("offers retry when membership lookup fails", () => {
+    mockActiveRoom = null;
+    mockMembershipError = "Connection failed";
+    const tree = renderLobby();
+    tree.root.findAllByType("ShellActionButton" as unknown as React.ElementType)
+      .find(button => button.props.label === "Retry")!.props.onPress();
+    expect(mockMembershipRefresh).toHaveBeenCalled();
+    expect(mockUseRoomLobby).not.toHaveBeenCalled();
+    tree.unmount();
+  });
+
+  it.each(["owner", "member"] as const)("keeps the same wizard step order for %s", (role) => {
+    setLobby({ role });
+    expect(wizardProps(renderLobby()).steps.map((step: { key: string }) => step.key))
+      .toEqual(["room", "matches", "common", "assign"]);
+  });
+
+  it("offers the host Start Game and a member nothing to press", () => {
+    setLobby({ role: "owner" });
+    expect(wizardProps(renderLobby()).finalAction.testID).toBe(
+      "lobby-start-game",
+    );
+
+    setLobby({ role: "member" });
+    // null is what makes SetupWizard render its "Waiting for host" placeholder.
+    expect(wizardProps(renderLobby()).finalAction).toBeNull();
+  });
+
+  it("disables Start Game while the pool is below the hard floor", () => {
+    setLobby({ role: "owner", startable: false });
+    expect(wizardProps(renderLobby()).finalAction.disabled).toBe(true);
+  });
+
+  it("puts Leave Room in the first nav slot", () => {
+    setLobby({ role: "owner" });
+    expect(wizardProps(renderLobby()).firstSlotAction.testID).toBe(
+      "lobby-leave-button",
+    );
+  });
+
+  it("lets the host acquire matches but shows a member the pool inert", () => {
+    setLobby({ role: "owner" });
+    const hostStep = renderStep(wizardProps(renderLobby()).steps[1].content);
+    expect(
+      hostStep.root.findAllByType("MatchList" as unknown as React.ElementType)
+        .length,
+    ).toBe(1);
+
+    setLobby({ role: "member" });
+    const memberStep = renderStep(wizardProps(renderLobby()).steps[1].content);
+    expect(
+      memberStep.root.findAllByType("MatchList" as unknown as React.ElementType)
+        .length,
+    ).toBe(0);
+    const inert = memberStep.root.findByType(
+      "SelectableMatchList" as unknown as React.ElementType,
+    );
+    // Every match disabled — this is a view of the pool, not a control.
+    expect(inert.props.disabledMatchIds).toEqual(["m1", "m2"]);
+  });
+
+  it("writes the host's Common Match choice back to the room", () => {
+    setLobby({ role: "owner" });
+    const step = renderStep(wizardProps(renderLobby()).steps[2].content);
+    step.root
+      .findByType("CommonMatchSelector" as unknown as React.ElementType)
+      .props.handleSelectCommonMatch("m2");
+
+    expect(mockSetCommonMatch).toHaveBeenCalledWith("m2");
+  });
+
+  it("shows a member the same cards without letting them write", () => {
+    setLobby({ role: "member" });
+    const step = renderStep(wizardProps(renderLobby()).steps[2].content);
+    step.root
+      .findByType("CommonMatchSelector" as unknown as React.ElementType)
+      .props.handleSelectCommonMatch("m2");
+
+    expect(mockSetCommonMatch).not.toHaveBeenCalled();
+  });
+
+  it("keeps the Assign step reachable for a picker before a Common Match exists", () => {
+    setLobby({ role: "member", commonMatchId: null });
+    const withoutPicking = wizardProps(renderLobby()).steps[3].canEnter;
+    expect(withoutPicking).toBe(false);
+
+    // player_picked + joinable is what `canPick` needs; the pick panel has to be
+    // reachable whether or not the host has designated a Common Match yet.
+    setLobby({ role: "member", commonMatchId: null });
+    (mockLobby.snapshot as { assignmentMode: string }).assignmentMode =
+      "player_picked";
+    expect(wizardProps(renderLobby()).steps[3].canEnter).toBe(true);
+  });
+
+  it("does not mount the wizard for a game already in progress", () => {
+    setLobby({ role: "owner", state: "in_progress" });
+    const tree = renderLobby();
+
+    expect(
+      tree.root.findAllByType("SetupWizard" as unknown as React.ElementType)
+        .length,
+    ).toBe(0);
+    expect(
+      tree.root.findAllByProps({ testID: "lobby-in-progress" }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("restores a permitted route step without changing it during snapshot polling", () => {
+    mockParams = { step: "assign" };
+    setLobby();
+    const tree = renderLobby();
+    expect(wizardProps(tree).activeStepKey).toBe("assign");
+    setLobby({ poolSize: 0, commonMatchId: null });
+    rerenderLobby(tree);
+    expect(wizardProps(tree).activeStepKey).toBe("assign");
+    expect(mockSetParams).not.toHaveBeenCalled();
+    act(() => tree.unmount());
+  });
+
+  it("recovers an inaccessible direct step after navigation is ready", () => {
+    mockParams = { step: "assign" };
+    mockNavigationReady = false;
+    setLobby({ poolSize: 0, commonMatchId: null });
+    const tree = renderLobby();
+    expect(mockSetParams).not.toHaveBeenCalled();
+    mockNavigationReady = true;
+    rerenderLobby(tree);
+    expect(wizardProps(tree).activeStepKey).toBe("matches");
+    expect(mockSetParams).toHaveBeenCalledWith({ step: "matches" });
+    expect(mockStartGame).not.toHaveBeenCalled();
+    act(() => tree.unmount());
+  });
+
+  it("creates one meaningful step entry and reconstructs Back without duplicating it", () => {
+    setLobby();
+    const tree = renderLobby();
+    act(() => wizardProps(tree).onStepChange("matches"));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: "/lobby/[sessionId]", params: { sessionId: "room-1", participantId: "untrusted-id", step: "matches" } });
+    act(() => wizardProps(tree).onStepChange("matches"));
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    mockParams = { step: "matches" };
+    rerenderLobby(tree);
+    mockParams = {};
+    rerenderLobby(tree);
+    expect(wizardProps(tree).activeStepKey).toBe("room");
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    act(() => tree.unmount());
+  });
+
+  it("pops the owned preceding room step on explicit Back and replaces a direct-entry fallback", () => {
+    mockParams = { step: "common" };
+    mockPreviousRoute = { name: "lobby/[sessionId]", params: { sessionId: "room-1", step: "matches" } };
+    setLobby();
+    const tree = renderLobby();
+    act(() => wizardProps(tree).onStepBack("matches"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockPush).not.toHaveBeenCalled();
+    mockPreviousRoute = { name: "lobby/[sessionId]", params: { sessionId: "other-room", step: "matches" } };
+    act(() => wizardProps(tree).onStepBack("matches"));
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockSetParams).toHaveBeenLastCalledWith({ step: "matches" });
+    act(() => tree.unmount());
+  });
+});

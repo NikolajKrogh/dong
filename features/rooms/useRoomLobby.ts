@@ -1,0 +1,108 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
+
+import type {
+  RoomParticipantSummary,
+  RoomSessionRole,
+  RoomSnapshot,
+  RoomState,
+} from "../../types/room";
+import {
+  getRoomRpcClient,
+  LOBBY_POLL_INTERVAL_MS,
+} from "./roomRpcClient";
+
+export interface UseRoomLobbyResult {
+  snapshot: RoomSnapshot | null;
+  participants: RoomParticipantSummary[];
+  myRole: RoomSessionRole | null;
+  state: RoomState | null;
+  /** Visible to the host only (per FR-0A7). */
+  joinCode: string | null;
+  /** True when the room closed/expired, or the viewer is no longer a participant. */
+  roomEnded: boolean;
+  /** True once the host has started the game (FR-012) — drives the auto-redirect to /gameProgress. */
+  gameStarted: boolean;
+  error: string | null;
+  refresh: () => Promise<void>;
+}
+
+/**
+ * Polls the durable room snapshot (no realtime) for the host/registered-member lobby.
+ * Role is resolved by matching `myParticipantId` in the roster, so it updates live
+ * across a host handover.
+ */
+export const useRoomLobby = (
+  sessionId: string | null,
+  myParticipantId: string | null,
+): UseRoomLobbyResult => {
+  const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [roomEnded, setRoomEnded] = useState(false);
+  const inFlightRef = useRef(false);
+
+  const refresh = useCallback(async () => {
+    if (!sessionId || inFlightRef.current) {
+      return;
+    }
+    inFlightRef.current = true;
+    try {
+      const next = await getRoomRpcClient().getRoomSnapshot(sessionId);
+      setSnapshot(next);
+      setError(null);
+
+      const stillPresent =
+        myParticipantId === null ||
+        roomSnapshotToActiveRoster(next).some((p) => p.id === myParticipantId);
+      // `completed` counts as ended too: it is the state end_game_session (040)
+      // produces, and without it an ended game falls through to the normal lobby
+      // render instead of the ended notice.
+      setRoomEnded(
+        next.state === "closed" ||
+          next.state === "completed" ||
+          !stillPresent,
+      );
+    } catch (refreshError) {
+      setError(
+        refreshError instanceof Error
+          ? refreshError.message
+          : "Unable to refresh the room right now.",
+      );
+    } finally {
+      inFlightRef.current = false;
+    }
+  }, [sessionId, myParticipantId]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Synchronize the external room/request lifecycle; this is not derived render state.
+    void refresh();
+    const interval = setInterval(() => {
+      void refresh();
+    }, LOBBY_POLL_INTERVAL_MS);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [sessionId, refresh]);
+
+  const participants = snapshot ? roomSnapshotToActiveRoster(snapshot) : [];
+  const me = myParticipantId
+    ? (participants.find((p) => p.id === myParticipantId) ?? null)
+    : null;
+  const myRole = me?.sessionRole ?? null;
+  const joinCode = myRole === "owner" ? (snapshot?.joinCode ?? null) : null;
+
+  return {
+    snapshot,
+    participants,
+    myRole,
+    state: snapshot?.state ?? null,
+    joinCode,
+    roomEnded,
+    gameStarted: snapshot?.state === "in_progress",
+    error,
+    refresh,
+  };
+};

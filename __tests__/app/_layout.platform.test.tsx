@@ -28,8 +28,8 @@ jest.mock("react-native-toast-message", () => {
   };
 });
 
-jest.mock("../../components/setupGame/RandomMatchesToast", () => ({}));
-jest.mock("../../components/gameProgress/GoalToast", () => ({
+jest.mock("../../features/game-setup/RandomMatchesToast", () => ({}));
+jest.mock("../../features/game-progress/GoalToast", () => ({
   goalToastConfig: { success: () => null },
 }));
 
@@ -38,7 +38,7 @@ jest.mock("../../platform", () => ({
     children,
 }));
 
-jest.mock("../../store/store", () => ({
+jest.mock("../../store/gameStore", () => ({
   useGameStore: Object.assign(
     (selector: (s: any) => any) =>
       selector({ theme: "light" }),

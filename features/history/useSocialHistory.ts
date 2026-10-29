@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { useAccountAuth } from '../../hooks/useAccountAuth';
+import { useAccountAuth } from '../account';
 import { getSupabaseClient } from '../../lib/supabase';
 import { getAccountScope, isCurrentAccountScope, queryClient } from '../../lib/queryClient';
 import { useAppVisibility } from '../../platform/visibility';
