@@ -1,14 +1,11 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
-import { GameplayRpcError, type RoomSnapshot } from "../../../types/room";
-import { useGameStore } from "../../../store/gameStore";
+import { applyPendingOverlay, canApplySnapshot } from "../../../features/rooms/activeGameSnapshot";
+import { useActiveGameRoomSync } from "../../../features/rooms/useActiveGameRoomSync";
 import { useAppVisibility } from "../../../platform";
-import {
-  applyPendingOverlay,
-  canApplySnapshot,
-  useActiveGameRoomSync,
-} from "../../../features/rooms/useActiveGameRoomSync";
+import { useGameStore } from "../../../store/gameStore";
+import { GameplayRpcError, type RoomSnapshot } from "../../../types/room";
 
 jest.mock("../../../platform", () => ({
   useAppVisibility: jest.fn(),
