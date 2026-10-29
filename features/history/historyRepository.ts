@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../../types/database";
-import { throwIfAborted } from "../../platform/abort";
 import * as z from "zod/mini";
+import { throwIfAborted } from "../../platform/abort";
+import type { Database } from "../../types/database";
+import { parseSavedMatch } from "../football-matches/footballMatchSchemas";
 
 import type { GameSession, Match, Player } from "./historyTypes";
 
@@ -77,6 +78,8 @@ const mapMatch = (value: unknown): Match => {
   const match = recordOrEmptySchema.parse(value);
   return {
     id: stringOrEmptySchema.parse(match.id),
+    catalogMatchId: typeof match.catalogMatchId === "string" ? match.catalogMatchId : undefined,
+    catalogSnapshot: match.catalogSnapshot ? parseSavedMatch(match.catalogSnapshot) : undefined,
     homeTeam: stringOrEmptySchema.parse(match.homeTeam),
     awayTeam: stringOrEmptySchema.parse(match.awayTeam),
     homeGoals: numberOrZeroSchema.parse(match.homeGoals),

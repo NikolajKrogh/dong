@@ -213,7 +213,7 @@ Given(
 
 When("the host records a manual goal", async ({ page }) => {
   await page
-    .getByLabel("Open quick actions for Manual Home versus Manual Away")
+    .getByTestId("GameProgressMatchCard-active-manual")
     .click();
   await page
     .getByTestId("ManualScoreIncrement-active-manual-home")
@@ -336,9 +336,9 @@ Then("the canonical active match is visible", async ({ page }) => {
   await expect(page.getByTestId("GameProgressMatchCard-active-match")).toBeVisible({
     timeout: 20_000,
   });
-  await expect(
-    page.getByLabel("Open quick actions for Arsenal versus Chelsea"),
-  ).toBeVisible();
+  const card = page.getByTestId("GameProgressMatchCard-active-match");
+  await expect(card).toHaveAccessibleName(/Arsenal/);
+  await expect(card).toHaveAccessibleName(/Chelsea/);
 });
 
 Then("the canonical refreshed score is visible", async ({ page }) => {

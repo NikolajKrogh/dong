@@ -26,6 +26,7 @@ export interface RoomParticipantSummary {
 export interface RoomMatchSummary {
   id: string;
   catalogMatchId?: string | null;
+  catalogSnapshot?: import("./footballMatch").SavedMatch | null;
   sourceProvider: string;
   sourceMatchId: string | null;
   sourceLeagueCode?: string | null;
@@ -174,7 +175,7 @@ export type GameplayErrorCode =
   | "service_unavailable"
   | "unknown_error";
 
-export interface GameplayRoomActionResult {
+export interface GameplayActionResult {
   sessionId: string;
   sequenceNumber: number | null;
   eventId: string | null;

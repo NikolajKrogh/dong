@@ -1,17 +1,18 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import {
-  View,
-  Text,
   Modal,
   ScrollView,
+  Text,
   TouchableOpacity,
   useWindowDimensions,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { PlayerStat, GameSession } from "./historyTypes";
-import { createHistoryStyles } from "./historyStyles";
 import { useColors } from "../../styles/theme";
-import { findPlayerByIdentityKey, formatModalDate } from "./historyUtils";
+import { formatModalDate } from "./historyFormatting";
+import { findPlayerByIdentityKey } from "./historyPlayerIdentity";
+import { createHistoryStyles } from "./historyStyles";
+import { GameSession, PlayerStat } from "./historyTypes";
 
 /**
  * Player details modal.

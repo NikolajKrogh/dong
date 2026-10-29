@@ -9,7 +9,7 @@ interface MockLogos {
 // We only need a subset for testing purposes
 jest.mock("../../../features/football-matches/teamLogos", () => {
   // Require necessary functions *inside* the factory
-  const { cleanTeamName } = require("../../../features/football-matches/matchFilters");
+  const { cleanTeamName } = require("../../../features/football-matches/teamNames");
   const originalModule = jest.requireActual("../../../features/football-matches/teamLogos");
 
   // Apply the interface to mockLogos

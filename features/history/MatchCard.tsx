@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
 import type { StyleProp, ViewStyle } from "react-native";
-import { Match } from "./historyTypes";
+import { StyleSheet, Text, View } from "react-native";
 import { useColors } from "../../styles/theme";
+import { MATCH_LIFECYCLE_LABELS, formatMatchScore } from "../football-matches/matchPresentation";
 import HistoryTeamBadge from "./HistoryTeamBadge";
+import { Match } from "./historyTypes";
 
 interface MatchCardProps {
   match: Match;
@@ -41,7 +42,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           backgroundColor: colors.primaryLight,
         },
         commonBadgeText: {
-          color: colors.primary,
+          color: colors.primaryDark,
           fontSize: 12,
           fontWeight: "700",
         },
@@ -99,6 +100,7 @@ const MatchCard: React.FC<MatchCardProps> = ({
           <Text style={styles.commonBadgeText}>Common match</Text>
         </View>
       )}
+      {match.catalogSnapshot ? <Text style={styles.teamName}>{MATCH_LIFECYCLE_LABELS[match.catalogSnapshot.lifecycle]}</Text> : null}
       <View style={styles.teams}>
         <View style={styles.team}>
           <HistoryTeamBadge teamName={match.homeTeam} size={30} />
@@ -107,9 +109,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
           </Text>
         </View>
         <View style={styles.score}>
-          <Text style={styles.scoreValue}>{match.homeGoals ?? 0}</Text>
+          <Text style={styles.scoreValue}>{formatMatchScore(match.catalogSnapshot ? match.catalogSnapshot.homeScore : match.homeGoals)}</Text>
           <Text style={styles.scoreDivider}>–</Text>
-          <Text style={styles.scoreValue}>{match.awayGoals ?? 0}</Text>
+          <Text style={styles.scoreValue}>{formatMatchScore(match.catalogSnapshot ? match.catalogSnapshot.awayScore : match.awayGoals)}</Text>
         </View>
         <View style={styles.team}>
           <HistoryTeamBadge teamName={match.awayTeam} size={30} />

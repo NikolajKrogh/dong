@@ -1,6 +1,6 @@
 import React from "react";
-import TestRenderer from "react-test-renderer";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -230,7 +230,7 @@ jest.mock("../../../features/history/SortHistoryModal", () => {
   };
 });
 
-jest.mock("../../../features/history/historyUtils", () => ({
+jest.mock("../../../features/history/historyCalculations", () => ({
   calculateLifetimePlayerStats: () => mockPlayerStats,
   calculateTotalDrinks: () => 2,
   calculateTotalGoals: () => 1,

@@ -1,8 +1,8 @@
 import React from "react";
 import { act } from "react-test-renderer";
-import { actCreate } from "../../../test-utils/render";
+import { calculateLifetimePlayerStats } from "../../../features/history/historyCalculations";
 import { GameSession } from "../../../features/history/historyTypes";
-import { calculateLifetimePlayerStats } from "../../../features/history/historyUtils";
+import { actCreate } from "../../../test-utils/render";
 
 let mockLayout = { contentWidth: 800, fontScale: 1, isDesktop: true };
 jest.mock("react-native", () => ({

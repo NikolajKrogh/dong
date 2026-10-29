@@ -8,23 +8,21 @@ import {
 
 import Toast from "react-native-toast-message";
 
-import createSetupGameStyles from "./setupGameStyles";
-import { useColors } from "../../styles/theme";
-import { useMatchData } from "../football-matches/useMatchData";
-import {
-  normalizeMatchTeamName,
-  useMatchListFilters,
-} from "./useMatchListFilters";
-import { useMatchBatchInsertion } from "./useMatchBatchInsertion";
-import { useTeamData } from "../football-matches/useTeamData";
-import { filterMatchesByDateAndTime } from "../football-matches/matchFilters";
+import AppIcon from "../../components/ui/AppIcon";
 import { PlatformAnimation } from "../../platform";
 import { Match, useGameStore } from "../../store/gameStore";
-import AppIcon from "../../components/ui/AppIcon";
-import LeagueMatchSections from "./LeagueMatchSections";
+import { useColors } from "../../styles/theme";
+import { filterMatchesByDateAndTime } from "../football-matches/matchFilters";
+import { normalizeMatchTeamName } from "../football-matches/teamNames";
+import { useMatchData } from "../football-matches/useMatchData";
+import { useTeamDirectory } from "../football-matches/useTeamDirectory";
 import LeagueFilter from "./LeagueFilter";
+import LeagueMatchSections from "./LeagueMatchSections";
 import MatchFilter from "./MatchFilter";
+import createSetupGameStyles from "./setupGameStyles";
 import TeamSelectionRow from "./TeamSelectionRow";
+import { useMatchBatchInsertion } from "./useMatchBatchInsertion";
+import { useMatchListFilters } from "./useMatchListFilters";
 
 /**
  * @interface MatchListProps
@@ -166,7 +164,7 @@ const MatchListView = ({
  *
  * The component uses several custom hooks for data fetching and processing:
  * - `useMatchData`: Fetches match data for a given date.
- * - `useTeamData`: Fetches team data from league JSON files.
+ * - `useTeamDirectory`: Fetches team data from league JSON files.
  * - `useMatchListFilters`: Filters teams and matches based on selected leagues/date/time.
  * - `useMatchBatchInsertion`: Handles batch processing of matches.
  *
@@ -192,7 +190,7 @@ const MatchList: FC<MatchListProps> = ({
   const {
     isLoading: isTeamLoading,
     teamsData: allTeamsData,
-  } = useTeamData();
+  } = useTeamDirectory();
   const {
     selectedDate,
     selectedLeagues,
@@ -228,7 +226,7 @@ const MatchList: FC<MatchListProps> = ({
    * Appends a hand-typed fixture to the pool and clears the two fields.
    *
    * Declared here, above `useMatchBatchInsertion`, because that hook takes it as its
-   * sequential-fallback handler â€” a `const` referenced before its initialiser
+   * sequential-fallback handler — a `const` referenced before its initialiser
    * would be a TDZ error. It replaces what used to be a `handleAddMatch` prop,
    * which every caller had to supply and none of them ever saw invoked: both pass
    * `setGlobalMatches`, so the hook always took its batch path.
@@ -364,7 +362,7 @@ const MatchList: FC<MatchListProps> = ({
   /**
    * Every match in the pool reads as selected, which is what makes tapping one
    * the release gesture. `SelectableMatchList` owns no selection state, so what
-   * "selected" means is entirely this caller's choice â€” here it is "in the pool",
+   * "selected" means is entirely this caller's choice — here it is "in the pool",
    * where on the lobby's pick panel the same component means "one of my picks".
    */
   const poolMatchIds = useMemo(
@@ -376,6 +374,7 @@ const MatchList: FC<MatchListProps> = ({
   const teamSelection = (
     <View>
       <TouchableOpacity testID="SetupManualMatchToggle" accessibilityRole="button"
+        aria-expanded={manualEntryOpen}
         accessibilityState={{ expanded: manualEntryOpen }} onPress={() => setManualEntryOpen(!manualEntryOpen)}
         style={{ minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8 }}>
         <AppIcon name="add" size={20} color={colors.primary} />

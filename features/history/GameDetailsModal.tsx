@@ -1,18 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { GameSession, Player } from "./historyTypes";
-import { useColors } from "../../styles/theme";
-import {
-  formatModalDate,
-  calculateTotalGoals,
-  calculateTotalDrinks,
-  getPlayerIdentityKey,
-} from "./historyUtils";
-import MatchCard from "./MatchCard";
-import HistoryModalFrame from "./HistoryModalFrame";
 import { ShellActionButton } from "../../components/ui/ShellActionButton";
+import { useColors } from "../../styles/theme";
 import type { Person } from "../friends";
+import { calculateTotalDrinks, calculateTotalGoals } from "./historyCalculations";
+import { formatModalDate } from "./historyFormatting";
+import HistoryModalFrame from "./HistoryModalFrame";
+import { getPlayerIdentityKey } from "./historyPlayerIdentity";
+import { GameSession, Player } from "./historyTypes";
+import MatchCard from "./MatchCard";
 
 interface GameDetailsModalProps {
   visible: boolean;

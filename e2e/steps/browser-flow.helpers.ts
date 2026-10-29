@@ -849,9 +849,14 @@ export const getMockHostRoomSnapshotResponseCount = () =>
  */
 export const mockHostRoomServices = async (
   page: Page,
-  { resetParticipants = true }: { resetParticipants?: boolean } = {},
+  { resetParticipants = true, activeMembership }: {
+    resetParticipants?: boolean;
+    activeMembership?: { participantId: string; role: "owner" | "member" };
+  } = {},
 ) => {
-  let activeRoom: { sessionId: string; participantId: string; role: string; joinCode: string | null } | null = null;
+  let activeRoom: { sessionId: string; participantId: string; role: string; joinCode: string | null } | null = activeMembership
+    ? { sessionId: HOST_ROOM_SESSION_ID, ...activeMembership, joinCode: activeMembership.role === "owner" ? HOST_ROOM_JOIN_CODE : null }
+    : null;
   // Reset the roster injection. `extraSnapshotParticipants` is module-level and
   // was previously only ever assigned, so a scenario that added members leaked
   // them into every later scenario in the same worker -- silently changing
@@ -1024,22 +1029,41 @@ const OPENFOOTBALL_TEAM_FIXTURES: Record<string, [string, string][]> = {
  * rate-limited or offline — which took out every scenario that adds a match by
  * hand, for reasons that had nothing to do with the app.
  */
+/** Public Edge discovery contract used by the maintained client. */
+const mockCatalogDiscovery = async (page: Page) => {
+  await page.route("**/functions/v1/discover-matches", async route => {
+    const headers = { "access-control-allow-origin": "*", "access-control-allow-headers": "*" };
+    if (route.request().method() === "OPTIONS") {
+      await route.fulfill({ status: 204, headers });
+      return;
+    }
+    const { leagueCodes, date } = route.request().postDataJSON() as { leagueCodes: string[]; date: string };
+    const matches = CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES
+      .filter(match => leagueCodes.includes(match.league))
+      .map((match, index) => ({
+        catalogMatchId: String(index + 101),
+        identity: { provider: "espn", leagueCode: match.league, sourceEventId: match.id, sourceCompetitionId: null },
+        homeTeam: { name: match.homeTeam, sourceTeamId: null, shortName: null },
+        awayTeam: { name: match.awayTeam, sourceTeamId: null, shortName: null },
+        kickoffAt: match.startDateTime, kickoffValidity: "confirmed", lifecycle: "scheduled",
+        rawStatus: "Scheduled", isCompleted: false, homeScore: null, awayScore: null,
+        shootoutHomeScore: null, shootoutAwayScore: null, aggregateHomeScore: null, aggregateAwayScore: null,
+        period: null, clockSeconds: null, displayClock: null, season: null, venue: null,
+        observationVersion: "1", availability: "available",
+        freshness: { lastAttemptAt: null, lastSuccessfulCheckAt: null, observedAt: null, isStale: false, availabilityReason: null },
+        goals: null, goalsAvailability: "unavailable", hasMoreGoals: false,
+        homeTeamStatistics: null, awayTeamStatistics: null,
+      }));
+    await route.fulfill({ headers, json: {
+      matches, availability: "available", retryAfterSeconds: null,
+      groups: leagueCodes.map(leagueCode => ({ leagueCode, date, availability: "available", isStale: false,
+        lastSuccessfulCheckAt: null, reason: null, retryAfterSeconds: null })),
+    } });
+  });
+};
+
 export const mockTeamDataCatalogue = async (page: Page) => {
-  // `useMatchData` calls the game-api's discovery endpoint on mount, and its
-  // failure is what renders the "Error fetching teams" banner *in place of* the
-  // team-selection row. The game-api origin is a fake one that is never
-  // started, so unmocked this always fails.
-  await page.route(
-    `${CONFIGURE_START_GAME_API_URL}/v1/matches**`,
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        headers: { "access-control-allow-origin": "*" },
-        body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
-      });
-    },
-  );
+  await mockCatalogDiscovery(page);
 
   await page.route(
     "https://raw.githubusercontent.com/openfootball/**",
@@ -1599,7 +1623,7 @@ export const attachSecondDeviceMocks = async (
   participantId: string,
 ) => {
   await seedHostRoomAuthSession(page);
-  await mockHostRoomServices(page, { resetParticipants: false });
+  await mockHostRoomServices(page, { resetParticipants: false, activeMembership: { participantId, role: "member" } });
   await mockConfigureStartGameServices(page, {
     resetState: false,
     actingParticipantId: participantId,
@@ -1848,16 +1872,7 @@ export const mockConfigureStartGameServices = async (
     });
   });
 
-  await page.route(
-    `${CONFIGURE_START_GAME_API_URL}/v1/matches**`,
-    async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES),
-      });
-    },
-  );
+  await mockCatalogDiscovery(page);
 
   await page.route("**/rest/v1/rpc/set_my_room_picks", async (route) => {
     const body = route.request().postDataJSON() as {

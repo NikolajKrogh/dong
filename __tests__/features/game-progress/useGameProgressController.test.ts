@@ -1,11 +1,11 @@
-import { actCreate } from "../../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import Toast from "react-native-toast-message";
 import TestRenderer from "react-test-renderer";
+import { actCreate } from "../../../test-utils/render";
 
-import useGameProgressController from "../../../features/game-progress/useGameProgressController";
 import { useLiveScores } from "../../../features/football-matches/useLiveScores";
+import useGameProgressController from "../../../features/game-progress/useGameProgressController";
 import { useAppVisibility, useGoalSound } from "../../../platform";
 import { useGameStore } from "../../../store/gameStore";
 
@@ -75,6 +75,7 @@ describe("useGameProgressController (integration)", () => {
       lastUpdated: null,
       error: null,
       captureHistoryDetails: jest.fn(async () => undefined),
+      restartTracking: jest.fn(async () => undefined),
       endTracking: jest.fn(async () => undefined),
       startPolling,
       stopPolling,
@@ -135,6 +136,7 @@ describe("useGameProgressController (integration)", () => {
       lastUpdated: null,
       error: "capacity_limited",
       captureHistoryDetails: jest.fn(async () => undefined),
+      restartTracking: jest.fn(async () => undefined),
       endTracking: jest.fn(async () => undefined),
       startPolling,
       stopPolling,

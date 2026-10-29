@@ -15,6 +15,7 @@ export type SortDirection = "asc" | "desc";
  */
 export interface MatchesGridProps {
   sourceStatusMessage?: string | null;
+  onRestartTracking?: () => Promise<void>;
   /** Array of match objects from the game store. */
   matches: Match[];
   /** Player list used for assignment lookups. */
@@ -62,6 +63,7 @@ export interface MatchItemProps {
  */
 export interface MatchesHeaderProps {
   sourceStatusMessage?: string | null;
+  onRestartTracking?: () => Promise<void>;
   /** Current sort field. */
   sortField: SortField;
   /** Current sort direction. */

@@ -1,7 +1,7 @@
-import React from "react";
-import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Animated, Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../../styles/theme";
+import { formatMatchScore } from "../../football-matches/matchPresentation";
 import { createStyles } from "./styles";
 
 interface ScoreControlsProps {
@@ -9,8 +9,8 @@ interface ScoreControlsProps {
   homeGoals: number;
   awayGoals: number;
   isApiControlledMatch: boolean;
-  liveHomeScore: number;
-  liveAwayScore: number;
+  liveHomeScore: number | null;
+  liveAwayScore: number | null;
   goalValueAnimHome: Animated.Value;
   goalValueAnimAway: Animated.Value;
   incrementAnimHome: Animated.Value;
@@ -57,7 +57,7 @@ export const ScoreControls = ({
         <Animated.View
           style={[styles.scoreValue, { transform: [{ scale: goalValueAnimHome }] }]}
         >
-          <Text style={styles.scoreText}>{liveHomeScore ?? 0}</Text>
+          <Text style={styles.scoreText}>{formatMatchScore(liveHomeScore)}</Text>
         </Animated.View>
 
         {/* Score separator */}
@@ -69,7 +69,7 @@ export const ScoreControls = ({
         <Animated.View
           style={[styles.scoreValue, { transform: [{ scale: goalValueAnimAway }] }]}
         >
-          <Text style={styles.scoreText}>{liveAwayScore ?? 0}</Text>
+          <Text style={styles.scoreText}>{formatMatchScore(liveAwayScore)}</Text>
         </Animated.View>
       </View>
     );

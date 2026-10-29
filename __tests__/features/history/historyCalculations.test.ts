@@ -1,11 +1,6 @@
-import {
-  calculateLifetimePlayerStats,
-  findPlayerByIdentityKey,
-  formatHistoryDate,
-  formatModalDate,
-  getPlayerHeadToHeadStats,
-  getPlayerIdentityKey,
-} from "../../../features/history/historyUtils";
+import { calculateLifetimePlayerStats, getPlayerHeadToHeadStats } from "../../../features/history/historyCalculations";
+import { formatHistoryDate, formatModalDate } from "../../../features/history/historyFormatting";
+import { findPlayerByIdentityKey, getPlayerIdentityKey } from "../../../features/history/historyPlayerIdentity";
 import type { GameSession, Player } from "../../../features/history/historyTypes";
 
 const buildSession = (

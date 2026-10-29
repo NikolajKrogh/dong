@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Match, useGameStore } from "../../store/gameStore";
-import { FOOTBALL_MATCH_PROVIDER } from "../../types/footballMatch";
-import type { SavedMatch } from "../../types/footballMatch";
-import type { MatchWithScore } from "../../types/matchScores";
-import { getFootballMatchService } from "./footballMatchService";
-import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 import { generateToken } from "../../platform/guest-credential";
 import { encodeBase64Url } from "../../shared/encoding/base64url";
+import { Match, useGameStore } from "../../store/gameStore";
+import type { SavedMatch } from "../../types/footballMatch";
+import { FOOTBALL_MATCH_PROVIDER } from "../../types/footballMatch";
+import type { MatchWithScore } from "../../types/matchScores";
+import { generateIdempotencyKey } from "../../utils/idempotencyKey";
+import { getFootballMatchService } from "./footballMatchService";
 import { endSoloTracking, settleTrackingRejection } from "./soloTrackingService";
 
 function sameSelection(left: string[], right: string[]): boolean {
@@ -29,7 +29,7 @@ function savedMatchToLiveMatch(saved: SavedMatch, id: string): MatchWithScore {
     id, homeScore: saved.homeScore, awayScore: saved.awayScore,
     homeTeam: saved.homeTeam.name, awayTeam: saved.awayTeam.name,
     homeTeamId: saved.homeTeam.sourceTeamId ?? "", awayTeamId: saved.awayTeam.sourceTeamId ?? "",
-    isLive: saved.lifecycle === "live", status: saved.rawStatus ?? saved.lifecycle,
+    isLive: saved.lifecycle === "live", lifecycle: saved.lifecycle, status: saved.rawStatus ?? saved.lifecycle,
     minutesPlayed: saved.displayClock ?? undefined,
     goalScorers: saved.goals?.filter(goal => !goal.isRetracted && goal.kind !== "shootout").map(goal => ({
       name: goal.athleteName ?? "Unknown scorer", time: goal.clock ?? "–", teamId: goal.sourceTeamId ?? "",
@@ -51,6 +51,7 @@ export interface LiveScoresResult {
   fetchCurrentScores: () => Promise<void>;
   captureHistoryDetails: () => Promise<void>;
   endTracking: () => Promise<void>;
+  restartTracking: () => Promise<void>;
 }
 
 /** Finite solo demand plus saved-only reads. No provider HTTP, probes or league sweeps. */
@@ -127,7 +128,11 @@ export function useLiveScores(
       if (!ids.length) return;
       const result = await footballMatchService.readSavedMatches(ids);
       if (generationRef.current !== generation || controller.signal.aborted) return;
-      const byId = new Map(result.matches.map(saved => [saved.catalogMatchId, saved]));
+      useGameStore.getState().captureSavedMatches(result.matches);
+      const byId = new Map(useGameStore.getState().matches.flatMap(match =>
+        match.catalogSnapshot ? [[match.catalogSnapshot.catalogMatchId, match.catalogSnapshot] as const] : []));
+      // Legacy identities become linked later in this read; their observations are still validated.
+      for (const saved of result.matches) if (!byId.has(saved.catalogMatchId)) byId.set(saved.catalogMatchId, saved);
       // Only established terminal facts leave demand; missing/unknown identity is never silently dropped.
       const trackingIds = ids.filter(id => !['finished', 'canceled', 'abandoned'].includes(byId.get(id)?.lifecycle ?? 'unknown'));
       let tracking = state.soloTracking;
@@ -196,13 +201,12 @@ export function useLiveScores(
       const successful = result.matches.flatMap(match => match.freshness.lastSuccessfulCheckAt ? [Date.parse(match.freshness.lastSuccessfulCheckAt)] : []);
       if (successful.length) setLastUpdated(new Date(Math.max(...successful)));
       if (linked.size) state.setMatches(previous => previous.map(match => linked.has(match.id) ? { ...match, catalogMatchId: linked.get(match.id), sourceProvider: FOOTBALL_MATCH_PROVIDER } : match));
-      useGameStore.getState().captureSavedMatches(result.matches);
       const currentMatches = new Map(latestRef.current.matches.map(match => [match.id, match]));
       for (const live of next) {
         const match = currentMatches.get(live.id);
-        if (!match || live.homeScore === null || live.awayScore === null) continue;
-        if (live.homeScore > match.homeGoals) latestRef.current.updateCallback(match.id, "home", live.homeScore);
-        if (live.awayScore > match.awayGoals) latestRef.current.updateCallback(match.id, "away", live.awayScore);
+        if (!match) continue;
+        if (live.homeScore !== null && live.homeScore !== match.homeGoals) latestRef.current.updateCallback(match.id, "home", live.homeScore);
+        if (live.awayScore !== null && live.awayScore !== match.awayGoals) latestRef.current.updateCallback(match.id, "away", live.awayScore);
       }
     } catch (failure) {
       if (generationRef.current === generation && !controller.signal.aborted) setError(failure instanceof Error ? failure.message : "transport_unavailable");
@@ -235,6 +239,15 @@ export function useLiveScores(
     } catch { /* Keep details already captured locally when saved history is unavailable. */ }
     finally { clearTimeout(timeout); }
   }, []);
+  const restartTracking = useCallback(async () => {
+    if (!latestRef.current.enabled) return;
+    const tracking = useGameStore.getState().soloTracking;
+    if (tracking?.rejection?.code !== "tracking_expired") return;
+    generationRef.current++;
+    abortRef.current?.abort();
+    useGameStore.getState().setSoloTracking(null);
+    await fetchCurrentScores();
+  }, [fetchCurrentScores]);
   const endTracking = endSoloTracking;
   useEffect(() => {
     const hasLegacySelection = matches.some(isLegacyProviderSelection);
@@ -242,5 +255,5 @@ export function useLiveScores(
   }, [enabled, endTracking, matches, selectionKey]);
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
-  return { liveMatches, isPolling, lastUpdated, error, startPolling, stopPolling, fetchCurrentScores, captureHistoryDetails, endTracking };
+  return { liveMatches, isPolling, lastUpdated, error, startPolling, stopPolling, fetchCurrentScores, captureHistoryDetails, endTracking, restartTracking };
 }

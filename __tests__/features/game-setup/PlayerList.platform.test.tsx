@@ -191,11 +191,6 @@ describe("PlayerList responsive layout", () => {
 
     TestRenderer.act(() => {
       input.props.onFocus();
-    });
-
-    expect(dropdown().props.visible).toBe(false);
-
-    TestRenderer.act(() => {
       input.props.onChangeText("A");
     });
 

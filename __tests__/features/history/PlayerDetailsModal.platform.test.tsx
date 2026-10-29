@@ -41,8 +41,8 @@ jest.mock("../../../features/history/historyStyles", () => ({
     ),
 }));
 
-jest.mock("../../../features/history/historyUtils", () => ({
-  ...jest.requireActual("../../../features/history/historyUtils"),
+jest.mock("../../../features/history/historyCalculations", () => ({
+  ...jest.requireActual("../../../features/history/historyCalculations"),
   formatModalDate: () => "Apr 24, 2026",
 }));
 

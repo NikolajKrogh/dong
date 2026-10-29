@@ -26089,7 +26089,7 @@
     },
     "themes": {
       "dark": {
-        "primary": "#0275d8",
+        "primary": "#0068c4",
         "primaryLight": "#0b2947",
         "primaryLighter": "#0a223a",
         "primaryDark": "#58a6ff",
@@ -26100,7 +26100,7 @@
         "mediumGray": "#e9ecef",
         "darkGray": "#adb5bd",
         "neutralGray": "#ccc",
-        "success": "#28a745",
+        "success": "#218539",
         "successLight": "#12361c",
         "danger": "#dc3545",
         "dangerLight": "#3b1519",
@@ -26148,7 +26148,7 @@
         "id": "dark"
       },
       "light": {
-        "primary": "#0275d8",
+        "primary": "#0068c4",
         "primaryLight": "#e3f2fd",
         "primaryLighter": "#f0f8ff",
         "primaryDark": "#0056b3",
@@ -26159,7 +26159,7 @@
         "mediumGray": "#e9ecef",
         "darkGray": "#adb5bd",
         "neutralGray": "#ccc",
-        "success": "#28a745",
+        "success": "#218539",
         "successLight": "#e8f5e9",
         "danger": "#dc3545",
         "dangerLight": "#ffebee",
@@ -26194,7 +26194,7 @@
         "black": "#000",
         "color": "#212529",
         "colorSecondary": "#333",
-        "colorMuted": "#6c757d",
+        "colorMuted": "#626b73",
         "colorDisabled": "#adb5bd",
         "colorLight": "#fff",
         "colorPlaceholder": "#999",

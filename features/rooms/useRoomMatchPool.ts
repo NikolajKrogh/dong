@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from "react";
 
+import type { Match } from "../../store/gameStore";
 import { FOOTBALL_MATCH_PROVIDER } from "../../types/footballMatch";
 import type {
   AddRoomMatchRequest,
   BatchRoomMatchResult,
   RoomMatchSummary,
 } from "../../types/room";
-import type { Match } from "../../store/gameStore";
 
 /** Provider recorded for a fixture a host typed in by hand rather than picked from the catalogue. */
 export const MANUAL_SOURCE_PROVIDER = "manual";
@@ -50,6 +50,7 @@ export const CATALOGUE_SOURCE_PROVIDER = FOOTBALL_MATCH_PROVIDER;
 export const toDisplayMatch = (match: RoomMatchSummary): Match => ({
   id: match.id,
   catalogMatchId: match.catalogMatchId ?? undefined,
+  catalogSnapshot: match.catalogSnapshot ?? undefined,
   homeTeam: match.homeTeamName,
   awayTeam: match.awayTeamName,
   homeGoals: match.homeScore,

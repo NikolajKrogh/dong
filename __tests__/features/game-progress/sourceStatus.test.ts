@@ -1,7 +1,7 @@
 import { getMatchSourceStatusMessage } from "../../../features/game-progress/sourceStatus";
 import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
-import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
 import type { SavedMatch } from "../../../types/footballMatch";
+import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
 
 const saved: SavedMatch = {
   ...normalizeEspnScoreboard(liveBoard, "eng.1").matches[0],
@@ -54,7 +54,7 @@ describe("nonblocking source status", () => {
       getMatchSourceStatusMessage({ roomProcessingPending: true, providerAvailabilityReason: "provider_cooldown" }),
     ).toBe("Score updates are being applied. Saved scores are shown.");
     expect(getMatchSourceStatusMessage({ savedMatches: [{ ...saved, homeScore: null }] })).toBe("Waiting for live scores. Saved scores are shown.");
-    expect(getMatchSourceStatusMessage({ error: "tracking_expired" })).toBe("Live tracking has expired. Start a new game to resume updates.");
+    expect(getMatchSourceStatusMessage({ error: "tracking_expired" })).toBe("Live tracking has expired. Restart tracking to resume updates.");
     expect(getMatchSourceStatusMessage({ providerAvailabilityReason: "PRIVATE_SQL_DETAIL" })).toBe("Live scores are unavailable. Saved scores are shown.");
   });
 });

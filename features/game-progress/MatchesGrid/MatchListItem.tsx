@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
-import { createGameProgressStyles } from "../gameProgressStyles";
-import { useColors } from "../../../styles/theme";
-import { useTeamLogo } from "../../football-matches/useTeamLogo";
+import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
 import AppIcon from "../../../components/ui/AppIcon";
+import { useColors } from "../../../styles/theme";
+import { formatMatchScore, getMatchPresentation } from "../../football-matches/matchPresentation";
+import { useTeamLogo } from "../../football-matches/useTeamLogo";
+import { createGameProgressStyles } from "../gameProgressStyles";
 import { MatchItemProps } from "./types";
 
 /**
@@ -27,24 +28,15 @@ const MatchListItem: React.FC<MatchItemProps> = ({
   const homeTeamLogo = useTeamLogo(match.homeTeam);
   const awayTeamLogo = useTeamLogo(match.awayTeam);
 
-  // Determine the status string ('FT', 'HT', '45'', '?') from live data
-  const displayStatus = liveMatch?.minutesPlayed || "?";
-  // Check if the status indicates a finished or half-time state
-  const isFinishedOrHalfTime = displayStatus === "FT" || displayStatus === "HT";
-  // Check the live flag from the API data
-  const isCurrentlyLive = liveMatch?.isLive || false;
+  const { homeScore, awayScore, displayStatus, showStatus } = getMatchPresentation(match, liveMatch);
   const statusDisplay =
-    isFinishedOrHalfTime || isCurrentlyLive ? (
+    showStatus ? (
       <Text style={[styles.minutesPlayedText, styles.matchList_StatusText]}>
         {displayStatus}
       </Text>
     ) : (
       <Text style={[styles.vsText, styles.matchList_VSFallbackText]}>-</Text>
     );
-
-  // Use live match data if available, otherwise use local state
-  const homeScore = liveMatch ? liveMatch.homeScore : match.homeGoals || 0;
-  const awayScore = liveMatch ? liveMatch.awayScore : match.awayGoals || 0;
 
   /**
    * Builds badge list for assigned players with +N overflow indicator.
@@ -93,7 +85,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={`Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
+      accessibilityLabel={Platform.OS === "web" ? undefined : `Open quick actions for ${match.homeTeam} versus ${match.awayTeam}`}
     >
       {/* Common indicator */}
       {match.id === commonMatchId && (
@@ -107,24 +99,24 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         <View style={styles.logosRow}>
           {/* Home team: Logo on LEFT */}
           <View style={styles.matchList_HomeLogoWrapper}>
-            <Image source={homeTeamLogo} style={styles.matchList_LogoImage} />
+            <Image accessibilityLabel={match.homeTeam} source={homeTeamLogo} style={styles.matchList_LogoImage} />
           </View>
 
           <View
             style={[styles.scoresContainer, styles.matchList_ScoresWrapper]}
           >
             <Text style={[styles.gridScoreText, styles.matchList_ScoreText]}>
-              {homeScore}
+              {formatMatchScore(homeScore)}
             </Text>
             {statusDisplay}
             <Text style={[styles.gridScoreText, styles.matchList_ScoreText]}>
-              {awayScore}
+              {formatMatchScore(awayScore)}
             </Text>
           </View>
 
           {/* Away team: Logo on RIGHT */}
           <View style={styles.matchList_AwayLogoWrapper}>
-            <Image source={awayTeamLogo} style={styles.matchList_LogoImage} />
+            <Image accessibilityLabel={match.awayTeam} source={awayTeamLogo} style={styles.matchList_LogoImage} />
           </View>
         </View>
 

@@ -512,6 +512,7 @@ export type Database = {
                     "away_score": number;
                     "away_team_name": string;
                     "catalog_match_id": number | null;
+                    "catalog_snapshot": Json | null;
                     "created_at": string | null;
                     "home_score": number;
                     "home_team_name": string;
@@ -529,6 +530,7 @@ export type Database = {
                     "away_score"?: number;
                     "away_team_name": string;
                     "catalog_match_id"?: number | null;
+                    "catalog_snapshot"?: Json | null;
                     "created_at"?: string | null;
                     "home_score"?: number;
                     "home_team_name": string;
@@ -546,6 +548,7 @@ export type Database = {
                     "away_score"?: number;
                     "away_team_name"?: string;
                     "catalog_match_id"?: number | null;
+                    "catalog_snapshot"?: Json | null;
                     "created_at"?: string | null;
                     "home_score"?: number;
                     "home_team_name"?: string;

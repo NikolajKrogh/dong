@@ -65,7 +65,7 @@ When("the host adds the first two catalog matches", async ({ page }) => {
   // starts collapsed — so it has to be opened first. Without this the step
   // waited out its timeout on a control that was never in the tree, which is
   // what had every scenario in this feature failing.
-  const scheduleToggle = page.getByTestId("SetupMatchScheduleToggle");
+  const scheduleToggle = page.getByTestId("SetupMatchScheduleToggle").filter({ visible: true });
   await scheduleToggle.scrollIntoViewIfNeeded();
   await scheduleToggle.click();
 
@@ -89,7 +89,7 @@ When(
     // The Common step is the wizard's own card grid, the same one single player
     // uses, rather than a per-row "Make Common Match" button in a pool list.
     await page.getByRole("tab", { name: /^Common, step / }).click();
-    const commonCard = page.getByTestId("common-match-option-match-1");
+    const commonCard = page.getByTestId("common-match-option-match-1").filter({ visible: true });
     await expect(commonCard).toBeVisible({ timeout: 10_000 });
     await commonCard.click();
   },
@@ -104,8 +104,8 @@ When("the host taps the Start Game button", async ({ page }) => {
 When(
   "the host raises the matches-per-player count to {int}",
   async ({ page }, target: number) => {
-    const increment = page.getByTestId("lobby-matches-per-player-increment");
-    const value = page.getByTestId("lobby-matches-per-player-value");
+    const increment = page.getByTestId("lobby-matches-per-player-increment").filter({ visible: true });
+    const value = page.getByTestId("lobby-matches-per-player-value").filter({ visible: true });
     await expect(increment).toBeVisible({ timeout: 10_000 });
 
     const current = Number((await value.textContent()) ?? "0");
@@ -121,7 +121,7 @@ When(
 When(
   "the host switches the assignment mode to {word}",
   async ({ page }, mode: string) => {
-    const button = page.getByTestId(`lobby-assignment-mode-${mode}`);
+    const button = page.getByTestId(`lobby-assignment-mode-${mode}`).filter({ visible: true });
     await expect(button).toBeVisible({ timeout: 10_000 });
     await button.click();
   },
@@ -130,7 +130,7 @@ When(
 When(
   "the host attempts to switch the assignment mode to {word}",
   async ({ page }, mode: string) => {
-    const button = page.getByTestId(`lobby-assignment-mode-${mode}`);
+    const button = page.getByTestId(`lobby-assignment-mode-${mode}`).filter({ visible: true });
     await expect(button).toBeVisible({ timeout: 10_000 });
     await button.click();
   },
@@ -139,9 +139,10 @@ When(
 When(
   "the host allocates the second added match to themselves",
   async ({ page }) => {
+    await page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`).filter({ visible: true }).getByRole("button").click();
     const allocateButton = page.getByTestId(
       `lobby-allocate-${HOST_ROOM_PARTICIPANT_ID}-match-2`,
-    );
+    ).filter({ visible: true });
     await expect(allocateButton).toBeVisible({ timeout: 10_000 });
     await allocateButton.click();
   },
@@ -149,23 +150,23 @@ When(
 
 When("the host declines the mode-switch confirmation", async ({ page }) => {
   await page
-    .getByTestId("lobby-assignment-mode-confirm")
+    .getByTestId("lobby-assignment-mode-confirm").filter({ visible: true })
     .getByText("Cancel")
     .click();
 });
 
 Then("the host sees a mode-switch confirmation dialog", async ({ page }) => {
-  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toBeVisible({
+  await expect(page.getByTestId("lobby-assignment-mode-confirm").filter({ visible: true })).toBeVisible({
     timeout: 10_000,
   });
 });
 
 Then("the assignment mode remains host-assigned", async ({ page }) => {
-  await expect(page.getByTestId("lobby-assignment-mode-confirm")).toHaveCount(
+  await expect(page.getByTestId("lobby-assignment-mode-confirm").filter({ visible: true })).toHaveCount(
     0,
   );
   await expect(
-    page.getByTestId("lobby-assignment-mode-host-assigned"),
+    page.getByTestId("lobby-assignment-mode-host-assigned").filter({ visible: true }),
   ).toBeVisible({ timeout: 10_000 });
 });
 
@@ -203,7 +204,7 @@ Given("the room has a second registered member", async () => {
 });
 
 Then("the host sees their own pick panel", async ({ page }) => {
-  const panel = page.getByTestId("lobby-player-pick-panel");
+  const panel = page.getByTestId("lobby-player-pick-panel").filter({ visible: true });
   await panel.scrollIntoViewIfNeeded();
   await expect(panel).toBeVisible({ timeout: 10_000 });
 });
@@ -211,7 +212,7 @@ Then("the host sees their own pick panel", async ({ page }) => {
 Then(
   `the host's pick progress reads {string}`,
   async ({ page }, expected: string) => {
-    await expect(page.getByTestId("lobby-player-pick-panel-count")).toHaveText(
+    await expect(page.getByTestId("lobby-player-pick-panel-count").filter({ visible: true })).toHaveText(
       expected,
       { timeout: 10_000 },
     );
@@ -221,7 +222,7 @@ Then(
 When(
   "the host picks the second added match for themselves",
   async ({ page }) => {
-    const option = page.getByTestId("lobby-player-pick-panel-option-match-2");
+    const option = page.getByTestId("lobby-player-pick-panel-option-match-2").filter({ visible: true });
     await option.scrollIntoViewIfNeeded();
     await option.click();
   },
@@ -237,7 +238,7 @@ Then(
 
     const progress = page.getByTestId(
       `lobby-pick-progress-${SECOND_MEMBER_ID}`,
-    );
+    ).filter({ visible: true });
     await progress.scrollIntoViewIfNeeded();
     // Asserted on the count rather than the full label, so the separator glyph
     // is not part of the contract.

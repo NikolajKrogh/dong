@@ -1,13 +1,15 @@
+import { captureSavedMatchList } from "./matchSnapshots";
+import { SyncedPreferenceState, ThemeMode, createDefaultSyncedPreferenceState, hydrateSyncedPreferenceState, serializeSyncedPreferenceState } from "./syncedPreferences";
 /**
- * @file store.ts
+ * @file gameStore.ts
  * @description Global Zustand store defining core domain entities (Player, Match, GameSession) and state/actions for configuring, running, and persisting game sessions. Persists a curated subset of state to AsyncStorage.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { LEAGUE_ENDPOINTS, DEFAULT_SELECTED_LEAGUES, type LeagueEndpoint } from "../constants/leagues";
-import type { ActiveGameContext } from "../types/room";
+import { type LeagueEndpoint } from "../constants/leagues";
 import type { FootballMatchErrorCode, SavedMatch, SoloTrackingGrant, SoloTrackingSelection } from "../types/footballMatch";
+import type { ActiveGameContext } from "../types/room";
 
 export interface SoloTrackingState {
   grant: SoloTrackingGrant | null;
@@ -23,140 +25,6 @@ function trackingForNewGame(tracking: SoloTrackingState | null): SoloTrackingSta
   if (tracking.rejection) return tracking.grant || tracking.pending ? { grant: tracking.grant, pending: tracking.pending } : null;
   return tracking;
 }
-
-type ThemeMode = "light" | "dark";
-
-export interface SyncedPreferenceState {
-  theme: ThemeMode;
-  soundEnabled: boolean;
-  commonMatchNotificationsEnabled: boolean;
-  configuredLeagues: LeagueEndpoint[];
-  defaultSelectedLeagues: LeagueEndpoint[];
-}
-
-const cloneLeagueEndpoints = (leagues: LeagueEndpoint[]) =>
-  leagues.map((league) =>
-    league.category
-      ? {
-          code: league.code,
-          name: league.name,
-          category: league.category,
-        }
-      : {
-          code: league.code,
-          name: league.name,
-        },
-  );
-
-const createDefaultSyncedPreferenceState = (): SyncedPreferenceState => ({
-  theme: "light",
-  soundEnabled: true,
-  commonMatchNotificationsEnabled: true,
-  configuredLeagues: cloneLeagueEndpoints(LEAGUE_ENDPOINTS),
-  defaultSelectedLeagues: cloneLeagueEndpoints(DEFAULT_SELECTED_LEAGUES),
-});
-
-const normalizeLeagueEndpoint = (value: unknown): LeagueEndpoint | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-
-  const candidate = value as Partial<LeagueEndpoint>;
-
-  if (
-    typeof candidate.code !== "string" ||
-    candidate.code.trim().length === 0 ||
-    typeof candidate.name !== "string" ||
-    candidate.name.trim().length === 0
-  ) {
-    return null;
-  }
-
-  if (
-    typeof candidate.category === "string" &&
-    candidate.category.trim().length > 0
-  ) {
-    return {
-      code: candidate.code,
-      name: candidate.name,
-      category: candidate.category,
-    };
-  }
-
-  return {
-    code: candidate.code,
-    name: candidate.name,
-  };
-};
-
-const normalizeLeagueEndpointList = (
-  value: unknown,
-  fallback: LeagueEndpoint[],
-) => {
-  if (!Array.isArray(value)) {
-    return cloneLeagueEndpoints(fallback);
-  }
-
-  if (value.length === 0) {
-    return [];
-  }
-
-  const normalizedLeagues = value
-    .map(normalizeLeagueEndpoint)
-    .filter((league): league is LeagueEndpoint => Boolean(league));
-
-  return normalizedLeagues.length > 0
-    ? normalizedLeagues
-    : cloneLeagueEndpoints(fallback);
-};
-
-export const serializeSyncedPreferenceState = (
-  state: SyncedPreferenceState,
-): SyncedPreferenceState => ({
-  theme: state.theme,
-  soundEnabled: state.soundEnabled,
-  commonMatchNotificationsEnabled: state.commonMatchNotificationsEnabled,
-  configuredLeagues: cloneLeagueEndpoints(state.configuredLeagues),
-  defaultSelectedLeagues: cloneLeagueEndpoints(state.defaultSelectedLeagues),
-});
-
-export const hydrateSyncedPreferenceState = (
-  value: unknown,
-  fallback: SyncedPreferenceState = createDefaultSyncedPreferenceState(),
-): SyncedPreferenceState => {
-  const normalizedFallback = serializeSyncedPreferenceState(fallback);
-
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return normalizedFallback;
-  }
-
-  const candidate = value as Partial<
-    Record<keyof SyncedPreferenceState, unknown>
-  >;
-
-  return {
-    theme:
-      candidate.theme === "dark" || candidate.theme === "light"
-        ? candidate.theme
-        : normalizedFallback.theme,
-    soundEnabled:
-      typeof candidate.soundEnabled === "boolean"
-        ? candidate.soundEnabled
-        : normalizedFallback.soundEnabled,
-    commonMatchNotificationsEnabled:
-      typeof candidate.commonMatchNotificationsEnabled === "boolean"
-        ? candidate.commonMatchNotificationsEnabled
-        : normalizedFallback.commonMatchNotificationsEnabled,
-    configuredLeagues: normalizeLeagueEndpointList(
-      candidate.configuredLeagues,
-      normalizedFallback.configuredLeagues,
-    ),
-    defaultSelectedLeagues: normalizeLeagueEndpointList(
-      candidate.defaultSelectedLeagues,
-      normalizedFallback.defaultSelectedLeagues,
-    ),
-  };
-};
 
 /**
  * Player participating in a game.
@@ -210,40 +78,6 @@ export interface Match {
    * `timestamptz`, and passing `"15:00"` to one fails the insert outright.
    */
   kickoffAt?: string;
-}
-
-function captureSavedMatch(match: Match, savedById: Map<string, SavedMatch>): Match {
-  const snapshot = match.catalogMatchId ? savedById.get(match.catalogMatchId) : undefined;
-  if (!snapshot) return match;
-
-  const previous = match.catalogSnapshot;
-  if (previous && BigInt(snapshot.observationVersion) < BigInt(previous.observationVersion)) return match;
-
-  const observationMovedBackwards = previous
-    && snapshot.observationVersion === previous.observationVersion
-    && snapshot.freshness.observedAt
-    && previous.freshness.observedAt
-    && Date.parse(snapshot.freshness.observedAt) < Date.parse(previous.freshness.observedAt);
-  if (observationMovedBackwards) return match;
-
-  const newDetails = snapshot.historyDetails;
-  const previousDetails = previous?.historyDetails;
-  const hasOlderUsefulDetails = previousDetails
-    && (!newDetails || ["unavailable", "pending", "deferred"].includes(newDetails.availability));
-  const captured = {
-    ...snapshot,
-    ...(hasOlderUsefulDetails ? { historyDetails: previousDetails } : {}),
-  };
-  if (JSON.stringify(captured) === JSON.stringify(previous)) return match;
-
-  // Keep historical snapshots independent from later API response objects.
-  const copy = JSON.parse(JSON.stringify(captured)) as SavedMatch;
-  return { ...match, catalogSnapshot: copy };
-}
-
-function captureSavedMatchList(matches: Match[], savedById: Map<string, SavedMatch>): Match[] {
-  const captured = matches.map(match => captureSavedMatch(match, savedById));
-  return captured.every((match, index) => match === matches[index]) ? matches : captured;
 }
 
 /**
@@ -430,12 +264,7 @@ export const useGameStore = create<GameState>()(
         if (!saved.length) return state;
         const savedById = new Map(saved.map(match => [match.catalogMatchId, match]));
         const matches = captureSavedMatchList(state.matches, savedById);
-        const history = state.history.map(game => {
-          const captured = captureSavedMatchList(game.matches, savedById);
-          return captured === game.matches ? game : { ...game, matches: captured };
-        });
-        if (matches === state.matches && history.every((game, index) => game === state.history[index])) return state;
-        return { matches, history };
+        return matches === state.matches ? state : { matches };
       }),
       setPlayers: (players) =>
         set((state) => ({
@@ -505,10 +334,10 @@ export const useGameStore = create<GameState>()(
           const newGameSession: GameSession = {
             id: Date.now().toString(),
             date: new Date().toISOString(),
-            players: state.players,
+            players: JSON.parse(JSON.stringify(state.players)) as Player[],
             matches: JSON.parse(JSON.stringify(state.matches)) as Match[],
             commonMatchId: state.commonMatchId,
-            playerAssignments: state.playerAssignments,
+            playerAssignments: JSON.parse(JSON.stringify(state.playerAssignments)) as PlayerAssignments,
             matchesPerPlayer: state.matchesPerPlayer,
           };
           return {

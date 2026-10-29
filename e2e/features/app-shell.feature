@@ -155,7 +155,7 @@ Feature: Application Shell Launch
     When the user navigates to history
     Then the "Games" action should be visible
     When the user selects the "Stats" history tab
-    Then the "Overall Statistics" section should be visible
+    Then the "Your stats" section should be visible
     When the user selects the "Games" history tab
     And the user opens the first history entry
     Then the history details modal should be visible

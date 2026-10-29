@@ -1,10 +1,10 @@
-import { renderHook } from "../../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import TestRenderer from "react-test-renderer";
+import { renderHook } from "../../../test-utils/render";
 
+import { getRoomRpcClient } from "../../../features/rooms/roomRpcClient";
 import { useRoomLobby, type UseRoomLobbyResult } from "../../../features/rooms/useRoomLobby";
 import type { RoomSnapshot } from "../../../types/room";
-import { getRoomRpcClient } from "../../../features/rooms/roomRpcClient";
 
 jest.mock("../../../features/rooms/roomRpcClient", () => ({
   getRoomRpcClient: jest.fn(),
@@ -66,6 +66,15 @@ const renderLobby = async (
 };
 
 describe("useRoomLobby", () => {
+  it("shows only active roster members while retaining participants in the game projection", async () => {
+    const full = snapshot();
+    const getRoomSnapshot = jest.fn(async () => ({ ...full, activeRoster: full.participants.slice(0, 1) }));
+    mockGetRoomRpcClient.mockReturnValue({ getRoomSnapshot } as never);
+    const lobby = await renderLobby("session-1", "owner-1");
+    expect(lobby.result()?.participants.map(player => player.id)).toEqual(["owner-1"]);
+    expect(lobby.result()?.snapshot?.participants).toHaveLength(2);
+    lobby.unmount();
+  });
   beforeEach(() => { jest.clearAllMocks(); });
 
   it("exposes the roster and the join code to the host", async () => {

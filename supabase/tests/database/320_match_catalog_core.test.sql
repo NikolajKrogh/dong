@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(41);
 
 select has_table('private', 'provider_matches', 'compact match identity exists');
 select has_table('private', 'provider_match_observations', 'meaningful versions exist');
@@ -46,8 +46,9 @@ select ok(private.accept_compact_provider_match((select id from private.provider
 select is((select home_score from private.provider_matches),1,'late older resource cannot overwrite newer score');
 select ok(not private.accept_compact_provider_match((select id from private.provider_request_groups limit 1),13,(select jsonb_set(value,'{identity,sourceCompetitionId}','"other-competition"') from compact_input),clock_timestamp()), 'conflicting known competition is rejected');
 select ok(not private.accept_compact_provider_match((select id from private.provider_request_groups limit 1),13,(select jsonb_set(value,'{homeTeam,sourceTeamId}','"other-team"') from compact_input),clock_timestamp()), 'conflicting known team is rejected');
-select ok(private.accept_compact_provider_match((select id from private.provider_request_groups limit 1),13,(select value- 'homeScore' from compact_input),clock_timestamp()), 'partial score check retains prior accepted pair');
-select is((select home_score from private.provider_matches),1,'omitted score never becomes zero or replaces half of a pair');
+select ok(private.accept_compact_provider_match((select id from private.provider_request_groups limit 1),13,(select value- 'homeScore' from compact_input),clock_timestamp()), 'partial score check accepts independently known sides');
+select is((select home_score from private.provider_matches),null::integer,'omitted score remains unknown rather than becoming zero');
+select is((select away_score from private.provider_matches),0,'known other score side remains independent');
 select throws_ok('update private.provider_match_observations set home_score=99','23514','Provider observations are immutable','accepted observation cannot be changed');
 
 update private.provider_request_groups set next_attempt_at=clock_timestamp();

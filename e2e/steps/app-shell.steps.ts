@@ -188,11 +188,15 @@ const addSetupPlayer = async (page: Page, playerName: string) => {
   const playerNameInput = page.getByPlaceholder("Enter player name");
 
   await playerNameInput.fill(playerName);
+  await expect(page.getByRole("button", { name: "Add Player", exact: true })).toBeEnabled();
   await playerNameInput.press("Enter");
   await expect(page.getByText(playerName, { exact: true })).toBeVisible();
 };
 
 const addSetupMatch = async (page: Page, match: SetupJourneyMatchInput) => {
+  const manualEntryToggle = page.getByTestId("SetupManualMatchToggle").filter({ visible: true });
+  if (await manualEntryToggle.getAttribute("aria-expanded") !== "true") await manualEntryToggle.click();
+  await expect(manualEntryToggle).toHaveAttribute("aria-expanded", "true");
   await page.getByText("Home Team", { exact: true }).click();
   await selectTeamFromModal(
     page,
@@ -228,7 +232,7 @@ const completeSetupJourney = async (
   await expect(nextButton).toBeVisible();
   await nextButton.click();
 
-  await expect(page.getByText("Home Team", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("MatchListControls").filter({ visible: true })).toBeVisible();
 
   for (const match of dataset.matches) {
     await addSetupMatch(page, match);
@@ -299,6 +303,7 @@ When("the user navigates to setup", async ({ page }) => {
   await waitForBrowserFlowReady(page);
   await page.getByTestId("home-start-game-button").click();
   await page.getByRole("button", { name: "Play on this device", exact: true }).click();
+  await expect(page.getByTestId("home-start-game-sheet")).toBeHidden();
   await expect(page.getByPlaceholder("Enter player name")).toBeVisible();
 });
 
@@ -431,7 +436,7 @@ When("the user advances to the matches step", async ({ page }) => {
 
   await expect(nextButton).toBeVisible();
   await nextButton.click();
-  await expect(page.getByText("Home Team", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("MatchListControls").filter({ visible: true })).toBeVisible();
 });
 
 Then(
@@ -443,10 +448,10 @@ Then(
     const emptyStateBox = await getRequiredBox(emptyState);
 
     await expect(
-      page.getByText("Choose Leagues", { exact: true }),
+      page.getByRole("button", { name: "Choose leagues", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("Match Schedule", { exact: true }),
+      page.getByRole("button", { name: "Match schedule", exact: true }),
     ).toBeVisible();
     expect(emptyStateBox.y).toBeGreaterThanOrEqual(
       controlsBox.y + controlsBox.height - 1,
@@ -604,7 +609,7 @@ When("the user opens the game menu", async ({ page }) => {
 
 When("the user opens quick actions for the first match", async ({ page }) => {
   await page
-    .getByRole("button", { name: /Open quick actions for/i })
+    .locator('[data-testid^="GameProgressMatchCard-"]').filter({ visible: true })
     .first()
     .click();
 });
@@ -623,27 +628,14 @@ When(
 When(
   "the user selects the {string} history tab",
   async ({ page }, label: string) => {
-    const tabById = page.getByTestId(`HistoryTab-${label}`).first();
-
-    if ((await tabById.count()) > 0) {
-      await tabById.click({ force: true });
-      return;
-    }
-
-    const exactLabel = new RegExp(`^${escapeRegExp(label)}$`);
-    const tabButton = page.getByRole("button", { name: exactLabel }).first();
-
-    if ((await tabButton.count()) > 0) {
-      await tabButton.click({ force: true });
-      return;
-    }
-
-    await page.getByText(label, { exact: true }).first().click({ force: true });
+    const tab = page.getByRole("tab", { name: label, exact: true });
+    await expect(tab).toBeVisible();
+    await tab.click();
   },
 );
 
 When("the user opens the first history entry", async ({ page }) => {
-  await page.locator('[data-testid^="HistoryGameItem-"]').first().click();
+  await page.locator('[data-testid^="HistoryGameItem-"]').filter({ visible: true }).first().click();
 });
 
 Then("the quick actions modal should be visible", async ({ page }) => {

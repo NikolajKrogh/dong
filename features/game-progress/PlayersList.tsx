@@ -12,11 +12,12 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { calculateDrinkBalance } from "./drinkBalance";
 
-import { createGameProgressStyles } from "./gameProgressStyles";
-import { useColors } from "../../styles/theme";
-import { Match, Player } from "../../store/gameStore";
 import AppIcon from "../../components/ui/AppIcon";
+import { Match, Player } from "../../store/gameStore";
+import { useColors } from "../../styles/theme";
+import { createGameProgressStyles } from "./gameProgressStyles";
 
 /** Props for PlayersList. @interface */
 interface PlayersListProps {
@@ -48,6 +49,7 @@ interface PlayerCardProps {
   owed: number;
   /** Completion percentage (0-100). */
   percentComplete: number;
+  balanceLabel: string;
   /** Increment handler. */
   handleDrinkIncrement: (playerId: string) => void;
   /** Decrement handler. */
@@ -70,6 +72,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
     consumed,
     owed,
     percentComplete,
+    balanceLabel,
     handleDrinkIncrement,
     handleDrinkDecrement,
     isWideLayout,
@@ -153,7 +156,7 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
                 owed === 0 ? styles.completedText : styles.pendingText,
               ]}
             >
-              {owed === 0 ? "Completed" : `${owed.toFixed(1)} more`}
+              {balanceLabel}
             </Text>
           </Animated.View>
         </View>
@@ -177,6 +180,8 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
           <View style={styles.controlsContainer}>
             <TouchableOpacity
               testID={`DrinkDecrement-${player.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Decrease drinks consumed by ${player.name}`}
               style={[styles.controlButton, styles.actionButton]}
               disabled={disabled}
               onPress={() => {
@@ -195,6 +200,8 @@ const PlayerCard: React.FC<PlayerCardProps> = React.memo(
 
             <TouchableOpacity
               testID={`DrinkIncrement-${player.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Increase drinks consumed by ${player.name}`}
               style={[styles.controlButton, styles.actionButton]}
               disabled={disabled}
               onPress={() => {
@@ -232,48 +239,14 @@ const PlayersList: React.FC<PlayersListProps> = ({
   const isWideLayout = width >= 1024;
 
   /**
-   * Compute drinks required for a player (common = 1x, assigned = 0.5x).
-   * @param {string} playerId Player identifier.
-   * @returns {number} Total required drinks.
-   */
-  const calculateDrinksRequired = (playerId: string) => {
-    let total = 0;
-
-    // Calculate drinks from the common match
-    const commonMatch = matches.find((m) => m.id === commonMatchId);
-    if (commonMatch) {
-      const commonMatchGoals =
-        (commonMatch.homeGoals || 0) + (commonMatch.awayGoals || 0);
-      total += commonMatchGoals * 1; // Weight for common match
-    }
-
-    // Calculate drinks from other assigned matches
-    const assignedMatchIds = playerAssignments[playerId] || [];
-    assignedMatchIds.forEach((matchId) => {
-      // Skip the common match since we've already counted it
-      if (matchId === commonMatchId) return;
-
-      const match = matches.find((m) => m.id === matchId);
-      if (match) {
-        const matchGoals = (match.homeGoals || 0) + (match.awayGoals || 0);
-        total += matchGoals * 0.5; // Weight for other assigned matches
-      }
-    });
-
-    return total;
-  };
-
-  /**
    * FlatList item renderer for PlayerCard.
    * @param {{item: Player}} param0 Destructured object containing the player item.
    * @returns {JSX.Element} Rendered PlayerCard.
    */
   const renderItem = ({ item }: { item: Player }) => {
-    const required = calculateDrinksRequired(item.id);
-    const consumed = item.drinksTaken || 0;
-    const owed = Math.max(0, required - consumed);
-    const percentComplete =
-      required > 0 ? Math.min((consumed / required) * 100, 100) : 100; // If required is 0, 100% complete
+    const { required, consumed, remaining: owed, percentComplete, label } = calculateDrinkBalance(
+      matches, commonMatchId, playerAssignments[item.id] ?? [], item.drinksTaken ?? 0,
+    );
 
     return (
       <PlayerCard
@@ -281,6 +254,7 @@ const PlayersList: React.FC<PlayersListProps> = ({
         required={required}
         consumed={consumed}
         owed={owed}
+        balanceLabel={label}
         percentComplete={percentComplete}
         handleDrinkIncrement={handleDrinkIncrement}
         handleDrinkDecrement={handleDrinkDecrement}
