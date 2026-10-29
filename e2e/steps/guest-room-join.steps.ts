@@ -102,7 +102,9 @@ When(
   async ({ context, baseURL }) => {
     activeRosterHostPage = await context.newPage();
     await seedHostRoomAuthSession(activeRosterHostPage);
-    await mockHostRoomServices(activeRosterHostPage);
+    await mockHostRoomServices(activeRosterHostPage, {
+      activeMembership: { participantId: HOST_ROOM_PARTICIPANT_ID, role: "owner" },
+    });
     setHostRoomSnapshotParticipants([
       {
         id: "guest-mocked-participant",
@@ -123,7 +125,7 @@ When(
       { waitUntil: "commit", timeout: 60_000 },
     );
     await expect(
-      activeRosterHostPage.getByText("Room Lobby", { exact: true }),
+      activeRosterHostPage.getByText("Expired Guest", { exact: true }),
     ).toBeVisible({ timeout: 15_000 });
   },
 );

@@ -4,7 +4,7 @@ Feature: Navigate DONG in a browser
     When I open Game Stats using the keyboard
     Then History opens and browser Back returns Home
     When I open Friends using the keyboard
-    Then signed-out Friends offers sign-in and browser Back returns Home
+    Then Friends opens and browser Back returns through Settings to Home
 
   Scenario: Opening configuration preserves the running game across Back and refresh
     Given a solo game is running in the browser

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
 
 import type {
   RoomParticipantSummary,
@@ -52,7 +53,7 @@ export const useRoomLobby = (
 
       const stillPresent =
         myParticipantId === null ||
-        next.participants.some((p) => p.id === myParticipantId);
+        roomSnapshotToActiveRoster(next).some((p) => p.id === myParticipantId);
       // `completed` counts as ended too: it is the state end_game_session (040)
       // produces, and without it an ended game falls through to the normal lobby
       // render instead of the ended notice.
@@ -86,7 +87,7 @@ export const useRoomLobby = (
     };
   }, [sessionId, refresh]);
 
-  const participants = snapshot?.participants ?? [];
+  const participants = snapshot ? roomSnapshotToActiveRoster(snapshot) : [];
   const me = myParticipantId
     ? (participants.find((p) => p.id === myParticipantId) ?? null)
     : null;

@@ -1,6 +1,6 @@
 # Naming migration follow-ups: implementation plan
 
-Status: product decisions agreed; implementation not started.
+Status: implementation in progress.
 Date: 2026-10-29.
 
 ## Objective and delivery
@@ -217,6 +217,15 @@ No Android run is required, and browser success is not represented as native acc
   then the screen loads and browser Back returns through the expected route state.
 
 ## Completion evidence
+
+- M0: reproduced all three failures. Discovery mocked the obsolete Java path;
+  direct-lobby fixtures omitted get_my_active_room membership; navigation expected
+  an obsolete Home Friends link. Once fixture setup was corrected, the roster
+  assertion exposed a real bug: useRoomLobby used historical participants instead
+  of activeRoster. Fixed the hook while preserving the snapshot's game projection.
+  The original three phone-browser journeys now pass (3/3); assertions still verify
+  host start, two live roster removals, preserved game history, keyboard navigation
+  and Back through Settings. Added a focused active-roster regression test.
 
 Keep a milestone checklist and actual test results here during implementation.
 All behavior and maintenance rows above must be closed with tests/evidence. If
