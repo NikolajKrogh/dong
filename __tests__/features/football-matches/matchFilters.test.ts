@@ -1,8 +1,5 @@
-import {
-  formatDateForAPI,
-  cleanTeamName,
-  convertTimeToMinutes,
-} from "../../../features/football-matches/matchFilters";
+import { convertTimeToMinutes, formatDateForAPI } from "../../../features/football-matches/matchFilters";
+import { cleanTeamName } from "../../../features/football-matches/teamNames";
 
 // Helper function to get today's date in YYYYMMDD format
 const getTodayYYYYMMDD = () => {

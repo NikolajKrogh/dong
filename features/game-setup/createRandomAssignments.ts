@@ -1,4 +1,5 @@
 import { Match, Player } from "../../store/gameStore";
+import { shuffle } from "./shuffle";
 
 type PlayerAssignments = Record<string, string[]>;
 type PairSharedMatches = Record<string, string[]>;
@@ -7,10 +8,6 @@ const compareIds = (left: string, right: string) => left.localeCompare(right);
 
 const getPairKey = (playerIds: string[]) => {
   return [...playerIds].sort(compareIds).join("-");
-};
-
-const shuffle = <T>(values: T[]) => {
-  return [...values].sort(() => Math.random() - 0.5);
 };
 
 const createAssignmentsWithCommonMatch = (
@@ -278,13 +275,23 @@ export const createRandomAssignments = (
   matches: Match[],
   commonMatchId: string | null,
   additionalMatchesPerPlayer: number,
+  random: () => number = Math.random,
 ): PlayerAssignments => {
-  if (!commonMatchId) {
+  if (!commonMatchId || !matches.some(match => match.id === commonMatchId)) {
     throw new Error("Please select a common match first");
   }
 
   const totalMatchesPerPlayer = additionalMatchesPerPlayer + 1;
   const numPlayers = players.length;
+  if (!numPlayers || new Set(players.map(player => player.id)).size !== numPlayers) {
+    throw new Error("Choose at least one player with distinct player IDs.");
+  }
+  if (!Number.isInteger(additionalMatchesPerPlayer) || additionalMatchesPerPlayer < numPlayers - 1) {
+    throw new Error(`Choose at least ${numPlayers - 1} additional matches per player for the pair-sharing rule.`);
+  }
+  if (new Set(matches.map(match => match.id)).size !== matches.length) {
+    throw new Error("Choose distinct matches.");
+  }
   const availableMatches = matches.filter(
     (match) => match.id !== commonMatchId,
   );
@@ -308,8 +315,8 @@ export const createRandomAssignments = (
     players,
     commonMatchId,
   );
-  const shuffledPairs = shuffle(playerPairs);
-  const shuffledMatches = shuffle(availableMatches);
+  const shuffledPairs = shuffle(playerPairs, random);
+  const shuffledMatches = shuffle(availableMatches, random);
   const usedMatchIndices = assignPairMatches({
     shuffledPairs,
     shuffledMatches,

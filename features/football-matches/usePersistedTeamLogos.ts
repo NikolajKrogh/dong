@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { useGameStore } from '../../store/gameStore';
-import { getTeamLogo, cacheTeamLogo, getHardcodedTeamLogoOnly, clearOverriddenLogos } from './teamLogos';
+import { useGameStore } from "../../store/gameStore";
+import { cacheTeamLogo, clearOverriddenLogos, getHardcodedTeamLogoOnly, getTeamLogo } from './teamLogos';
 
 /**
  * Hook to load persisted team logos from AsyncStorage when resuming a game

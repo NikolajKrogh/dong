@@ -4,9 +4,9 @@
  */
 
 //! Find more logos at: https://brandlogos.net/
-import { cleanTeamName } from "./matchFilters";
-import { TEAM_ALIASES } from "./teamAliases";
 import { ImageSourcePropType } from "react-native";
+import { TEAM_ALIASES } from "./teamAliases";
+import { cleanTeamName } from "./teamNames";
 // AsyncStorage is not available in Jest environment; require conditionally
 let AsyncStorageRef: {
   getItem: (key: string) => Promise<string | null>;

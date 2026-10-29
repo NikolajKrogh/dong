@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useReducer } from "react";
+import { formatTeamOptionName } from "../football-matches/teamNames";
 
 import { LeagueEndpoint } from "../../constants/leagues";
 import { formatDateIsoValue } from "../../platform/date-input/normalizeValue";
@@ -48,42 +49,13 @@ const createInitialState = (
   customTeams: [],
 });
 
-const cleanDisplayName = (value: string) => {
-  return value
-    .replace(/\s+fc$/i, "")
-    .replace(
-      /^(fc|afc|1\.\s*fc|1\.\s*fsv|as|ss|ssc|rc|cd|ogc|vfl|vfb|tsg|sc)\s+/i,
-      "",
-    )
-    .trim();
-};
-
-export const normalizeMatchTeamName = (name: string): string => {
-  if (!name) return "";
-
-  return name
-    .toLowerCase()
-    .replace(/\s+fc$/i, "")
-    .replace(
-      /^(fc|afc|1\.\s*fc|1\.\s*fsv|as|ss|ssc|rc|cd|ogc|vfl|vfb|tsg|sc)\s+/i,
-      "",
-    )
-    .replaceAll(/&\s+/g, "")
-    .replaceAll(/[\s.-]+/g, "")
-    .replaceAll("ø", "o")
-    .replaceAll("ü", "u")
-    .replaceAll("é", "e")
-    .replaceAll("á", "a")
-    .trim();
-};
-
 const buildTeamOptions = (teams: TeamWithLeague[], side: "home" | "away") => {
   return teams.map((team) => ({
     key:
       team.key ||
       `${side}-${String(team.value).toLowerCase().replaceAll(/\s+/g, "-")}`,
     value: team.value,
-    displayName: cleanDisplayName(team.value),
+    displayName: formatTeamOptionName(team.value),
     league: team.league,
   }));
 };

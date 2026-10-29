@@ -83,7 +83,7 @@ const fetchTeamData = async (signal: AbortSignal) => {
 };
 
 /** Load the remote team lists, exposing the same empty/error state on failure. */
-export const useTeamData = () => {
+export const useTeamDirectory = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["setup-team-data"],
     queryFn: ({ signal }) => fetchTeamData(signal),

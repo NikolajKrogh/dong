@@ -106,8 +106,8 @@ jest.mock("../../../features/football-matches/useMatchData", () => ({
   useMatchData: () => mockMatchDataState,
 }));
 
-jest.mock("../../../features/football-matches/useTeamData", () => ({
-  useTeamData: () => ({
+jest.mock("../../../features/football-matches/useTeamDirectory", () => ({
+  useTeamDirectory: () => ({
     isLoading: false,
     isError: false,
     errorMessage: "",
