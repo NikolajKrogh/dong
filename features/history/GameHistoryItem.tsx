@@ -6,15 +6,11 @@ import {
   View,
 } from "react-native";
 import AppIcon, { type AppIconName } from "../../components/ui/AppIcon";
-import { GameSession } from "./historyTypes";
 import { useColors } from "../../styles/theme";
-import {
-  calculateTotalGoals,
-  calculateTotalDrinks,
-  findTopDrinkers,
-  formatHistoryDate,
-  getPlayerIdentityKey,
-} from "./historyUtils";
+import { calculateTotalDrinks, calculateTotalGoals, findTopDrinkers } from "./historyCalculations";
+import { formatHistoryDate } from "./historyFormatting";
+import { getPlayerIdentityKey } from "./historyPlayerIdentity";
+import { GameSession } from "./historyTypes";
 import MatchCard from "./MatchCard";
 
 interface GameHistoryItemProps {

@@ -1,11 +1,11 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { PlayerStat, GameSession } from "./historyTypes";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
-import { getPlayerHeadToHeadStats } from "./historyUtils";
-import TooltipModal from "./TooltipModal";
+import { getPlayerHeadToHeadStats } from "./historyCalculations";
 import HistoryModalFrame from "./HistoryModalFrame";
+import { GameSession, PlayerStat } from "./historyTypes";
+import TooltipModal from "./TooltipModal";
 
 interface PlayerComparisonModalProps {
   visible: boolean;

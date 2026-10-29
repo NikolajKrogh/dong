@@ -1,11 +1,11 @@
 import {
+  ImageStyle,
   StyleSheet,
   TextStyle,
   ViewStyle,
-  ImageStyle,
 } from "react-native";
-import type { lightColors as Light, darkColors as Dark } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
+import type { darkColors as Dark, lightColors as Light } from "../../styles/theme";
 type Colors = typeof Light | typeof Dark;
 
 interface HistoryLayoutOptions {
@@ -42,7 +42,7 @@ const makeTextTitle = (colors: Colors): TextStyle => ({
 const makeTextValue = (colors: Colors): TextStyle => ({
   ...makeBaseText(colors),
   fontWeight: "bold",
-  color: colors.primary,
+  color: colors.primaryDark,
 });
 
 const makeTextLabel = (colors: Colors): TextStyle => ({
@@ -186,7 +186,7 @@ export function createHistoryStyles(
       marginLeft: 6,
     },
     activeTabText: {
-      color: colors.primary,
+      color: colors.primaryDark,
       fontWeight: "500",
     },
 
@@ -528,7 +528,7 @@ export function createHistoryStyles(
       // Text for "Show/Hide Matches"
       ...baseText,
       fontSize: 14,
-      color: colors.primary,
+      color: colors.primaryDark,
       fontWeight: "500",
     } as TextStyle,
     emptyStateText: {
@@ -856,7 +856,7 @@ export function createHistoryStyles(
       marginRight: 6,
       fontSize: 16,
       fontWeight: "500",
-      color: colors.primary,
+      color: colors.primaryDark,
     },
     noDataText: {
       textAlign: "center",
@@ -881,7 +881,7 @@ export function createHistoryStyles(
     },
     drinkBarMaxIndicator: {
       fontSize: 12,
-      color: colors.primary,
+      color: colors.primaryDark,
       fontWeight: "500",
     },
     drinkBarContainer: {
@@ -939,7 +939,7 @@ export function createHistoryStyles(
     },
     compareButtonText: {
       ...baseText,
-      color: colors.primary,
+      color: colors.primaryDark,
       fontSize: 12,
       fontWeight: "500",
       marginLeft: 4,

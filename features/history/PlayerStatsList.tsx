@@ -2,13 +2,13 @@ import React, { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View, useWindowDimensions } from "react-native";
 import { Text } from "tamagui";
 import AppIcon from "../../components/ui/AppIcon";
-import type { GameSession, Player, PlayerStat } from "./historyTypes";
 import { useColors } from "../../styles/theme";
-import PlayerDetailsModal from "./PlayerDetailsModal";
-import PlayerComparisonModal from "./PlayerComparisonModal";
 import type { Person } from "../friends";
-import { getPlayerIdentityKey } from "./historyUtils";
 import { getHistoryTimestamp } from "./historyDate";
+import { getPlayerIdentityKey } from "./historyPlayerIdentity";
+import type { GameSession, Player, PlayerStat } from "./historyTypes";
+import PlayerComparisonModal from "./PlayerComparisonModal";
+import PlayerDetailsModal from "./PlayerDetailsModal";
 
 const EMPTY_SOCIAL_PEOPLE: Person[] = [];
 
