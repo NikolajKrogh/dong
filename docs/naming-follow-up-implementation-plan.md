@@ -1,6 +1,6 @@
 # Naming migration follow-ups: implementation plan
 
-Status: implementation in progress.
+Status: implementation complete; final integration and delivery checks in progress.
 Date: 2026-10-29.
 
 ## Objective and delivery
@@ -231,3 +231,77 @@ Keep a milestone checklist and actual test results here during implementation.
 All behavior and maintenance rows above must be closed with tests/evidence. If
 investigation exposes a new product decision, ask one focused question before
 implementing that dependent behavior; continue independent tasks in the meantime.
+
+### M1-M2: lifecycle, reconciliation, balances and frozen history
+
+- Java and TypeScript use the shared nine-value fixture. Java emits finished;
+  independent unknown score sides survive ingestion, projections and rendering.
+- Newer corrections apply in either direction. Unknown sides preserve accepted
+  gameplay goals; provider processing never changes user consumption. Requirements,
+  remaining and ahead amounts use one pure weighted calculation.
+- Local history is cloned at completion and is no longer refreshed from the catalog.
+  Room matches capture public catalog snapshots in a new additive migration. Completed
+  and early-departure projections use captured facts rather than live catalog joins.
+- Expired solo tracking remains stopped until the user chooses Restart tracking.
+  Existing finite grants, interruption lifetimes and request budgets remain authoritative.
+- Local pgTAP verifies partial downward correction, replay/stale ordering, unchanged
+  consumption, cancellation labels, frozen completed history and write privileges.
+  Full CLI pgTAP run: 71 files, 1,170 assertions passed. Generated contracts match.
+  Only the existing disposable local feature database was migrated; no reset was used.
+
+### M3: assignments and helper ownership
+
+- Fisher-Yates uses an injectable random source. Deterministic draws and allocation
+  invariants cover common-match counting, exact additional counts, one extra shared
+  match per pair, input immutability and invalid inputs.
+- teamNames.ts owns lookup and display policies. The legacy logo-affix policy stays
+  distinct from option display and lookup keys. Characterization covers punctuation,
+  accents, affixes and whitespace. Provider/league identity is retained.
+- useTeamDirectory replaces useTeamData. Existing pure matchFilters date/time rules
+  and platform date-input normalization keep their separate responsibilities.
+- The concurrency fixture checks its participant before dereferencing it.
+
+### M4: accessible browser behavior
+
+- Shared palette and text tokens now meet the tested contrast requirements in both
+  themes. Settings names include their visible values, the theme switch has a label,
+  History tabs have a tablist, and match logos expose their team names.
+- Match cards derive their web names from visible content and informative logos.
+  Consumption controls have explicit action names. Ahead/status/history checks cover
+  partial scores and abandoned matches alongside the six-route accessibility matrix.
+- Home choices finish dismissing before navigation on web, releasing the modal focus
+  trap. Native choices run after visibility commits. Failed hosting reopens the choices.
+- Browser fixtures use current manual-entry disclosures, account bootstrap, visible
+  route controls and the Settings-to-Friends path. Assertions retain actual keyboard,
+  Back, two-client propagation, read-only membership and safe error-message coverage.
+- All 28 accessibility cases passed across phone/desktop and light/dark themes.
+  Before/after screenshots were retained locally and checked for layout preservation.
+
+### M5: completed responsibility splits
+
+| Owner | Result |
+| --- | --- |
+| gameStore | syncedPreferences and matchSnapshots own pure normalization/capture. Game/history actions remain next to the single persist owner; splitting these remaining short actions would add indirection. |
+| roomRpcClient | guestRoomRpcClient, hostRoomRpcClient, roomGameplayOperations and roomRpcErrors own transport roles and parsing. The existing client interface remains the entry point. |
+| useActiveGameRoomSync | activeGameIdentity, activeGameLifecycle, activeGameSnapshot, gameplayMutationQueue, roomRealtimeSubscription and activeGameTypes separate fences, reconciliation, retries and subscriptions. |
+| RoomLobbyScreen | useLobbyAssignmentController, useLobbyGameplayHydration, RoomLobbyWizard and RoomLobbyDialogs own their respective responsibilities. |
+| HistoryScreen | HistoryContentView and historySorting separate presentation and calculations from route/selection state. |
+| AuthForm | AuthFormViews owns fields, credentials and verification presentation; confirmation/account/returnTo state stays in AuthForm. |
+| historyUtils | historyCalculations, historyPlayerIdentity and historyFormatting replace the generic utility owner. The calculation name avoids a Windows collision with HistoryStatistics.tsx. |
+
+Existing characterization tests exercise these owners through the same public flows.
+The RPC, synchronization, lobby, authentication, store and history changes are separate
+reviewable commits. No new persistence owner or forwarding-only compatibility module
+was introduced.
+
+### M6: integration evidence
+
+- Client: 165 suites / 1,073 tests passed.
+- Java: 93 tests passed; clean verify and coverage gates passed.
+- Database: 71 files / 1,170 assertions passed; generated contract drift check passed.
+- Edge entry-point typechecks, client typecheck, lint and Knip passed.
+- React Doctor: 100/100, no findings.
+- Accessibility: 28 cases passed. Final full browser rerun and remote CI are pending
+  before merging the follow-up into the naming branch.
+- Physical Android/device acceptance is excluded by agreement. Hosted deployment and
+  acquisition/Cron activation remain outside this task.
