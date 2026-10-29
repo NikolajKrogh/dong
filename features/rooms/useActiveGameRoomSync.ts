@@ -14,7 +14,7 @@ import { useGameStore, type Match, type Player } from "../../store/gameStore";
 import type { GuestRoomSessionGrant } from "../../types/guestRoom";
 import type {
   ActiveGameContext,
-  GameplayRoomActionResult,
+  GameplayActionResult,
   GameplayActionType,
   ReassignParticipantMatchesResponse,
 } from "../../types/room";
@@ -60,7 +60,7 @@ export interface PendingGameplayMutation {
   status: "pending" | "uncertain";
 }
 
-type GameplayAction = () => Promise<GameplayRoomActionResult>;
+type GameplayAction = () => Promise<GameplayActionResult>;
 
 const getSequence = (snapshot: CompatibleRoomSnapshot | null) =>
   snapshot?.lastEventSequence ?? 0;
@@ -562,9 +562,9 @@ const refreshActiveGameRoom = async ({
   }
 };
 
-interface ApplyGameplayRoomActionResultParams {
+interface ApplyGameplayActionResultParams {
   mutation: PendingGameplayMutation;
-  result: GameplayRoomActionResult;
+  result: GameplayActionResult;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
   setSnapshot: StateSetter<CompatibleRoomSnapshot | null>;
@@ -574,7 +574,7 @@ interface ApplyGameplayRoomActionResultParams {
   updatePending: (next: PendingGameplayMutation[]) => void;
 }
 
-const applyGameplayRoomActionResult = ({
+const applyGameplayActionResult = ({
   mutation,
   result,
   snapshotRef,
@@ -584,7 +584,7 @@ const applyGameplayRoomActionResult = ({
   setError,
   setActiveGameContext,
   updatePending,
-}: ApplyGameplayRoomActionResultParams) => {
+}: ApplyGameplayActionResultParams) => {
   const currentSnapshot = snapshotRef.current;
   if (!currentSnapshot) return;
 
@@ -654,7 +654,7 @@ interface RunGameplayMutationParams {
   setError: StateSetter<string | null>;
   applyRoomActionResult: (
     mutation: PendingGameplayMutation,
-    result: GameplayRoomActionResult,
+    result: GameplayActionResult,
   ) => void;
 }
 
@@ -822,7 +822,7 @@ interface RetryGameplayMutationParams {
   runMutation: (
     mutation: PendingGameplayMutation,
     action: GameplayAction,
-  ) => Promise<GameplayRoomActionResult>;
+  ) => Promise<GameplayActionResult>;
 }
 
 const retryGameplayMutation = async ({
@@ -1122,9 +1122,9 @@ export const useActiveGameRoomSync = () => {
   const applyRoomActionResult = useCallback(
     (
       mutation: PendingGameplayMutation,
-      result: GameplayRoomActionResult,
+      result: GameplayActionResult,
     ) =>
-      applyGameplayRoomActionResult({
+      applyGameplayActionResult({
         mutation,
         result,
         snapshotRef,

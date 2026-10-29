@@ -174,7 +174,7 @@ export type GameplayErrorCode =
   | "service_unavailable"
   | "unknown_error";
 
-export interface GameplayRoomActionResult {
+export interface GameplayActionResult {
   sessionId: string;
   sequenceNumber: number | null;
   eventId: string | null;

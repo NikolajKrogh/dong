@@ -17,7 +17,7 @@ import type {
   AssignmentMode,
   BatchRoomMatchResult,
   EndGameSessionResponse,
-  GameplayRoomActionResult,
+  GameplayActionResult,
   GameplayErrorCode,
   ReassignParticipantMatchesInput,
   ReassignParticipantMatchesResponse,
@@ -52,13 +52,13 @@ export interface GuestRoomRpcClient {
     team: "home" | "away";
     deltaGoals: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayRoomActionResult>;
+  }): Promise<GameplayActionResult>;
   changeParticipantDrinkAsGuest(input: {
     guestToken: string;
     participantId: string;
     deltaHalfDrinks: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayRoomActionResult>;
+  }): Promise<GameplayActionResult>;
 }
 
 export interface RoomRpcClient {
@@ -89,13 +89,13 @@ export interface RoomRpcClient {
     team: "home" | "away";
     deltaGoals: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayRoomActionResult>;
+  }): Promise<GameplayActionResult>;
   changeParticipantDrink(input: {
     sessionId: string;
     participantId: string;
     deltaHalfDrinks: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayRoomActionResult>;
+  }): Promise<GameplayActionResult>;
   addRoomMatch(
     sessionId: string,
     request: AddRoomMatchRequest,
@@ -205,11 +205,11 @@ export const mapGameplayError = (error: unknown) => {
 const readGameplayResult = (
   data: unknown,
   functionName: string,
-): GameplayRoomActionResult => {
+): GameplayActionResult => {
   if (!data || typeof data !== "object") {
     throw new Error(`Supabase ${functionName} returned no response payload.`);
   }
-  const result = data as Partial<GameplayRoomActionResult>;
+  const result = data as Partial<GameplayActionResult>;
   return {
     ...result,
     sessionId: String(result.sessionId ?? ""),
@@ -217,7 +217,7 @@ const readGameplayResult = (
       typeof result.sequenceNumber === "number" ? result.sequenceNumber : null,
     eventId: typeof result.eventId === "string" ? result.eventId : null,
     replayed: result.replayed === true,
-  } as GameplayRoomActionResult;
+  } as GameplayActionResult;
 };
 
 const mapReassignmentError = (error: unknown) => {
@@ -583,7 +583,7 @@ export const createRoomRpcClient = (
           delta_goals: input.deltaGoals,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<GameplayRoomActionResult, { merge: false }>());
+        .overrideTypes<GameplayActionResult, { merge: false }>());
 
       if (error) {
         throw mapGameplayError(error) ?? error;
@@ -599,7 +599,7 @@ export const createRoomRpcClient = (
           delta_half_drinks: input.deltaHalfDrinks,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<GameplayRoomActionResult, { merge: false }>());
+        .overrideTypes<GameplayActionResult, { merge: false }>());
 
       if (error) {
         throw mapGameplayError(error) ?? error;
