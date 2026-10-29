@@ -1,6 +1,6 @@
 import {
   GameplayRpcError,
-  type GameplayCommandResult,
+  type GameplayRoomActionResult,
 } from "../../../types/room";
 import {
   createGuestRoomRpcClient,
@@ -8,7 +8,7 @@ import {
 } from "../../../features/rooms/roomRpcClient";
 
 type FakeResult = {
-  data: GameplayCommandResult | null;
+  data: GameplayRoomActionResult | null;
   error: { message: string } | null;
 };
 
@@ -20,7 +20,7 @@ const fakeClient = (result: FakeResult) => {
   return { client: { rpc, functions: { invoke } } as never, rpc, invoke };
 };
 
-const result: GameplayCommandResult = {
+const result: GameplayRoomActionResult = {
   sessionId: "session-1",
   sequenceNumber: 9,
   eventId: "event-1",

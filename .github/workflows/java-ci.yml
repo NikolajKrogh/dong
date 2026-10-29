@@ -1,13 +1,13 @@
-name: command-api CI
+name: game-api CI
 
 on:
   push:
     paths:
-      - "command-api/**"
+      - "game-api/**"
       - ".github/workflows/java-ci.yml"
   pull_request:
     paths:
-      - "command-api/**"
+      - "game-api/**"
       - ".github/workflows/java-ci.yml"
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: command-api
+        working-directory: game-api
     steps:
       - uses: actions/checkout@v4.1.7
         with:

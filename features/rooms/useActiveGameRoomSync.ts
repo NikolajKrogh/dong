@@ -14,8 +14,8 @@ import { useGameStore, type Match, type Player } from "../../store/gameStore";
 import type { GuestRoomSessionGrant } from "../../types/guestRoom";
 import type {
   ActiveGameContext,
-  GameplayCommandResult,
-  GameplayCommandType,
+  GameplayRoomActionResult,
+  GameplayActionType,
   ReassignParticipantMatchesResponse,
 } from "../../types/room";
 import {
@@ -51,7 +51,7 @@ export type ActiveGameSyncStatus =
 
 export interface PendingGameplayMutation {
   id: string;
-  kind: Extract<GameplayCommandType, "manual_score" | "drink">;
+  kind: Extract<GameplayActionType, "manual_score" | "drink">;
   matchId?: string;
   participantId?: string;
   team?: "home" | "away";
@@ -60,7 +60,7 @@ export interface PendingGameplayMutation {
   status: "pending" | "uncertain";
 }
 
-type GameplayCommand = () => Promise<GameplayCommandResult>;
+type GameplayAction = () => Promise<GameplayRoomActionResult>;
 
 const getSequence = (snapshot: CompatibleRoomSnapshot | null) =>
   snapshot?.lastEventSequence ?? 0;
@@ -265,7 +265,7 @@ interface ResetRoomRuntimeParams {
   guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>;
   completionInFlightRef: MutableRefObject<boolean>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
-  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  actionsRef: MutableRefObject<Map<string, GameplayAction>>;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
   context: Pick<ActiveGameContext, "mode">;
   accessLost: boolean;
@@ -277,7 +277,7 @@ const resetRoomRuntimeForIdentity = ({
   guestGrantRef,
   completionInFlightRef,
   pendingRef,
-  commandsRef,
+  actionsRef,
   snapshotRef,
   context,
   accessLost,
@@ -287,7 +287,7 @@ const resetRoomRuntimeForIdentity = ({
   guestGrantRef.current = null;
   completionInFlightRef.current = false;
   pendingRef.current = [];
-  commandsRef.current.clear();
+  actionsRef.current.clear();
   if (context.mode === "multiplayer" || !accessLost) snapshotRef.current = null;
 };
 
@@ -325,7 +325,7 @@ interface ApplyActiveGameSnapshotParams {
   contextRef: MutableRefObject<ActiveGameContext>;
   generationRef: MutableRefObject<number>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
-  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  actionsRef: MutableRefObject<Map<string, GameplayAction>>;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
   setSnapshot: StateSetter<CompatibleRoomSnapshot | null>;
   setPendingMutations: StateSetter<PendingGameplayMutation[]>;
@@ -345,7 +345,7 @@ const applyActiveGameSnapshot = ({
   contextRef,
   generationRef,
   pendingRef,
-  commandsRef,
+  actionsRef,
   snapshotRef,
   setSnapshot,
   setPendingMutations,
@@ -391,7 +391,7 @@ const applyActiveGameSnapshot = ({
   setStatus(hasEnded ? "ended" : "ready");
   if (hasEnded) {
     pendingRef.current = [];
-    commandsRef.current.clear();
+    actionsRef.current.clear();
     setPendingMutations([]);
   }
   setError(null);
@@ -404,7 +404,7 @@ interface RefreshActiveGameRoomParams {
   refreshInFlightRef: MutableRefObject<number | null>;
   guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
-  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  actionsRef: MutableRefObject<Map<string, GameplayAction>>;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
   setStatus: StateSetter<ActiveGameSyncStatus>;
   setError: StateSetter<string | null>;
@@ -425,7 +425,7 @@ const refreshActiveGameRoom = async ({
   refreshInFlightRef,
   guestGrantRef,
   pendingRef,
-  commandsRef,
+  actionsRef,
   snapshotRef,
   setStatus,
   setError,
@@ -494,7 +494,7 @@ const refreshActiveGameRoom = async ({
     ) {
       generationRef.current += 1;
       pendingRef.current = [];
-      commandsRef.current.clear();
+      actionsRef.current.clear();
       setPendingMutations([]);
       try {
         await confirmGuestRoomEnded(sessionId);
@@ -542,7 +542,7 @@ const refreshActiveGameRoom = async ({
       setStatus("access_lost");
       setAccessLost(true);
       pendingRef.current = [];
-      commandsRef.current.clear();
+      actionsRef.current.clear();
       setPendingMutations([]);
       clearActiveGameContext();
     } else {
@@ -562,9 +562,9 @@ const refreshActiveGameRoom = async ({
   }
 };
 
-interface ApplyGameplayCommandResultParams {
+interface ApplyGameplayRoomActionResultParams {
   mutation: PendingGameplayMutation;
-  result: GameplayCommandResult;
+  result: GameplayRoomActionResult;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
   setSnapshot: StateSetter<CompatibleRoomSnapshot | null>;
@@ -574,7 +574,7 @@ interface ApplyGameplayCommandResultParams {
   updatePending: (next: PendingGameplayMutation[]) => void;
 }
 
-const applyGameplayCommandResult = ({
+const applyGameplayRoomActionResult = ({
   mutation,
   result,
   snapshotRef,
@@ -584,7 +584,7 @@ const applyGameplayCommandResult = ({
   setError,
   setActiveGameContext,
   updatePending,
-}: ApplyGameplayCommandResultParams) => {
+}: ApplyGameplayRoomActionResultParams) => {
   const currentSnapshot = snapshotRef.current;
   if (!currentSnapshot) return;
 
@@ -641,37 +641,37 @@ const applyGameplayCommandResult = ({
 
 interface RunGameplayMutationParams {
   mutation: PendingGameplayMutation;
-  command: GameplayCommand;
+  action: GameplayAction;
   status: ActiveGameSyncStatus;
   isInteractive: boolean;
   contextRef: MutableRefObject<ActiveGameContext>;
   generationRef: MutableRefObject<number>;
   snapshotRef: MutableRefObject<CompatibleRoomSnapshot | null>;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
-  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  actionsRef: MutableRefObject<Map<string, GameplayAction>>;
   updatePending: (next: PendingGameplayMutation[]) => void;
   setStatus: StateSetter<ActiveGameSyncStatus>;
   setError: StateSetter<string | null>;
-  applyCommandResult: (
+  applyRoomActionResult: (
     mutation: PendingGameplayMutation,
-    result: GameplayCommandResult,
+    result: GameplayRoomActionResult,
   ) => void;
 }
 
 const runGameplayMutation = async ({
   mutation,
-  command,
+  action,
   status,
   isInteractive,
   contextRef,
   generationRef,
   snapshotRef,
   pendingRef,
-  commandsRef,
+  actionsRef,
   updatePending,
   setStatus,
   setError,
-  applyCommandResult,
+  applyRoomActionResult,
 }: RunGameplayMutationParams) => {
   const currentContext = contextRef.current;
   const retryingUncertainMutation =
@@ -689,7 +689,7 @@ const runGameplayMutation = async ({
     );
   }
 
-  commandsRef.current.set(mutation.id, command);
+  actionsRef.current.set(mutation.id, action);
   const generation = generationRef.current;
   updatePending(
     pendingRef.current.some((candidate) => candidate.id === mutation.id)
@@ -700,7 +700,7 @@ const runGameplayMutation = async ({
   );
 
   try {
-    const result = await command();
+    const result = await action();
     if (
       generationRef.current !== generation ||
       (currentContext.accessKind === "guest" &&
@@ -708,8 +708,8 @@ const runGameplayMutation = async ({
     ) {
       return result;
     }
-    applyCommandResult(mutation, result);
-    commandsRef.current.delete(mutation.id);
+    applyRoomActionResult(mutation, result);
+    actionsRef.current.delete(mutation.id);
     return result;
   } catch (mutationError) {
     if (
@@ -720,7 +720,7 @@ const runGameplayMutation = async ({
       throw mutationError;
     }
     if (isStableGameplayError(mutationError)) {
-      commandsRef.current.delete(mutation.id);
+      actionsRef.current.delete(mutation.id);
       updatePending(
         pendingRef.current.filter((candidate) => candidate.id !== mutation.id),
       );
@@ -743,7 +743,7 @@ const runGameplayMutation = async ({
   }
 };
 
-type GameplayCommandInput =
+type GameplayActionInput =
   | {
       id: string;
       kind: "manual_score";
@@ -758,11 +758,11 @@ type GameplayCommandInput =
       deltaHalfDrinks: -1 | 1;
     };
 
-const createGameplayCommand = (
-  input: GameplayCommandInput,
+const createGameplayAction = (
+  input: GameplayActionInput,
   contextRef: MutableRefObject<ActiveGameContext>,
   guestGrantRef: MutableRefObject<GuestRoomSessionGrant | null>,
-): GameplayCommand =>
+): GameplayAction =>
   async () => {
     const currentContext = contextRef.current;
     if (currentContext.accessKind === "guest") {
@@ -817,30 +817,30 @@ const createGameplayCommand = (
 interface RetryGameplayMutationParams {
   id: string;
   pendingRef: MutableRefObject<PendingGameplayMutation[]>;
-  commandsRef: MutableRefObject<Map<string, GameplayCommand>>;
+  actionsRef: MutableRefObject<Map<string, GameplayAction>>;
   updatePending: (next: PendingGameplayMutation[]) => void;
   runMutation: (
     mutation: PendingGameplayMutation,
-    command: GameplayCommand,
-  ) => Promise<GameplayCommandResult>;
+    action: GameplayAction,
+  ) => Promise<GameplayRoomActionResult>;
 }
 
 const retryGameplayMutation = async ({
   id,
   pendingRef,
-  commandsRef,
+  actionsRef,
   updatePending,
   runMutation,
 }: RetryGameplayMutationParams) => {
   const mutation = pendingRef.current.find((candidate) => candidate.id === id);
-  const command = commandsRef.current.get(id);
-  if (!mutation || !command) return null;
+  const action = actionsRef.current.get(id);
+  if (!mutation || !action) return null;
   updatePending(
     pendingRef.current.map((candidate) =>
       candidate.id === id ? { ...candidate, status: "pending" } : candidate,
     ),
   );
-  return runMutation(mutation, command);
+  return runMutation(mutation, action);
 };
 
 interface CompleteSharedGameParams {
@@ -994,7 +994,7 @@ export const useActiveGameRoomSync = () => {
   const snapshotRef = useRef<CompatibleRoomSnapshot | null>(null);
   const contextRef = useRef(context);
   const pendingRef = useRef<PendingGameplayMutation[]>([]);
-  const commandsRef = useRef(new Map<string, GameplayCommand>());
+  const actionsRef = useRef(new Map<string, GameplayAction>());
   const generationRef = useRef(0);
   const mountedRef = useRef(false);
   const refreshInFlightRef = useRef<number | null>(null);
@@ -1028,7 +1028,7 @@ export const useActiveGameRoomSync = () => {
       guestGrantRef,
       completionInFlightRef,
       pendingRef,
-      commandsRef,
+      actionsRef,
       snapshotRef,
       context: { mode: context.mode },
       accessLost,
@@ -1059,7 +1059,7 @@ export const useActiveGameRoomSync = () => {
         contextRef,
         generationRef,
         pendingRef,
-        commandsRef,
+        actionsRef,
         snapshotRef,
         setSnapshot,
         setPendingMutations,
@@ -1089,7 +1089,7 @@ export const useActiveGameRoomSync = () => {
         refreshInFlightRef,
         guestGrantRef,
         pendingRef,
-        commandsRef,
+        actionsRef,
         snapshotRef,
         setStatus,
         setError,
@@ -1119,12 +1119,12 @@ export const useActiveGameRoomSync = () => {
     [setCommonMatchId, setMatches, setPlayerAssignments, setPlayers],
   );
 
-  const applyCommandResult = useCallback(
+  const applyRoomActionResult = useCallback(
     (
       mutation: PendingGameplayMutation,
-      result: GameplayCommandResult,
+      result: GameplayRoomActionResult,
     ) =>
-      applyGameplayCommandResult({
+      applyGameplayRoomActionResult({
         mutation,
         result,
         snapshotRef,
@@ -1139,25 +1139,25 @@ export const useActiveGameRoomSync = () => {
   );
 
   const runMutation = useCallback(
-    async (mutation: PendingGameplayMutation, command: GameplayCommand) => {
+    async (mutation: PendingGameplayMutation, action: GameplayAction) => {
       if (!mountedRef.current) throw new GameplayRpcErrorClass("service_unavailable", "Return to the game before changing it.");
       return runGameplayMutation({
         mutation,
-        command,
+        action,
         status,
         isInteractive,
         contextRef,
         generationRef,
         snapshotRef,
         pendingRef,
-        commandsRef,
+        actionsRef,
         updatePending,
         setStatus,
         setError,
-        applyCommandResult,
+        applyRoomActionResult,
       });
     },
-    [applyCommandResult, isInteractive, status, updatePending],
+    [applyRoomActionResult, isInteractive, status, updatePending],
   );
 
   const changeManualScore = useCallback(
@@ -1171,7 +1171,7 @@ export const useActiveGameRoomSync = () => {
         deltaGoals,
         status: "pending",
       };
-      const command = createGameplayCommand(
+      const action = createGameplayAction(
         {
           id,
           kind: "manual_score",
@@ -1182,7 +1182,7 @@ export const useActiveGameRoomSync = () => {
         contextRef,
         guestGrantRef,
       );
-      return runMutation(mutation, command);
+      return runMutation(mutation, action);
     },
     [runMutation],
   );
@@ -1197,7 +1197,7 @@ export const useActiveGameRoomSync = () => {
         deltaHalfDrinks,
         status: "pending",
       };
-      const command = createGameplayCommand(
+      const action = createGameplayAction(
         {
           id,
           kind: "drink",
@@ -1207,7 +1207,7 @@ export const useActiveGameRoomSync = () => {
         contextRef,
         guestGrantRef,
       );
-      return runMutation(mutation, command);
+      return runMutation(mutation, action);
     },
     [runMutation],
   );
@@ -1218,7 +1218,7 @@ export const useActiveGameRoomSync = () => {
       return retryGameplayMutation({
         id,
         pendingRef,
-        commandsRef,
+        actionsRef,
         updatePending,
         runMutation,
       });

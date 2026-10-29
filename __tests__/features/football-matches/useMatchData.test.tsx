@@ -158,7 +158,7 @@ describe("useMatchData", () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it("loads grouped match data through the command API client", async () => {
+  it("loads grouped match data through the game API client", async () => {
     let observedHook:
       | ReturnType<typeof import("../../../features/football-matches/useMatchData").useMatchData>
       | undefined;
@@ -302,7 +302,7 @@ describe("useMatchData", () => {
     });
   });
 
-  it("returns empty grouped results when the command API returns no matches", async () => {
+  it("returns empty grouped results when the game API returns no matches", async () => {
     mockDiscoverMatches.mockResolvedValueOnce(discoveryResult([]));
 
     let observedHook:
@@ -340,7 +340,7 @@ describe("useMatchData", () => {
     });
   });
 
-  it("surfaces a sanitized error state without fallback teams when the command API fails", async () => {
+  it("surfaces a sanitized error state without fallback teams when the game API fails", async () => {
     mockDiscoverMatches.mockRejectedValueOnce(new Error("fetch failed"));
 
     let observedHook:

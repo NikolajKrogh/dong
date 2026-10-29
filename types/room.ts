@@ -143,7 +143,7 @@ export interface ActiveGameContext {
   lastAppliedSequence: number;
 }
 
-export type GameplayCommandType =
+export type GameplayActionType =
   | "manual_score"
   | "drink"
   | "provider_score"
@@ -174,7 +174,7 @@ export type GameplayErrorCode =
   | "service_unavailable"
   | "unknown_error";
 
-export interface GameplayCommandResult {
+export interface GameplayRoomActionResult {
   sessionId: string;
   sequenceNumber: number | null;
   eventId: string | null;
@@ -314,9 +314,8 @@ export const ROOM_ERROR = {
 } as const;
 
 // NOTE: `start_game_session`'s RPC result (including `filledInParticipantIds`)
-// is NOT modeled here. The Java command-api's `CommandResponse` deliberately
-// does not forward handler/RPC internals to the client ("Handler internals
-// never leak to clients" — command-api/.../CommandResult.java) — the same
+// is NOT modeled here. The Java game-api's `RoomActionResponse` deliberately
+// does not forward the handler/RPC result details to the client — the same
 // boundary `relaxedConstraints` already lives behind. The host learns who
 // will be filled in from the pre-start lobby display (derived from
 // `assignmentPlan` + `assignments`, same as the "still short" indicator),

@@ -23,8 +23,8 @@ export const ACTIVE_GAME_SNAPSHOT_RPC_PATH =
 export const MOCK_AUTH_SUPABASE_URL =
   "http://127.0.0.1:55321" as const;
 
-/** Fake command-api origin — never actually started; every call is intercepted via page.route. */
-export const CONFIGURE_START_GAME_COMMAND_API_URL =
+/** Fake game-api origin — never actually started; every call is intercepted via page.route. */
+export const CONFIGURE_START_GAME_API_URL =
   "http://127.0.0.1:55322" as const;
 
 
@@ -1025,12 +1025,12 @@ const OPENFOOTBALL_TEAM_FIXTURES: Record<string, [string, string][]> = {
  * hand, for reasons that had nothing to do with the app.
  */
 export const mockTeamDataCatalogue = async (page: Page) => {
-  // `useMatchData` calls the command-api's discovery endpoint on mount, and its
+  // `useMatchData` calls the game-api's discovery endpoint on mount, and its
   // failure is what renders the "Error fetching teams" banner *in place of* the
-  // team-selection row. The command-api origin is a fake one that is never
+  // team-selection row. The game-api origin is a fake one that is never
   // started, so unmocked this always fails.
   await page.route(
-    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`,
+    `${CONFIGURE_START_GAME_API_URL}/v1/matches**`,
     async (route) => {
       await route.fulfill({
         status: 200,
@@ -1683,7 +1683,7 @@ export const CONFIGURE_START_GAME_MATCH_DISCOVERY_FIXTURES = [
 
 /**
  * Mocks the room-configuration Supabase RPCs (add_room_match, set_common_match,
- * set_room_assignments, set_room_assignment_settings) plus the Java command-api's
+ * set_room_assignments, set_room_assignment_settings) plus the Java game-api's
  * match discovery and start-game endpoints, on top of `mockHostRoomServices`. All
  * state mutates the shared `configureStartGameState` so a full host journey is
  * reflected across repeated `get_room_snapshot` polls. The start-game mock
@@ -1849,7 +1849,7 @@ export const mockConfigureStartGameServices = async (
   });
 
   await page.route(
-    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/matches**`,
+    `${CONFIGURE_START_GAME_API_URL}/v1/matches**`,
     async (route) => {
       await route.fulfill({
         status: 200,
@@ -1915,7 +1915,7 @@ export const mockConfigureStartGameServices = async (
   });
 
   await page.route(
-    `${CONFIGURE_START_GAME_COMMAND_API_URL}/v1/rooms/*/commands/start-game`,
+    `${CONFIGURE_START_GAME_API_URL}/v1/rooms/*/actions/start-game`,
     async (route) => {
       // Mirrors start_game_session's own guards closely enough for e2e coverage
       // (specs/020-canonical-assignment-generation) -- note assignments are no
@@ -2013,7 +2013,7 @@ export const mockConfigureStartGameServices = async (
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          commandType: "start-game",
+          actionType: "start-game",
           roomId: HOST_ROOM_SESSION_ID,
           idempotencyKey,
           status: "ACCEPTED",

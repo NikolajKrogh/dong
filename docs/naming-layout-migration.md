@@ -569,3 +569,75 @@ scored 100/100 with no issues. Its default origin/master comparison additionally
 reported an unrelated warning in scripts/test-match-catalog-concurrency.mjs:115;
 that script is unchanged by this milestone. Browser, Android and hosted-service
 checks were not rerun for these implementation-preserving naming changes.
+
+## M9 — Game API and room-action terminology — 2026-10-29
+
+The project is still in testing, and the user explicitly approved breaking names
+without old-route or environment-variable aliases. Service identity is now
+game-api; room actions describe its authenticated write operations. Football-match
+discovery retains its separate feature package. The existing status projections
+remain unchanged.
+
+| Previous | Current | Reason |
+| --- | --- | --- |
+| command-api/ (all tracked service files) | game-api/ | Describe the whole service, including discovery. |
+| com.dong.commandapi | com.dong.gameapi | Align Java namespace, application class, Maven identity and logs. |
+| command/ package | roomaction/ package | Scope the dispatcher and handlers to room actions. |
+| CommandContext, CommandController, CommandDispatcher, CommandHandler, CommandResult, CommandRequest, CommandResponse | RoomAction-prefixed equivalents | Use the same domain vocabulary across input, dispatch and response. |
+| StartGameCommandHandler | StartGameActionHandler | Identify the specific operation and handler role. |
+| CommandApiApplication | GameApiApplication | Match the service identity. |
+| TestCommandConfig and matching Command test classes | TestRoomActionConfig and matching RoomAction/StartGameAction tests | Follow production names and package ownership. |
+| features/rooms/startGameCommandClient.ts | features/rooms/startGameClient.ts | Name the client's concrete operation. |
+| GameplayCommandType/Result and internal GameplayCommand callbacks | GameplayActionType/Result and GameplayAction callbacks | Keep client operation vocabulary consistent, including create/apply helpers and retry maps. |
+| /v1/rooms/{roomId}/commands/{commandType} | /v1/rooms/{roomId}/actions/{actionType} | Explicit breaking HTTP path and acknowledgement field change. |
+| EXPO_PUBLIC_COMMAND_API_URL | EXPO_PUBLIC_GAME_API_URL | Align the client environment setting with the service. |
+| COMMAND_API_CORS_ALLOWED_ORIGINS and command-api.* properties | GAME_API_CORS_ALLOWED_ORIGINS and game-api.* properties | Align configuration and testing fixtures. |
+
+Methods and Javadoc were reviewed alongside the types. Role-specific renames:
+
+| Previous method | Current method | Scope |
+| --- | --- | --- |
+| submit / dispatch / handle | submitAction / dispatchAction / handleAction | Room action controller, dispatcher and handler. |
+| validate | parseIdempotencyKey | Parses and validates a UUID v4, returning the parsed key. |
+| reserve / complete / release | reserveAction / saveActionResult / releaseActionReservation | Persistent duplicate-request coordination; best-effort result persistence remains documented. |
+| sleep | waitForOriginalRequest | Bounded duplicate-request polling delay. |
+| rpc / call | invokeRpc / invokeRpcWithoutResponse | Distinguish response decoding from void RPC calls. |
+| roomProcessingPending | createRoomProcessingPendingResponse | Build the retryable envelope; the controller exception handler is handlePendingRoomProcessing. |
+| requireAnonKey / extractMessage | requireApiKey / extractPostgresMessage | State the integration-specific purpose. |
+| discover / status / validate / catalogFailure | discoverMatches / mapLifecycleToStatus / validateDiscoveryResponse / mapCatalogFailure | Discovery operations and projection helpers. |
+| MatchQuery.from | MatchQuery.fromRequest | Resolve and validate a discovery selection. |
+| JWT validate / cachedReachability | authenticateToken / checkCachedReachability | Make authentication and possible health-probe work explicit. |
+| Generic exception handlers | handleUnreadableRequestBody, handleUnsupportedMediaType, handleRequestValidationFailure, handleParameterTypeMismatch, handleUnexpectedFailure | Name the request failure handled. |
+
+Javadoc now describes current behavior rather than retired stubs, old issue
+delivery steps, or an exactly-once guarantee. It distinguishes pending processing,
+replay, host JWT forwarding, authoritative database validation and acknowledgement
+creation time. Security docs include public match discovery; startup docs identify
+required URLs rather than a shared JWT secret. Framework overrides and clear
+record accessors keep their required/descriptive names. README setup and architecture
+guidance were corrected, including the maintained Edge discovery path and lack of
+a Java match cache.
+
+The client previously sent relaxConstraints at the top level while Java reads it
+from payload. The renamed client now sends {payload: {relaxConstraints}}. New
+client contract tests cover the encoded action path, host/replay headers, payload,
+actionType acknowledgement and retryable pending response. OpenAPI assertions
+require the new path/title/field and reject the old names.
+
+Build/CI, Dependabot, lint/React Doctor exclusions, Playwright fixtures, current
+hosting guidance and provider User-Agent expectations use the new service name.
+Local ignored environment configuration was transferred without exposing values;
+the obsolete generated build output was removed. Existing database table/RPC
+names (command_idempotency and its functions) remain an explicit integration
+contract. Historical SQL migrations, feature specification paths and migration
+history were preserved; no database migration or hosted deployment was performed.
+
+Validation: final full Jest run passed 161 suites / 1,045 tests; client typecheck,
+ESLint, Knip and all six Edge entrypoint typechecks passed. Maven verify passed
+92 tests and JaCoCo checks. Javadoc compiled successfully with link/markup checks;
+the default run reports missing-comment/parameter warnings, while the final run
+excludes only missing-documentation warnings. React Doctor reports 91/100 with
+one existing unguarded-find warning in scripts/test-match-catalog-concurrency.mjs:115;
+this milestone only changes that script's provider User-Agent expectation. The
+existing browser/accessibility findings remain open; no browser/device or hosted
+acceptance claim is made.

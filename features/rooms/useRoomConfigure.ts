@@ -12,7 +12,7 @@ import {
 } from "../../types/room";
 import {
   getStartGameApiClient,
-} from "./startGameCommandClient";
+} from "./startGameClient";
 import { getSupabaseClient } from "../../lib/supabase";
 import { getRoomRpcClient } from "./roomRpcClient";
 

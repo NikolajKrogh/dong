@@ -3,7 +3,7 @@
 This is a polyglot monorepo containing three distinct subsystems:
 
 - **Expo/React Native client** (TypeScript, root) — the DONG mobile/web app
-- **`command-api/`** — Java 17 / Spring Boot 3.5.3 proxy service (own Maven build)
+- **`game-api/`** — Java 17 / Spring Boot 3.5.3 proxy service (own Maven build)
 - **`supabase/`** — PostgreSQL migrations and pgTAP database tests (Supabase CLI)
 - **`python/`** — utility scripts (`crop_icons.py`), not part of the app runtime
 
@@ -26,19 +26,19 @@ npx expo start --dev-client   # dev server (native)
 npx expo start --web          # dev server (web)
 ```
 
-### Java command-api
+### Java game-api
 
 ```powershell
-# Windows (PowerShell) — from repo root or command-api/
-cd command-api
+# Windows (PowerShell) — from repo root or game-api/
+cd game-api
 .\mvnw.cmd clean verify           # full build + tests (what CI runs)
 .\mvnw.cmd test                   # unit + slice tests only
 .\mvnw.cmd spring-boot:run        # run service on :8080 (set env vars first)
 ```
 
-Config for the Java service lives in `command-api/.env`, which Spring Boot loads
+Config for the Java service lives in `game-api/.env`, which Spring Boot loads
 automatically (`spring.config.import` in `application.yml`) — no shell exports needed.
-Start from `cp command-api/.env.example command-api/.env`. It is parsed as a Java
+Start from `cp game-api/.env.example game-api/.env`. It is parsed as a Java
 properties file, so leave values unquoted; real environment variables override it.
 
 Required keys: `SUPABASE_JWKS_URL`, `SUPABASE_URL`, and `SUPABASE_ANON_KEY` (the last
@@ -75,11 +75,11 @@ types/                    Shared contracts and generated database types
 shared/                   Helpers shared by client and Edge runtimes
 utils/                    Feature-independent helpers, including idempotencyKey.ts
 features/football-matches/ Match discovery adapter, service, schemas and transport
-features/rooms/           Room lifecycle operations and startGameCommandClient.ts
+features/rooms/           Room lifecycle operations and startGameClient.ts
 supabase/functions/       Edge entry points; shared football-match implementation in _shared/football-matches/
 supabase/migrations/      SQL schema migrations (run in order)
 supabase/tests/database/  pgTAP tests
-command-api/              Spring Boot service (footballmatch/, security/, command/, etc.)
+game-api/                 Spring Boot service (footballmatch/, roomaction/, security/, etc.)
 specs/NNN-*/              Feature specifications (spec.md, plan.md, tasks.md, quickstart.md, …)
 e2e/features/             Playwright BDD .feature files
 e2e/steps/                Playwright step definitions
@@ -119,13 +119,13 @@ Check `.agents/skills/` before any research, planning, implementation, or review
 New features live in `specs/NNN-<slug>/`. A complete spec includes `spec.md`, `plan.md`, `tasks.md`, and `quickstart.md`. Constitution Check is required before Phase 0 research closes and after Phase 1 design.
 
 ### Supabase-first, Java by exception (constitution §IV)
-Use Supabase Auth, Postgres, and RPC by default. The Java `command-api` exists only for orchestration, secrets handling, and external integration (currently: ESPN match proxy). Do not add duplicate CRUD layers.
+Use Supabase Auth, Postgres, and RPC by default. The Java `game-api` exists only for orchestration, secrets handling, and external integration (currently: ESPN match proxy). Do not add duplicate CRUD layers.
 
 ### Env setup
 Copy env values with `npm run auth:env`. To wire the client to the local Java service, add to `.env.local`:
 
 ```env
-EXPO_PUBLIC_COMMAND_API_URL=http://localhost:8080
+EXPO_PUBLIC_GAME_API_URL=http://localhost:8080
 ```
 
 Restart Expo with `-c` after changing `.env.local` — `EXPO_PUBLIC_*` values are

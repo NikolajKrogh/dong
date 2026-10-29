@@ -22,7 +22,7 @@ module.exports = defineConfig([
       ".supabase/",
       ".features-gen/",
       "android/app/build/",
-      "command-api/target/",
+      "game-api/target/",
       ".tamagui/",
     ],
   },

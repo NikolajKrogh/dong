@@ -7,7 +7,7 @@ import {
 } from "../../../features/rooms/useRoomConfigure";
 import type { RoomSnapshot } from "../../../types/room";
 import { generateIdempotencyKey } from "../../../utils/idempotencyKey";
-import { getStartGameApiClient } from "../../../features/rooms/startGameCommandClient";
+import { getStartGameApiClient } from "../../../features/rooms/startGameClient";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { getRoomRpcClient } from "../../../features/rooms/roomRpcClient";
 
@@ -19,7 +19,7 @@ jest.mock("../../../features/rooms/roomRpcClient", () => ({
 
 }));
 
-jest.mock("../../../features/rooms/startGameCommandClient", () => ({
+jest.mock("../../../features/rooms/startGameClient", () => ({
   getStartGameApiClient: jest.fn(),
 }));
 jest.mock("../../../utils/idempotencyKey", () => ({
@@ -397,7 +397,7 @@ describe("useRoomConfigure", () => {
       },
     } as never);
     const startGame = jest.fn(async () => ({
-      commandType: "start-game",
+      actionType: "start-game",
       roomId: "s1",
       idempotencyKey: "fixed-idempotency-key",
       status: "ACCEPTED",
@@ -420,7 +420,7 @@ describe("useRoomConfigure", () => {
     });
   });
 
-  it("passes relaxConstraints=true through to the command API when the host overrides a shortfall", async () => {
+  it("passes relaxConstraints=true through to the game API when the host overrides a shortfall", async () => {
     mockGetSupabaseClient.mockReturnValue({
       auth: {
         getSession: jest.fn(async () => ({
@@ -430,7 +430,7 @@ describe("useRoomConfigure", () => {
       },
     } as never);
     const startGame = jest.fn(async () => ({
-      commandType: "start-game",
+      actionType: "start-game",
       roomId: "s1",
       idempotencyKey: "fixed-idempotency-key",
       status: "ACCEPTED",
@@ -467,7 +467,7 @@ describe("useRoomConfigure", () => {
         throw new Error("Start game request timed out.");
       })
       .mockImplementationOnce(async () => ({
-        commandType: "start-game",
+        actionType: "start-game",
         roomId: "s1",
         idempotencyKey: "fixed-idempotency-key",
         status: "ACCEPTED",

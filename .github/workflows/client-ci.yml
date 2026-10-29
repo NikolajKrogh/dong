@@ -7,13 +7,13 @@ name: client CI
 on:
   push:
     paths-ignore:
-      - "command-api/**"
+      - "game-api/**"
       - "specs/**"
       - ".agents/**"
       - "*.md"
   pull_request:
     paths-ignore:
-      - "command-api/**"
+      - "game-api/**"
       - "specs/**"
       - ".agents/**"
       - "*.md"

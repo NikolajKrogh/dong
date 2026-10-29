@@ -1,0 +1,88 @@
+package com.dong.gameapi;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+
+import com.dong.gameapi.supabase.SupabaseRpcClient;
+import com.dong.gameapi.testsupport.JwksTestSupport;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
+/**
+ * Coarse latency guard (SC-002 reject &lt;100ms, SC-007 authenticated
+ * &lt;500ms).
+ * Generous bounds — catches a misconfigured filter doing blocking I/O, not a
+ * micro-benchmark. Warms up first to exclude JIT/context cost. {@link SupabaseRpcClient}
+ * is mocked so the authenticated timing measures dispatch/idempotency-store overhead,
+ * not a real network round trip to Supabase.
+ */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
+        "supabase.jwks-url=https://example.invalid/.well-known/jwks.json",
+        "supabase.url=http://localhost:9"
+})
+@Import({JwksTestSupport.TestJwksConfig.class, com.dong.gameapi.testsupport.TestRoomActionConfig.class})
+class PerformanceSmokeTest {
+
+    @Autowired
+    private TestRestTemplate restTemplate;
+
+    @MockitoBean
+    private SupabaseRpcClient supabaseRpcClient;
+
+    private HttpEntity<String> body(boolean auth) {
+        HttpHeaders h = new HttpHeaders();
+        h.setContentType(MediaType.APPLICATION_JSON);
+        if (auth) {
+            h.setBearerAuth(JwksTestSupport.signedJwt(
+                    "host-1", "authenticated", Instant.now().plusSeconds(300)));
+            h.set("Idempotency-Key", UUID.randomUUID().toString());
+        }
+        return new HttpEntity<>(null, h);
+    }
+
+    private long timeMillisRejected() {
+        // GET avoids HttpURLConnection streaming-mode limitation when reading 401
+        // responses.
+        long start = System.nanoTime();
+        restTemplate.exchange("/v1/rooms/r/actions/test-action", HttpMethod.GET, null, String.class);
+        return (System.nanoTime() - start) / 1_000_000;
+    }
+
+    private long timeMillis(boolean auth) {
+        long start = System.nanoTime();
+        restTemplate.exchange("/v1/rooms/r/actions/test-action", HttpMethod.POST, body(auth), String.class);
+        return (System.nanoTime() - start) / 1_000_000;
+    }
+
+    @Test
+    void rejectedRequestIsFast() {
+        timeMillisRejected(); // warmup
+        assertThat(timeMillisRejected()).isLessThan(100L);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void authenticatedRequestIsWithinBudget() {
+        when(supabaseRpcClient.invokeRpc(anyString(), any(), anyString(), any()))
+                .thenReturn(Map.of("outcome", "reserved"));
+
+        timeMillis(true); // warmup
+        assertThat(timeMillis(true)).isLessThan(500L);
+    }
+}

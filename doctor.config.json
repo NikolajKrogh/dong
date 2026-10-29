@@ -3,7 +3,7 @@
     "files": [
       ".tamagui/**",
       ".features-gen/**",
-      "command-api/target/**",
+      "game-api/target/**",
       ".agents/**",
       ".supabase/**",
       "web-build/**"

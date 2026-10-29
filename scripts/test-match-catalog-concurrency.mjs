@@ -245,7 +245,7 @@ try {
   server = Deno.serve({ hostname: '127.0.0.1', port: 0, onListen() {} }, async request => {
     const code = new URL(request.url).searchParams.get('league');
     assert(codes.includes(code), 'Unexpected local fixture league');
-    assert(request.headers.get('accept') === 'application/json' && request.headers.get('user-agent')?.startsWith('DONG-command-api/'), 'Owned source headers were not preserved');
+    assert(request.headers.get('accept') === 'application/json' && request.headers.get('user-agent')?.startsWith('DONG-game-api/'), 'Owned source headers were not preserved');
     httpCounts.set(code, (httpCounts.get(code) ?? 0) + 1);
     await new Promise(resolve => setTimeout(resolve, 10));
     return Response.json(board(code));

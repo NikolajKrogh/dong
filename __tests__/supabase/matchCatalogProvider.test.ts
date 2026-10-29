@@ -100,7 +100,7 @@ describe('owned ESPN HTTP adapter', () => {
     const result = await createEspnHttpClient({ fetch: fetcher }).read({ kind: 'scoreboard', leagueCode: 'eng.1', date: '2026-10-25' });
     expect(result).toMatchObject({ ok: true, data: emptyBoard });
     expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(fetcher).toHaveBeenCalledWith('https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20261025', expect.objectContaining({ headers: { Accept: 'application/json', 'User-Agent': 'DONG-command-api/0.1 (+https://github.com/NikolajKrogh/dong)' }, redirect: 'error' }));
+    expect(fetcher).toHaveBeenCalledWith('https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?dates=20261025', expect.objectContaining({ headers: { Accept: 'application/json', 'User-Agent': 'DONG-game-api/0.1 (+https://github.com/NikolajKrogh/dong)' }, redirect: 'error' }));
     await expect(createEspnHttpClient({ fetch: fetcher }).read({ kind: 'scoreboard', leagueCode: '../../x', date: '2026-10-25' })).rejects.toThrow('invalid_provider_resource');
     expect(fetcher).toHaveBeenCalledTimes(1);
   });

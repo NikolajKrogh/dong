@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # Java command-api (Maven)
+  # Java game-api (Maven)
   - package-ecosystem: "maven"
-    directory: "/command-api"
+    directory: "/game-api"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

@@ -17,7 +17,7 @@ import type {
   AssignmentMode,
   BatchRoomMatchResult,
   EndGameSessionResponse,
-  GameplayCommandResult,
+  GameplayRoomActionResult,
   GameplayErrorCode,
   ReassignParticipantMatchesInput,
   ReassignParticipantMatchesResponse,
@@ -52,13 +52,13 @@ export interface GuestRoomRpcClient {
     team: "home" | "away";
     deltaGoals: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayCommandResult>;
+  }): Promise<GameplayRoomActionResult>;
   changeParticipantDrinkAsGuest(input: {
     guestToken: string;
     participantId: string;
     deltaHalfDrinks: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayCommandResult>;
+  }): Promise<GameplayRoomActionResult>;
 }
 
 export interface RoomRpcClient {
@@ -89,13 +89,13 @@ export interface RoomRpcClient {
     team: "home" | "away";
     deltaGoals: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayCommandResult>;
+  }): Promise<GameplayRoomActionResult>;
   changeParticipantDrink(input: {
     sessionId: string;
     participantId: string;
     deltaHalfDrinks: -1 | 1;
     idempotencyKey: string;
-  }): Promise<GameplayCommandResult>;
+  }): Promise<GameplayRoomActionResult>;
   addRoomMatch(
     sessionId: string,
     request: AddRoomMatchRequest,
@@ -205,11 +205,11 @@ export const mapGameplayError = (error: unknown) => {
 const readGameplayResult = (
   data: unknown,
   functionName: string,
-): GameplayCommandResult => {
+): GameplayRoomActionResult => {
   if (!data || typeof data !== "object") {
     throw new Error(`Supabase ${functionName} returned no response payload.`);
   }
-  const result = data as Partial<GameplayCommandResult>;
+  const result = data as Partial<GameplayRoomActionResult>;
   return {
     ...result,
     sessionId: String(result.sessionId ?? ""),
@@ -217,7 +217,7 @@ const readGameplayResult = (
       typeof result.sequenceNumber === "number" ? result.sequenceNumber : null,
     eventId: typeof result.eventId === "string" ? result.eventId : null,
     replayed: result.replayed === true,
-  } as GameplayCommandResult;
+  } as GameplayRoomActionResult;
 };
 
 const mapReassignmentError = (error: unknown) => {
@@ -260,7 +260,7 @@ export const createGuestRoomRpcClient = (
     const { data, error } = await withRoomProcessingRetry(() => client.functions.invoke("guest-room-access", {
       body: { operation, args },
     }));
-    // These command parsers expect transport-style errors. The Edge boundary
+    // These action parsers expect transport-style errors. The Edge boundary
     // returns only safe codes, never upstream messages or request payloads.
     if (!error && data?.ok === false && ["set_my_room_picks_as_guest", "change_manual_score_as_guest", "change_participant_drink_as_guest"].includes(operation)) {
       return { data: null, error: { message: data.code } };
@@ -583,7 +583,7 @@ export const createRoomRpcClient = (
           delta_goals: input.deltaGoals,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<GameplayCommandResult, { merge: false }>());
+        .overrideTypes<GameplayRoomActionResult, { merge: false }>());
 
       if (error) {
         throw mapGameplayError(error) ?? error;
@@ -599,7 +599,7 @@ export const createRoomRpcClient = (
           delta_half_drinks: input.deltaHalfDrinks,
           idempotency_key: input.idempotencyKey,
         })
-        .overrideTypes<GameplayCommandResult, { merge: false }>());
+        .overrideTypes<GameplayRoomActionResult, { merge: false }>());
 
       if (error) {
         throw mapGameplayError(error) ?? error;

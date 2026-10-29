@@ -51,7 +51,7 @@ const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 10_000;
 const REQUEST_HEADERS = {
   Accept: 'application/json',
-  'User-Agent': 'DONG-command-api/0.1 (+https://github.com/NikolajKrogh/dong)',
+  'User-Agent': 'DONG-game-api/0.1 (+https://github.com/NikolajKrogh/dong)',
 };
 
 function buildResourceUrl(resource: EspnResource): string {

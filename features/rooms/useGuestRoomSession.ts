@@ -579,7 +579,7 @@ export const useGuestRoomSession = (): UseGuestRoomSessionResult => {
       } catch (pickError) {
         if (isGuestRoomEnded(sessionRef.current?.grant.sessionId) || !sessionRef.current) return;
         if (isExpiredGuestRoomError(pickError)) {
-          // A command can race host termination; only the snapshot response
+          // An action can race host termination; only the snapshot response
           // confirms termination, so inspect it before classifying lost access.
           await refreshRoom();
           if (!sessionRef.current || isGuestRoomEnded(sessionRef.current.grant.sessionId)) return;
