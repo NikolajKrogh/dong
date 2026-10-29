@@ -79,7 +79,7 @@ public class MatchDiscoveryService {
         return switch (lifecycle) {
             case "scheduled" -> NormalizedMatch.MatchStatus.SCHEDULED;
             case "live" -> NormalizedMatch.MatchStatus.LIVE;
-            case "finished" -> NormalizedMatch.MatchStatus.FINAL;
+            case "finished" -> NormalizedMatch.MatchStatus.FINISHED;
             case "postponed" -> NormalizedMatch.MatchStatus.POSTPONED;
             case "canceled" -> NormalizedMatch.MatchStatus.CANCELED;
             case "delayed" -> NormalizedMatch.MatchStatus.DELAYED;

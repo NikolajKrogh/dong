@@ -24,7 +24,7 @@ public record NormalizedMatch(
     public enum MatchStatus {
         SCHEDULED("scheduled"),
         LIVE("live"),
-        FINAL("final"),
+        FINISHED("finished"),
         POSTPONED("postponed"),
         CANCELED("canceled"),
         DELAYED("delayed"),

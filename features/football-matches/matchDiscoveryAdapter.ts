@@ -1,5 +1,5 @@
+import type { FootballMatchService, MatchDiscoveryResult, MatchLifecycle } from "../../types/footballMatch";
 import { getFootballMatchService } from "./footballMatchService";
-import type { FootballMatchService, MatchDiscoveryResult, SavedMatch } from "../../types/footballMatch";
 
 export interface MatchDiscoveryRequest {
   leagueCodes: string[];
@@ -7,16 +7,11 @@ export interface MatchDiscoveryRequest {
 }
 
 interface NormalizedMatchScore {
-  home: number;
-  away: number;
+  home: number | null;
+  away: number | null;
 }
 
-type NormalizedMatchStatus =
-  | "scheduled"
-  | "live"
-  | "final"
-  | "postponed"
-  | "canceled";
+type NormalizedMatchStatus = MatchLifecycle;
 
 export interface NormalizedMatch {
   id: string;
@@ -38,13 +33,6 @@ export interface MatchDiscoveryApiClient {
   discoverMatches(request: MatchDiscoveryRequest): Promise<NormalizedMatchDiscoveryResult>;
 }
 
-function normalizedStatus(lifecycle: SavedMatch["lifecycle"]): NormalizedMatchStatus {
-  if (lifecycle === "finished") return "final";
-  if (lifecycle === "live") return "live";
-  if (lifecycle === "postponed") return "postponed";
-  if (lifecycle === "canceled" || lifecycle === "abandoned") return "canceled";
-  return "scheduled";
-}
 
 let cachedMatchDiscoveryApiClient: MatchDiscoveryApiClient | null = null;
 
@@ -65,8 +53,8 @@ export const createMatchDiscoveryApiClient = (
         homeTeam: match.homeTeam.name,
         awayTeam: match.awayTeam.name,
         startDateTime: match.kickoffAt ?? "",
-        status: normalizedStatus(match.lifecycle),
-        ...(match.homeScore !== null && match.awayScore !== null ? { score: { home: match.homeScore, away: match.awayScore } } : {}),
+        status: match.lifecycle,
+        ...(match.homeScore !== null || match.awayScore !== null ? { score: { home: match.homeScore, away: match.awayScore } } : {}),
         ...(match.venue?.name ? { venue: match.venue.name } : {}),
       })) };
     },

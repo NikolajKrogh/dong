@@ -1,12 +1,9 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
 
-import useGameProgressController from "../../../features/game-progress/useGameProgressController";
-import {
-  useActiveGameRoomSync,
-  type ActiveGameRoomSync,
-} from "../../../features/rooms/useActiveGameRoomSync";
 import { useLiveScores } from "../../../features/football-matches/useLiveScores";
+import useGameProgressController from "../../../features/game-progress/useGameProgressController";
+import { useActiveGameRoomSync, type ActiveGameRoomSync } from "../../../features/rooms/useActiveGameRoomSync";
 import { useAppVisibility, useGoalSound } from "../../../platform";
 import { useGameStore } from "../../../store/gameStore";
 
@@ -134,6 +131,7 @@ describe("useGameProgressController multiplayer routing", () => {
       lastUpdated: null,
       error: null,
       captureHistoryDetails: jest.fn(async () => undefined),
+      restartTracking: jest.fn(async () => undefined),
       endTracking: jest.fn(async () => undefined),
       startPolling: jest.fn(),
       stopPolling: jest.fn(),

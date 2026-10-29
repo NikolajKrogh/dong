@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 
+import { useAppVisibility, useGoalSound } from "../../platform";
+import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
+import { useGameStore } from "../../store/gameStore";
+import { useColors } from "../../styles/theme";
 import { useLiveScores } from "../football-matches/useLiveScores";
 import { usePersistedTeamLogos } from "../football-matches/usePersistedTeamLogos";
-import { useGoalToastQueue } from "./useGoalToastQueue";
+import { useActiveGameRoomSync } from "../rooms/useActiveGameRoomSync";
+import { createGameProgressStyles } from "./gameProgressStyles";
+import { LastGoalInfo, updateMatchForGoal } from "./goalScoring";
+import { migrateLegacyMatch } from "./matchMigration";
+import { getGameSourcePresentation } from "./sourceStatus";
 import {
   gameProgressUiReducer,
   initialGameProgressUiState,
 } from "./uiReducer";
-import { migrateLegacyMatch } from "./matchMigration";
-import { getMatchSourceStatusMessage } from "./sourceStatus";
-import { LastGoalInfo, updateMatchForGoal } from "./goalScoring";
-import { createGameProgressStyles } from "./gameProgressStyles";
-import { useColors } from "../../styles/theme";
-import { useGameStore } from "../../store/gameStore";
-import { useAppVisibility, useGoalSound } from "../../platform";
-import { useActiveGameRoomSync } from "../rooms/useActiveGameRoomSync";
-import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
+import { useGoalToastQueue } from "./useGoalToastQueue";
 
 const subscribeGameHydration = (onChange: () => void) => {
   const begin = useGameStore.persist.onHydrate(onChange);
@@ -266,6 +266,7 @@ const useGameProgressController = () => {
     isPolling,
     lastUpdated,
     error: sourceError,
+    restartTracking,
     startPolling,
     stopPolling,
     fetchCurrentScores,
@@ -385,13 +386,7 @@ const useGameProgressController = () => {
     }
   }, [activeGame, fetchCurrentScores]);
 
-  const sourceStatus = activeGame.isMultiplayer
-    ? activeGame.snapshot ?? {}
-    : {
-        error: sourceError,
-        savedMatches: matches.flatMap(match => match.catalogSnapshot ? [match.catalogSnapshot] : []),
-      };
-  const sourceStatusMessage = getMatchSourceStatusMessage(sourceStatus);
+  const sourcePresentation = getGameSourcePresentation(activeGame, { error: sourceError, restartTracking, isPolling, lastUpdated }, matches);
 
   return {
     colors,
@@ -410,11 +405,7 @@ const useGameProgressController = () => {
     commonMatchId: commonMatchId ?? "",
     playerAssignments,
     liveMatches,
-    isPolling: !sourceStatusMessage && (activeGame.isMultiplayer ? activeGame.isEditable : isPolling),
-    sourceStatusMessage,
-    lastUpdated: activeGame.isMultiplayer
-      ? (activeGame.snapshot?.lastScoresCheckedAt ? new Date(activeGame.snapshot.lastScoresCheckedAt) : null)
-      : lastUpdated,
+    ...sourcePresentation,
     setActiveTab,
     openQuickActions,
     closeQuickActions,

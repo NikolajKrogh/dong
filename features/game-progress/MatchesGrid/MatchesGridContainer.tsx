@@ -1,16 +1,16 @@
 import React, { useCallback, useState } from "react";
-import { View, FlatList, useWindowDimensions } from "react-native";
-import { MatchesGridProps, SortField, SortDirection } from "./types";
+import { FlatList, useWindowDimensions, View } from "react-native";
 import { Match, Player } from "../../../store/gameStore";
+import { useColors } from "../../../styles/theme";
 import { MatchWithScore } from "../../../types/matchScores";
 import { createGameProgressStyles } from "../gameProgressStyles";
-import { useColors } from "../../../styles/theme";
+import { MatchesGridProps, SortDirection, SortField } from "./types";
 
+import LastUpdatedFooter from "./LastUpdatedFooter";
 import MatchesHeader from "./MatchesHeader";
-import SortModal from "./SortModal";
 import MatchGridItem from "./MatchGridItem";
 import MatchListItem from "./MatchListItem";
-import LastUpdatedFooter from "./LastUpdatedFooter";
+import SortModal from "./SortModal";
 
 const EMPTY_LIVE_MATCHES: MatchWithScore[] = [];
 
@@ -35,6 +35,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
   lastUpdated,
   isPolling,
   sourceStatusMessage,
+  onRestartTracking,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(
@@ -188,6 +189,7 @@ const MatchesGridContainer: React.FC<MatchesGridProps> = ({
       {/* Header with title, refresh status, and layout toggle */}
       <MatchesHeader
         sourceStatusMessage={sourceStatusMessage}
+        onRestartTracking={onRestartTracking}
         sortField={sortField}
         sortDirection={sortDirection}
         useGridLayout={useGridLayout}

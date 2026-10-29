@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FOOTBALL_MATCH_PROVIDER } from '../../types/footballMatch';
+import { isPositivePostgresBigint, isUnsignedDecimal } from '../../shared/validation/identifiers';
 import type {
   MatchDiscoveryResult,
   MatchDiscoverySelection,
@@ -8,8 +8,8 @@ import type {
   SoloTrackingGrant,
   SoloTrackingSelection,
 } from '../../types/footballMatch';
+import { FOOTBALL_MATCH_PROVIDER } from '../../types/footballMatch';
 import { FootballMatchError, parseRetryAfterSeconds, toFootballMatchError } from './FootballMatchError';
-import { isPositivePostgresBigint, isUnsignedDecimal } from '../../shared/validation/identifiers';
 
 export const MAX_SAVED_MATCH_IDS = 100;
 const MAX_SOLO_TRACKING_MATCHES = 20;
@@ -242,6 +242,11 @@ export function parseSavedMatchesResponse(value: unknown): SavedMatchesResult {
 
 export function parseDiscoveryResponse(value: unknown): MatchDiscoveryResult {
   return parseResponse(discoveryResponseSchema, value);
+}
+
+/** Validates a public snapshot captured by the authoritative room/history owner. */
+export function parseSavedMatch(value: unknown): SavedMatch {
+  return parseResponse(savedMatchSchema, value);
 }
 
 export function parseSoloTrackingGrant(value: unknown): SoloTrackingGrant {

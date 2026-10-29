@@ -1,7 +1,9 @@
 import { createMatchDiscoveryApiClient } from "../../../features/football-matches/matchDiscoveryAdapter";
+import { MATCH_LIFECYCLE_LABELS, formatMatchScore } from "../../../features/football-matches/matchPresentation";
 import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
-import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
 import type { SavedMatch } from "../../../types/footballMatch";
+import lifecycles from "../../fixtures/matchCatalog/lifecycles.json";
+import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
 
 const saved: SavedMatch = {
   ...normalizeEspnScoreboard(liveBoard, "eng.1").matches[0],
@@ -16,6 +18,15 @@ const saved: SavedMatch = {
   },
 };
 describe("maintained discovery catalog adapter", () => {
+  it.each(lifecycles)("preserves the %s lifecycle and partially unknown scores", async lifecycle => {
+    const match = { ...saved, lifecycle, homeScore: null, awayScore: 1 };
+    const discoverMatches = jest.fn().mockResolvedValue({ matches: [match], groups: [], availability: "available" });
+    const result = await createMatchDiscoveryApiClient({ discoverMatches }).discoverMatches({ leagueCodes: ["eng.1"] });
+    expect(result.matches[0]).toMatchObject({ status: lifecycle, score: { home: null, away: 1 } });
+    expect(Object.keys(MATCH_LIFECYCLE_LABELS)).toEqual(lifecycles);
+    expect(formatMatchScore(null)).toBe("—");
+    expect(formatMatchScore(0)).toBe("0");
+  });
   it("delegates configured leagues and preserves calendar date, provider ID and additive catalog identity", async () => {
     const discover = jest.fn().mockResolvedValue({ matches: [saved], availability: "available", groups: [], retryAfterSeconds: null });
     const result = await createMatchDiscoveryApiClient({ discoverMatches: discover }).discoverMatches({

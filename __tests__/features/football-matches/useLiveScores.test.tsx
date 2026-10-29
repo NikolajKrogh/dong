@@ -1,11 +1,11 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
-import { useGameStore, type Match } from "../../../store/gameStore";
-import { useLiveScores } from "../../../features/football-matches/useLiveScores";
-import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
-import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
-import type { SavedMatch } from "../../../types/footballMatch";
 import { FootballMatchError } from "../../../features/football-matches/footballMatchService";
+import { useLiveScores } from "../../../features/football-matches/useLiveScores";
+import { useGameStore, type Match } from "../../../store/gameStore";
+import { normalizeEspnScoreboard } from "../../../supabase/functions/_shared/football-matches/espnMatchNormalizer";
+import type { SavedMatch } from "../../../types/footballMatch";
+import { liveBoard } from "../../fixtures/matchCatalog/scoreboards";
 
 const mockRead = jest.fn();
 const mockTracking = jest.fn();
@@ -65,6 +65,20 @@ async function read(): Promise<void> {
 }
 
 describe("saved-only live scores", () => {
+  it("applies newer downward and partial corrections without changing user consumption", async () => {
+    const selected = { ...match, homeGoals: 2, awayGoals: 1 };
+    useGameStore.setState({ matches: [selected], players: [{ id: "p", name: "Player", drinksTaken: 4 }] });
+    mockRead.mockResolvedValue({ matches: [{ ...saved(), observationVersion: "2", homeScore: 1, awayScore: null }], missingCatalogMatchIds: [], availability: "partial" });
+    await mount([selected]);
+    await read();
+    expect(callback).toHaveBeenCalledWith(selected.id, "home", 1);
+    expect(callback).not.toHaveBeenCalledWith(selected.id, "away", expect.anything());
+    expect(useGameStore.getState().players[0].drinksTaken).toBe(4);
+    callback.mockClear();
+    mockRead.mockResolvedValue({ matches: [{ ...saved(), observationVersion: "1", homeScore: 3 }], missingCatalogMatchIds: [], availability: "available" });
+    await read();
+    expect(callback).not.toHaveBeenCalledWith(selected.id, "home", 3);
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     useGameStore.setState({ matches: [match], history: [], soloTracking: null });
@@ -252,15 +266,16 @@ describe("saved-only live scores", () => {
     expect(mockTracking.mock.calls.some(([request]) => request.creationNonce && request.creationNonce !== rejected.creationNonce)).toBe(true);
     expect(useGameStore.getState().soloTracking?.grant?.grantToken).toBe("C".repeat(43));
   });
-  it("surfaces an expired same-selection grant without silent renewal, then allows an explicit new game", async () => {
+  it("surfaces an expired same-selection grant without silent renewal, then allows explicit tracking restart", async () => {
     useGameStore.setState({ soloTracking: { grant: { grantToken: "A".repeat(43), selectionVersion: 1, isReplay: false, catalogMatchIds: ["123"], expiresAt: "2020-01-01T00:00:00Z", state: "active" }, pending: null } });
     await mount();
     await read();
     expect(observed.error).toBe("tracking_expired");
     expect(mockTracking).not.toHaveBeenCalled();
     expect(mockRead).toHaveBeenCalledTimes(1);
-    useGameStore.getState().resetState();
     await read();
+    expect(mockTracking).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => observed.restartTracking());
     expect(mockTracking).toHaveBeenCalledWith(expect.objectContaining({ creationNonce: expect.any(String) }));
     expect(useGameStore.getState().soloTracking?.grant?.expiresAt).toBe("2099-01-01T00:00:00Z");
   });

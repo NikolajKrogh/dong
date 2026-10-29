@@ -1,9 +1,10 @@
 import React, { useMemo } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
-import { createGameProgressStyles } from "../gameProgressStyles";
-import { useColors } from "../../../styles/theme";
-import { useTeamLogo } from "../../football-matches/useTeamLogo";
 import AppIcon from "../../../components/ui/AppIcon";
+import { useColors } from "../../../styles/theme";
+import { formatMatchScore, getMatchPresentation } from "../../football-matches/matchPresentation";
+import { useTeamLogo } from "../../football-matches/useTeamLogo";
+import { createGameProgressStyles } from "../gameProgressStyles";
 import { MatchItemProps } from "./types";
 
 const MatchGridItem: React.FC<MatchItemProps> = ({
@@ -20,22 +21,13 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
   const homeTeamLogo = useTeamLogo(match.homeTeam);
   const awayTeamLogo = useTeamLogo(match.awayTeam);
 
-  // Determine the status string ('FT', 'HT', '45'', '?') from live data
-  const displayStatus = liveMatch?.minutesPlayed || "?";
-  // Check if the status indicates a finished or half-time state
-  const isFinishedOrHalfTime = displayStatus === "FT" || displayStatus === "HT";
-  // Check the live flag from the API data
-  const isCurrentlyLive = liveMatch?.isLive || false;
+  const { homeScore, awayScore, displayStatus, showStatus } = getMatchPresentation(match, liveMatch);
   const statusDisplay =
-    isFinishedOrHalfTime || isCurrentlyLive ? (
+    showStatus ? (
       <Text style={styles.minutesPlayedText}>{displayStatus}</Text>
     ) : (
       <Text style={styles.vsText}>-</Text>
     );
-
-  // Use live match data if available, otherwise use local state
-  const homeScore = liveMatch ? liveMatch.homeScore : match.homeGoals || 0;
-  const awayScore = liveMatch ? liveMatch.awayScore : match.awayGoals || 0;
 
   /**
    * Build compact player badge list.
@@ -115,11 +107,11 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           </View>
 
           <View style={styles.scoresContainer}>
-            <Text style={styles.gridScoreText}>{homeScore}</Text>
+            <Text style={styles.gridScoreText}>{formatMatchScore(homeScore)}</Text>
 
             {statusDisplay}
 
-            <Text style={styles.gridScoreText}>{awayScore}</Text>
+            <Text style={styles.gridScoreText}>{formatMatchScore(awayScore)}</Text>
           </View>
 
           {/* Away team: Logo on RIGHT */}

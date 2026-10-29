@@ -5,23 +5,23 @@
 
 import React, { useMemo, useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  Animated,
   Modal,
   ScrollView,
-  Animated,
+  Text,
+  TouchableOpacity,
   useWindowDimensions,
+  View,
 } from "react-native";
 import { Player } from "../../../store/gameStore";
+import { useColors } from "../../../styles/theme";
 import { useTeamLogo } from "../../football-matches/useTeamLogo";
 import { useMatchQuickActionsAnimations } from "../useMatchQuickActionsAnimations";
-import { useColors } from "../../../styles/theme";
+import { GoalScorersSection } from "./GoalScorersSection";
 import { MatchHeader } from "./MatchHeader";
 import { ModalTabBar } from "./ModalTabBar";
-import { ScoreControls } from "./ScoreControls";
-import { GoalScorersSection } from "./GoalScorersSection";
 import { PlayersSection } from "./PlayersSection";
+import { ScoreControls } from "./ScoreControls";
 import { StatisticsSection } from "./StatisticsSection";
 import { createStyles } from "./styles";
 import { MatchQuickActionsModalProps } from "./types";
@@ -200,8 +200,8 @@ const getScoreControlValues = (
     homeGoals: match.homeGoals ?? 0,
     awayGoals: match.awayGoals ?? 0,
     isApiControlledMatch,
-    liveHomeScore: liveMatchData?.homeScore ?? match.homeGoals ?? 0,
-    liveAwayScore: liveMatchData?.awayScore ?? match.awayGoals ?? 0,
+    liveHomeScore: liveMatchData ? liveMatchData.homeScore : match.catalogSnapshot ? match.catalogSnapshot.homeScore : match.homeGoals,
+    liveAwayScore: liveMatchData ? liveMatchData.awayScore : match.catalogSnapshot ? match.catalogSnapshot.awayScore : match.awayGoals,
     goalValueAnimHome: animations.goalValueAnimHome,
     goalValueAnimAway: animations.goalValueAnimAway,
     incrementAnimHome: animations.incrementAnimHome,

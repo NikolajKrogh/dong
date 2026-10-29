@@ -26,6 +26,7 @@ export interface RoomParticipantSummary {
 export interface RoomMatchSummary {
   id: string;
   catalogMatchId?: string | null;
+  catalogSnapshot?: import("./footballMatch").SavedMatch | null;
   sourceProvider: string;
   sourceMatchId: string | null;
   sourceLeagueCode?: string | null;

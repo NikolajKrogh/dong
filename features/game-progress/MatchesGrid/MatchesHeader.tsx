@@ -1,15 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import {
-  View,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
   useWindowDimensions,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { MatchesHeaderProps } from "./types";
-import { createGameProgressStyles } from "../gameProgressStyles";
 import { useColors } from "../../../styles/theme";
+import { createGameProgressStyles } from "../gameProgressStyles";
+import { MatchesHeaderProps } from "./types";
 
 /**
  * Header for the matches grid/list.
@@ -30,6 +30,7 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
   setSortModalVisible,
   toggleLayoutMode,
   sourceStatusMessage,
+  onRestartTracking,
 }) => {
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
@@ -73,6 +74,7 @@ const MatchesHeader: React.FC<MatchesHeaderProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+      {onRestartTracking ? <TouchableOpacity accessibilityRole="button" accessibilityLabel="Restart tracking" onPress={() => void onRestartTracking()}><Text style={{ color: colors.primary }}>Restart tracking</Text></TouchableOpacity> : null}
       {sourceStatusMessage ? (
         <Text
           accessibilityLiveRegion="polite"

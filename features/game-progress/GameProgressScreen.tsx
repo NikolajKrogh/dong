@@ -3,27 +3,27 @@
  * @description Main in-game screen shell: renders tabs, footer, and modals using the game progress controller hook.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, RefreshControl, useWindowDimensions, View, Text as RecoveryText } from "react-native";
+import { Modal, Text as RecoveryText, RefreshControl, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, YStack } from "tamagui";
 
-import EndGameModal from "./EndGameModal";
-import RoomStatusModal from "./RoomStatusModal";
-import { SuccessorChooserModal } from "../rooms/SuccessorChooserModal";
+import { useRouter } from "expo-router";
 import { ShellActionButton, ShellScreen } from "../../components/ui";
 import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";
-import FooterButtons from "./FooterButtons";
-import { MultiplayerGameStatus } from "./MultiplayerGameStatus";
-import MatchesGrid from "./MatchesGrid";
-import MatchQuickActionsModal from "./MatchQuickActionsModal/MatchQuickActionsModal";
-import PlayersList from "./PlayersList";
-import GameProgressTabs from "./GameProgressTabs";
-import useGameProgressController from "./useGameProgressController";
-import { useGuestRoomSession } from "../rooms/useGuestRoomSession";
-import { useRoomExit } from "../rooms/useRoomExit";
-import { useRouter } from "expo-router";
 import { useGameStore } from "../../store/gameStore";
 import { isWideLayout } from "../../styles/responsive";
+import { SuccessorChooserModal } from "../rooms/SuccessorChooserModal";
+import { useGuestRoomSession } from "../rooms/useGuestRoomSession";
+import { useRoomExit } from "../rooms/useRoomExit";
+import EndGameModal from "./EndGameModal";
+import FooterButtons from "./FooterButtons";
+import GameProgressTabs from "./GameProgressTabs";
+import MatchesGrid from "./MatchesGrid";
+import MatchQuickActionsModal from "./MatchQuickActionsModal/MatchQuickActionsModal";
+import { MultiplayerGameStatus } from "./MultiplayerGameStatus";
+import PlayersList from "./PlayersList";
+import RoomStatusModal from "./RoomStatusModal";
+import useGameProgressController from "./useGameProgressController";
 
 const GameProgressScreen = () => {
   const router = useRouter();
@@ -46,6 +46,7 @@ const GameProgressScreen = () => {
     isPolling,
     lastUpdated,
     sourceStatusMessage,
+    onRestartTracking,
     setActiveTab,
     openQuickActions,
     closeQuickActions,
@@ -122,6 +123,7 @@ const GameProgressScreen = () => {
             <View style={styles.tabContent}>
               <MatchesGrid
                 sourceStatusMessage={sourceStatusMessage}
+                onRestartTracking={onRestartTracking}
                 matches={matches}
                 players={players}
                 commonMatchId={commonMatchId}

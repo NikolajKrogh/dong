@@ -1,6 +1,6 @@
+import type { Match, Player } from "../../store/gameStore";
 import type { GuestRoomSnapshot } from "../../types/guestRoom";
 import type { RoomSnapshot } from "../../types/room";
-import type { Match, Player } from "../../store/gameStore";
 import { selectGameplayMatches } from "../game-setup/selectGameplayMatches";
 
 export type CompatibleRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
@@ -23,6 +23,7 @@ export const roomSnapshotToGameState = (snapshot: CompatibleRoomSnapshot) => {
   const matches: Match[] = snapshot.matches.map((match) => ({
     id: match.id,
     catalogMatchId: match.catalogMatchId ?? undefined,
+    catalogSnapshot: match.catalogSnapshot ?? undefined,
     homeTeam: match.homeTeamName,
     awayTeam: match.awayTeamName,
     homeGoals: match.homeScore ?? 0,
