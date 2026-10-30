@@ -26,6 +26,53 @@ import {
 } from "./browser-flow.helpers";
 
 const { Given, When, Then } = createBdd();
+
+Given("a guest layout fixture at {int} pixels in {string} theme", async ({ page }, width: number, theme: string) => {
+  await page.setViewportSize({ width, height: 900 });
+  await page.addInitScript((chosenTheme) => {
+    localStorage.setItem("dong-storage", JSON.stringify({ state: { theme: chosenTheme }, version: 0 }));
+  }, theme);
+  const fixture = createGuestRoomHostFixture();
+  await mockGuestRoomRpcServices(page, createGuestRoomHostFixture({
+    assignmentMode: "player_picked", matchesPerPlayer: 4,
+    participants: fixture.participants.map((participant) => ({ ...participant,
+      displayName: `${participant.displayName} with a deliberately long display name` })),
+    matches: [...fixture.matches, ...Array.from({ length: 12 }, (_, i) => ({
+      ...fixture.matches[0], id: `layout-${i}`, sourceMatchId: `layout-${i}`,
+      homeTeamName: "Wolverhampton Wanderers", awayTeamName: "Brighton & Hove Albion",
+    }))],
+  }));
+});
+
+Then("both guest tabs fit the viewport and support keyboard navigation", async ({ page, $testInfo }) => {
+  await expect(page.getByLabel("Room Code", { exact: true })).toBeHidden();
+  const matches = page.getByRole("tab", { name: "Matches", exact: true });
+  const room = page.getByRole("tab", { name: /^Room/ });
+  await expect(page.getByTestId("guest-player-pick-panel-option-layout-11")).toBeAttached();
+  await expect(page.getByTestId("guest-player-pick-panel-option-match-1")).toHaveCount(0);
+  await page.getByTestId("guest-player-pick-panel-option-layout-0").click();
+  await expect(page.getByTestId("guest-player-pick-panel-count")).toHaveText("1/4");
+  await expect(page.getByRole("button", { name: "Clear picks" })).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: $testInfo.outputPath("guest-matches.png") });
+  await matches.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(room).toBeFocused();
+  await expect(room).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByText("Casey", { exact: true })).toBeVisible();
+  await expect(page.getByText("Common match", { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: $testInfo.outputPath("guest-room.png") });
+  await page.keyboard.press("Home");
+  await expect(matches).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("guest-player-pick-panel-count")).toHaveText("1/4");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("button", { name: "Continue Game" })).toBeVisible();
+  await page.getByRole("button", { name: "Continue Game" }).click();
+  await expect(page).toHaveURL(/\/guestRoom/);
+  await expect(page.getByTestId("guest-player-pick-panel-count")).toHaveText("1/4");
+});
 const EXPIRED_GUEST_PARTICIPANT_ID = "expired-guest-participant";
 let activeRosterHostPage: Page | null = null;
 
@@ -43,7 +90,7 @@ Given(
       timeout: 60_000,
     });
 
-    await waitForBrowserFlowReady(page);
+    await waitForBrowserFlowReady(page, ["Start New Game", "Continue Game", "Matches", "Renewing guest access", "Departure pending"]);
   },
 );
 
@@ -131,6 +178,7 @@ When(
 );
 
 Then("both live rosters should list the expired guest", async ({ page }) => {
+  await page.getByRole("tab", { name: /^Room/ }).click();
   if (!activeRosterHostPage) {
     throw new Error("The host roster page was not opened for this scenario.");
   }
@@ -348,7 +396,8 @@ When("the guest grant expires on the server", async ({ page: _page }) => {
 });
 
 When("the guest leaves the joined room", async ({ page }) => {
-  await page.getByText("Leave Guest Room", { exact: true }).click();
+  await page.getByRole("button", { name: "Leave room", exact: true }).click();
+  await page.getByRole("button", { name: "Leave room", exact: true }).last().click();
 });
 
 Then("a replacement guest credential should be confirmed", async ({ page }) => {
@@ -376,9 +425,8 @@ Then("a replacement guest credential should be confirmed", async ({ page }) => {
 });
 
 Then("confirmed guest departure should be visible", async ({ page }) => {
-  await expect(page.getByText("Guest room left", { exact: true })).toBeVisible({
-    timeout: 10_000,
-  });
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("button", { name: "Start New Game", exact: true })).toBeVisible();
   await expect
     .poll(() =>
       page.evaluate(
@@ -455,7 +503,7 @@ Then("the legacy guest key should be removed", async ({ page }) => {
 
 When("the guest reloads the same browser tab", async ({ page }) => {
   await page.reload({ waitUntil: "commit" });
-  await waitForBrowserFlowReady(page);
+  await waitForBrowserFlowReady(page, ["Start New Game", "Continue Game", "Matches", "Renewing guest access", "Departure pending"]);
 });
 
 Then(
@@ -480,13 +528,9 @@ Then(
 );
 
 Then("the guest lobby summary should be visible", async ({ page }) => {
-  const roomSummary = page.getByText("Guest Room", { exact: true });
-
-  await roomSummary.scrollIntoViewIfNeeded();
-  await expect(roomSummary).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText("Participants", { exact: true })).toBeVisible();
-  // Code must be hidden from guests (FR-0A7: host-only join code)
-  await expect(page.getByText(/Room ROOM\d/)).toHaveCount(0);
+  await expect(page).toHaveURL(/\/guestRoom/);
+  await expect(page.getByRole("tab", { name: "Matches", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^Room/ })).toBeVisible();
 });
 
 Then(
@@ -506,24 +550,19 @@ Then(
 Then(
   "the guest lobby should list the guest participant {string}",
   async ({ page }, guestName: string) => {
-    const participantSummary = page.getByText(
-      new RegExp(String.raw`${guestName}\s+·\s+guest`),
-    );
-
-    await participantSummary.scrollIntoViewIfNeeded();
-    await expect(participantSummary).toBeVisible();
+    await page.getByRole("tab", { name: /^Room/ }).click();
+    await expect(page.getByText(guestName, { exact: true })).toBeVisible();
+    await page.getByRole("tab", { name: "Matches", exact: true }).click();
   },
 );
 
 Then(
   "the guest lobby should explain the temporary guest access for room {string}",
-  async ({ page }, _roomCode: string) => {
-    await expect(
-      page.getByText(
-        "Guest access is temporary and only applies to this room on this device.",
-        { exact: false },
-      ),
-    ).toBeVisible();
+  async ({ page }, roomCode: string) => {
+    await expect(page.getByRole("heading", { name: `Room ${roomCode}` })).toBeVisible();
+    await page.getByRole("tab", { name: /^Room/ }).click();
+    await expect(page.getByText("Guest access is temporary and only applies to this room on this device.")).toBeVisible();
+    await page.getByRole("tab", { name: "Matches", exact: true }).click();
   },
 );
 
@@ -653,3 +692,23 @@ Then(
     expect(getMockGuestRoomPicks()).toHaveLength(1);
   },
 );
+
+When("the guest opens the Room tab", async ({ page }) => {
+  await page.getByRole("tab", { name: /^Room/ }).click();
+  await expect(page).toHaveURL(/tab=room/);
+});
+Then("the Room tab shows the guest pick progress", async ({ page }) => {
+  await expect(page.getByText("Common match", { exact: true })).toBeVisible();
+  await expect(page.getByText("Casey", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("guest-pick-progress-guest-mocked-participant")).toHaveText("1/2 picked");
+});
+When("the guest returns to the Matches tab", async ({ page }) => {
+  await page.getByRole("tab", { name: "Matches", exact: true }).click();
+  await expect(page).toHaveURL(/tab=matches/);
+});
+When("the guest clears all picks", async ({ page }) => {
+  await page.getByRole("button", { name: "Clear picks", exact: true }).click();
+  await expect(page.getByTestId("guest-player-pick-panel-count")).toHaveText("0/2");
+  await expect.poll(() => getMockGuestRoomPicks().length).toBe(0);
+  await expect(page.getByRole("button", { name: "Clear picks", exact: true })).toHaveCount(0);
+});

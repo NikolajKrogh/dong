@@ -164,12 +164,7 @@ function HomeRoomModals({ actions, colors, styles }: {
     handleCloseGuestJoin,
     setGuestName,
     setGuestJoinCode,
-    handleLeaveGuestJoin,
-    setGuestPicks,
-    isGuestPickBusy,
     submitGuestJoin,
-    guestRoomSession,
-    guestRoomStatus,
     isGuestJoinModalVisible,
     isJoinModalVisible,
     conflictRoom,
@@ -197,14 +192,9 @@ function HomeRoomModals({ actions, colors, styles }: {
       onClose={handleCloseGuestJoin}
       onGuestNameChange={setGuestName}
       onJoinCodeChange={setGuestJoinCode}
-      onLeaveRoom={handleLeaveGuestJoin}
-      onSetPicks={setGuestPicks}
-      isPickBusy={isGuestPickBusy}
       onSubmit={() => {
         void submitGuestJoin(guestJoinCode, guestName);
       }}
-      session={guestRoomSession}
-      status={guestRoomStatus}
       visible={isGuestJoinModalVisible}
     />
 

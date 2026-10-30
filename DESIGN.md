@@ -386,7 +386,7 @@ When migrating a screen to the shell:
 - `app/lobby/[sessionId].tsx` — fully migrated: `ShellScreen`, `ShellActionButton`, Tamagui cards throughout
 - `app/lobby/configureMatches.tsx` — `ShellScreen` + the wizard's panel/nav chrome
 - `components/lobby/*` — `ParticipantList`, `PlayerPickPanel`, `RoomEndedNotice`, `SuccessorChooserModal`
-- `components/guestJoin/*` — `GuestJoinLobby`, `GuestJoinForm`, `GuestJoinModal`
+- `features/rooms/` — `GuestRoomContent`, `GuestJoinForm`, `GuestJoinModal`
 - `components/auth/*` — all four forms, on `ShellCard elevated`
 - `components/home/CurrentGameCard.tsx`, `components/home/HistoryStatsCard.tsx`
 - `components/preferences/AccountSection.tsx`, `ProfileSection.tsx`, `LegacyHistoryImportSection.tsx`

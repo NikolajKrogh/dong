@@ -2,7 +2,7 @@
  * @file gameProgress.tsx
  * @description Main in-game screen shell: renders tabs, footer, and modals using the game progress controller hook.
  */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Modal, Text as RecoveryText, RefreshControl, useWindowDimensions, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, YStack } from "tamagui";
@@ -239,19 +239,12 @@ function useGameDeparture(activeGame: NonNullable<ReturnType<typeof useGameProgr
     router.replace("/");
   }, [resetState, router]);
 
-  useEffect(() => {
-    if (leaving && context.accessKind === "guest" && guestRoom.status === "left") {
-      finishLeave();
-    }
-  }, [context.accessKind, finishLeave, guestRoom.status, leaving]);
-
   const confirmLeave = useCallback(async () => {
     if (!context.sessionId || leaving) return;
     setLeaving(true);
     setLeaveError(null);
     if (context.accessKind === "guest") {
-      if (await guestRoom.leaveRoom()) finishLeave();
-      else {
+      if (!await guestRoom.leaveRoom()) {
         setLeaveError("Departure has not been confirmed. It will retry while you are connected.");
         setLeaving(false);
       }

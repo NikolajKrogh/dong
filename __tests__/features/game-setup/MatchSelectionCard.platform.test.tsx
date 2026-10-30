@@ -84,7 +84,7 @@ describe("MatchSelectionCard", () => {
     const renderer = render({ onToggleCollapsed });
 
     renderer.root
-      .findByProps({ style: mockStyles.playerHeader })
+      .findByProps({ accessibilityRole: "button" })
       .props.onPress();
 
     expect(onToggleCollapsed).toHaveBeenCalledTimes(1);

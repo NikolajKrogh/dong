@@ -165,129 +165,26 @@ const rerender = (renderer: TestRenderer.ReactTestRenderer) => {
   });
 };
 
-describe("guest joins the game when the host starts it", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockStoreSetters.endedGuestSessionId = null;
-    mockGuestSession = null;
-    mockGuestRoomStatus = "idle";
-    mockLeaveGuestRoom.mockResolvedValue(false);
-  });
-
-  it("closes the guest modal and clears stale fields on host termination", () => {
-    mockGuestSession = buildSession("joinable");
-    const renderer = renderHook();
-    TestRenderer.act(() => {
-      (mockHomeRoomActions.setGuestJoinCode as (value: string) => void)("ROOM42");
-      (mockHomeRoomActions.setGuestName as (value: string) => void)("Casey");
-    });
-    mockStoreSetters.endedGuestSessionId = "session-1";
-    rerender(renderer);
-    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
-    expect(mockHomeRoomActions.guestJoinCode).toBe("");
-    expect(mockHomeRoomActions.guestName).toBe("");
-    mockGuestSession = null;
-    mockGuestRoomStatus = "ended";
-    rerender(renderer);
-    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
-    expect(mockReplace).not.toHaveBeenCalled(); // Root owns the single redirect.
-    TestRenderer.act(() => renderer.unmount());
-  });
-
-  it("redirects when the start is observed from the guest card", () => {
-    mockGuestSession = buildSession("joinable");
-    const renderer = renderHook();
-    expect(mockPush).not.toHaveBeenCalled();
-
-    mockGuestSession = buildSession("in_progress");
-    rerender(renderer);
-
-    expect(mockPush).toHaveBeenCalledWith("/gameProgress");
-  });
-
-  it("hydrates the gameplay store from the guest snapshot", () => {
-    mockGuestSession = buildSession("joinable");
-    const renderer = renderHook();
-    mockGuestSession = buildSession("in_progress");
-    rerender(renderer);
-
-    expect(mockStoreSetters.setPlayers).toHaveBeenCalledWith([
-      { id: "guest-1", name: "Casey", drinksTaken: 0 },
-    ]);
-    // Null scores must land as 0 — the game screen increments them.
-    expect(mockStoreSetters.setMatches).toHaveBeenCalledWith([
-      expect.objectContaining({ homeGoals: 0, awayGoals: 0 }),
-    ]);
-    expect(mockStoreSetters.setCommonMatchId).toHaveBeenCalledWith("match-1");
-  });
-
-  it("does not redirect when opened on a room that is already running", () => {
-    // Otherwise the guest is trapped: Leave Guest Room lives in the card they
-    // would be bounced away from.
-    mockGuestSession = buildSession("in_progress");
-    renderHook();
-
-    expect(mockPush).not.toHaveBeenCalled();
-    // Hydration still runs, so the game screen has something to show.
-    expect(mockStoreSetters.setPlayers).toHaveBeenCalled();
-  });
-
-  it("hydrates a second guest room after leaving the first room identity", () => {
-    mockGuestSession = buildSession("joinable", "session-a");
-    const renderer = renderHook();
-    mockGuestSession = buildSession("in_progress", "session-a");
-    rerender(renderer);
-
-    mockGuestSession = buildSession("joinable", "session-b");
-    rerender(renderer);
-    mockGuestSession = buildSession("in_progress", "session-b");
-    rerender(renderer);
-
-    expect(mockStoreSetters.setActiveGameContext).toHaveBeenLastCalledWith(
-      expect.objectContaining({ sessionId: "session-b", accessKind: "guest" }),
-    );
-    expect(mockStoreSetters.setPlayers).toHaveBeenCalledTimes(2);
-  });
-
-  it("keeps the guest join modal open until departure is confirmed", async () => {
-    const renderer = renderHook();
-    const openGuestJoin = mockHomeRoomActions.handleOpenGuestJoin as () => void;
-    const leaveGuestJoin = mockHomeRoomActions.handleLeaveGuestJoin as () => Promise<void>;
-
-    await TestRenderer.act(async () => {
-      openGuestJoin();
-    });
-    await TestRenderer.act(async () => {
-      await leaveGuestJoin();
-    });
-
-    expect(mockStoreSetters.clearActiveGameContext).not.toHaveBeenCalled();
+describe("guest room entry from Home", () => {
+  beforeEach(() => { jest.clearAllMocks(); mockGuestSession = null; mockGuestRoomStatus = "idle"; });
+  it("opens the join dialog without a session", () => {
+    const tree = renderHook();
+    TestRenderer.act(() => (mockHomeRoomActions.handleOpenGuestJoin as () => void)());
     expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(true);
-
-    mockLeaveGuestRoom.mockResolvedValue(true);
-    await TestRenderer.act(async () => {
-      await (mockHomeRoomActions.handleLeaveGuestJoin as () => Promise<void>)();
-    });
-    mockGuestRoomStatus = "left";
-    rerender(renderer);
-
-    expect(mockStoreSetters.clearActiveGameContext).toHaveBeenCalledTimes(1);
-    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
-    expect(mockReplace).toHaveBeenCalledWith("/");
-    await TestRenderer.act(async () => renderer.unmount());
+    TestRenderer.act(() => tree.unmount());
   });
-
-  it("cleans up when a background leave retry is confirmed", async () => {
-    mockGuestRoomStatus = "pending_leave";
-    const renderer = renderHook();
-    expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(true);
-
-    mockGuestRoomStatus = "left";
-    rerender(renderer);
-
-    expect(mockStoreSetters.clearActiveGameContext).toHaveBeenCalledTimes(1);
+  it("opens the guest page for an existing session", () => {
+    mockGuestSession = buildSession("joinable"); const tree = renderHook();
+    TestRenderer.act(() => (mockHomeRoomActions.handleOpenGuestJoin as () => void)());
+    expect(mockPush).toHaveBeenCalledWith("/guestRoom?tab=matches");
     expect(mockHomeRoomActions.isGuestJoinModalVisible).toBe(false);
-    expect(mockReplace).toHaveBeenCalledWith("/");
-    await TestRenderer.act(async () => renderer.unmount());
+    TestRenderer.act(() => tree.unmount());
+  });
+  it("clears join fields after termination without owning navigation", () => {
+    const tree = renderHook();
+    TestRenderer.act(() => (mockHomeRoomActions.setGuestName as (name: string) => void)("Casey"));
+    mockGuestRoomStatus = "ended"; rerender(tree);
+    expect(mockHomeRoomActions.guestName).toBe(""); expect(mockReplace).not.toHaveBeenCalled();
+    TestRenderer.act(() => tree.unmount());
   });
 });

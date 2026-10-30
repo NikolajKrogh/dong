@@ -22,6 +22,10 @@ import {
   type GuestRoomRpcClient,
 } from "../../../features/rooms/roomRpcClient";
 
+jest.mock("../../../features/rooms/useGuestRoomSession", () => ({
+  useGuestRoomSession: jest.requireActual<typeof import("../../../features/rooms/useGuestRoomSessionController")>("../../../features/rooms/useGuestRoomSessionController").useGuestRoomSessionController,
+}));
+
 jest.mock("../../../features/rooms/roomRpcClient", () => ({
   getGuestRoomRpcClient: jest.fn(),
 }));

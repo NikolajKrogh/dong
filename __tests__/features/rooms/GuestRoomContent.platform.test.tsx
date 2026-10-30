@@ -2,7 +2,9 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 
-import { GuestJoinLobby } from "../../../features/rooms/GuestJoinLobby";
+import { GuestRoomContent } from "../../../features/rooms/GuestRoomContent";
+import { PlayerPickPanel } from "../../../features/rooms/PlayerPickPanel";
+import { SelectableMatchList } from "../../../features/game-setup/SelectableMatchList";
 import type { GuestRoomSession } from "../../../types/guestRoom";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 
@@ -86,14 +88,40 @@ const renderLobby = (props: Record<string, unknown> = {}) =>
     React.createElement(
       TamaguiTestProvider,
       null,
-      React.createElement(GuestJoinLobby, {
+      React.createElement(GuestRoomContent, {
         session: buildSession(),
         ...props,
       }),
     ),
   );
 
-describe("GuestJoinLobby", () => {
+describe("GuestRoomContent", () => {
+  it("shows only this guest's assigned non-common matches as read-only", () => {
+    const tree = renderLobby({ session: buildSession({ assignmentMode: "host_assigned",
+      assignments: [
+        { participantId: "guest-1", matchId: "match-1" },
+        { participantId: "guest-1", matchId: "match-2" },
+        { participantId: "owner-1", matchId: "match-1" },
+      ] }) });
+    const list = tree.root.findByType(SelectableMatchList);
+    expect(list.props.readOnly).toBe(true);
+    expect(list.props.matches.map((match: { id: string }) => match.id)).toEqual(["match-2"]);
+  });
+
+  it("passes zero-cap plans through without including the common match in picks", () => {
+    const session = buildSession({ assignmentMode: "player_picked" });
+    session.snapshot.assignmentPlan.matchesPerPlayer = 0;
+    const tree = renderLobby({ session, onSetPicks: jest.fn() });
+    const panel = tree.root.findByType(PlayerPickPanel);
+    expect(panel.props.cap).toBe(0);
+    expect(panel.props.flat).toBe(true);
+    expect(panel.props.matches.map((match: { id: string }) => match.id)).toEqual(["match-2"]);
+  });
+
+  it("does not offer picking in a final-only snapshot", () => {
+    const tree = renderLobby({ session: buildSession({ assignmentMode: "player_picked", finalOnly: true }), onSetPicks: jest.fn() });
+    expect(tree.root.findAllByType(PlayerPickPanel)).toHaveLength(0);
+  });
   it("renders the joined room code, state, and participant summaries", () => {
     const tree = renderLobby();
 
@@ -102,14 +130,10 @@ describe("GuestJoinLobby", () => {
     const textContents = textNodes.flatMap((node: any) => node.props.children);
     const renderedText = textContents.join("");
 
-    expect(renderedText).toContain("Guest Room");
-    expect(renderedText).not.toContain("ROOM42");
-    expect(renderedText).toContain("Current state: joinable");
-    expect(renderedText).toContain(
-      "You are connected as Casey. Guest access is temporary and only applies to this room on this device.",
-    );
-    expect(renderedText).toContain("Host Owner · registered");
-    expect(renderedText).toContain("Casey · guest");
+    expect(renderedText).toContain("Your matches");
+    expect(renderedText).toContain("Guest access is temporary and only applies to this room on this device.");
+    expect(renderedText).toContain("Host Owner");
+    expect(renderedText).toContain("Casey");
 
     TestRenderer.act(() => tree.unmount());
   });
@@ -135,8 +159,8 @@ describe("GuestJoinLobby", () => {
       .flatMap((node: any) => node.props.children)
       .join("");
 
-    expect(renderedText).toContain("Host Owner · registered");
-    expect(renderedText).toContain("Casey · guest");
+    expect(renderedText).toContain("Host Owner");
+    expect(renderedText).toContain("Casey");
     expect(renderedText).not.toContain("Expired Guest");
 
     TestRenderer.act(() => tree.unmount());
@@ -159,7 +183,7 @@ describe("GuestJoinLobby", () => {
       React.createElement(
         TamaguiTestProvider,
         null,
-        React.createElement(GuestJoinLobby, {
+        React.createElement(GuestRoomContent, {
           session: buildSession({ assignmentMode: "player_picked" }),
           onSetPicks: jest.fn(),
         }),
@@ -178,7 +202,7 @@ describe("GuestJoinLobby", () => {
       React.createElement(
         TamaguiTestProvider,
         null,
-        React.createElement(GuestJoinLobby, {
+        React.createElement(GuestRoomContent, {
           session: buildSession({
             assignmentMode: "player_picked",
             state: "in_progress",
@@ -200,7 +224,7 @@ describe("GuestJoinLobby", () => {
       React.createElement(
         TamaguiTestProvider,
         null,
-        React.createElement(GuestJoinLobby, {
+        React.createElement(GuestRoomContent, {
           session: buildSession({ assignmentMode: "player_picked" }),
         }),
       ),
@@ -219,7 +243,7 @@ describe("GuestJoinLobby", () => {
       React.createElement(
         TamaguiTestProvider,
         null,
-        React.createElement(GuestJoinLobby, {
+        React.createElement(GuestRoomContent, {
           session: buildSession({
             assignmentMode: "player_picked",
             picks: [{ participantId: "guest-1", matchId: "match-2" }],
@@ -245,7 +269,7 @@ describe("GuestJoinLobby", () => {
       React.createElement(
         TamaguiTestProvider,
         null,
-        React.createElement(GuestJoinLobby, {
+        React.createElement(GuestRoomContent, {
           session: buildSession({
             assignmentMode: "player_picked",
             state: "in_progress",
@@ -284,7 +308,7 @@ describe("GuestJoinLobby", () => {
       React.createElement(
         TamaguiTestProvider,
         null,
-        React.createElement(GuestJoinLobby, {
+        React.createElement(GuestRoomContent, {
           // Cast is the point of the test: this shape does NOT satisfy
           // GuestRoomSession, because a pre-038 server does not send those keys.
           // The type describes the post-migration contract; the runtime can be
@@ -306,7 +330,7 @@ describe("GuestJoinLobby", () => {
 
     // The card still renders; the pick affordances simply stay hidden until the
     // server can actually accept picks.
-    expect(renderedText).toContain("Guest Room");
+    expect(renderedText).toContain("Your matches");
     expect(
       tree.root.findAllByProps({ testID: "guest-player-pick-panel" }),
     ).toHaveLength(0);

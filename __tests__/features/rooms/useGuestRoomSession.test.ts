@@ -2,13 +2,15 @@ import { actCreate, renderHook } from "../../../test-utils/render";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { GuestRoomSessionProvider } from "../../../features/rooms/GuestRoomSessionProvider";
+import { useGuestRoomSession as useSharedGuestRoomSession } from "../../../features/rooms/useGuestRoomSession";
 import { useGameStore } from "../../../store/gameStore";
 
 import {
   GUEST_ROOM_POLL_INTERVAL_MS,
-  useGuestRoomSession,
+  useGuestRoomSessionController as useGuestRoomSession,
   type UseGuestRoomSessionResult,
-} from "../../../features/rooms/useGuestRoomSession";
+} from "../../../features/rooms/useGuestRoomSessionController";
 import type {
   GuestRoomSessionGrant,
   GuestRoomSnapshot,
@@ -172,6 +174,28 @@ describe("useGuestRoomSession", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+  });
+
+  it("shares one restoration and poller between multiple screen consumers", async () => {
+    jest.useFakeTimers();
+    mockReadGuestRoomSessionGrant.mockResolvedValue(createGrant());
+    const getGuestRoomSnapshot = guestRoomRpcMock.getGuestRoomSnapshot(async () => createSnapshot());
+    setGuestRoomRpcClient({ getGuestRoomSnapshot });
+    const observed: UseGuestRoomSessionResult[] = [];
+    function Consumer() { observed.push(useSharedGuestRoomSession()); return null; }
+    let tree!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      tree = TestRenderer.create(React.createElement(GuestRoomSessionProvider, null,
+        React.createElement(Consumer), React.createElement(Consumer)));
+    });
+    expect(mockReadGuestRoomSessionGrant).toHaveBeenCalledTimes(1);
+    expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(1);
+    expect(observed.at(-1)).toBe(observed.at(-2));
+    await TestRenderer.act(async () => { jest.advanceTimersByTime(GUEST_ROOM_POLL_INTERVAL_MS); });
+    expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
+    TestRenderer.act(() => tree.unmount());
+    await TestRenderer.act(async () => { jest.advanceTimersByTime(GUEST_ROOM_POLL_INTERVAL_MS); });
+    expect(getGuestRoomSnapshot).toHaveBeenCalledTimes(2);
   });
 
   it("distinguishes host termination on restore and discards a concurrent late snapshot", async () => {

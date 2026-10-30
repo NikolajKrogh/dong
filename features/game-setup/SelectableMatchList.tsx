@@ -39,6 +39,7 @@ interface SelectableMatchListProps {
   useGridLayout?: boolean;
   /** Per-match testIDs are emitted as `{testIDPrefix}-{matchId}` when provided. */
   testIDPrefix?: string;
+  readOnly?: boolean;
 }
 
 interface SelectableMatchRowProps {
@@ -48,6 +49,7 @@ interface SelectableMatchRowProps {
   disabled: boolean;
   testID?: string;
   compact: boolean;
+  readOnly?: boolean;
   onToggleMatch: (matchId: string) => void;
 }
 
@@ -62,6 +64,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
   disabled,
   testID,
   compact,
+  readOnly = false,
   onToggleMatch,
 }: SelectableMatchRowProps) {
   const colors = useColors();
@@ -71,8 +74,8 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
     [match.id, onToggleMatch],
   );
   const accessibilityState = React.useMemo(
-    () => ({ selected, disabled }),
-    [disabled, selected],
+    () => ({ selected, disabled: disabled || readOnly }),
+    [disabled, selected, readOnly],
   );
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
   const awayTeamLogo = getTeamLogoWithFallback(match.awayTeam);
@@ -105,7 +108,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
       <TouchableOpacity
         testID={testID}
         accessibilityState={accessibilityState}
-        disabled={disabled}
+        disabled={disabled || readOnly}
         style={buttonStyle}
         onPress={handlePress}
       >
@@ -137,7 +140,8 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
     <TouchableOpacity
       testID={testID}
       accessibilityState={accessibilityState}
-      disabled={disabled}
+      accessibilityLabel={`${match.homeTeam} versus ${match.awayTeam}`}
+      disabled={disabled || readOnly}
       style={buttonStyle}
       onPress={handlePress}
     >
@@ -161,7 +165,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
                 </View>
               )}
             </View>
-            <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={styles.teamName}>
               {match.homeTeam}
             </Text>
           </View>
@@ -178,7 +182,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
                 </View>
               )}
             </View>
-            <Text style={styles.teamName} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={styles.teamName}>
               {match.awayTeam}
             </Text>
           </View>
@@ -189,13 +193,13 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
             <Text style={styles.matchTimeText}>{kickoff}</Text>
           </View>
         ) : null}
-        <View style={styles.selectionCheckmark}>
+        {!readOnly ? <View style={styles.selectionCheckmark}>
           <Ionicons
             name={selected ? "checkmark-circle" : "ellipse-outline"}
             size={24}
             color={selected ? colors.primary : colors.border}
           />
-        </View>
+        </View> : null}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -218,6 +222,7 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
   disabledMatchIds,
   useGridLayout = false,
   testIDPrefix,
+  readOnly = false,
 }) => {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
@@ -239,10 +244,11 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
         disabled={disabledMatchSet.has(match.id)}
         testID={getTestID(match.id)}
         compact
+        readOnly={readOnly}
         onToggleMatch={onToggleMatch}
       />
     </View>
-  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem]);
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem, readOnly]);
   const renderMatch = React.useCallback(({ item, index }: { item: SelectableMatch; index: number }) => (
     <SelectableMatchRow
       key={item.id}
@@ -252,9 +258,10 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
       disabled={disabledMatchSet.has(item.id)}
       testID={getTestID(item.id)}
       compact={false}
+      readOnly={readOnly}
       onToggleMatch={onToggleMatch}
     />
-  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet]);
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, readOnly]);
 
   if (useGridLayout) {
     return (

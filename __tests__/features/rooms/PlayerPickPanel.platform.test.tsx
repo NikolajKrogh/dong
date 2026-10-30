@@ -38,12 +38,14 @@ jest.mock("../../../features/game-setup/MatchSelectionCard", () => {
   return {
     MatchSelectionCard: ({
       children,
+      headerAction,
       selectedCount,
       totalCount,
       testID,
       badgeTestID,
     }: {
       children: unknown;
+      headerAction: unknown;
       selectedCount: number;
       totalCount: number;
       testID?: string;
@@ -53,6 +55,7 @@ jest.mock("../../../features/game-setup/MatchSelectionCard", () => {
         "MatchSelectionCard",
         { testID, badgeTestID, selectedCount, totalCount },
         children,
+        headerAction,
       ),
   };
 });
@@ -177,6 +180,18 @@ describe("PlayerPickPanel", () => {
     expect(list(renderer).props.selectedMatchIds).toEqual(["m3"]);
   });
 
+  it("restores authoritative picks after a failed save finishes with unchanged server picks", () => {
+    const renderer = render();
+    TestRenderer.act(() => list(renderer).props.onToggleMatch("m1"));
+    const { PlayerPickPanel } = require("../../../features/rooms/PlayerPickPanel");
+    const { TamaguiTestProvider } = require("../../../test-utils/tamagui");
+    for (const isBusy of [true, false]) {
+      TestRenderer.act(() => renderer.update(React.createElement(TamaguiTestProvider, null,
+        React.createElement(PlayerPickPanel, { matches: MATCHES, myPicks: [], cap: 2, onSetPicks: jest.fn(), isBusy }))));
+    }
+    expect(list(renderer).props.selectedMatchIds).toEqual([]);
+  });
+
   // FR-040: at the cap the unpicked matches go inert, but the picked ones stay
   // tappable so a participant can always release one.
   it("disables only unpicked matches once the cap is reached", () => {
@@ -225,6 +240,8 @@ describe("PlayerPickPanel", () => {
     const button = picked.root.findByProps({
       testID: "lobby-player-pick-panel-release-all",
     });
+    expect(button.props.label).toBe("Clear picks");
+    expect(button.props.variant).toBe("text");
 
     TestRenderer.act(() => {
       button.props.onPress();
