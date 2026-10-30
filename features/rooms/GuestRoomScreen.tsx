@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack } from "tamagui";
 
 import { ShellActionButton, ShellCard, ShellScreen } from "../../components/ui";
+import type { GuestRoomSession } from "../../types/guestRoom";
 import { GuestRoomContent } from "./GuestRoomContent";
 import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
 import { useGuestRoomSession, type UseGuestRoomSessionResult } from "./useGuestRoomSession";
@@ -89,6 +90,58 @@ function getGuestRoomStatusMessage({ session, status, isBusy }: UseGuestRoomSess
   return "No active guest room";
 }
 
+interface GuestRoomHeaderProps {
+  session: GuestRoomSession | null;
+  isLeaveDisabled: boolean;
+  onHome: () => void;
+  onLeave: () => void;
+}
+
+function GuestRoomHeader({ session, isLeaveDisabled, onHome, onLeave }: GuestRoomHeaderProps): React.JSX.Element {
+  return (
+    <YStack gap="$2" paddingBottom="$4">
+      <XStack gap="$2" alignItems="center" justifyContent="space-between">
+        <ShellActionButton label="Home" variant="text" widthMode="fit" onPress={onHome} />
+        {session ? (
+          <ShellActionButton
+            label="Leave room"
+            variant="text"
+            widthMode="fit"
+            disabled={isLeaveDisabled}
+            onPress={onLeave}
+          />
+        ) : null}
+      </XStack>
+      <YStack gap="$1">
+        <Text color="$color" fontSize={20} fontWeight="700" accessibilityRole="header">
+          {session ? `Room ${session.snapshot.joinCode}` : "Guest room"}
+        </Text>
+        {session ? <Text color="$colorMuted" fontSize={14}>{session.grant.displayName} · Guest</Text> : null}
+      </YStack>
+    </YStack>
+  );
+}
+
+type GuestRoomRecoveryProps = Pick<UseGuestRoomSessionResult, "session" | "status" | "refreshRoom">;
+
+function GuestRoomRecovery({ session, status, refreshRoom }: GuestRoomRecoveryProps): React.JSX.Element | null {
+  if (session || ["refreshing", "renewing", "pending_leave", "ended"].includes(status)) return null;
+
+  return (
+    <>
+      <Text color="$colorMuted">
+        {status === "expired"
+          ? "Your guest access expired. Ask the host for a fresh invitation."
+          : "No guest room is available on this device."}
+      </Text>
+      <ShellActionButton label="Return Home" href="/" />
+      {status === "failed" ? (
+        <ShellActionButton label="Retry connection" variant="surface" onPress={() => { void refreshRoom(); }} />
+      ) : null}
+    </>
+  );
+}
+
 export function GuestRoomScreen(): React.JSX.Element {
   const guest = useGuestRoomSession();
   const router = useRouter();
@@ -100,7 +153,6 @@ export function GuestRoomScreen(): React.JSX.Element {
   const { session, status, error, isBusy } = guest;
   const participantCount = session ? roomSnapshotToActiveRoster(session.snapshot).length : 0;
   const areRoomActionsPaused = status === "renewing" || status === "pending_leave" || leaving;
-  const showRecovery = !session && !["refreshing", "renewing", "pending_leave", "ended"].includes(status);
 
   function selectTab(next: GuestRoomTab): void {
     router.setParams({ tab: next });
@@ -120,26 +172,12 @@ export function GuestRoomScreen(): React.JSX.Element {
     <ShellScreen padded={false} centerContent contentMaxWidth={960}>
       <SafeAreaView style={{ flex: 1 }}>
         <YStack flex={1} paddingHorizontal="$4">
-          <YStack gap="$2" paddingBottom="$4">
-            <XStack gap="$2" alignItems="center" justifyContent="space-between">
-              <ShellActionButton label="Home" variant="text" widthMode="fit" onPress={() => router.dismissTo("/")} />
-              {session ? (
-                <ShellActionButton
-                  label="Leave room"
-                  variant="text"
-                  widthMode="fit"
-                  disabled={isBusy || areRoomActionsPaused}
-                  onPress={() => setLeaveConfirmationVisible(true)}
-                />
-              ) : null}
-            </XStack>
-            <YStack gap="$1">
-              <Text color="$color" fontSize={20} fontWeight="700" accessibilityRole="header">
-                {session ? `Room ${session.snapshot.joinCode}` : "Guest room"}
-              </Text>
-              {session ? <Text color="$colorMuted" fontSize={14}>{session.grant.displayName} · Guest</Text> : null}
-            </YStack>
-          </YStack>
+          <GuestRoomHeader
+            session={session}
+            isLeaveDisabled={isBusy || areRoomActionsPaused}
+            onHome={() => router.dismissTo("/")}
+            onLeave={() => setLeaveConfirmationVisible(true)}
+          />
           {session ? <GuestRoomTabs tab={tab} participantCount={participantCount} onSelect={selectTab} /> : null}
           <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
             <YStack gap="$4">
@@ -153,19 +191,7 @@ export function GuestRoomScreen(): React.JSX.Element {
               {status === "pending_leave" ? (
                 <ShellActionButton label="Retry departure" variant="surface" disabled={leaving} onPress={() => { void leave(); }} />
               ) : null}
-              {showRecovery ? (
-                <>
-                  <Text color="$colorMuted">
-                    {status === "expired"
-                      ? "Your guest access expired. Ask the host for a fresh invitation."
-                      : "No guest room is available on this device."}
-                  </Text>
-                  <ShellActionButton label="Return Home" href="/" />
-                  {status === "failed" ? (
-                    <ShellActionButton label="Retry connection" variant="surface" onPress={() => { void guest.refreshRoom(); }} />
-                  ) : null}
-                </>
-              ) : null}
+              <GuestRoomRecovery session={session} status={status} refreshRoom={guest.refreshRoom} />
               {session?.snapshot.state === "in_progress" ? <ShellActionButton label="Return to game" href="/gameProgress" /> : null}
             </YStack>
           </ScrollView>

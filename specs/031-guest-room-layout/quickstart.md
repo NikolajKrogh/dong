@@ -37,3 +37,7 @@ TypeScript, ESLint, 58 focused tests and 22 local browser scenarios passed after
 ## Naming follow-up
 
 Renamed GuestJoinLobby to GuestRoomContent, including its file and component tests. Lifecycle refs now distinguish session IDs from booleans; the screen names its status message, leave-dialog visibility and paused actions explicitly. Home uses handleLeaveGuestRoom for the departure action. Historical migration/spec records retain their original names.
+
+## React Doctor review follow-up
+
+Extracted GuestRoomHeader and GuestRoomRecovery so the screen coordinates navigation and session actions without also branching through header and recovery rendering. No suppression or rule configuration changes were added. React Doctor reports no issues against origin/multiplayer; TypeScript, ESLint and seven focused browser scenarios pass, including recovery, departure, tab switching and narrow light/dark layouts.
