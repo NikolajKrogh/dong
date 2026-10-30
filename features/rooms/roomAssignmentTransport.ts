@@ -10,12 +10,12 @@ export function createRoomAssignmentTransport(supabase?: SupabaseClient<Database
   return {
     async prepare({ sessionId, purpose, context }) {
       if (context.configuration.assignmentMode !== "automatic") {
-        const targets = context.targetsByParticipantId ?? {};
+        const targetsByParticipantId = context.targetsByParticipantId ?? {};
         return {
-          proposalId: null, expiresAt: null, targetsByParticipantId: targets,
-          assignments: Object.fromEntries(Object.keys(targets).map(id => [id,
-            context.configuration.assignments.filter(a => a.participantId === id).map(a => a.matchId)])),
-          sharingPolicy: Object.values(targets).every(target => target === 0) ? "common_only" : "preference",
+          proposalId: null, expiresAt: null, targetsByParticipantId,
+          assignments: Object.fromEntries(Object.keys(targetsByParticipantId).map(id => [id,
+            context.configuration.assignments.filter(assignment => assignment.participantId === id).map(assignment => assignment.matchId)])),
+          sharingPolicy: Object.values(targetsByParticipantId).every(target => target === 0) ? "common_only" : "preference",
           requiresSharingConsent: false, quality: null,
         };
       }
@@ -33,12 +33,12 @@ export function createRoomAssignmentTransport(supabase?: SupabaseClient<Database
     },
     async commit({ sessionId, purpose, context, proposalId, idempotencyKey, acceptRelaxedSharing }) {
       const client = supabase ?? getSupabaseClient();
-      const args = { session_id: sessionId, proposal_id: proposalId, expected_token: context.expectedToken,
+      const commitArguments = { session_id: sessionId, proposal_id: proposalId, expected_token: context.expectedToken,
         idempotency_key: idempotencyKey, accept_relaxed_sharing: acceptRelaxedSharing };
       const response = purpose === "start"
-        ? await client.rpc("start_game_session_v2", args)
+        ? await client.rpc("start_game_session_v2", commitArguments)
         : await client.rpc("save_running_game_configuration_v2", {
-          ...args, configuration: context.configuration as unknown as Json,
+          ...commitArguments, configuration: context.configuration as unknown as Json,
         });
       if (response.error) throw response.error;
       const data = response.data;

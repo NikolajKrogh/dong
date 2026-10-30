@@ -64,7 +64,7 @@ export const highsOptimizer: AssignmentOptimizer = {
       return createOptimizationFailure("model_limit");
     }
     const startedAtMs = performance.now();
-    function membershipVariable(playerIndex: number, slotIndex: number): string {
+    function getMembershipVariableName(playerIndex: number, slotIndex: number): string {
       return `x${playerIndex}_${slotIndex}`;
     }
     const deviationVariables: string[] = [];
@@ -72,7 +72,7 @@ export const highsOptimizer: AssignmentOptimizer = {
     const bounds: string[] = [];
     const binaryVariables: string[] = [];
     for (let i = 0; i < positiveTargetPlayers.length; i++) {
-      const membershipVariables = Array.from({ length: slotCount }, (_, s) => membershipVariable(i, s));
+      const membershipVariables = Array.from({ length: slotCount }, (_, s) => getMembershipVariableName(i, s));
       binaryVariables.push(...membershipVariables);
       constraints.push(`q${i}: ${membershipVariables.join(" + ")} = ${positiveTargetPlayers[i].target}`);
       for (let j = i + 1; j < positiveTargetPlayers.length; j++) {
@@ -81,9 +81,9 @@ export const highsOptimizer: AssignmentOptimizer = {
           const overlapVariable = `y${i}_${j}_${s}`;
           overlapVariables.push(overlapVariable);
           constraints.push(
-            `${overlapVariable} - ${membershipVariable(i, s)} <= 0`,
-            `${overlapVariable} - ${membershipVariable(j, s)} <= 0`,
-            `${overlapVariable} - ${membershipVariable(i, s)} - ${membershipVariable(j, s)} >= -1`,
+            `${overlapVariable} - ${getMembershipVariableName(i, s)} <= 0`,
+            `${overlapVariable} - ${getMembershipVariableName(j, s)} <= 0`,
+            `${overlapVariable} - ${getMembershipVariableName(i, s)} - ${getMembershipVariableName(j, s)} >= -1`,
           );
           bounds.push(`0 <= ${overlapVariable} <= 1`);
         }
@@ -93,26 +93,26 @@ export const highsOptimizer: AssignmentOptimizer = {
         constraints.push(`${overlapVariables.join(" + ")} + ${shortfallVariable} - ${excessVariable} = ${input.sharing}`);
       }
     }
-    const model = `Minimize\n obj: ${deviationVariables.join(" + ") || "0"}\nSubject To\n${constraints.join("\n")}\nBounds\n${bounds.join("\n")}\nBinary\n${binaryVariables.join(" ")}\nEnd`;
-    if (new TextEncoder().encode(model).byteLength > MAX_MODEL_INPUT_BYTES) return createOptimizationFailure("model_limit");
+    const linearProgram = `Minimize\n obj: ${deviationVariables.join(" + ") || "0"}\nSubject To\n${constraints.join("\n")}\nBounds\n${bounds.join("\n")}\nBinary\n${binaryVariables.join(" ")}\nEnd`;
+    if (new TextEncoder().encode(linearProgram).byteLength > MAX_MODEL_INPUT_BYTES) return createOptimizationFailure("model_limit");
     try {
       const highs = await getOrLoadRuntime();
       const solveTimeSeconds = Math.min(MAX_SOLVE_TIME_SECONDS, (millisecondsRemaining - (performance.now() - startedAtMs) - RESULT_VALIDATION_RESERVE_MS) / 1000);
       if (solveTimeSeconds <= 0) return createOptimizationFailure("time_limit");
-      const solution = highs.solve(model, { time_limit: solveTimeSeconds, output_flag: false, threads: 1, parallel: "off" });
+      const solution = highs.solve(linearProgram, { time_limit: solveTimeSeconds, output_flag: false, threads: 1, parallel: "off" });
       const assignments: AssignmentSets = Object.fromEntries(input.participants.map(({ id }) => [id, []]));
       for (let i = 0; i < positiveTargetPlayers.length; i++) {
         for (let s = 0; s < slotCount; s++) {
-          const column = solution.Columns?.[membershipVariable(i, s)];
-          const value = column && "Primal" in column ? column.Primal : NaN;
+          const membershipColumn = solution.Columns?.[getMembershipVariableName(i, s)];
+          const membershipValue = membershipColumn && "Primal" in membershipColumn ? membershipColumn.Primal : NaN;
           if (
-            typeof value !== "number" || !Number.isFinite(value) ||
-            Math.abs(value - Math.round(value)) > SOLUTION_INTEGRALITY_TOLERANCE ||
-            value < -SOLUTION_INTEGRALITY_TOLERANCE || value > 1 + SOLUTION_INTEGRALITY_TOLERANCE
+            typeof membershipValue !== "number" || !Number.isFinite(membershipValue) ||
+            Math.abs(membershipValue - Math.round(membershipValue)) > SOLUTION_INTEGRALITY_TOLERANCE ||
+            membershipValue < -SOLUTION_INTEGRALITY_TOLERANCE || membershipValue > 1 + SOLUTION_INTEGRALITY_TOLERANCE
           ) {
             return createOptimizationFailure(solution.Status === "Time limit reached" ? "time_limit" : "invalid_solver_result");
           }
-          if (Math.round(value) === 1) assignments[positiveTargetPlayers[i].id].push(input.pool[s]);
+          if (Math.round(membershipValue) === 1) assignments[positiveTargetPlayers[i].id].push(input.pool[s]);
         }
       }
       if (positiveTargetPlayers.some(({ id, target }) => assignments[id].length !== target)) return createOptimizationFailure("invalid_solver_result");

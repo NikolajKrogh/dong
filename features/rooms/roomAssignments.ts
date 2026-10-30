@@ -37,7 +37,7 @@ export interface AssignmentTransport {
   commit(request: CommitRequest): Promise<RoomSnapshot | { code: "room_processing_pending"; retryAfterSeconds: number }>;
 }
 
-function frozenCopy<T>(value: T): T {
+function createFrozenCopy<T>(value: T): T {
   const copy = JSON.parse(JSON.stringify(value)) as T;
   function freeze(item: unknown): void {
     if (!item || typeof item !== "object") return;
@@ -59,24 +59,24 @@ export function createRoomAssignments(
   const now = dependencies.now ?? Date.now;
   const newKey = dependencies.newKey ?? generateIdempotencyKey;
   const wait = dependencies.wait ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)));
-  const handles = new WeakMap<AssignmentPreview, { request: AssignmentRequest; proposalId: string | null; contextKey: string }>();
-  const previews = new Map<string, Promise<AssignmentPreview | AssignmentIssue>>();
-  let generation = 0;
-  let previewQueue: Promise<unknown> = Promise.resolve();
-  let pendingCommit: CommitRequest | undefined;
-  let commitInFlight: Promise<RoomSnapshot | AssignmentIssue> | undefined;
-  const keyFor = (context: AssignmentContext): string => JSON.stringify(context);
-  const pause = (seconds: number): Promise<void> => wait(Math.max(0, Math.min(10, seconds)) * 1000);
+  const previewHandles = new WeakMap<AssignmentPreview, { request: AssignmentRequest; proposalId: string | null; contextKey: string }>();
+  const inFlightPreviewsByContext = new Map<string, Promise<AssignmentPreview | AssignmentIssue>>();
+  let latestPreviewGeneration = 0;
+  let previewRequestQueue: Promise<unknown> = Promise.resolve();
+  let pendingCommitRequest: CommitRequest | undefined;
+  let inFlightCommit: Promise<RoomSnapshot | AssignmentIssue> | undefined;
+  const serializeContext = (context: AssignmentContext): string => JSON.stringify(context);
+  const waitForRetry = (seconds: number): Promise<void> => wait(Math.max(0, Math.min(10, seconds)) * 1000);
 
   function preview(): Promise<AssignmentPreview | AssignmentIssue> {
-    const context = frozenCopy(readContext());
-    const contextKey = keyFor(context);
-    const existing = previews.get(contextKey);
-    if (existing) return existing;
-    const currentGeneration = ++generation;
-    const request: AssignmentRequest = frozenCopy({ sessionId, purpose, context });
-    const operation = previewQueue.then(async (): Promise<AssignmentPreview | AssignmentIssue> => {
-      const isCurrent = () => generation === currentGeneration && keyFor(readContext()) === contextKey;
+    const context = createFrozenCopy(readContext());
+    const contextKey = serializeContext(context);
+    const existingPreviewRequest = inFlightPreviewsByContext.get(contextKey);
+    if (existingPreviewRequest) return existingPreviewRequest;
+    const previewGeneration = ++latestPreviewGeneration;
+    const request: AssignmentRequest = createFrozenCopy({ sessionId, purpose, context });
+    const previewOperation = previewRequestQueue.then(async (): Promise<AssignmentPreview | AssignmentIssue> => {
+      const isCurrent = () => latestPreviewGeneration === previewGeneration && serializeContext(readContext()) === contextKey;
       if (!isCurrent()) return { issue: "stale" };
       try {
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -84,14 +84,14 @@ export function createRoomAssignments(
           if (!isCurrent()) return { issue: "stale" };
           if ("issue" in response) {
             if (attempt === 2) return { issue: "busy" };
-            await pause(response.retryAfterSeconds);
+            await waitForRetry(response.retryAfterSeconds);
             if (!isCurrent()) return { issue: "stale" };
             continue;
           }
-          const { proposalId, ...visible } = response;
-          const reviewed = frozenCopy(visible);
-          handles.set(reviewed, { request, proposalId, contextKey });
-          return reviewed;
+          const { proposalId, ...previewDetails } = response;
+          const reviewedPreview = createFrozenCopy(previewDetails);
+          previewHandles.set(reviewedPreview, { request, proposalId, contextKey });
+          return reviewedPreview;
         }
       } catch (error) {
         const code = (error as { message?: string })?.message;
@@ -102,59 +102,59 @@ export function createRoomAssignments(
       }
       return { issue: "busy" };
     });
-    previews.set(contextKey, operation);
-    previewQueue = operation;
-    void operation.finally(() => { if (previews.get(contextKey) === operation) previews.delete(contextKey); });
-    return operation;
+    inFlightPreviewsByContext.set(contextKey, previewOperation);
+    previewRequestQueue = previewOperation;
+    void previewOperation.finally(() => { if (inFlightPreviewsByContext.get(contextKey) === previewOperation) inFlightPreviewsByContext.delete(contextKey); });
+    return previewOperation;
   }
 
   function commit(
-    reviewed: AssignmentPreview | AssignmentIssue,
+    reviewedPreview: AssignmentPreview | AssignmentIssue,
     confirmation?: { acceptRelaxedSharing: boolean },
   ): Promise<RoomSnapshot | AssignmentIssue> {
-    if (commitInFlight) return commitInFlight;
-    if (!pendingCommit) {
-      if ("issue" in reviewed) return Promise.resolve(reviewed);
-      const handle = handles.get(reviewed);
-      if (!handle || handle.contextKey !== keyFor(readContext())) return Promise.resolve({ issue: "stale" });
-      if (reviewed.expiresAt && Date.parse(reviewed.expiresAt) <= now()) return Promise.resolve({ issue: "expired" });
-      if (reviewed.requiresSharingConsent && !confirmation?.acceptRelaxedSharing) {
+    if (inFlightCommit) return inFlightCommit;
+    if (!pendingCommitRequest) {
+      if ("issue" in reviewedPreview) return Promise.resolve(reviewedPreview);
+      const previewHandle = previewHandles.get(reviewedPreview);
+      if (!previewHandle || previewHandle.contextKey !== serializeContext(readContext())) return Promise.resolve({ issue: "stale" });
+      if (reviewedPreview.expiresAt && Date.parse(reviewedPreview.expiresAt) <= now()) return Promise.resolve({ issue: "expired" });
+      if (reviewedPreview.requiresSharingConsent && !confirmation?.acceptRelaxedSharing) {
         return Promise.resolve({ issue: "confirmation_required" });
       }
-      pendingCommit = frozenCopy({ ...handle.request, proposalId: handle.proposalId,
-        idempotencyKey: newKey(), acceptRelaxedSharing: reviewed.requiresSharingConsent && confirmation?.acceptRelaxedSharing === true });
+      pendingCommitRequest = createFrozenCopy({ ...previewHandle.request, proposalId: previewHandle.proposalId,
+        idempotencyKey: newKey(), acceptRelaxedSharing: reviewedPreview.requiresSharingConsent && confirmation?.acceptRelaxedSharing === true });
     }
-    const request = pendingCommit;
-    commitInFlight = (async (): Promise<RoomSnapshot | AssignmentIssue> => {
+    const request = pendingCommitRequest;
+    inFlightCommit = (async (): Promise<RoomSnapshot | AssignmentIssue> => {
       try {
         for (let attempt = 0; attempt < 3; attempt++) {
           const result = await transport.commit(request);
           if ("code" in result) {
             if (attempt === 2) return { issue: "busy" };
-            await pause(result.retryAfterSeconds);
+            await waitForRetry(result.retryAfterSeconds);
             continue;
           }
-          pendingCommit = undefined;
+          pendingCommitRequest = undefined;
           return result;
         }
       } catch (error) {
         const code = (error as { message?: string })?.message;
-        if (code === "not_host") { pendingCommit = undefined; return { issue: "not_host" }; }
+        if (code === "not_host") { pendingCommitRequest = undefined; return { issue: "not_host" }; }
         if (code === "configuration_conflict" || code === "assignment_proposal_superseded" || code === "invalid_assignment_proposal") {
-          pendingCommit = undefined;
+          pendingCommitRequest = undefined;
           return { issue: "stale" };
         }
-        if (code === "assignment_proposal_expired") { pendingCommit = undefined; return { issue: "expired" }; }
+        if (code === "assignment_proposal_expired") { pendingCommitRequest = undefined; return { issue: "expired" }; }
         if (code && (/^invalid_|^assignment_count_|^insufficient_|^missing_|^target_below_|^per_player_/.test(code) || code === "idempotency_conflict")) {
-          pendingCommit = undefined;
+          pendingCommitRequest = undefined;
           return { issue: "invalid_configuration" };
         }
         return { issue: "unavailable" };
       }
       return { issue: "busy" };
     })();
-    void commitInFlight.finally(() => { commitInFlight = undefined; });
-    return commitInFlight;
+    void inFlightCommit.finally(() => { inFlightCommit = undefined; });
+    return inFlightCommit;
   }
   return { preview, commit };
 }

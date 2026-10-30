@@ -3,7 +3,7 @@ import type { AssignmentContext, AssignmentIssue, AssignmentPreview } from "./ro
 import { createRoomAssignments } from "./roomAssignments";
 import { createRoomAssignmentTransport } from "./roomAssignmentTransport";
 
-const messages: Record<AssignmentIssue["issue"], string> = {
+const ASSIGNMENT_ISSUE_MESSAGES: Record<AssignmentIssue["issue"], string> = {
   busy: "Another assignment request is still processing. Try again shortly.",
   stale: "The room or draft changed. Review a new preview before continuing.",
   expired: "This preview expired. Generate a new preview.",
@@ -14,39 +14,39 @@ const messages: Record<AssignmentIssue["issue"], string> = {
 };
 
 export function useAssignmentPreview(sessionId: string, purpose: "start" | "running_save", context: AssignmentContext) {
-  const latest = useRef(context);
-  useLayoutEffect(() => { latest.current = context; }, [context]);
-  const owner = useRef<{ sessionId: string; purpose: string; module: ReturnType<typeof createRoomAssignments> } | null>(null);
+  const latestContextRef = useRef(context);
+  useLayoutEffect(() => { latestContextRef.current = context; }, [context]);
+  const workflowOwnerRef = useRef<{ sessionId: string; purpose: string; assignmentWorkflow: ReturnType<typeof createRoomAssignments> } | null>(null);
   const [preview, setPreview] = useState<AssignmentPreview | null>(null);
-  const [isBusy, setBusy] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [issue, setIssue] = useState<AssignmentIssue["issue"] | null>(null);
-  function getModule() {
-    if (!owner.current || owner.current.sessionId !== sessionId || owner.current.purpose !== purpose) {
-      owner.current = { sessionId, purpose, module: createRoomAssignments(sessionId, purpose, () => latest.current, createRoomAssignmentTransport()) };
+  function getOrCreateAssignmentWorkflow() {
+    if (!workflowOwnerRef.current || workflowOwnerRef.current.sessionId !== sessionId || workflowOwnerRef.current.purpose !== purpose) {
+      workflowOwnerRef.current = { sessionId, purpose, assignmentWorkflow: createRoomAssignments(sessionId, purpose, () => latestContextRef.current, createRoomAssignmentTransport()) };
     }
-    return owner.current.module;
+    return workflowOwnerRef.current.assignmentWorkflow;
   }
   async function review(): Promise<void> {
-    setBusy(true);
+    setIsBusy(true);
     setError(null);
     setIssue(null);
     try {
-      const result = await getModule().preview();
-      if ("issue" in result) { setIssue(result.issue); setError(messages[result.issue]); setPreview(null); }
+      const result = await getOrCreateAssignmentWorkflow().preview();
+      if ("issue" in result) { setIssue(result.issue); setError(ASSIGNMENT_ISSUE_MESSAGES[result.issue]); setPreview(null); }
       else setPreview(result);
-    } finally { setBusy(false); }
+    } finally { setIsBusy(false); }
   }
   async function commit(acceptRelaxedSharing = false) {
     if (!preview) { setError("Review assignments before continuing."); return null; }
-    setBusy(true);
+    setIsBusy(true);
     setError(null);
     setIssue(null);
     try {
-      const result = await getModule().commit(preview, { acceptRelaxedSharing });
-      if ("issue" in result) { setIssue(result.issue); setError(messages[result.issue]); return null; }
+      const result = await getOrCreateAssignmentWorkflow().commit(preview, { acceptRelaxedSharing });
+      if ("issue" in result) { setIssue(result.issue); setError(ASSIGNMENT_ISSUE_MESSAGES[result.issue]); return null; }
       return result;
-    } finally { setBusy(false); }
+    } finally { setIsBusy(false); }
   }
   return { preview, isBusy, error, issue, review, commit };
 }
