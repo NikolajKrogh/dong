@@ -2,6 +2,15 @@
 
 The hosted catalog was activated on 2026-10-29 after the website had shipped its catalog client ahead of the required Edge deployment. Earlier sections below retain the preparation and preview history.
 
+## Production repair, 2026-10-30
+
+- Reproduced `discover-matches` returning HTTP 503 for England's two leagues. Deployed discovery v5 and solo v5 contained inferred PostgresJS arrays, while the repository already contained the explicit text-array OID fix in commit `1a1f16c`. Monitor v4 also retained `secret:match-monitor` instead of the configured `secret:match_monitor`.
+- Re-ran the existing cold-array check against local Postgres: inferred nonempty arrays failed with `malformed array literal`; explicit single, multiple, empty and bigint-cast arrays passed. The three Edge entry points typechecked and all 26 focused request-handler, service and monitor tests passed.
+- Restored the repository adapter in discovery v6, solo v6 and monitor v5. Preserved their other deployed sources; corrected the monitor entry point to the existing `match_monitor` key name. No schema, credentials, ownership generation or budget changes were needed.
+- Production discovery returned HTTP 200 with available groups for October 30 and 31. The built-in browser showed 13 Premier League/Championship matches for October 31, 15:00–16:00, with no discovery warning after Retry. The original October 30 time range correctly had no fixtures. No matches were added to the user's room.
+- Android, Java and a full gameplay journey were not checked. Future deployments must include commit `1a1f16c` or its fixes; redeploying the older adapter reintroduces this failure.
+- Follow-up client warning repair: commit `7733817` separates the 60-second client refresh deadline from the backend freshness verdict. Available server-fresh results no longer keep an outdated warning after Retry/reopen; server-stale and invalid timing still warn. Cloudflare Pages deployed it successfully, client CI passed lint/typecheck/unused-code/unit gates, and 24 focused tests plus a local web export passed. Forward/back navigation after expiry was verified in the built-in browser; Android testing was excluded at the user's request. The optional local React Doctor scan did not finish and was stopped.
+
 ## Production activation, 2026-10-29
 
 - Applied the seven pending migrations from `20261026163255` through `20261029170000` using `db push --linked --skip-vault`, after a dry run. Existing core and consumer migrations were already present.
