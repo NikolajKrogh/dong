@@ -127,9 +127,9 @@ it('refreshes old source facts without warning for server-fresh fixtures, includ
   expect(view.read().leagueStates[0].status).toBe('available');
   const empty = result(['A']); empty.matches = [];
   discover.mockResolvedValue(empty); await view.retry(); await flush();
-  expect(view.read().leagueStates[0].status).toBe('empty');
+  expect(view.read().leagueStates[0]).toMatchObject({ status: 'empty', message: null });
   await jest.advanceTimersByTimeAsync(60_000);
-  expect(view.read().leagueStates[0].status).toBe('empty');
+  expect(view.read().leagueStates[0]).toMatchObject({ status: 'empty', message: null });
   discover.mockResolvedValue({ ...empty, groups: [{ ...empty.groups[0], lastSuccessfulCheckAt: null }] });
   await view.retry(); await flush();
   expect(view.read().leagueStates[0].status).toBe('outdated');

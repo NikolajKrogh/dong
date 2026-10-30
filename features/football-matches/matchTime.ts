@@ -1,66 +1,39 @@
-/**
- * Kickoff-time formatting shared by every surface that renders a match card.
- *
- * Extracted from `components/setupGame/MatchItem.tsx` when the wizard and the
- * multiplayer room converged on `components/matchSelection/SelectableMatchList`
- * as their one match renderer. Sharing the formatter is load-bearing rather than
- * tidiness: `Match.startTime` carries a *different shape* depending on which path
- * produced it (see the note on `Match.startTime` in `store/store.ts`) —
- *
- *  * match discovery stores a local `"HH:MM"` display string
- *    (`hooks/useMatchBatchInsertion.ts` ← `MatchData.time`),
- *  * a room's pool stores the provider's full ISO instant
- *    (`hooks/useRoomMatchPool.ts` ← `RoomMatchSummary.kickoffAt`),
- *  * a hand-typed fixture has none at all.
- *
- * A naive `new Date(startTime)` therefore renders the two surfaces differently,
- * which is exactly what "identical experience" has to rule out. The cascade of
- * fallbacks below is what makes the loose contract work; keep all four.
- */
+function formatClockTime(hours: number, minutes: number): string {
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
 
-/** Locale form used for every kickoff, e.g. `"08:30 PM"`. */
-const TIME_FORMAT: Intl.DateTimeFormatOptions = {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: true,
-};
+/** Preserve the viewer's timezone while making clock output independent of locale settings. */
+export function formatMatchTime(startTime?: string): string | null {
+  if (!startTime?.trim()) return null;
 
-/**
- * Renders a kickoff for display, or `null` when there is nothing to show.
- *
- * @param startTime A full ISO instant, a bare `HH:MM`, an ESPN-style
- *   `…T19:00Z`, or anything else. Absent/empty yields `null`.
- */
-export const formatMatchTime = (startTime?: string): string | null => {
-  if (!startTime) return null;
-
-  try {
-    // 1. A real instant (the room's kickoffAt, and most ISO strings).
-    const date = new Date(startTime);
-    if (!Number.isNaN(date.getTime())) {
-      return date.toLocaleTimeString("en-US", TIME_FORMAT);
+  const clockMatch = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i.exec(startTime.trim());
+  if (clockMatch) {
+    let hours = Number(clockMatch[1]);
+    const minutes = Number(clockMatch[2]);
+    const seconds = Number(clockMatch[3] ?? 0);
+    const period = clockMatch[4]?.toUpperCase();
+    if (minutes > 59 || seconds > 59 || (period ? hours < 1 || hours > 12 : hours > 23)) {
+      return null;
     }
-
-    // 2. A bare clock time — already display-ready, and what match discovery
-    //    hands the single-player wizard.
-    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(startTime)) {
-      return startTime;
-    }
-
-    // 3. An ESPN-shaped string Date could not parse: pull the UTC time out and
-    //    move it into the viewer's zone.
-    const espnMatch = /T(\d{2}:\d{2})Z/.exec(startTime);
-    if (espnMatch?.[1]) {
-      const [hours, minutes] = espnMatch[1].split(":").map(Number);
-      const localDate = new Date();
-      localDate.setUTCHours(hours, minutes);
-      return localDate.toLocaleTimeString("en-US", TIME_FORMAT);
-    }
-
-    // 4. Unrecognised: show it verbatim rather than hiding the fixture's time.
-    return startTime;
-  } catch (error) {
-    console.log("Time formatting error:", error, "for time:", startTime);
-    return startTime;
+    if (period) hours = hours % 12 + (period === "PM" ? 12 : 0);
+    return formatClockTime(hours, minutes);
   }
-};
+
+  if (/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(startTime.trim())) {
+    if (!startTime.includes("T")) return null;
+    const kickoffDate = new Date(startTime);
+    return Number.isNaN(kickoffDate.getTime()) ? null : formatClockTime(kickoffDate.getHours(), kickoffDate.getMinutes());
+  }
+
+  const utcClockMatch = /T(\d{2}):(\d{2})Z/.exec(startTime);
+  if (utcClockMatch) {
+    const hours = Number(utcClockMatch[1]);
+    const minutes = Number(utcClockMatch[2]);
+    if (hours > 23 || minutes > 59) return null;
+    const localKickoff = new Date();
+    localKickoff.setUTCHours(hours, minutes, 0, 0);
+    return formatClockTime(localKickoff.getHours(), localKickoff.getMinutes());
+  }
+
+  return startTime;
+}

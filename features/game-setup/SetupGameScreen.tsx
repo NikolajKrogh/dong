@@ -13,7 +13,7 @@ import {
 import { ShellScreen } from "../../components/ui";
 import { ScreenReaderHeading } from "../../components/ui/ScreenReaderHeading";
 import { Player, useGameStore } from "../../store/gameStore";
-import { createRandomAssignments } from "./createRandomAssignments";
+import { createRandomAssignments, createTargetedAssignments, validateLocalAssignments } from "./createRandomAssignments";
 import { selectGameplayMatches } from "./selectGameplayMatches";
 import { isWideLayout } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
@@ -53,6 +53,8 @@ const SetupGameScreen = () => {
     commonMatchId,
     playerAssignments,
     matchesPerPlayer,
+    playerMatchCounts,
+    setPlayerMatchCount,
     setPlayers: setGlobalPlayers,
     setMatches: setGlobalMatches,
     setCommonMatchId: setGlobalCommonMatchId,
@@ -197,7 +199,7 @@ const SetupGameScreen = () => {
 
   const handleStartGame = useStartGame();
 
-  const handleRandomAssignment = useRandomAssignment();
+  const { handleRandomAssignment, isAssigning } = useRandomAssignment();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -273,6 +275,9 @@ const SetupGameScreen = () => {
                   playerAssignments={playerAssignments}
                   toggleMatchAssignment={toggleMatchAssignment}
                   matchesPerPlayer={matchesPerPlayer}
+                  playerMatchCounts={playerMatchCounts}
+                  setPlayerMatchCount={setPlayerMatchCount}
+                  isAssigning={isAssigning}
                   setMatchesPerPlayer={setMatchesPerPlayer}
                   handleRandomAssignment={handleRandomAssignment}
                 />
@@ -312,6 +317,7 @@ const SetupGameScreen = () => {
 function useStartGame(): () => void {
   const router = useRouter();
   const { players, matches, commonMatchId, playerAssignments,
+    matchesPerPlayer, playerMatchCounts, assignmentPolicyVersion,
     setMatches: setGlobalMatches, clearActiveGameContext } = useGameStore();
   const handleStartGame = () => {
     if (players.length === 0) {
@@ -344,6 +350,14 @@ function useStartGame(): () => void {
       return;
     }
 
+    if (assignmentPolicyVersion === 2) {
+      try {
+        validateLocalAssignments(players, matches, commonMatchId, playerAssignments, matchesPerPlayer, playerMatchCounts);
+      } catch (error) {
+        Toast.show({ type: "themedWarning", text1: "Check player assignments", text2: error instanceof Error ? error.message : "Review individual match counts." });
+        return;
+      }
+    }
     const filteredMatches = selectGameplayMatches(matches, commonMatchId, playerAssignments);
     setGlobalMatches(filteredMatches);
     clearActiveGameContext();
@@ -354,22 +368,33 @@ function useStartGame(): () => void {
   return handleStartGame;
 }
 
-function useRandomAssignment(): (numMatches: number) => void {
-  const { players, matches, commonMatchId, setPlayerAssignments: setGlobalPlayerAssignments } = useGameStore();
-  const handleRandomAssignment = (numMatches: number) => {
+function useRandomAssignment(): { handleRandomAssignment: (count: number) => Promise<void>; isAssigning: boolean } {
+  const { players, matches, commonMatchId, playerMatchCounts, assignmentPolicyVersion, setPlayerAssignments: setGlobalPlayerAssignments } = useGameStore();
+  const [isAssigning, setIsAssigning] = useState(false);
+  const inFlight = useRef(false);
+  const handleRandomAssignment = async (numMatches: number) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setIsAssigning(true);
     try {
-      const newAssignments = createRandomAssignments(
+      const newAssignments = assignmentPolicyVersion === 2 ? await createTargetedAssignments(
+        players, matches, commonMatchId, numMatches, playerMatchCounts,
+      ) : createRandomAssignments(
         players,
         matches,
         commonMatchId,
         numMatches,
       );
-
+      const latest = useGameStore.getState();
+      if (latest.players !== players || latest.matches !== matches || latest.commonMatchId !== commonMatchId ||
+        latest.playerMatchCounts !== playerMatchCounts || latest.matchesPerPlayer !== numMatches) {
+        throw new Error("Setup changed. Randomize again to use the latest counts.");
+      }
       setGlobalPlayerAssignments(newAssignments);
       Toast.show({
         type: "themedSuccess",
         text1: "Matches assigned",
-        text2: `Each player has ${numMatches} additional matches plus the common match.`,
+        text2: "Each player has their configured count plus the common match. Unequal counts use best-effort sharing.",
         position: "bottom",
       });
     } catch (error) {
@@ -383,9 +408,12 @@ function useRandomAssignment(): (numMatches: number) => void {
         position: "bottom",
       });
       console.error(error);
+    } finally {
+      inFlight.current = false;
+      setIsAssigning(false);
     }
   };
-  return handleRandomAssignment;
+  return { handleRandomAssignment, isAssigning };
 }
 
 export default SetupGameScreen;

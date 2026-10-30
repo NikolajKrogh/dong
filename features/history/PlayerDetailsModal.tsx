@@ -53,6 +53,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         id: game.id,
         date: game.date,
         drinks: playerInGame.drinksTaken || 0,
+        additionalMatches: Object.hasOwn(game.playerAssignments, playerInGame.id) ?
+          new Set(game.playerAssignments[playerInGame.id].filter(id => id !== game.commonMatchId)).size : null,
       };
     })
     .sort((a, b) => {
@@ -181,6 +183,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                       </Text>
                     </View>
                     <View style={styles.playerGameDrinks}>
+                      {game.additionalMatches !== null ? <Text>{game.additionalMatches} additional matches</Text> : null}
                       <Text style={styles.playerGameDrinksText}>
                         {game.drinks.toFixed(1)}
                       </Text>

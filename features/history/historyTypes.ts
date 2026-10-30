@@ -76,6 +76,8 @@ type PlayerAssignments = { [playerId: string]: string[] };
  * @property {number} matchesPerPlayer Derived matches per player metric.
  */
 export interface GameSession {
+  assignmentPolicyVersion?: 1 | 2;
+  playerMatchCounts?: Record<string, number>;
   id: string;
   /** Completion timestamp; empty when an older cloud record has no evidence. */
   date: string;

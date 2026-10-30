@@ -11,11 +11,13 @@ import { AssignmentModeSelector } from "./AssignmentModeSelector";
 import { AssignmentSettingsPanel } from "./AssignmentSettingsPanel";
 import { RoomAssignmentPlayers } from "./RoomAssignmentPlayers";
 import { RoomIdentityPanel } from "./RoomIdentityPanel";
+import { AssignmentPreviewPanel } from "./AssignmentPreviewPanel";
 import { useActiveGameRoomSync } from "./useActiveGameRoomSync";
 import { useRunningGameDraft } from "./useRunningGameDraft";
 import { isWideLayout } from "../../styles/responsive";
 import { useColors } from "../../styles/theme";
 import type { RoomSnapshot } from "../../types/room";
+import { roomSnapshotHasAssignmentTargets } from "./roomSnapshotAdapter";
 
 export default function EditGameScreen(): React.JSX.Element {
   const game = useActiveGameRoomSync();
@@ -56,7 +58,7 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
 }): React.JSX.Element {
   // Polls may update gameplay, but never replace an in-progress configuration draft.
   const [baseline] = useState(snapshot);
-  const draft = useRunningGameDraft(baseline);
+  const draft = useRunningGameDraft(baseline, snapshot);
   const [step, setStep] = useState("matches");
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
@@ -65,11 +67,15 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
   const selectable = draft.matches.filter(match => match.id !== baseline.commonMatchId);
   const commonMatch = draft.matches.filter(match => match.id === baseline.commonMatchId);
 
-  async function save(): Promise<void> {
+  async function save(acceptRelaxedSharing = false): Promise<void> {
     if (busy) return;
-    const saved = await draft.save();
+    const saved = await draft.save(acceptRelaxedSharing);
     if (saved) onSaved(saved);
   }
+  if (!roomSnapshotHasAssignmentTargets(baseline)) return <YStack padding="$4" gap="$3">
+    <Text accessibilityRole="alert">Player counts are unavailable. Reload the room before editing.</Text>
+    <ShellActionButton label="Reload room" onPress={() => { void onReload(); }} />
+  </YStack>;
   return <YStack flex={1}>
     <XStack alignItems="center" justifyContent="space-between" paddingHorizontal="$4" paddingTop="$2">
       <Text fontSize={18} fontWeight="700" color="$color">Edit game</Text>
@@ -82,8 +88,10 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
     {!baseline.configurationToken ? <Text accessibilityRole="alert">This server must be updated before running games can be edited.</Text> : null}
     <SetupWizard activeStepKey={step} onStepChange={setStep} onStepBack={setStep}
       firstSlotAction={{ label: "Cancel", icon: "close", onPress: onCancel, disabled: draft.isSaving }}
-      finalAction={{ label: draft.isSaving ? "Saving…" : "Save changes", icon: "checkmark", testID: "EditGameSave",
-        disabled: busy || !draft.canSave, backgroundColor: colors.success, onPress: () => { void save(); } }}
+      finalAction={{ label: draft.isSaving ? "Saving…" : draft.supportsTargets ? "Review changes" : "Save changes", icon: "checkmark", testID: "EditGameSave",
+        disabled: busy || !draft.canSave, backgroundColor: colors.success, onPress: () => {
+          if (draft.supportsTargets) { setStep("assign"); void draft.assignmentPreview.review(); } else void save();
+        } }}
       steps={[
         { key: "room", name: "Room", icon: "people", canEnter: true,
           content: <YStack padding="$4" gap="$3"><RoomIdentityPanel joinCode={baseline.joinCode} participants={draft.participants} /></YStack> },
@@ -101,10 +109,15 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
             <AssignmentModeSelector allowPlayerPicked={false} assignmentMode={draft.mode} isBusy={busy} onSelectMode={mode => { if (mode !== "player_picked") draft.setMode(mode); }} />
             <AssignmentSettingsPanel editing plan={draft.plan} mode={draft.mode} isBusy={busy} onChange={draft.setSettings} />
             <RoomAssignmentPlayers participants={draft.participants} matches={selectable}
+              targetsByParticipantId={draft.plan.targetsByParticipantId}
+              onSetPlayerMatchCount={draft.supportsTargets ? draft.setPlayerMatchCount : undefined}
               matchesPerPlayer={draft.plan.effectivePerPlayer} isBusy={busy} pending={draft.mode === "automatic"} pendingLabel="On save"
               selectedMatchIdsFor={id => draft.assignments.filter(a => a.participantId === id).map(a => a.matchId)}
               onToggleAllocation={draft.mode === "host_assigned" ? draft.toggleAssignment : undefined} />
             {!draft.plan.feasible ? <Text color="$danger">Add more matches or lower the assignment count before saving.</Text> : null}
+            {draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}
+              isBusy={busy} onReview={() => { void draft.assignmentPreview.review(); }} actionLabel="Save these assignments"
+              onCommit={accept => { void save(accept); }} /> : null}
           </YStack> },
       ]} />
   </YStack>;

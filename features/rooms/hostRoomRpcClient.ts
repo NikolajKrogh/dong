@@ -14,9 +14,13 @@ const createHostRoomRpcClient = (
 ): HostRoomRpcClient => {
   return {
     async createRoomAsHost() {
-      const { data, error } = await client
-        .rpc("create_room_as_host")
+      let { data, error } = await client
+        .rpc("create_room_as_host_v2")
         .overrideTypes<HostRoomCreateResponse, { merge: false }>();
+      if (error?.code === "PGRST202") {
+        ({ data, error } = await client.rpc("create_room_as_host")
+          .overrideTypes<HostRoomCreateResponse, { merge: false }>());
+      }
 
       if (error) {
         throw error;

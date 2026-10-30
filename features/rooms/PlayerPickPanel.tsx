@@ -34,7 +34,7 @@ interface PlayerPickPanelProps {
 }
 
 function getPickInstruction(cap: number, pickedCount: number): string {
-  if (!(cap > 0)) return "Everyone gets the common match only. No picks needed.";
+  if (!(cap > 0)) return "You get the common match only. No picks needed.";
   if (pickedCount >= cap) return "All matches chosen. Tap one to change your selection.";
 
   const remaining = cap - pickedCount;

@@ -27,12 +27,13 @@
     "db:types": "node scripts/db-types.mjs",
     "db:types:check": "node scripts/check-db-types.mjs",
     "typecheck": "tsc --noEmit",
-    "typecheck:edge": "npx --yes deno@2.9.6 check --no-lock --node-modules-dir=none supabase/functions/delete-account/index.ts supabase/functions/guest-room-access/index.ts supabase/functions/refresh-provider-scores/index.ts supabase/functions/discover-matches/index.ts supabase/functions/solo-match-tracking/index.ts supabase/functions/run-match-monitor/index.ts",
+    "typecheck:edge": "npx --yes deno@2.9.6 check --no-lock --node-modules-dir=none supabase/functions/delete-account/index.ts supabase/functions/guest-room-access/index.ts supabase/functions/refresh-provider-scores/index.ts supabase/functions/discover-matches/index.ts supabase/functions/solo-match-tracking/index.ts supabase/functions/run-match-monitor/index.ts supabase/functions/room-assignment-preview/index.ts",
     "test:unit": "node --no-experimental-webstorage -r ./scripts/jest-ci-env.cjs ./node_modules/jest/bin/jest.js --runInBand --watchAll=false --testPathIgnorePatterns=\"node_modules|e2e|\\.features-gen|\\.supabase|__tests__/fixtures/|platform.test.tsx\"",
     "check:unused": "knip",
     "check:league-catalog": "node scripts/check-league-catalog.mjs",
     "doctor": "npx react-doctor@latest",
-    "test:e2e:schedule": "bddgen --config=playwright.schedule.config.ts && playwright test --config=playwright.schedule.config.ts"
+    "test:e2e:schedule": "bddgen --config=playwright.schedule.config.ts && playwright test --config=playwright.schedule.config.ts",
+    "test:assignments:edge": "npx --yes deno@2.9.6 test --config supabase/functions/room-assignment-preview/deno.json supabase/functions/room-assignment-preview/handler_test.ts"
   },
   "jest": {
     "preset": "jest-expo",
@@ -45,13 +46,15 @@
       "<rootDir>/jest.setup.ts"
     ],
     "testPathIgnorePatterns": [
-      "<rootDir>/__tests__/fixtures/",
+      "[/\\\\]__tests__[/\\\\]fixtures[/\\\\]",
       "/node_modules/",
+      "[/\\\\]supabase[/\\\\]functions[/\\\\]",
       "/e2e/playwright/",
       "/\\.features-gen/",
       "/\\.supabase/"
     ],
     "modulePathIgnorePatterns": [
+      "test-results",
       "<rootDir>/.supabase/"
     ],
     "transformIgnorePatterns": [

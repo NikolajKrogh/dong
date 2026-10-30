@@ -5,7 +5,7 @@ import { Text, XStack, YStack } from "tamagui";
 import type { GuestRoomSession } from "../../types/guestRoom";
 import { SelectableMatchList } from "../game-setup/SelectableMatchList";
 import { PlayerPickPanel } from "./PlayerPickPanel";
-import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
+import { roomSnapshotHasAssignmentTargets, roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
 
 interface GuestRoomContentProps {
   session: GuestRoomSession;
@@ -44,7 +44,7 @@ function GuestMatches({ session, onSetPicks, isBusy, showPickProgress }: GuestMa
         flat
         matches={matches}
         myPicks={myPicks}
-        cap={snapshot.assignmentPlan.matchesPerPlayer}
+        cap={snapshot.assignmentPlan.targetsByParticipantId?.[grant.participantId] ?? snapshot.assignmentPlan.matchesPerPlayer}
         onSetPicks={onSetPicks}
         isBusy={isBusy}
         testID="guest-player-pick-panel"
@@ -100,6 +100,7 @@ export function GuestRoomContent({
     && !snapshot.finalOnly
     && snapshot.assignmentMode === "player_picked"
     && Boolean(snapshot.assignmentPlan);
+  if (!roomSnapshotHasAssignmentTargets(snapshot)) return <Text accessibilityRole="alert">Player counts are unavailable. Refresh the room before picking.</Text>;
 
   return (
     <>
@@ -158,7 +159,7 @@ export function GuestRoomContent({
               </YStack>
               {showPickProgress ? (
                 <Text testID={`guest-pick-progress-${participant.id}`} color="$colorMuted" fontSize={13}>
-                  {picks.filter((pick) => pick.participantId === participant.id).length}/{cap} picked
+                  {picks.filter((pick) => pick.participantId === participant.id).length}/{snapshot.assignmentPlan.targetsByParticipantId?.[participant.id] ?? cap} picked
                 </Text>
               ) : null}
             </XStack>

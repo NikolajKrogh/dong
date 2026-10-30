@@ -28,7 +28,7 @@ module.exports = defineConfig([
   },
   {
     // Deno resolves npm: specifiers; the Edge typecheck validates these modules.
-    files: ["supabase/functions/_shared/football-matches/**/*.ts", "shared/encoding/**/*.ts"],
+    files: ["supabase/functions/_shared/football-matches/**/*.ts", "supabase/functions/_shared/assignments/**/*.ts", "shared/encoding/**/*.ts"],
     rules: { "import/no-unresolved": ["error", { ignore: ["^npm:"] }] },
   },
   {

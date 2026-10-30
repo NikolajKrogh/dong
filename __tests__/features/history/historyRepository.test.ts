@@ -7,6 +7,7 @@ import {
   mergeHistory,
 } from "../../../features/history";
 import type { GameSession } from "../../../features/history/historyTypes";
+import { mapCompletedSession } from "../../../features/history/historyRepository";
 
 interface QueryRequest {
   source: "summaries" | "early" | "links";
@@ -374,4 +375,22 @@ describe("historyRepository", () => {
       assignmentPlan: {},
     })).toThrow("Invalid departure participant.");
   });
+});
+
+it("retains known v2 zero overrides without inventing legacy target settings", () => {
+  const v2 = mapCompletedSession(cloudSession("v2", { assignment_policy_version: 2, configured_default_match_count: 3,
+    player_match_counts: { "player-1": 0 }, common_match_id: "match-1", player_assignments: { "player-1": ["match-1"] } }));
+  expect(v2).toMatchObject({ assignmentPolicyVersion: 2, matchesPerPlayer: 3, playerMatchCounts: { "player-1": 0 },
+    playerAssignments: { "player-1": ["match-1"] } });
+  expect(mapCompletedSession(cloudSession("legacy"))).not.toHaveProperty("playerMatchCounts");
+});
+it("maps frozen departure targets separately from actual additional assignments", () => {
+  const departed = mapDepartureResult("room-v2", "2026-10-30T16:00:00Z", {
+    sessionId: "room-v2", state: "in_progress", assignmentPolicyVersion: 2, commonMatchId: "common",
+    participants: [{ id: "p", displayName: "Player", additionalMatchCount: 0, currentDrinkTotal: 2 }],
+    matches: [{ id: "common", homeTeamName: "A", awayTeamName: "B", homeScore: 1, awayScore: 0 }],
+    assignments: [{ participantId: "p", matchId: "common" }], assignmentPlan: { matchesPerPlayer: 3 },
+  });
+  expect(departed).toMatchObject({ assignmentPolicyVersion: 2, playerMatchCounts: { p: 0 },
+    playerAssignments: { p: [] }, players: [{ drinksTaken: 2 }] });
 });

@@ -12,7 +12,9 @@ export interface CloudHistoryData {
   sessions: GameSession[];
 }
 
-type CompletedSessionSummaryRow = Pick<Database['public']['Views']['completed_session_summaries']['Row'], 'session_id' | 'completed_at' | 'common_match_id' | 'matches_per_player' | 'players' | 'matches' | 'player_assignments'>;
+type CompletedSessionSummaryRow = Pick<Database['public']['Views']['completed_session_summaries']['Row'], 'session_id' | 'completed_at' | 'common_match_id' | 'matches_per_player' | 'players' | 'matches' | 'player_assignments'> & {
+  assignment_policy_version?: number | null; player_match_counts?: unknown; configured_default_match_count?: number | null;
+};
 type EarlyLeaveRow = Database['public']['Views']['early_leave_results']['Row'];
 
 interface PageResult<T> {
@@ -102,6 +104,11 @@ const mapAssignments = (value: unknown): Record<string, string[]> => {
   );
 };
 
+const mapMatchCounts = (value: unknown): Record<string, number> => Object.fromEntries(
+  Object.entries(recordOrEmptySchema.parse(value)).filter((entry): entry is [string, number] =>
+    typeof entry[1] === "number" && Number.isInteger(entry[1]) && entry[1] >= 0 && entry[1] <= 100),
+);
+
 export const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSession => ({
   id: row.session_id ?? "",
   date: row.completed_at ?? "",
@@ -109,7 +116,8 @@ export const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSessio
   matches: arrayOrEmptySchema.parse(row.matches).map(mapMatch),
   commonMatchId: row.common_match_id,
   playerAssignments: mapAssignments(row.player_assignments),
-  matchesPerPlayer: numberOrZeroSchema.parse(row.matches_per_player),
+  matchesPerPlayer: row.assignment_policy_version === 2 ? row.configured_default_match_count ?? 0 : numberOrZeroSchema.parse(row.matches_per_player),
+  ...(row.assignment_policy_version === 2 ? { assignmentPolicyVersion: 2, playerMatchCounts: mapMatchCounts(row.player_match_counts) } : {}),
 });
 
 /** Maps the server's immutable departure capture into the existing history shape. */
@@ -148,6 +156,8 @@ export const mapDepartureResult = (
     const awayGoals = numberOrZeroSchema.parse(match.data.awayScore);
     return {
       id: match.data.id,
+      catalogMatchId: typeof match.data.catalogMatchId === "string" ? match.data.catalogMatchId : undefined,
+      catalogSnapshot: match.data.catalogSnapshot ? parseSavedMatch(match.data.catalogSnapshot) : undefined,
       homeTeam: stringOrEmptySchema.parse(match.data.homeTeamName),
       awayTeam: stringOrEmptySchema.parse(match.data.awayTeamName),
       homeGoals,
@@ -177,6 +187,11 @@ export const mapDepartureResult = (
     commonMatchId,
     playerAssignments,
     matchesPerPlayer: numberOrZeroSchema.parse(departure.assignmentPlan.matchesPerPlayer),
+    ...(departure.assignmentPolicyVersion === 2 ? { assignmentPolicyVersion: 2 as const,
+      playerMatchCounts: Object.fromEntries(departure.participants.flatMap(item => {
+        const p = recordOrEmptySchema.parse(item);
+        return typeof p.id === "string" && typeof p.additionalMatchCount === "number" ? [[p.id, p.additionalMatchCount]] : [];
+      })) } : {}),
     isEarlyLeaveResult: true,
   };
 };
@@ -206,7 +221,7 @@ export const loadCloudHistory = async (
       client
         .from("completed_session_summaries")
         .select(
-          "session_id, completed_at, common_match_id, matches_per_player, players, matches, player_assignments",
+          "session_id, completed_at, common_match_id, matches_per_player, players, matches, player_assignments, assignment_policy_version, player_match_counts, configured_default_match_count",
         )
         .order("session_id", { ascending: true })
         .range(from, to).abortSignal(signal), signal,

@@ -1,3 +1,5 @@
+import type { SharingPolicy } from "../shared/assignments/types";
+
 export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
 
 /** How a room's assignments get decided (FR-026). `player_picked` exists as a
@@ -21,6 +23,8 @@ export interface RoomParticipantSummary {
   sessionRole: RoomSessionRole;
   currentDrinkTotal: number;
   leftAt?: string | null;
+  additionalMatchCount?: number | null;
+  resolvedAdditionalMatchCount?: number;
 }
 
 export interface RoomMatchSummary {
@@ -62,6 +66,8 @@ interface RoomPickSummary {
  * snapshot poll, never mutated directly.
  */
 export interface AssignmentPlan {
+  targetsByParticipantId?: Record<string, number>;
+  sharingPolicy?: SharingPolicy;
   participantCount: number;
   poolSize: number;
   matchesPerPlayer: number;
@@ -74,6 +80,8 @@ export interface AssignmentPlan {
 }
 
 export interface RoomSnapshot {
+  assignmentPolicyVersion?: 1 | 2;
+  capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean };
   sessionId: string;
   joinCode: string;
   state: RoomState;
@@ -279,6 +287,7 @@ export interface RoomAssignmentInput {
 export interface RoomAssignmentSettingsRequest {
   matchesPerPlayer: number;
   sharedMatchesPerPair: number;
+  playerMatchCounts?: Record<string, number>;
 }
 
 /** Error codes raised by the room RPCs (PostgrestError.message). */
@@ -324,6 +333,8 @@ export const ROOM_ERROR = {
 
 /** Local draft committed atomically; existing matches and historical scores cannot be removed. */
 export interface RunningGameConfiguration {
+  assignmentPolicyVersion?: 1 | 2;
+  playerMatchCounts?: Record<string, number>;
   assignmentMode: "automatic" | "host_assigned";
   matchesPerPlayer: number;
   sharedMatchesPerPair: number;

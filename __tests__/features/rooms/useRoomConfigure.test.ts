@@ -495,3 +495,17 @@ describe("useRoomConfigure", () => {
     });
   });
 });
+
+it("preserves sparse overrides when changing the lobby default and supports explicit inheritance", async () => {
+  const setAssignmentConfiguration = jest.fn(async () => {});
+  mockGetRoomRpcClient.mockReturnValue({ setAssignmentConfiguration } as never);
+  const v2: RoomSnapshot = { ...baseSnapshot, assignmentPolicyVersion: 2, configurationToken: "token",
+    capabilities: { perPlayerMatchCounts: true, assignmentPreview: true },
+    participants: baseSnapshot.participants.map((p, index) => ({ ...p, additionalMatchCount: index === 1 ? 0 : null })) };
+  const { result } = render(v2);
+  await TestRenderer.act(async () => { await result()?.setAssignmentSettings({ matchesPerPlayer: 3, sharedMatchesPerPair: 1 }); });
+  expect(setAssignmentConfiguration).toHaveBeenLastCalledWith("s1", { matchesPerPlayer: 3, sharedMatchesPerPair: 1,
+    playerMatchCounts: { "p-2": 0 } }, "token", expect.any(String));
+  await TestRenderer.act(async () => { await result()?.setPlayerMatchCount("p-2", null); });
+  expect(setAssignmentConfiguration).toHaveBeenLastCalledWith("s1", expect.objectContaining({ playerMatchCounts: {} }), "token", expect.any(String));
+});

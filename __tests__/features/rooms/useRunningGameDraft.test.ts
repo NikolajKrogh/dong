@@ -6,6 +6,11 @@ import type { RoomSnapshot } from "../../../types/room";
 
 jest.mock("../../../features/rooms/roomRpcClient", () => ({ getRoomRpcClient: jest.fn() }));
 const saveConfiguration = jest.fn();
+const mockPrepare = jest.fn();
+const mockCommit = jest.fn();
+jest.mock("../../../features/rooms/roomAssignmentTransport", () => ({
+  createRoomAssignmentTransport: () => ({ prepare: mockPrepare, commit: mockCommit }),
+}));
 const snapshot: RoomSnapshot = {
   sessionId: "room", joinCode: "ROOM", state: "in_progress", commonMatchId: "common",
   assignmentMode: "player_picked", configurationToken: "baseline",
@@ -60,5 +65,65 @@ it("retains drafts and retry identity on network failure, then exposes configura
   expect(saveConfiguration.mock.calls[1][0]).toEqual(firstRequest);
   expect(getLatest().hasConflict).toBe(true);
   expect(getLatest().canSave).toBe(false);
+  expect(getLatest().assignments).toEqual([{ participantId: "host", matchId: "individual" }]);
+});
+
+it("keeps a zero override when the default changes and clears it on Use default", async () => {
+  const v2 = { ...snapshot, capabilities: { perPlayerMatchCounts: true, assignmentPreview: true }, assignmentPolicyVersion: 2 as const,
+    participants: snapshot.participants.map(p => ({ ...p, additionalMatchCount: 0 })) };
+  const { getLatest } = renderHook(() => useRunningGameDraft(v2));
+  TestRenderer.act(() => getLatest().setSettings({ matchesPerPlayer: 3, sharedMatchesPerPair: 0 }));
+  expect(getLatest().plan.targetsByParticipantId).toEqual({ host: 0 });
+  TestRenderer.act(() => getLatest().setPlayerMatchCount("host", null));
+  expect(getLatest().plan.targetsByParticipantId).toEqual({ host: 3 });
+});
+
+it.each([
+  { supportsTargets: false, mode: "automatic", effective: 2, required: 4 },
+  { supportsTargets: false, mode: "host_assigned", effective: 1, required: 2 },
+  { supportsTargets: true, mode: "automatic", effective: 1, required: 2 },
+  { supportsTargets: true, mode: "host_assigned", effective: 1, required: 2 },
+] as const)("preserves pool requirements for $mode with individual targets=$supportsTargets", ({ supportsTargets, mode, effective, required }) => {
+  const room: RoomSnapshot = {
+    ...snapshot,
+    assignmentMode: mode,
+    capabilities: { perPlayerMatchCounts: supportsTargets, assignmentPreview: supportsTargets },
+    participants: ["host", "second", "third"].map(id => ({
+      ...snapshot.participants[0], id, additionalMatchCount: id === "host" ? 0 : null,
+    })),
+    matches: [...snapshot.matches, ...snapshot.matches.map(match => ({ ...match, id: `extra-${match.id}` }))],
+    assignmentPlan: { ...snapshot.assignmentPlan, sharedMatchesPerPair: 1 },
+  };
+  const { getLatest } = renderHook(() => useRunningGameDraft(room));
+  expect(getLatest().plan).toMatchObject({
+    effectivePerPlayer: effective, requiredPoolSize: required, relaxedFloor: required,
+    feasible: true, startable: true,
+  });
+});
+
+it("recovers an unknown v2 save outcome before considering changed draft validation", async () => {
+  mockPrepare.mockResolvedValue({ proposalId: null, expiresAt: null, assignments: { host: ["individual"] },
+    targetsByParticipantId: { host: 1 }, sharingPolicy: "preference", requiresSharingConsent: false, quality: null });
+  mockCommit.mockRejectedValueOnce(new Error("network")).mockResolvedValueOnce(snapshot);
+  const v2 = { ...snapshot, assignmentPolicyVersion: 2 as const, capabilities: { perPlayerMatchCounts: true, assignmentPreview: true } };
+  const { getLatest } = renderHook(() => useRunningGameDraft(v2));
+  await TestRenderer.act(async () => { await getLatest().assignmentPreview.review(); });
+  await TestRenderer.act(async () => { expect(await getLatest().save()).toBeNull(); });
+  const original = mockCommit.mock.calls[0][0];
+  TestRenderer.act(() => getLatest().setPlayerMatchCount("host", 0));
+  expect(getLatest().canSave).toBe(false);
+  await TestRenderer.act(async () => { expect(await getLatest().save()).toEqual(snapshot); });
+  expect(mockCommit.mock.calls[1][0]).toBe(original);
+});
+
+it("exposes a rejected v2 fence as a reloadable conflict while retaining edits", async () => {
+  mockPrepare.mockResolvedValue({ proposalId: null, expiresAt: null, assignments: { host: ["individual"] },
+    targetsByParticipantId: { host: 1 }, sharingPolicy: "preference", requiresSharingConsent: false, quality: null });
+  mockCommit.mockReset().mockRejectedValue(new Error("configuration_conflict"));
+  const v2 = { ...snapshot, assignmentPolicyVersion: 2 as const, capabilities: { perPlayerMatchCounts: true, assignmentPreview: true } };
+  const { getLatest } = renderHook(() => useRunningGameDraft(v2));
+  await TestRenderer.act(async () => { await getLatest().assignmentPreview.review(); });
+  await TestRenderer.act(async () => { await getLatest().save(); });
+  expect(getLatest().hasConflict).toBe(true);
   expect(getLatest().assignments).toEqual([{ participantId: "host", matchId: "individual" }]);
 });

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { AssignmentCounter } from "../game-setup/AssignmentControls";
 
 import type { RoomParticipantSummary } from "../../types/room";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
@@ -14,6 +15,8 @@ interface RoomAssignmentPlayersProps {
   participants: RoomParticipantSummary[];
   matches: SelectableMatch[];
   matchesPerPlayer: number;
+  targetsByParticipantId?: Record<string, number>;
+  onSetPlayerMatchCount?: (participantId: string, count: number | null) => void;
   selectedMatchIdsFor: (participantId: string) => string[];
   isBusy: boolean;
   onToggleAllocation?: (participantId: string, matchId: string) => void;
@@ -26,6 +29,8 @@ export function RoomAssignmentPlayers({
   participants,
   matches,
   matchesPerPlayer,
+  targetsByParticipantId,
+  onSetPlayerMatchCount,
   selectedMatchIdsFor,
   isBusy,
   onToggleAllocation,
@@ -36,7 +41,7 @@ export function RoomAssignmentPlayers({
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const disabledMatchIds = isBusy
+  const busyMatchIds = isBusy
     ? matches.map((match) => match.id)
     : undefined;
 
@@ -57,6 +62,12 @@ export function RoomAssignmentPlayers({
       {ownPicks}
       {participants.map((participant) => {
         const selected = selectedMatchIdsFor(participant.id);
+        const selectedIds = new Set(selected);
+        const target = targetsByParticipantId?.[participant.id] ?? matchesPerPlayer;
+        let disabledMatchIds = busyMatchIds;
+        if (onToggleAllocation && !isBusy && selected.length >= target) {
+          disabledMatchIds = matches.filter(match => !selectedIds.has(match.id)).map(match => match.id);
+        }
         return (
           <MatchSelectionCard
             key={participant.id}
@@ -65,22 +76,31 @@ export function RoomAssignmentPlayers({
             testID={`lobby-assignment-player-${participant.id}`}
             badgeTestID={`lobby-allocation-status-${participant.id}`}
             selectedCount={selected.length}
-            totalCount={matchesPerPlayer}
-            badgeLabel={pending ? pendingLabel : undefined}
+            totalCount={target}
+            badgeLabel={pending ? `${target} · ${pendingLabel}` : undefined}
             collapsed={!expanded[participant.id]}
             onToggleCollapsed={
-              onToggleAllocation
+              onToggleAllocation || onSetPlayerMatchCount
                 ? () => toggleExpanded(participant.id)
                 : undefined
             }
           >
+            {onSetPlayerMatchCount ? <>
+              <AssignmentCounter label={`${participant.displayName}'s additional matches`} value={target} max={100}
+                disabled={isBusy} onChange={count => onSetPlayerMatchCount(participant.id, count)} />
+              <Text>{target === 0 ? "Common match only" : "Plus the common match"} · {participant.additionalMatchCount == null ? "Using default" : "Custom count"}</Text>
+              {participant.additionalMatchCount != null ? <TouchableOpacity accessibilityRole="button"
+                accessibilityLabel={`Use default count for ${participant.displayName}`} disabled={isBusy}
+                onPress={() => onSetPlayerMatchCount(participant.id, null)}><Text>Use default</Text></TouchableOpacity> : null}
+            </> : null}
+            {onToggleAllocation ?
             <SelectableMatchList
               matches={matches}
               selectedMatchIds={selected}
               disabledMatchIds={disabledMatchIds}
               testIDPrefix={`lobby-allocate-${participant.id}`}
               onToggleMatch={(id) => onToggleAllocation?.(participant.id, id)}
-            />
+            /> : null}
           </MatchSelectionCard>
         );
       })}

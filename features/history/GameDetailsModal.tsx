@@ -323,6 +323,7 @@ function GamePlayersSection({ game, styles, colors }: GameDetailsSectionProps) {
               key={getPlayerIdentityKey(player, game.id, index)}
               player={player}
               assignedMatches={assignedMatches}
+              commonMatchId={game.commonMatchId}
               styles={styles}
               drinkBadgeIconColor={colors.white}
             />
@@ -334,13 +335,14 @@ function GamePlayersSection({ game, styles, colors }: GameDetailsSectionProps) {
 }
 
 interface GamePlayerCardProps {
+  commonMatchId: string | null;
   player: Player;
   assignedMatches: GameSession["matches"];
   styles: GameDetailsStyles;
   drinkBadgeIconColor: string;
 }
 
-function GamePlayerCard({ player, assignedMatches, styles, drinkBadgeIconColor }: GamePlayerCardProps) {
+function GamePlayerCard({ player, assignedMatches, commonMatchId, styles, drinkBadgeIconColor }: GamePlayerCardProps) {
   const initial = player.name.trim().slice(0, 1).toLocaleUpperCase() || "?";
 
   return (
@@ -353,6 +355,7 @@ function GamePlayerCard({ player, assignedMatches, styles, drinkBadgeIconColor }
           <Text style={styles.playerName}>{player.name}</Text>
           {player.leftAt && <Text style={styles.playerMeta}>Left early</Text>}
           <Text style={styles.playerMeta}>Final assignments</Text>
+          <Text style={styles.playerMeta}>{assignedMatches.filter(m => m.id !== commonMatchId).length} additional matches{commonMatchId ? " plus the common match" : ""}</Text>
           <View style={styles.assignments}>
             {assignedMatches.length === 0 ? (
               <Text style={styles.playerMeta}>No assignments</Text>

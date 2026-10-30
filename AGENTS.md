@@ -1,5 +1,5 @@
 Read CLAUDE.md
 
 <!-- SPECKIT START -->
-Current feature plan: `specs/031-cache-match-discovery/plan.md`.
+Current feature plan: `specs/031-per-player-match-counts/plan.md`.
 <!-- SPECKIT END -->

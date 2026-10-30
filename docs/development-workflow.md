@@ -25,3 +25,7 @@ The four public RPCs are authenticated invoker wrappers over restricted private 
 Regenerate/check types from the tested schema. For a separate disposable local database, `DONG_DB_URL` explicitly selects `--db-url`; unset it to retain normal `--local` behavior. Read feature 028 quickstart for the clean/seeded-upgrade evidence and pgTAP fixtures. Schema-first rollout requires linked history review and dry-run; recovery revokes new RPC access and uses a forward migration without resetting hosted results.
 
 Feature 028 has a user-approved exception removing all E2E authoring/execution. Unit/component/hook/repository, static checks and local pgTAP passed. Physical-device, authenticated runtime/second-device parity, visual accessibility/layout and per-platform timing remain unverified. Local SQL timing is not proof of the two-second client goal.
+
+## Feature031 assignments
+
+Per-player counts use explicit policy2 creation/adoption and preserve legacy games. V2 lobby/editor assignment previews share the lifecycle module in `features/rooms/roomAssignments.ts`; SDK transport stays in `roomAssignmentTransport.ts`. Trusted results are published only by the authenticated Edge function through the service-only proposal RPC. Keep HiGHS/WASM imports server-only. Run Deno ingress units with `npm run test:assignments:edge`, plus client CI/static checks and pgTAP. See `specs/031-per-player-match-counts/implementation.md` for the deployed migration hashes, forward-only recovery and the feature-specific E2E/Android waiver.

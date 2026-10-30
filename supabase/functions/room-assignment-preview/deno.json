@@ -1,0 +1,7 @@
+{
+  "nodeModulesDir": "none",
+  "lock": "./deno.lock",
+  "imports": {
+    "highs": "npm:highs@1.15.4"
+  }
+}

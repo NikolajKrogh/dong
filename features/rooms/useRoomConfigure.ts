@@ -15,8 +15,13 @@ import {
 } from "./startGameClient";
 import { getSupabaseClient } from "../../lib/supabase";
 import { getRoomRpcClient } from "./roomRpcClient";
+import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
+import { useAssignmentPreview } from "./useAssignmentPreview";
 
 export interface UseRoomConfigureResult {
+  supportsTargets: boolean;
+  assignmentPreview: ReturnType<typeof useAssignmentPreview>;
+  setPlayerMatchCount: (participantId: string, count: number | null) => Promise<void>;
   isBusy: boolean;
   error: string | null;
   addMatch: (request: AddRoomMatchRequest) => Promise<void>;
@@ -88,6 +93,8 @@ const CLIENT_SAFE_ERROR_MESSAGE_REGEX = /fetch failed|network request failed|loa
  * enough phrase to show as-is.
  */
 const ROOM_ERROR_MESSAGES: Partial<Record<string, string>> = {
+  target_below_existing_selections: "Release the player's existing selections before lowering their count.",
+  configuration_conflict: "The room changed. Refresh it before changing counts again.",
   [ROOM_ERROR.matchNotFound]:
     "That match is no longer in the room. Refresh and try again.",
   [ROOM_ERROR.invalidAssignment]:
@@ -107,8 +114,9 @@ const ROOM_ERROR_MESSAGES: Partial<Record<string, string>> = {
 };
 
 const friendlyMessage = (err: unknown): string => {
-  if (err instanceof Error) {
-    const trimmed = err.message.trim();
+  const message = (err as { message?: unknown } | null)?.message;
+  if (typeof message === "string") {
+    const trimmed = message.trim();
     if (trimmed.length > 0) {
       const mapped = ROOM_ERROR_MESSAGES[trimmed];
       if (mapped) {
@@ -135,6 +143,18 @@ export const useRoomConfigure = (
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startGameIdempotencyKeyRef = useRef<string | null>(null);
+  const supportsTargets = snapshot?.capabilities?.perPlayerMatchCounts === true;
+  const participants = snapshot ? roomSnapshotToActiveRoster(snapshot) : [];
+  const overrides = Object.fromEntries(participants.filter(p => p.additionalMatchCount != null).map(p => [p.id, p.additionalMatchCount!]));
+  const assignmentPreview = useAssignmentPreview(snapshot?.sessionId ?? "", "start", {
+    revision: snapshot?.configurationToken ?? "", expectedToken: snapshot?.configurationToken ?? "",
+    targetsByParticipantId: snapshot?.assignmentPlan.targetsByParticipantId,
+    configuration: { assignmentPolicyVersion: 2, assignmentMode: snapshot?.assignmentMode ?? "automatic",
+      matchesPerPlayer: snapshot?.assignmentPlan.matchesPerPlayer ?? 0,
+      sharedMatchesPerPair: snapshot?.assignmentPlan.sharedMatchesPerPair ?? 0, playerMatchCounts: overrides,
+      newMatches: [], assignments: (snapshot?.assignmentMode === "player_picked" ? snapshot.picks : snapshot?.assignments ?? [])
+        .filter(a => a.matchId !== snapshot?.commonMatchId) },
+  });
 
   const run = useCallback(
     async (action: (sessionId: string) => Promise<void>) => {
@@ -209,13 +229,28 @@ export const useRoomConfigure = (
   const setAssignmentSettings = useCallback(
     (settings: RoomAssignmentSettingsRequest) =>
       run(async (sessionId) => {
+        if (supportsTargets && snapshot?.configurationToken) {
+          await getRoomRpcClient().setAssignmentConfiguration(sessionId, {
+            ...settings, playerMatchCounts: settings.playerMatchCounts ?? overrides,
+          }, snapshot.configurationToken, generateIdempotencyKey());
+          return;
+        }
         await getRoomRpcClient().setRoomAssignmentSettings(
           sessionId,
           settings,
         );
       }),
-    [run],
+    [run, supportsTargets, snapshot, overrides],
   );
+
+  const setPlayerMatchCount = async (participantId: string, count: number | null) => {
+    if (!snapshot || !supportsTargets) return;
+    const next = { ...overrides };
+    if (count === null) delete next[participantId];
+    else next[participantId] = count;
+    await setAssignmentSettings({ matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer,
+      sharedMatchesPerPair: snapshot.assignmentPlan.sharedMatchesPerPair, playerMatchCounts: next });
+  };
 
   const setAssignmentMode = useCallback(
     (mode: AssignmentMode) =>
@@ -238,6 +273,7 @@ export const useRoomConfigure = (
       if (!snapshot) {
         return false;
       }
+      if (snapshot.assignmentPolicyVersion === 2) return Boolean(await assignmentPreview.commit(relaxConstraints));
       setIsBusy(true);
       setError(null);
       try {
@@ -268,7 +304,7 @@ export const useRoomConfigure = (
         setIsBusy(false);
       }
     },
-    [snapshot],
+    [snapshot, assignmentPreview],
   );
 
   const endGame = useCallback(async (): Promise<boolean> => {
@@ -284,8 +320,11 @@ export const useRoomConfigure = (
   }, [run, snapshot]);
 
   return {
-    isBusy,
-    error,
+    supportsTargets,
+    assignmentPreview,
+    setPlayerMatchCount,
+    isBusy: isBusy || assignmentPreview.isBusy,
+    error: error ?? assignmentPreview.error,
     addMatch,
     addMatches,
     removeMatch,

@@ -17,6 +17,7 @@ import {
 } from "../game-setup/SelectableMatchList";
 import type { WizardStep } from "../game-setup/SetupWizard";
 import { AssignmentModeSelector } from "./AssignmentModeSelector";
+import { AssignmentPreviewPanel } from "./AssignmentPreviewPanel";
 import { AssignmentSettingsPanel } from "./AssignmentSettingsPanel";
 import { PlayerPickPanel } from "./PlayerPickPanel";
 import { RoomAssignmentPlayers } from "./RoomAssignmentPlayers";
@@ -25,6 +26,7 @@ import { StartGameWarnings } from "./StartGameWarnings";
 import { RoomLobbyConfigure, RoomLobbySnapshot, RoomLobbyState, useLobbyAssignmentController } from "./useLobbyAssignmentController";
 import { useRoomExit } from "./useRoomExit";
 import { useRoomMatchPool } from "./useRoomMatchPool";
+import { roomSnapshotHasAssignmentTargets } from "./roomSnapshotAdapter";
 
 const noop = () => undefined;
 
@@ -72,7 +74,10 @@ export function RoomLobbyWizard({
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
   const startGame = configure.startGame;
-  const handleStartGame = useCallback(() => void startGame(), [startGame]);
+  const handleStartGame = () => {
+    if (snapshot.assignmentPolicyVersion === 2) { changeStep("assign"); void configure.assignmentPreview.review(); }
+    else void startGame();
+  };
   const canEnterCommon = snapshot.assignmentPlan.poolSize > 0;
   const canEnterAssign = snapshot.commonMatchId !== null || assignment.canPick;
   const steps: WizardStep[] = [
@@ -171,7 +176,7 @@ export function RoomLobbyWizard({
   };
   const finalAction = isHost
     ? {
-      label: "Start Game",
+      label: snapshot.assignmentPolicyVersion === 2 ? "Review assignments" : "Start Game",
       icon: "play" as const,
       testID: "lobby-start-game",
       disabled: configure.isBusy || !assignment.plan.startable,
@@ -182,7 +187,9 @@ export function RoomLobbyWizard({
 
   return <YStack flex={1}>
     {restoreNotice ? <Text accessibilityRole="alert">{restoreNotice}</Text> : null}
-    <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} onStepBack={backStep} firstSlotAction={firstSlotAction} finalAction={finalAction} />
+    {roomSnapshotHasAssignmentTargets(snapshot) ?
+      <SetupWizard steps={steps} activeStepKey={activeStep} onStepChange={changeStep} onStepBack={backStep} firstSlotAction={firstSlotAction} finalAction={finalAction} /> :
+      <Text accessibilityRole="alert">Player counts are unavailable. Refresh the room before continuing.</Text>}
   </YStack>;
 }
 
@@ -307,7 +314,7 @@ function LobbyAssignmentStepContent({
       title={assignment.participants.find(player => player.id === assignment.participantId)?.displayName ?? "Your matches"}
       matches={assignment.pickableMatches}
       myPicks={assignment.myPicks}
-      cap={assignment.plan.matchesPerPlayer}
+      cap={assignment.plan.targetsByParticipantId?.[assignment.participantId] ?? assignment.plan.matchesPerPlayer}
       onSetPicks={configure.setMyPicks}
       isBusy={configure.isBusy}
     />
@@ -350,15 +357,21 @@ function HostAssignmentContent({
         pickPanel={pickPanel}
         isBusy={configure.isBusy}
         onToggleAllocation={assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
+        onSetPlayerMatchCount={configure.supportsTargets ? configure.setPlayerMatchCount : undefined}
       />
-      <StartGameWarnings
+      {assignment.plan.targetsByParticipantId ? <>
+        <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy}
+          onReview={() => { void configure.assignmentPreview.review(); }} actionLabel="Start with these assignments"
+          onCommit={accept => { void configure.assignmentPreview.commit(accept); }} />
+        {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
+      </> : <StartGameWarnings
         plan={assignment.plan}
         shortParticipants={assignment.shortParticipants}
         isHostAssigned={assignment.assignmentMode === "host_assigned"}
         error={configure.error}
         isBusy={configure.isBusy}
         onStartAnyway={handleStartAnyway}
-      />
+      />}
     </>
   );
 }
@@ -387,13 +400,15 @@ function LobbyAssignmentPlayers({
   pickPanel,
   isBusy = false,
   onToggleAllocation,
+  onSetPlayerMatchCount,
 }: {
   assignment: LobbyAssignmentController;
   pickPanel: React.ReactNode;
   isBusy?: boolean;
   onToggleAllocation?: (participantId: string, matchId: string) => void;
+  onSetPlayerMatchCount?: (participantId: string, count: number | null) => void;
 }): React.JSX.Element {
-  const participants = pickPanel
+  const participants = pickPanel && !onSetPlayerMatchCount
     ? assignment.participants.filter(player => player.id !== assignment.participantId)
     : assignment.participants;
 
@@ -411,6 +426,8 @@ function LobbyAssignmentPlayers({
       participants={participants}
       matches={assignment.pickableMatches}
       matchesPerPlayer={assignment.plan.matchesPerPlayer}
+      targetsByParticipantId={assignment.plan.targetsByParticipantId}
+      onSetPlayerMatchCount={onSetPlayerMatchCount}
       isBusy={isBusy}
       ownPicks={pickPanel}
       pending={assignment.assignmentMode === "automatic"}

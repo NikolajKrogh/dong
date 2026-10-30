@@ -1,8 +1,43 @@
 import { Match, Player } from "../../store/gameStore";
 import { shuffle } from "./shuffle";
+import { generateAssignments } from "../../shared/assignments/generateAssignments";
 
 type PlayerAssignments = Record<string, string[]>;
 type PairSharedMatches = Record<string, string[]>;
+
+export async function createTargetedAssignments(
+  players: Player[], matches: Match[], commonMatchId: string | null,
+  defaultCount: number, overrides: Record<string, number>, random: () => number = Math.random,
+): Promise<PlayerAssignments> {
+  if (!commonMatchId || !matches.some(({ id }) => id === commonMatchId)) {
+    throw new Error("Please select a common match first");
+  }
+  const participants = players.map(({ id }) => ({ id, target: overrides[id] ?? defaultCount }));
+  const hasEqualTargets = participants.every(({ target }) => target === participants[0]?.target);
+  const result = await generateAssignments({
+    participants, pool: matches.filter(({ id }) => id !== commonMatchId).map(({ id }) => id),
+    commonMatchId, sharing: 1, policy: hasEqualTargets ? "exact" : "preference",
+  }, { random });
+  return Object.fromEntries(players.map(({ id }) => [id, [commonMatchId, ...result.assignments[id]]]));
+}
+
+export function validateLocalAssignments(
+  players: Player[], matches: Match[], commonMatchId: string,
+  assignments: PlayerAssignments, defaultCount: number, overrides: Record<string, number>,
+): void {
+  const pool = new Set(matches.map(({ id }) => id));
+  if (!pool.has(commonMatchId)) throw new Error("Please select a common match first");
+  for (const player of players) {
+    const target = overrides[player.id] ?? defaultCount;
+    const selected = assignments[player.id] ?? [];
+    const additional = selected.filter(id => id !== commonMatchId);
+    if (!Number.isInteger(target) || target < 0 || target > 100 ||
+      new Set(selected).size !== selected.length || additional.length !== target ||
+      selected.some(id => !pool.has(id))) {
+      throw new Error(`${player.name} needs exactly ${target} additional matches plus the common match.`);
+    }
+  }
+}
 
 const compareIds = (left: string, right: string) => left.localeCompare(right);
 

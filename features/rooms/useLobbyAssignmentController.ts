@@ -70,6 +70,7 @@ export function useLobbyAssignmentController(
 
   const automaticMinimum = plan.sharedMatchesPerPair * Math.max(participants.length - 1, 0);
   const modeSwitchRaisesMinimum = pendingModeSwitch === "automatic" &&
+    !plan.targetsByParticipantId &&
     automaticMinimum > plan.matchesPerPlayer;
 
   const picks = useMemo(() => snapshot?.picks ?? [], [snapshot?.picks]);
@@ -107,11 +108,11 @@ export function useLobbyAssignmentController(
     return participants.reduce<LobbyPickProgress>((accumulator, participant) => {
       accumulator[participant.id] = {
         picked: picks.filter((pick) => pick.participantId === participant.id).length,
-        total: plan.matchesPerPlayer,
+        total: plan.targetsByParticipantId?.[participant.id] ?? plan.matchesPerPlayer,
       };
       return accumulator;
     }, {});
-  }, [isPlayerPicked, participants, picks, plan.matchesPerPlayer]);
+  }, [isPlayerPicked, participants, picks, plan.matchesPerPlayer, plan.targetsByParticipantId]);
 
   const additionalMatchIdsFor = useCallback(
     (participantId: string) => assignments
@@ -120,7 +121,7 @@ export function useLobbyAssignmentController(
     [assignments, commonMatchId],
   );
   const shortParticipants = participants.filter(
-    (participant) => additionalMatchIdsFor(participant.id).length < plan.matchesPerPlayer,
+    (participant) => additionalMatchIdsFor(participant.id).length < (plan.targetsByParticipantId?.[participant.id] ?? plan.matchesPerPlayer),
   );
   const toggleAllocation = useCallback((participantId: string, matchId: string) => {
     const activeAssignments = assignments.filter((assignment) =>
@@ -129,13 +130,14 @@ export function useLobbyAssignmentController(
     const exists = activeAssignments.some((assignment) =>
       assignment.participantId === participantId && assignment.matchId === matchId,
     );
+    if (!exists && additionalMatchIdsFor(participantId).length >= (plan.targetsByParticipantId?.[participantId] ?? plan.matchesPerPlayer)) return;
     const next = exists
       ? activeAssignments.filter((assignment) =>
         assignment.participantId !== participantId || assignment.matchId !== matchId,
       )
       : [...activeAssignments, { participantId, matchId }];
     void configure.setAssignments(next);
-  }, [assignments, configure, participants]);
+  }, [assignments, configure, participants, additionalMatchIdsFor, plan.targetsByParticipantId, plan.matchesPerPlayer]);
 
   return {
     assignmentMode,

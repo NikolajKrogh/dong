@@ -5,6 +5,14 @@ import { selectGameplayMatches } from "../game-setup/selectGameplayMatches";
 
 export type CompatibleRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 
+/** Version two counts must come from the authoritative projection, never a scalar guess. */
+export function roomSnapshotHasAssignmentTargets(snapshot: CompatibleRoomSnapshot): boolean {
+  if (snapshot.assignmentPolicyVersion !== 2) return true;
+  const targets = snapshot.assignmentPlan?.targetsByParticipantId;
+  return Boolean(targets && roomSnapshotToActiveRoster(snapshot).every(p =>
+    Number.isInteger(targets[p.id]) && targets[p.id] >= 0 && targets[p.id] <= 100));
+}
+
 /**
  * Selects the current, server-derived lobby roster. The fallback is only for a
  * server that has not yet received the additive activeRoster snapshot field.
