@@ -16,7 +16,8 @@ interface RuntimeProbeResult {
 }
 
 function countSharedMatches(left: string[], right: string[]): number {
-  return left.filter((id) => right.includes(id)).length;
+  const rightMatchIds = new Set(right);
+  return left.filter((id) => rightMatchIds.has(id)).length;
 }
 
 /** Run through an actual user worker, with the production CPU/memory limits. */
@@ -44,9 +45,10 @@ export async function probeAssignmentRuntime(participantCount = 3): Promise<Runt
   };
   const generationStartedAtMs = performance.now();
   const benchmarkResult = await generateAssignments(benchmarkInput, { optimizer: highsOptimizer, random: () => 0.5 });
+  const eligibleMatchIds = new Set(benchmarkInput.pool);
   for (const { id, target } of benchmarkInput.participants) {
     const assignedMatchIds = benchmarkResult.assignments[id];
-    if (assignedMatchIds.length !== target || new Set(assignedMatchIds).size !== target || assignedMatchIds.some((id) => !benchmarkInput.pool.includes(id))) {
+    if (assignedMatchIds.length !== target || new Set(assignedMatchIds).size !== target || assignedMatchIds.some((id) => !eligibleMatchIds.has(id))) {
       throw new Error("Invalid benchmark quotas");
     }
   }

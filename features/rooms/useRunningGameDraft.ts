@@ -31,29 +31,13 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   const fixedIds = new Set(fixedMatchIds);
   const activeIds = new Set(participants.map(p => p.id));
   const targets = Object.fromEntries(participants.map(p => [p.id, playerMatchCounts[p.id] ?? settings.matchesPerPlayer]));
-  let effectivePerPlayer = settings.matchesPerPlayer;
-  let requiredPoolSize = effectivePerPlayer + 1;
-  if (supportsTargets) {
-    effectivePerPlayer = Math.max(0, ...Object.values(targets));
-    requiredPoolSize = effectivePerPlayer + 1;
-  } else if (mode === "automatic") {
-    const participantCount = participants.length;
-    effectivePerPlayer = Math.max(settings.matchesPerPlayer, settings.sharedMatchesPerPair * Math.max(0, participantCount - 1));
-    requiredPoolSize = participantCount * effectivePerPlayer - participantCount * (participantCount - 1) / 2 * settings.sharedMatchesPerPair + 1;
-  }
-  const feasible = supportsTargets ? matches.length > effectivePerPlayer : matches.length >= requiredPoolSize;
-  const plan = {
-    ...snapshot.assignmentPlan, ...settings, participantCount: participants.length, poolSize: matches.length,
-    effectivePerPlayer, requiredPoolSize, relaxedFloor: requiredPoolSize,
-    feasible, startable: feasible,
-    targetsByParticipantId: supportsTargets ? targets : undefined,
-  };
+  const plan = buildDraftAssignmentPlan(snapshot.assignmentPlan, settings, mode, targets, participants.length, matches.length, supportsTargets);
   const matchIds = new Set(matches.map(match => match.id));
   const validAssignments = mode === "automatic" || participants.every(participant => {
     const selectedCount = assignments.filter(assignment =>
       assignment.participantId === participant.id && matchIds.has(assignment.matchId),
     ).length;
-    const target = supportsTargets ? targets[participant.id] : effectivePerPlayer;
+    const target = supportsTargets ? targets[participant.id] : plan.effectivePerPlayer;
     return selectedCount === target;
   });
   const configuration: RunningGameConfiguration = {
@@ -80,7 +64,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
     setAssignments(previous => {
       const exists = previous.some(a => a.participantId === participantId && a.matchId === matchId);
       if (exists) return previous.filter(a => a.participantId !== participantId || a.matchId !== matchId);
-      const target = supportsTargets ? targets[participantId] : effectivePerPlayer;
+      const target = supportsTargets ? targets[participantId] : plan.effectivePerPlayer;
       if (previous.filter(a => a.participantId === participantId).length >= target) return previous;
       return [...previous, { participantId, matchId }];
     });
@@ -132,5 +116,32 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
     assignments, toggleAssignment, isSaving: isSaving || assignmentPreview.isBusy,
     error: error ?? assignmentPreview.error, hasConflict: hasConflict || assignmentPreview.issue === "stale", save,
     canSave: Boolean(snapshot.configurationToken) && plan.feasible && validAssignments && !hasConflict && assignmentPreview.issue !== "stale",
+  };
+}
+
+function buildDraftAssignmentPlan(
+  baseline: RoomSnapshot["assignmentPlan"],
+  settings: Pick<RunningGameConfiguration, "matchesPerPlayer" | "sharedMatchesPerPair">,
+  mode: RunningGameConfiguration["assignmentMode"],
+  targets: Record<string, number>,
+  participantCount: number,
+  poolSize: number,
+  supportsTargets: boolean,
+): RoomSnapshot["assignmentPlan"] {
+  let effectivePerPlayer = settings.matchesPerPlayer;
+  let requiredPoolSize = effectivePerPlayer + 1;
+  if (supportsTargets) {
+    effectivePerPlayer = Math.max(0, ...Object.values(targets));
+    requiredPoolSize = effectivePerPlayer + 1;
+  } else if (mode === "automatic") {
+    effectivePerPlayer = Math.max(settings.matchesPerPlayer, settings.sharedMatchesPerPair * Math.max(0, participantCount - 1));
+    requiredPoolSize = participantCount * effectivePerPlayer - participantCount * (participantCount - 1) / 2 * settings.sharedMatchesPerPair + 1;
+  }
+  const feasible = supportsTargets ? poolSize > effectivePerPlayer : poolSize >= requiredPoolSize;
+  return {
+    ...baseline, ...settings, participantCount, poolSize,
+    effectivePerPlayer, requiredPoolSize, relaxedFloor: requiredPoolSize,
+    feasible, startable: feasible,
+    targetsByParticipantId: supportsTargets ? targets : undefined,
   };
 }

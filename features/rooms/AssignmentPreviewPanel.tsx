@@ -111,6 +111,7 @@ function ReviewedAssignments({
 
 function PairInspection({ participants, assignments }: PairInspectionProps): React.JSX.Element {
   const [pair, setPair] = useState<string[]>([]);
+  const selectedPlayerIds = new Set(pair);
   const names = new Map(participants.map(participant => [participant.id, participant.displayName]));
   let overlap: number | null = null;
   if (pair.length === 2) {
@@ -131,7 +132,7 @@ function PairInspection({ participants, assignments }: PairInspectionProps): Rea
       {participants.map(participant => (
         <ShellActionButton
           key={participant.id}
-          label={`${pair.includes(participant.id) ? "✓ " : ""}${participant.displayName}`}
+          label={`${selectedPlayerIds.has(participant.id) ? "✓ " : ""}${participant.displayName}`}
           size="small"
           widthMode="fit"
           onPress={() => togglePlayer(participant.id)}
