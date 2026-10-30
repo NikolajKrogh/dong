@@ -1,0 +1,16 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:highs@1.15.4": "1.15.4"
+  },
+  "npm": {
+    "highs@1.15.4": {
+      "integrity": "sha512-vsC03XHDqWAVrEFUt22h8e4CDDMb+LAFa0bycjPUq2kadRigK5pNLVIlwspKvMxxVtrr4NAucZHP/CAgigxiDQ=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:highs@1.15.4"
+    ]
+  }
+}

@@ -283,6 +283,7 @@ export type Database = {
             "game_sessions": {
                 Row: {
                     "assignment_mode": Database["public"]['Enums']["assignment_mode"];
+                    "assignment_policy_version": number;
                     "common_match_id": string | null;
                     "completed_at": string | null;
                     "created_at": string | null;
@@ -299,6 +300,7 @@ export type Database = {
                 };
                 Insert: {
                     "assignment_mode"?: Database["public"]['Enums']["assignment_mode"];
+                    "assignment_policy_version"?: number;
                     "common_match_id"?: string | null;
                     "completed_at"?: string | null;
                     "created_at"?: string | null;
@@ -315,6 +317,7 @@ export type Database = {
                 };
                 Update: {
                     "assignment_mode"?: Database["public"]['Enums']["assignment_mode"];
+                    "assignment_policy_version"?: number;
                     "common_match_id"?: string | null;
                     "completed_at"?: string | null;
                     "created_at"?: string | null;
@@ -579,6 +582,7 @@ export type Database = {
             "participants": {
                 Row: {
                     "account_id": string | null;
+                    "additional_match_count": number | null;
                     "created_at": string | null;
                     "current_drink_total": number;
                     "display_name": string;
@@ -597,6 +601,7 @@ export type Database = {
                 };
                 Insert: {
                     "account_id"?: string | null;
+                    "additional_match_count"?: number | null;
                     "created_at"?: string | null;
                     "current_drink_total"?: number;
                     "display_name": string;
@@ -615,6 +620,7 @@ export type Database = {
                 };
                 Update: {
                     "account_id"?: string | null;
+                    "additional_match_count"?: number | null;
                     "created_at"?: string | null;
                     "current_drink_total"?: number;
                     "display_name"?: string;
@@ -1206,6 +1212,15 @@ export type Database = {
                     "match_ids": (string)[];
                 };
                 Returns: undefined;
+            };
+            "set_room_assignment_configuration_v2": {
+                Args: {
+                    "configuration": Json;
+                    "expected_token": string;
+                    "idempotency_key": string;
+                    "session_id": string;
+                };
+                Returns: Json;
             };
             "set_room_assignment_mode": {
                 Args: {

@@ -125,7 +125,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'game_sessions'
         ),
-        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at,last_activity_at,matches_per_player,shared_matches_per_pair,assignment_mode,last_scores_checked_at',
+        'id,owner_account_id,join_code,state,common_match_id,last_event_sequence,created_at,started_at,completed_at,last_activity_at,matches_per_player,shared_matches_per_pair,assignment_mode,last_scores_checked_at,assignment_policy_version',
         'game_sessions has expected columns'
     );
 SELECT is(
@@ -280,7 +280,7 @@ SELECT is(
             WHERE table_schema = 'public'
                 AND table_name = 'participants'
         ),
-        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO,left_at:timestamp with time zone:YES,guest_grant_issued_at:timestamp with time zone:YES,guest_grant_expires_at:timestamp with time zone:YES,guest_grant_previous_hash:text:YES,guest_grant_rotation_id:uuid:YES,guest_grant_retry_until:timestamp with time zone:YES,guest_revocation_reason:text:YES',
+        'id:uuid:NO,session_id:uuid:NO,account_id:uuid:YES,display_name:text:NO,membership_type:participant_membership_type:NO,current_drink_total:numeric:NO,guest_rejoin_token_hash:text:YES,created_at:timestamp with time zone:YES,session_role:participant_session_role:NO,left_at:timestamp with time zone:YES,guest_grant_issued_at:timestamp with time zone:YES,guest_grant_expires_at:timestamp with time zone:YES,guest_grant_previous_hash:text:YES,guest_grant_rotation_id:uuid:YES,guest_grant_retry_until:timestamp with time zone:YES,guest_revocation_reason:text:YES,additional_match_count:integer:YES',
         'participants columns, types, and nullability match expectations'
     );
 SELECT ok(

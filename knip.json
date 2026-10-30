@@ -8,7 +8,8 @@
     "e2e/steps/*.ts",
     "e2e/fixtures.ts",
     "platform/**/*.{native,web,android,ios}.{ts,tsx}",
-    "supabase/functions/*/index.ts"
+    "supabase/functions/*/index.ts",
+    "supabase/functions/_shared/assignments/runtimeProbe.ts"
   ],
   "project": [
     "app/**/*.{ts,tsx}",

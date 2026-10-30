@@ -45,13 +45,14 @@
       "<rootDir>/jest.setup.ts"
     ],
     "testPathIgnorePatterns": [
-      "<rootDir>/__tests__/fixtures/",
+      "[/\\\\]__tests__[/\\\\]fixtures[/\\\\]",
       "/node_modules/",
       "/e2e/playwright/",
       "/\\.features-gen/",
       "/\\.supabase/"
     ],
     "modulePathIgnorePatterns": [
+      "test-results",
       "<rootDir>/.supabase/"
     ],
     "transformIgnorePatterns": [

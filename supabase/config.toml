@@ -412,6 +412,10 @@ backend = "postgres"
 [functions.guest-room-access]
 verify_jwt = false
 
+[functions.room-assignment-preview]
+enabled = false
+static_files = ["./functions/_shared/assignments/highs.wasm"]
+
 # Experimental features may be deprecated any time
 [experimental]
 # Configures Postgres storage engine to use OrioleDB (S3)

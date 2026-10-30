@@ -42,6 +42,8 @@ export interface GuestRoomParticipantSummary {
   sessionRole: GuestRoomParticipantRole;
   currentDrinkTotal: number;
   leftAt?: string | null;
+  additionalMatchCount?: number | null;
+  resolvedAdditionalMatchCount?: number;
 }
 
 interface GuestRoomMatchSummary {
@@ -87,6 +89,8 @@ interface GuestRoomPickSummary {
  * variation.
  */
 export interface GuestRoomSnapshot {
+  assignmentPolicyVersion?: 1 | 2;
+  capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean };
   sessionId: string;
   joinCode: string;
   state: GuestRoomSessionState;

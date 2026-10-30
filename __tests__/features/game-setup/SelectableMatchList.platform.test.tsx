@@ -216,13 +216,18 @@ describe("SelectableMatchList", () => {
         id: "m1",
         homeTeam: "Arsenal",
         awayTeam: "Chelsea",
-        startTime: "2026-08-22T11:30:00.000Z",
+        startTime: new Date(2026, 7, 22, 23, 59).toISOString(),
       });
 
       expect(footers(row)).toHaveLength(1);
       expect(
         row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
-      ).toMatch(/^\d{2}:\d{2} (AM|PM)$/);
+      ).toBe("23:59");
+    });
+
+    it.each(["00:00", "09:05", "12:00", "23:59"])("renders clock %s verbatim", (startTime) => {
+      const row = renderRow({ ...MATCHES[0], startTime });
+      expect(row.root.findByProps({ style: mockStyles.matchTimeText }).props.children).toBe(startTime);
     });
 
     // A hand-typed fixture has no kickoff; it must not leave an empty row.

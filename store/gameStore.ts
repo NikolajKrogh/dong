@@ -105,6 +105,8 @@ interface GameSession {
   playerAssignments: PlayerAssignments;
   /** Matches per player in this session. */
   matchesPerPlayer: number;
+  playerMatchCounts?: Record<string, number>;
+  assignmentPolicyVersion?: 1 | 2;
   isEarlyLeaveResult?: boolean;
 }
 
@@ -130,6 +132,9 @@ interface GameState {
   playerAssignments: PlayerAssignments;
   /** Matches per player for current setup. */
   matchesPerPlayer: number;
+  playerMatchCounts: Record<string, number>;
+  assignmentPolicyVersion: 1 | 2;
+  setPlayerMatchCount: (playerId: string, count: number | null) => void;
   /** Whether the intro video has played this app session. */
   hasVideoPlayed: boolean;
   /** Whether sound effects are enabled. */
@@ -236,6 +241,10 @@ interface GameState {
  * Zustand store hook exposing global game state & actions.
  * @description Applies persistence middleware (AsyncStorage) to a curated subset of state keys for resilience across app restarts.
  */
+function isValidAdditionalMatchCount(count: number): boolean {
+  return Number.isInteger(count) && count >= 0 && count <= 100;
+}
+
 export const useGameStore = create<GameState>()(
   persist(
     (set) => ({
@@ -246,6 +255,8 @@ export const useGameStore = create<GameState>()(
       commonMatchId: null,
       playerAssignments: {},
       matchesPerPlayer: 1,
+      playerMatchCounts: {},
+      assignmentPolicyVersion: 2,
       hasVideoPlayed: false,
       ...createDefaultSyncedPreferenceState(),
       history: [],
@@ -267,10 +278,16 @@ export const useGameStore = create<GameState>()(
         return matches === state.matches ? state : { matches };
       }),
       setPlayers: (players) =>
-        set((state) => ({
-          players:
-            typeof players === "function" ? players(state.players) : players,
-        })),
+        set((state) => {
+          const nextPlayers = typeof players === "function" ? players(state.players) : players;
+          const playerIds = new Set(nextPlayers.map(({ id }) => id));
+          return {
+            players: nextPlayers,
+            playerMatchCounts: Object.fromEntries(
+              Object.entries(state.playerMatchCounts).filter(([id]) => playerIds.has(id)),
+            ),
+          };
+        }),
       setMatches: (matches) =>
         set((state) => ({
           matches:
@@ -284,7 +301,24 @@ export const useGameStore = create<GameState>()(
               ? playerAssignments(state.playerAssignments)
               : playerAssignments,
         })),
-      setMatchesPerPlayer: (count) => set({ matchesPerPlayer: count }),
+      setMatchesPerPlayer: (count) => {
+        if (!isValidAdditionalMatchCount(count)) throw new Error("Choose 0–100 additional matches.");
+        set({ matchesPerPlayer: count, assignmentPolicyVersion: 2 });
+      },
+      setPlayerMatchCount: (playerId, count) =>
+        set((state) => {
+          if (!state.players.some(({ id }) => id === playerId)) throw new Error("Unknown player.");
+          if (count !== null && !isValidAdditionalMatchCount(count)) {
+            throw new Error("Choose 0–100 additional matches.");
+          }
+          const playerMatchCounts = { ...state.playerMatchCounts };
+          if (count === null) {
+            delete playerMatchCounts[playerId];
+          } else {
+            playerMatchCounts[playerId] = count;
+          }
+          return { playerMatchCounts, assignmentPolicyVersion: 2 };
+        }),
       setHasVideoPlayed: (value) => set({ hasVideoPlayed: value }),
       setSoundEnabled: (enabled) => set({ soundEnabled: enabled }),
       setCommonMatchNotificationsEnabled: (enabled) =>
@@ -339,6 +373,8 @@ export const useGameStore = create<GameState>()(
             commonMatchId: state.commonMatchId,
             playerAssignments: JSON.parse(JSON.stringify(state.playerAssignments)) as PlayerAssignments,
             matchesPerPlayer: state.matchesPerPlayer,
+            playerMatchCounts: { ...state.playerMatchCounts },
+            assignmentPolicyVersion: state.assignmentPolicyVersion,
           };
           return {
             history: [...state.history, newGameSession],
@@ -358,6 +394,8 @@ export const useGameStore = create<GameState>()(
           commonMatchId: null,
           playerAssignments: {},
           matchesPerPlayer: 1,
+          playerMatchCounts: {},
+          assignmentPolicyVersion: 2,
           activeGameContext: {
             mode: "solo",
             sessionId: null,
@@ -372,6 +410,21 @@ export const useGameStore = create<GameState>()(
       // --- Persistence Configuration ---
       name: "dong-storage", // Name for the persisted storage item
       storage: createJSONStorage(() => AsyncStorage), // Storage mechanism
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<GameState> | undefined;
+        if (!saved || typeof saved !== "object") return current;
+        const playerIds = new Set((saved.players ?? current.players).map(({ id }) => id));
+        const playerMatchCounts = Object.fromEntries(
+          Object.entries(saved.playerMatchCounts ?? {}).filter(([id, count]) =>
+            playerIds.has(id) && isValidAdditionalMatchCount(count)),
+        );
+        return {
+          ...current,
+          ...saved,
+          playerMatchCounts,
+          assignmentPolicyVersion: saved.assignmentPolicyVersion === 2 ? 2 : 1,
+        };
+      },
       partialize: (state) => ({
         // Selectively persist parts of the state
         players: state.players,
@@ -379,6 +432,8 @@ export const useGameStore = create<GameState>()(
         commonMatchId: state.commonMatchId,
         playerAssignments: state.playerAssignments,
         matchesPerPlayer: state.matchesPerPlayer,
+        playerMatchCounts: state.playerMatchCounts,
+        assignmentPolicyVersion: state.assignmentPolicyVersion,
         history: state.history,
         soloTracking: state.soloTracking,
         activeGameContext: state.activeGameContext,
