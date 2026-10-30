@@ -88,7 +88,7 @@ it('reuses fresh results, fetches only C and never polls completed results while
   expect(discover).toHaveBeenLastCalledWith({ date, leagueCodes: ['C'] });
   await jest.advanceTimersByTimeAsync(120_000);
   expect(discover).toHaveBeenCalledTimes(2);
-  expect(reopened.read().leagueStates.every(state => state.status === 'outdated')).toBe(true);
+  expect(reopened.read().leagueStates.every(state => state.status === 'available')).toBe(true);
 });
 
 it('limits a shared pending cycle to three checks; early Retry and a new observer cannot reset it', async () => {
@@ -119,17 +119,17 @@ it('honors a long deferral and manual Retry cooldown without an automatic contin
   expect(discover).toHaveBeenCalledTimes(2);
 });
 
-it('does not renew old source freshness, accepts checked empty and rejects server-stale/missing timing', async () => {
+it('refreshes old source facts without warning for server-fresh fixtures, including checked empty', async () => {
   const { watch, discover } = harness();
   const old = result(['A']); old.groups[0].lastSuccessfulCheckAt = new Date(now - 60_000).toISOString();
   discover.mockResolvedValue(old);
   const view = watch(['A']); await flush();
-  expect(view.read().leagueStates[0].status).toBe('outdated');
+  expect(view.read().leagueStates[0].status).toBe('available');
   const empty = result(['A']); empty.matches = [];
   discover.mockResolvedValue(empty); await view.retry(); await flush();
   expect(view.read().leagueStates[0].status).toBe('empty');
   await jest.advanceTimersByTimeAsync(60_000);
-  expect(view.read().leagueStates[0].status).toBe('outdated');
+  expect(view.read().leagueStates[0].status).toBe('empty');
   discover.mockResolvedValue({ ...empty, groups: [{ ...empty.groups[0], lastSuccessfulCheckAt: null }] });
   await view.retry(); await flush();
   expect(view.read().leagueStates[0].status).toBe('outdated');
@@ -237,7 +237,14 @@ it('expires at source-check +60s, without extending old facts on a later respons
   await jest.advanceTimersByTimeAsync(1);
   const stale = watch(['A']); await flush();
   expect(discover).toHaveBeenCalledTimes(2);
-  expect(stale.read().leagueStates[0].status).toBe('outdated');
+  expect(stale.read().leagueStates[0]).toMatchObject({ status: 'available', message: null });
+  await stale.retry(); await flush();
+  expect(discover).toHaveBeenCalledTimes(3);
+  expect(stale.read().leagueStates[0]).toMatchObject({ status: 'available', message: null });
+  stale.close();
+  const reopened = watch(['A']); await flush();
+  expect(discover).toHaveBeenCalledTimes(4);
+  expect(reopened.read().leagueStates[0]).toMatchObject({ status: 'available', message: null });
 });
 
 it('never turns metadata-only, pending or invalid group correspondence into checked empty', async () => {
