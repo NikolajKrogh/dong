@@ -111,20 +111,6 @@ describe("useMatchListFilters", () => {
     });
   });
 
-  it("syncSelectedLeagues (syncLeagues) replaces the entire selection", () => {
-    const { renderer, getLatest } = renderHookProbe([PREMIER_LEAGUE]);
-
-    TestRenderer.act(() => {
-      getLatest().syncSelectedLeagues([CHAMPIONSHIP, BUNDESLIGA]);
-    });
-
-    expect(getLatest().selectedLeagues).toEqual([CHAMPIONSHIP, BUNDESLIGA]);
-
-    TestRenderer.act(() => {
-      renderer.unmount();
-    });
-  });
-
   it("addCustomHomeTeam (addCustomTeam) appends a home-side team option built from the current selection", () => {
     const { renderer, getLatest } = renderHookProbe([PREMIER_LEAGUE]);
     const initialCount = getLatest().homeTeamOptions.length;

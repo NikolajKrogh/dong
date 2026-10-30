@@ -28,6 +28,9 @@ describe("platform animation adapters", () => {
 
   it("renders the provided fallback when native animation is unavailable", () => {
     jest.doMock("react-native", () => createReactNativePlatformMock("web"));
+    jest.doMock("../../platform/animation/useReducedMotion", () => ({
+      useReducedMotion: () => true,
+    }));
     jest.doMock("../../styles/theme", () => ({
       useColors: () => ({
         textPrimary: "#111111",

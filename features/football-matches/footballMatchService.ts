@@ -105,7 +105,10 @@ function mergeDiscoveryResults(results: MatchDiscoveryResult[]): MatchDiscoveryR
   };
 }
 
-export function createFootballMatchService(transport: FootballMatchTransport): FootballMatchService {
+export function createFootballMatchService(
+  transport: FootballMatchTransport,
+  options: { followUpPending?: boolean } = {},
+): FootballMatchService {
   const { signal } = transport;
 
   async function runCancelableOperation<T>(operation: () => Promise<T>): Promise<T> {
@@ -156,6 +159,7 @@ export function createFootballMatchService(transport: FootballMatchTransport): F
     selection: MatchDiscoverySelection,
   ): Promise<MatchDiscoveryResult> {
     let result = await requestDiscovery(selection);
+    if (options.followUpPending === false) return result;
     for (let followUp = 0; followUp < MAX_DISCOVERY_FOLLOW_UPS; followUp++) {
       if (!hasPendingDiscovery(result)) break;
       const retryAfterSeconds = getDiscoveryRetryDelaySeconds(result);
@@ -201,6 +205,6 @@ export function createFootballMatchService(transport: FootballMatchTransport): F
   };
 }
 
-export function getFootballMatchService(options?: { signal?: AbortSignal }): FootballMatchService {
-  return createFootballMatchService(createSupabaseFootballMatchTransport(options?.signal));
+export function getFootballMatchService(options?: { signal?: AbortSignal; followUpPending?: boolean }): FootballMatchService {
+  return createFootballMatchService(createSupabaseFootballMatchTransport(options?.signal), options);
 }

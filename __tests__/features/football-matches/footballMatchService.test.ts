@@ -18,6 +18,16 @@ function transport() {
 }
 
 describe('Football match service', () => {
+  it('returns the first pending snapshot in picker mode without hidden follow-ups', async () => {
+    const io = transport();
+    io.invoke.mockResolvedValue({ matches: [], availability: 'pending', groups: [{ ...group, availability: 'pending' }], retryAfterSeconds: 15 });
+    const result = await createFootballMatchService(io, { followUpPending: false })
+      .discoverMatches({ leagueCodes: ['eng.1'], date: '2026-10-25' });
+    expect(result.availability).toBe('pending');
+    expect(io.invoke).toHaveBeenCalledTimes(1);
+    expect(io.wait).not.toHaveBeenCalled();
+  });
+
   afterEach(() => {
     jest.mocked(getSupabaseClient).mockReset();
   });

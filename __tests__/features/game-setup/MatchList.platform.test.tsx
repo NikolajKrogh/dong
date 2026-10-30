@@ -13,18 +13,18 @@ const mockPlatformAnimation = jest.fn(() => null);
 const mockStartProcessing = jest.fn();
 const mockMatchTeamsData: unknown[] = [];
 const mockApiData: unknown[] = [];
-const mockAvailableLeagues: unknown[] = [];
+let mockConfiguredLeagues = [{ code: "eng.1", name: "Premier League" }, { code: "eng.2", name: "Championship" }];
+let mockRouteFocused = true;
+let mockTeamLoading = false;
 const mockAllTeamsData: unknown[] = [];
 const mockRetryMatchDiscovery = jest.fn();
 const mockMatchDataState = {
-  isLoading: true,
-  isError: false,
-  errorMessage: "",
-  availabilityMessage: "",
+  isInitialLoading: true,
+  isUpdating: false,
+  leagueStates: [] as { leagueCode: string; status: string; message: string | null; retryAt: number | null }[],
   retry: mockRetryMatchDiscovery,
   teamsData: mockMatchTeamsData,
   apiData: mockApiData,
-  availableLeagues: mockAvailableLeagues,
 };
 const mockStyles = {
   tabContent: { testStyle: "tabContent" },
@@ -47,6 +47,8 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  NativeModules: jest.requireActual("react-native").NativeModules,
+  Animated: jest.requireActual("react-native").Animated,
   Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
   Text: "Text",
@@ -78,9 +80,11 @@ jest.mock("../../../platform", () => ({
   ).formatDateIsoValue,
 }));
 
+jest.mock("expo-router", () => ({ useIsFocused: () => mockRouteFocused }));
+
 jest.mock("../../../store/gameStore", () => ({
   useGameStore: (selector?: (state: unknown) => unknown) => {
-    const state = { defaultSelectedLeagues: [], configuredLeagues: [], theme: "light" };
+    const state = { defaultSelectedLeagues: [], configuredLeagues: mockConfiguredLeagues, theme: "light" };
     return selector ? selector(state) : state;
   },
 }));
@@ -102,13 +106,14 @@ jest.mock("../../../features/football-matches/useLeagueLogo", () => ({
   useLeagueLogo: () => ({ logoSource: { uri: "league-logo" }, isLoading: false }),
 }));
 
+const mockUseMatchData = jest.fn((_selection: unknown) => mockMatchDataState);
 jest.mock("../../../features/football-matches/useMatchData", () => ({
-  useMatchData: () => mockMatchDataState,
+  useMatchData: (selection: unknown) => mockUseMatchData(selection),
 }));
 
 jest.mock("../../../features/football-matches/useTeamDirectory", () => ({
   useTeamDirectory: () => ({
-    isLoading: false,
+    isLoading: mockTeamLoading,
     isError: false,
     errorMessage: "",
     teamsData: mockAllTeamsData,
@@ -225,7 +230,9 @@ describe("MatchList platform adoption", () => {
     jest.clearAllMocks();
     mockMatchTeamsData.splice(0, mockMatchTeamsData.length);
     mockApiData.splice(0, mockApiData.length);
-    mockAvailableLeagues.splice(0, mockAvailableLeagues.length);
+    mockConfiguredLeagues = [{ code: "eng.1", name: "Premier League" }, { code: "eng.2", name: "Championship" }];
+    mockRouteFocused = true;
+    mockTeamLoading = false;
     mockAllTeamsData.splice(0, mockAllTeamsData.length);
     mockUseWindowDimensions.mockReturnValue({
       width: 390,
@@ -233,10 +240,9 @@ describe("MatchList platform adoption", () => {
       scale: 1,
       fontScale: 1,
     });
-    mockMatchDataState.isLoading = true;
-    mockMatchDataState.isError = false;
-    mockMatchDataState.errorMessage = "";
-    mockMatchDataState.availabilityMessage = "";
+    mockMatchDataState.isInitialLoading = true;
+    mockMatchDataState.isUpdating = false;
+    mockMatchDataState.leagueStates = [];
   });
 
   it("uses the shared animation adapter for loading feedback", () => {
@@ -250,6 +256,8 @@ describe("MatchList platform adoption", () => {
       expect.objectContaining({ kind: "loading" }),
       undefined,
     );
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Loading matches" })).toHaveLength(1);
+    expect(renderer!.root.findAllByProps({ children: "Loading matches and teams" })).toHaveLength(0);
 
     TestRenderer.act(() => {
       TestRenderer.act(() => {
@@ -259,9 +267,8 @@ describe("MatchList platform adoption", () => {
   });
 
   it.each(["loading", "failed"])("allows manual matches while backend data is %s", (status) => {
-    mockMatchDataState.isLoading = status === "loading";
-    mockMatchDataState.isError = status === "failed";
-    mockMatchDataState.errorMessage = status === "failed" ? "Failed to fetch" : "";
+    mockMatchDataState.isInitialLoading = status === "loading";
+    mockMatchDataState.leagueStates = status === "failed" ? [{ leagueCode: "eng.1", status: "error", message: "Match discovery is unavailable.", retryAt: null }] : [];
     const setGlobalMatches = jest.fn();
     const setHomeTeam = jest.fn();
     const setAwayTeam = jest.fn();
@@ -290,8 +297,58 @@ describe("MatchList platform adoption", () => {
     TestRenderer.act(() => renderer.unmount());
   });
 
+  it("requests only selected eligible leagues, keeps every configured choice and treats time edits locally", () => {
+    mockConfiguredLeagues = require("../../../constants/leagues").AVAILABLE_LEAGUES.slice(0,7);
+    const renderer = renderMatchList();
+    const chooser = renderer.root.findByProps({ testID: "LeagueFilter" });
+    expect(chooser.props.availableLeagues).toHaveLength(7);
+    expect(mockUseMatchData).toHaveBeenLastCalledWith(expect.objectContaining({ leagueCodes: ["eng.1","eng.2"], active: true }));
+    const filter = renderer.root.findByProps({ testID: "MatchFilter" });
+    const demand = mockUseMatchData.mock.calls[mockUseMatchData.mock.calls.length-1][0];
+    TestRenderer.act(() => filter.props.setStartTime("23:30"));
+    TestRenderer.act(() => filter.props.setEndTime("00:30"));
+    expect(mockUseMatchData).toHaveBeenLastCalledWith(demand);
+    for (const league of chooser.props.selectedLeagues) {
+      TestRenderer.act(() => chooser.props.handleLeagueChange(league));
+    }
+    expect(mockUseMatchData).toHaveBeenLastCalledWith(expect.objectContaining({ leagueCodes: [] }));
+    expect(renderer.root.findByProps({ testID: "LeagueFilter" }).props.availableLeagues).toHaveLength(7);
+    expect(renderer.root.findAllByProps({ children: "Select a league to find fixtures." })).toHaveLength(1);
+  });
+
+  it.each(["updating", "error", "offline", "pending"])("keeps fixture actions and the game pool usable during %s and unfinished team suggestions", status => {
+    mockMatchDataState.isInitialLoading = false;
+    mockMatchDataState.isUpdating = status === "updating";
+    mockMatchDataState.leagueStates = [{ leagueCode: "eng.2", status, message: "Fixtures need another check.", retryAt: null }];
+    mockTeamLoading = true;
+    mockMatchTeamsData.push({ key: "home", value: "Arsenal", league: "Premier League" }, { key: "away", value: "Chelsea", league: "Premier League" });
+    mockApiData.push({ name: "Premier League", matches: [{ id: "fixture", team1: "Arsenal", team2: "Chelsea" }] });
+    const renderer = renderMatchList({ fixedMatchIds: ["m1"] });
+    const filter = renderer.root.findByProps({ testID: "MatchFilter" });
+    expect(filter.props.isLoading).toBe(false);
+    expect(filter.props.filteredMatches).toHaveLength(1);
+    TestRenderer.act(() => filter.props.handleAddAllFilteredMatches());
+    expect(mockStartProcessing).toHaveBeenCalledWith(filter.props.filteredMatches);
+    expect(renderer.root.findByProps({ testID: "SelectableMatchList" }).props.disabledMatchIds).toEqual(["m1"]);
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Loading matches" })).toHaveLength(0);
+  });
+
+  it("reconciles configured options and route activity without changing pooled selections", () => {
+    const setGlobalMatches = jest.fn();
+    const renderer = renderMatchList({ setGlobalMatches });
+    mockConfiguredLeagues = [{ code: "eng.2", name: "Championship" }];
+    mockRouteFocused = false;
+    const MatchList = require("../../../features/game-setup/MatchList").default;
+    const props = renderer.root.findByType(MatchList).props;
+    TestRenderer.act(() => renderer.update(React.createElement(MatchList, props)));
+    expect(mockUseMatchData).toHaveBeenLastCalledWith(expect.objectContaining({ leagueCodes: ["eng.2"], active: false }));
+    expect(renderer.root.findByProps({ testID: "LeagueFilter" }).props.availableLeagues).toMatchObject(mockConfiguredLeagues);
+    expect(renderer.root.findByProps({ testID: "SelectableMatchList" }).props.selectedMatchIds).toEqual(["m1"]);
+    expect(setGlobalMatches).not.toHaveBeenCalled();
+  });
+
   it("keeps a single-column layout on phone-sized viewports", () => {
-    mockMatchDataState.isLoading = false;
+    mockMatchDataState.isInitialLoading = false;
 
     const renderer = renderMatchList();
     const layout = renderer.root.findByProps({ testID: "MatchListLayout" });
@@ -304,7 +361,7 @@ describe("MatchList platform adoption", () => {
   });
 
   it("keeps added matches below the controls on desktop-wide viewports", () => {
-    mockMatchDataState.isLoading = false;
+    mockMatchDataState.isInitialLoading = false;
     mockUseWindowDimensions.mockReturnValue({
       width: 1280,
       height: 900,
@@ -323,7 +380,7 @@ describe("MatchList platform adoption", () => {
   });
 
   it("keeps the empty state below the controls on desktop-wide viewports before matches are added", () => {
-    mockMatchDataState.isLoading = false;
+    mockMatchDataState.isInitialLoading = false;
     mockUseWindowDimensions.mockReturnValue({
       width: 1280,
       height: 900,
@@ -346,7 +403,7 @@ describe("MatchList platform adoption", () => {
   });
 
   it("passes backend-backed grouped matches through the existing MatchFilter consumer shape", () => {
-    mockMatchDataState.isLoading = false;
+    mockMatchDataState.isInitialLoading = false;
     mockMatchTeamsData.push(
       {
         key: "Arsenal-Premier League",
@@ -372,7 +429,6 @@ describe("MatchList platform adoption", () => {
         },
       ],
     });
-    mockAvailableLeagues.push({ name: "Premier League", code: "eng.1" });
 
     const renderer = renderMatchList();
     const matchFilter = renderer.root.findByProps({ testID: "MatchFilter" });
@@ -389,13 +445,12 @@ describe("MatchList platform adoption", () => {
     ]);
   });
   it("groups added matches, removes tapped cards, and clears the list even when fixtures are available", () => {
-    mockMatchDataState.isLoading = false;
+    mockMatchDataState.isInitialLoading = false;
     const fixtures = [
       { id: "pl", team1: "Liverpool", team2: "Brighton", leagueCode: "eng.1", time: "15:00" },
       { id: "ch", team1: "Leeds", team2: "Norwich", leagueCode: "eng.2", time: "15:30" },
     ];
     for (const [index, league] of [{ code: "eng.1", name: "Premier League" }, { code: "eng.2", name: "Championship" }].entries()) {
-      mockAvailableLeagues.push(league);
       mockApiData.push({ name: league.name, matches: [fixtures[index]] });
       for (const value of [fixtures[index].team1, fixtures[index].team2]) {
         mockMatchTeamsData.push({ key: value, value, league: league.name });
