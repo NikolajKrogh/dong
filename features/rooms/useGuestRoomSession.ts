@@ -2,7 +2,6 @@ import { createContext, useContext } from "react";
 import type { UseGuestRoomSessionResult } from "./useGuestRoomSessionController";
 
 export type { UseGuestRoomSessionResult } from "./useGuestRoomSessionController";
-export { GUEST_ROOM_POLL_INTERVAL_MS } from "./useGuestRoomSessionController";
 
 export const GuestRoomSessionContext = createContext<UseGuestRoomSessionResult | null>(null);
 
