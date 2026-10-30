@@ -3,6 +3,8 @@ import type { ClaimedRequest, DeferredWork, FootballMatchRepository, WorkerSlot 
 import type { MatchDiscoveryResult, SavedMatchesResult } from '../../../../types/footballMatch.ts';
 
 type SqlResult = Record<string, unknown>;
+// Cold, unprepared queries must not infer a scalar OID before array types load.
+const POSTGRES_TEXT_ARRAY_OID = 1009;
 function object(value: unknown): SqlResult {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid_database_result');
   return value as SqlResult;
@@ -37,19 +39,22 @@ export function createPostgresFootballMatchRepository(connectionString: string):
   const sql = postgres(connectionString, options);
   return {
     async prepareDiscovery(selection) {
-      const [row] = await sql`select private.prepare_match_discovery(${sql.array(selection.leagueCodes)}::text[],${selection.date}::date) as result`;
+      const [row] = await sql`select private.prepare_match_discovery(${sql.array(selection.leagueCodes, POSTGRES_TEXT_ARRAY_OID)}::text[],${selection.date}::date) as result`.catch((error: { code?: string }) => {
+        console.error('match_catalog_database_error', error.code ?? 'unknown');
+        throw error;
+      });
       return row.result;
     },
     async readDiscovery(selection) {
-      const [row] = await sql`select private.finish_match_discovery(${sql.array(selection.leagueCodes)}::text[],${selection.date}::date) as result`;
+      const [row] = await sql`select private.finish_match_discovery(${sql.array(selection.leagueCodes, POSTGRES_TEXT_ARRAY_OID)}::text[],${selection.date}::date) as result`;
       return object(row.result) as unknown as MatchDiscoveryResult;
     },
     async readSaved(ids, projection) {
-      const [row] = await sql`select private.read_saved_matches(${sql.array(ids)}::text[],${projection}) as result`;
+      const [row] = await sql`select private.read_saved_matches(${sql.array(ids, POSTGRES_TEXT_ARRAY_OID)}::text[],${projection}) as result`;
       return object(row.result) as unknown as SavedMatchesResult;
     },
     async pendingRooms(groupIds) {
-      const [row] = await sql`select private.pending_catalog_rooms(${groupIds === null ? null : sql.array(groupIds)}::bigint[]) as result`;
+      const [row] = await sql`select private.pending_catalog_rooms(${groupIds === null ? null : sql.array(groupIds, POSTGRES_TEXT_ARRAY_OID)}::bigint[]) as result`;
       if (!Array.isArray(row.result) || !row.result.every(id => typeof id === 'string')) throw new Error('invalid_database_result');
       return row.result;
     },
@@ -75,7 +80,7 @@ export function createPostgresFootballMatchRepository(connectionString: string):
       await sql`select private.release_provider_worker_slot(${token}::uuid,${generation},${outcome})`;
     },
     async claimBatch(groupIds, purpose, workerToken, generation) {
-      const [row] = await sql`select private.claim_provider_batch(${sql.array(groupIds)}::bigint[],${purpose},${workerToken}::uuid,${generation}::bigint) as result`;
+      const [row] = await sql`select private.claim_provider_batch(${sql.array(groupIds, POSTGRES_TEXT_ARRAY_OID)}::bigint[],${purpose},${workerToken}::uuid,${generation}::bigint) as result`;
       const result = object(row.result);
       if (result.ok !== true) return [];
       if (!Array.isArray(result.claims) || result.claims.length>4) throw new Error('invalid_database_result');
@@ -102,7 +107,7 @@ export function createPostgresFootballMatchRepository(connectionString: string):
       await sql`select private.fail_provider_request(${claim.attemptId}::bigint,${claim.leaseToken}::uuid,${claim.workerGeneration},${failure.code},${failure.status},${failure.retryAfterSeconds})`;
     },
     async prepareSolo(input) {
-      const [row] = await sql`select private.prepare_solo_tracking(${input.nonceDigest},${input.creationDigest},${input.operationId}::uuid,${input.signingKeyId},${sql.array(input.catalogMatchIds)}::text[]) as result`;
+      const [row] = await sql`select private.prepare_solo_tracking(${input.nonceDigest},${input.creationDigest},${input.operationId}::uuid,${input.signingKeyId},${sql.array(input.catalogMatchIds, POSTGRES_TEXT_ARRAY_OID)}::text[]) as result`;
       return row.result;
     },
     async finalizeSolo(input) {
@@ -110,7 +115,7 @@ export function createPostgresFootballMatchRepository(connectionString: string):
       return row.result;
     },
     async replaceSolo(input) {
-      const [row] = await sql`select private.replace_solo_tracking(${input.tokenDigest},${input.expectedVersion}::integer,${input.operationId}::uuid,${input.requestDigest},${sql.array(input.catalogMatchIds)}::text[]) as result`;
+      const [row] = await sql`select private.replace_solo_tracking(${input.tokenDigest},${input.expectedVersion}::integer,${input.operationId}::uuid,${input.requestDigest},${sql.array(input.catalogMatchIds, POSTGRES_TEXT_ARRAY_OID)}::text[]) as result`;
       return row.result;
     },
   };

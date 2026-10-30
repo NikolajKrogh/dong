@@ -1,6 +1,22 @@
 # Implementation and rollout ledger
 
-No feature schema, function, scheduler or client deployment has been applied to the hosted project.
+The hosted catalog was activated on 2026-10-29 after the website had shipped its catalog client ahead of the required Edge deployment. Earlier sections below retain the preparation and preview history.
+
+## Production activation, 2026-10-29
+
+- Applied the seven pending migrations from `20261026163255` through `20261029170000` using `db push --linked --skip-vault`, after a dry run. Existing core and consumer migrations were already present.
+- Guarded extension installation with `pg_extension` checks. Reissuing `CREATE EXTENSION IF NOT EXISTS pg_cron` triggered a managed privilege hook and failed with `2BP01`; the explicit guard succeeded, including a later rollback-only repeat.
+- Provisioned `dong_match_catalog_login`, inheriting only `match_catalog_backend`, with a ten-second statement timeout. A fresh transaction-pooler connection verified TLS, the timeout, permitted discovery, and denied direct-table/operator access. The local verification trusted the published Supabase CA; deployed functions used their platform trust configuration.
+- Configured the server-only database/signing/origin settings and Vault dispatch entries without printing secret values. The named worker key is `match_monitor`: Supabase rejects hyphens in API-key names. The final signing key ID is `v1`; a temporary solo grant was successfully created and ended, leaving no active smoke grant.
+- Deployed discovery, solo tracking, monitor and legacy score-refresh compatibility. Production public/default-secret worker calls returned 401; the named monitor key reached body validation. Discovery preflight returned 204 with the production origin, saved reads returned 200, and the internal `net` schema returned 406 through the Data API.
+- Fixed cold PostgresJS array serialization by supplying the text-array OID explicitly. A read-only fresh-connection reproduction failed for inferred nonempty arrays and passed for explicit single, multiple, empty and bigint-cast arrays. Production discovery then returned 200.
+- Initial acquisition used an eight-per-minute/twelve-per-day sample cap. Existing active-room reservations exceeded that temporary daily forecast and caused partial imports. After restoring the documented 30/5000 limits and refreshing scheduling capacity, invalidated only the two incomplete Saturday sample groups and reacquired them; retained attempt records still account for the requests.
+- Catalog generation 3 owns acquisition, legacy SQL entrances are fenced, and the single owned 15-second Cron job is active. A real monitor dispatch returned HTTP 200 without timeout, and Cron runs succeeded. Storage remained below 3 MB attributable to the feature and 24 MB for the database during checks.
+- Live discovery returned 12 fixtures for 2026-10-31 across England/Spain/Denmark and five for 2026-10-30 across Spain/Germany/France. Empty responses for tested leagues on 2026-10-29 were successful provider checks, not transport failures. Reload the website and select a date/league with scheduled fixtures.
+- Edge typechecks, focused ingress/monitor unit tests (23 tests), changed-source lint and `git diff --check` passed. The actual pinned SDK smoke denied public/other-secret keys with zero networking. The existing guarded local concurrency harness passed with 100 rooms, 500 applied events, five controlled source requests and zero extra warm-consumer attempts. A forged production monitor dispatch was denied with 403. Browser control was disabled; endpoint checks do not claim a browser UI or physical Android run. Java hosting and older client adoption were not verified, so this does not claim universal provider-traffic consolidation.
+- Post-deployment security advisors retained the same warning categories as the baseline; three additional private RLS-enabled tables account for the extra no-policy informational findings. Performance advisors still report unindexed foreign keys, including catalog attempt/group keys. No unrelated advisor remediation was included.
+
+Rollback remains the paused-mode operator procedure below; preserve saved facts, replay, credentials and catalog-compatible clients. Deployment source includes the local fixes described above; they are not yet committed by this run.
 
 | Migration alias | CLI-created local file |
 | --- | --- |
@@ -44,7 +60,7 @@ Do not include seed data, custom-role files, Vault updates or unrelated function
 
 Use the [dedicated login template](runtime-database.md#provisioning-template-for-a-later-authorized-deployment), set its password through the approved secret workflow, and verify a fresh transaction-pooler connection. The actual LOGIN must have the ten-second default, verified TLS, intended private execute grants and no direct provider-table/operator privileges. The adapter uses four connections per warm instance, `prepare:false`, `max_pipeline:0` and atomic function statements. Public API/JWT credentials cannot substitute for its DSN.
 
-Create the named Supabase server key **`match-monitor`** through the project's API-key management UI. Confirm the runtime's platform-supplied named-secret map supports `auth:'secret:match-monitor'`; do not manufacture a service-role client bypass. Store that same key in Vault as `match_catalog_monitor_key`, and the public project URL `https://qccvlhblytuedgmlqfef.supabase.co` as `match_catalog_project_url`. Use existing named entries when rotating rather than duplicate names. Verify names only; never print decrypted values.
+Create the named Supabase server key **`match_monitor`** through the project's API-key management UI. Confirm the runtime's platform-supplied named-secret map supports `auth:'secret:match_monitor'`; do not manufacture a service-role client bypass. Store that same key in Vault as `match_catalog_monitor_key`, and the public project URL `https://qccvlhblytuedgmlqfef.supabase.co` as `match_catalog_project_url`. Use existing named entries when rotating rather than duplicate names. Verify names only; never print decrypted values.
 
 Prepare an ignored, access-restricted `.supabase/match-catalog.production.env` using the approved secret workflow:
 

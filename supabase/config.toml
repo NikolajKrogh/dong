@@ -396,7 +396,7 @@ verify_jwt = false
 [functions.solo-match-tracking]
 verify_jwt = false
 
-# Actual auth requires the named match-monitor secret plus a live database dispatch.
+# Actual auth requires the named match_monitor secret plus a live database dispatch.
 [functions.run-match-monitor]
 verify_jwt = false
 

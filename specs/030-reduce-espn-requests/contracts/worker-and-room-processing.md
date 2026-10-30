@@ -4,7 +4,7 @@
 
 ## Restricted ingress and dispatch
 
-POST `/functions/v1/run-match-monitor` accepts `{ "dispatchToken": "<opaque token>", "workerGeneration": 1 }`. Reject arbitrary source URLs, room lists, scores, timing/budget overrides and unrecognized fields. A valid named server secret in `apikey` and a live server-issued dispatch slot/token are both required. Use `auth: 'secret:match-monitor'` or equivalent exact validation; `verify_jwt=false` alone is insufficient. A user JWT or public key cannot authorize this route.
+POST `/functions/v1/run-match-monitor` accepts `{ "dispatchToken": "<opaque token>", "workerGeneration": 1 }`. Reject arbitrary source URLs, room lists, scores, timing/budget overrides and unrecognized fields. A valid named server secret in `apikey` and a live server-issued dispatch slot/token are both required. Use `auth: 'secret:match_monitor'` or equivalent exact validation; `verify_jwt=false` alone is insufficient. A user JWT or public key cannot authorize this route.
 
 Each 15-second Cron pass runs one private due-check transaction. It checks selected eligible room processing and source/completion work, recovers expired slots, and enqueues only useful dispatches through pg_net. Allocate at most two worker slots, each with a 60-second lease. Reserve the slots required for live groups due within 45 seconds; optional discovery/enrichment cannot occupy that capacity. Token/generation belong to durable slot state; pg_net's request ID is diagnostic only. Set its timeout to 45,000 ms. HTTP starts after transaction commit; queue loss/error is recovered through due work and slot expiry, not an assumed reliable HTTP queue.
 

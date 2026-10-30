@@ -1,6 +1,13 @@
 -- Dormant, additive monitoring. Operator provisioning/activation is separate.
-create extension if not exists pg_net with schema extensions;
-create extension if not exists pg_cron with schema pg_catalog;
+-- Avoid firing managed extension hooks again for already-installed extensions.
+do $$ begin
+  if not exists (select 1 from pg_extension where extname='pg_net') then
+    create extension pg_net with schema extensions;
+  end if;
+  if not exists (select 1 from pg_extension where extname='pg_cron') then
+    create extension pg_cron with schema pg_catalog;
+  end if;
+end $$;
 -- Managed pg_net objects are owned by supabase_admin. Their required PUBLIC ACLs
 -- cannot be revoked by postgres; SQL REVOKE here would only produce warnings.
 -- Keep net outside Data API schemas and audit/trust every database LOGIN before
