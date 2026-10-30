@@ -1785,7 +1785,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     matchTeamColumn: {
       flex: 2,
       alignItems: "center",
-      paddingHorizontal: 4,
+      paddingHorizontal: 0,
     },
     matchTimeHeader: {
       flexDirection: "row",
@@ -1824,6 +1824,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     teamName: {
       textAlign: "center",
       fontSize: 14,
+      lineHeight: 18,
+      minHeight: 36,
       fontWeight: "500",
       color: colors.textPrimary,
       marginTop: 8,
@@ -1839,11 +1841,11 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       paddingTop: 12,
     },
     vsDividerHorizontal: {
-      flex: 1,
+      width: 20,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 8,
+      paddingHorizontal: 0,
     },
 
     teamLogoPlaceholder: {

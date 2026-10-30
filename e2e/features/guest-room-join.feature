@@ -1,5 +1,21 @@
 Feature: Guest Room Join
 
+    Scenario: Switch guest tabs without losing picks and clear the selection
+        Given the guest room service is mocked in player-picked mode
+        And the guest room app is running on web
+        When the user opens the guest join flow
+        And the guest joins the mocked room as "Casey"
+        Then the guest lobby summary should be visible
+        When the guest picks the first match in the pool
+        Then the guest's pick progress should read "1/2"
+        When the guest opens the Room tab
+        Then the Room tab shows the guest pick progress
+        When the guest returns to the Matches tab
+        Then the guest's pick progress should read "1/2"
+        When the guest clears all picks
+        And the mocked host starts gameplay
+        Then the guest is taken into the active game
+
     Scenario: Join a host room from the home screen
         Given the guest room service is mocked
         And the guest room app is running on web

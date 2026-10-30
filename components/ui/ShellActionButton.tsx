@@ -35,6 +35,7 @@ const ShellActionButtonFrame = styled(XStack, {
         borderWidth: 1,
         borderColor: "$borderColor",
       },
+      text: { backgroundColor: "transparent", paddingHorizontal: "$2" },
     },
     size: {
       small: {
@@ -101,6 +102,9 @@ const ShellActionButtonLabel = styled(Text, {
   variants: {
     surfaceText: {
       true: { color: "$color" },
+    },
+    textAction: {
+      true: { color: "$primaryDark", fontSize: 14 },
     },
   } as const,
 });
@@ -176,7 +180,7 @@ function ShellActionContent({ icon, label, variant }: Pick<ShellActionButtonProp
   return <>
       {icon ? <XStack aria-hidden={isWeb ? true : undefined} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{icon}</XStack> : null}
       {label ? (
-        <ShellActionButtonLabel fontFamily={isWeb ? "system-ui" : undefined} surfaceText={variant === "surface"}>
+        <ShellActionButtonLabel fontFamily={isWeb ? "system-ui" : undefined} surfaceText={variant === "surface"} textAction={variant === "text"}>
           {label}
         </ShellActionButtonLabel>
       ) : null}

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Text, XStack, YStack } from "tamagui";
+import { Text, YStack } from "tamagui";
 
 import { MatchSelectionCard } from "../game-setup/MatchSelectionCard";
 import {
@@ -30,6 +30,17 @@ interface PlayerPickPanelProps {
   testID?: string;
   title?: string;
   compact?: boolean;
+  flat?: boolean;
+}
+
+function getPickInstruction(cap: number, pickedCount: number): string {
+  if (!(cap > 0)) return "Everyone gets the common match only. No picks needed.";
+  if (pickedCount >= cap) return "All matches chosen. Tap one to change your selection.";
+
+  const remaining = cap - pickedCount;
+  const matchLabel = remaining === 1 ? "match" : "matches";
+  if (pickedCount === 0) return `Choose ${remaining} ${matchLabel}.`;
+  return `Choose ${remaining} more ${matchLabel}.`;
 }
 
 /**
@@ -52,7 +63,7 @@ interface PlayerPickPanelProps {
  * the server's own view of it changes. `isBusy` still gates the controls, but the
  * local state is what makes a second tap additive rather than destructive.
  */
-export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
+export function PlayerPickPanel({
   matches,
   myPicks,
   cap,
@@ -61,7 +72,8 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   testID = "lobby-player-pick-panel",
   title = "Your matches",
   compact = false,
-}) => {
+  flat = false,
+}: PlayerPickPanelProps): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(false);
   const [localPicks, setLocalPicks] = useState<string[]>(myPicks);
 
@@ -71,7 +83,9 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
   // poll produces one) does not clobber an in-flight local selection.
   const myPicksKey = useMemo(() => [...myPicks].sort().join("|"), [myPicks]);
   const [seededFrom, setSeededFrom] = useState(myPicksKey);
-  if (seededFrom !== myPicksKey) {
+  const [wasBusy, setWasBusy] = useState(isBusy);
+  if (wasBusy !== isBusy) setWasBusy(isBusy);
+  if (seededFrom !== myPicksKey || (wasBusy && !isBusy)) {
     // Adjusting state during render rather than in an effect: React discards this
     // render and immediately re-renders with the new state, so there is no commit
     // showing stale picks — and no cascading-render lint warning.
@@ -83,13 +97,14 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
 
   const disabledMatchIds = useMemo(
     () => {
+      if (isBusy) return matches.map((match) => match.id);
       if (!atCap) return [];
       const pickedIds = new Set(localPicks);
       return matches
         .filter((match) => !pickedIds.has(match.id))
         .map((match) => match.id);
     },
-    [atCap, matches, localPicks],
+    [atCap, isBusy, matches, localPicks],
   );
 
   const handleToggle = useCallback(
@@ -108,33 +123,37 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
     [cap, localPicks, onSetPicks],
   );
 
-  const handleReleaseAll = useCallback(() => {
+  const handleClearPicks = useCallback(() => {
     setLocalPicks([]);
     void onSetPicks([]);
   }, [onSetPicks]);
-
-  let instruction = "Everyone gets the common match only. No picks needed.";
-  if (cap > 0) {
-    if (atCap) instruction = "All matches chosen. Tap one to change your selection.";
-    else if (localPicks.length === 0) instruction = `Choose ${cap} ${cap === 1 ? "match" : "matches"}.`;
-    else instruction = `Choose ${cap - localPicks.length} more ${cap - localPicks.length === 1 ? "match" : "matches"}.`;
-  }
 
   return (
     <YStack testID={testID} gap="$2">
       <MatchSelectionCard
         compact={compact}
+        flat={flat}
         title={title}
         selectedCount={localPicks.length}
         totalCount={cap}
         collapsed={collapsed}
-        onToggleCollapsed={() => setCollapsed((value) => !value)}
+        onToggleCollapsed={flat ? undefined : () => setCollapsed((value) => !value)}
         testID={`${testID}-card`}
         badgeTestID={`${testID}-count`}
+        headerAction={localPicks.length > 0 ? (
+          <ShellActionButton
+            variant="text"
+            widthMode="fit"
+            label="Clear picks"
+            testID={`${testID}-release-all`}
+            disabled={isBusy}
+            onPress={handleClearPicks}
+          />
+        ) : null}
       >
         <YStack gap="$2">
           <Text color="$colorMuted" fontSize={13}>
-            {instruction}
+            {getPickInstruction(cap, localPicks.length)}
           </Text>
 
           <SelectableMatchList
@@ -142,26 +161,10 @@ export const PlayerPickPanel: React.FC<PlayerPickPanelProps> = ({
             selectedMatchIds={localPicks}
             onToggleMatch={handleToggle}
             testIDPrefix={`${testID}-option`}
-            disabledMatchIds={
-              isBusy ? matches.map((m) => m.id) : disabledMatchIds
-            }
+            disabledMatchIds={disabledMatchIds}
           />
-
-          {localPicks.length > 0 ? (
-            <XStack>
-              <ShellActionButton
-                variant="surface"
-                size="small"
-                widthMode="fit"
-                label="Release all"
-                testID={`${testID}-release-all`}
-                disabled={isBusy}
-                onPress={handleReleaseAll}
-              />
-            </XStack>
-          ) : null}
         </YStack>
       </MatchSelectionCard>
     </YStack>
   );
-};
+}

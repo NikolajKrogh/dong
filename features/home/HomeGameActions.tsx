@@ -66,7 +66,7 @@ export function HomeGameActions({ actions: roomActions, colors, styles, wideLayo
   const handleCancelGame = () => {
     if (guestRoomSession) {
       setIsConfirmModalVisible(false);
-      void roomActions.handleLeaveGuestJoin();
+      void roomActions.handleLeaveGuestRoom();
       return;
     }
     if (game.activeGameContext?.mode === "multiplayer") return;

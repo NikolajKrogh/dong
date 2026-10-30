@@ -8,6 +8,8 @@ import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
 import { AccountAuthProvider } from "../features/account";
 import { useGuestRoomEndedNavigation } from "../features/rooms/useGuestRoomEndedNavigation";
+import { GuestRoomSessionProvider } from "../features/rooms/GuestRoomSessionProvider";
+import { GuestRoomLifecycle } from "../features/rooms/GuestRoomLifecycle";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '../lib/queryClient';
 import QueryLifecycle from '../lib/QueryLifecycle';
@@ -27,7 +29,7 @@ const toastConfig = {
  * custom screens), and registers themed toast types.
  */
 const pageTitles: Record<string, string> = {
-  "/": "Home", "/setupGame": "Set up game", "/gameProgress": "Game progress",
+  "/": "Home", "/setupGame": "Set up game", "/gameProgress": "Game progress", "/guestRoom": "Guest room",
   "/history": "History", "/friends": "Friends", "/friends/search": "Find friends",
   "/friends/blocked": "Blocked accounts", "/userPreferences": "Settings",
   "/userPreferences/profile": "Profile", "/userPreferences/leagues": "Default leagues",
@@ -45,17 +47,20 @@ export default function Layout() {
     <QueryLifecycle />
     <AccountAuthProvider>
       <TamaguiAppProvider>
-        <PlatformGestureRoot style={{ flex: 1 }}>
-          <Stack
-            initialRouteName="index"
-            screenOptions={{ headerShown: false, title: "DONG" }}
-          >
-            <Stack.Screen name="userPreferences" options={{ title: "Preferences" }} />
-            <Stack.Screen name="auth" options={{ headerShown: false }} />
-            <Stack.Screen name="taskOverlay" options={{ presentation: "transparentModal", headerShown: false, animation: "none" }} />
-          </Stack>
-          <Toast config={toastConfig as any} />
-        </PlatformGestureRoot>
+        <GuestRoomSessionProvider>
+          <GuestRoomLifecycle />
+          <PlatformGestureRoot style={{ flex: 1 }}>
+            <Stack
+              initialRouteName="index"
+              screenOptions={{ headerShown: false, title: "DONG" }}
+            >
+              <Stack.Screen name="userPreferences" options={{ title: "Preferences" }} />
+              <Stack.Screen name="auth" options={{ headerShown: false }} />
+              <Stack.Screen name="taskOverlay" options={{ presentation: "transparentModal", headerShown: false, animation: "none" }} />
+            </Stack>
+            <Toast config={toastConfig as any} />
+          </PlatformGestureRoot>
+        </GuestRoomSessionProvider>
       </TamaguiAppProvider>
     </AccountAuthProvider>
     </QueryClientProvider>

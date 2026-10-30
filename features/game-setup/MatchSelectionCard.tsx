@@ -28,7 +28,9 @@ interface MatchSelectionCardProps {
   onToggleCollapsed?: () => void;
   badgeLabel?: string;
   compact?: boolean;
+  flat?: boolean;
   children?: React.ReactNode;
+  headerAction?: React.ReactNode;
   /**
    * Applied to the outer container so callers keep their own layout styles.
    * Named `style` rather than `containerStyle` deliberately: callers' existing
@@ -40,6 +42,21 @@ interface MatchSelectionCardProps {
   badgeTestID?: string;
 }
 
+const flatContainerStyle = { gap: 8 };
+const flatHeaderStyle = {
+  backgroundColor: "transparent",
+  borderWidth: 0,
+  padding: 0,
+  marginBottom: 0,
+} as const;
+const headerButtonStyle = {
+  flex: 1,
+  minWidth: 0,
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+} as const;
+
 /**
  * A collapsible card wrapping a match-selection list, with a count badge.
  *
@@ -48,22 +65,25 @@ interface MatchSelectionCardProps {
  * state is owned by the caller, which lets the solo flow keep its
  * one-map-for-all-players behaviour unchanged.
  */
-export const MatchSelectionCard: React.FC<MatchSelectionCardProps> = ({
+export function MatchSelectionCard({
   title,
   selectedCount,
   totalCount,
   collapsed,
   onToggleCollapsed,
   children,
+  headerAction,
   style,
   testID,
   badgeTestID,
   badgeLabel,
   compact = false,
-}) => {
+  flat = false,
+}: MatchSelectionCardProps): React.JSX.Element {
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
-  const cardStyle = style ?? [styles.assignmentContainer, styles.playerContainer];
+  const defaultStyle = flat ? flatContainerStyle : [styles.assignmentContainer, styles.playerContainer];
+  const cardStyle = style ?? defaultStyle;
   let headerIcon: "person-outline" | "chevron-forward" | "chevron-down" =
     "person-outline";
   if (onToggleCollapsed)
@@ -74,38 +94,41 @@ export const MatchSelectionCard: React.FC<MatchSelectionCardProps> = ({
       testID={testID}
       style={compact ? [cardStyle, styles.compactAssignmentPlayer] : cardStyle}
     >
-      <TouchableOpacity
-        accessibilityRole={onToggleCollapsed ? "button" : undefined}
-        accessibilityState={
-          onToggleCollapsed ? { expanded: !collapsed } : undefined
-        }
-        disabled={!onToggleCollapsed}
-        style={styles.playerHeader}
-        onPress={onToggleCollapsed}
-        activeOpacity={0.7}
-      >
-        <View style={styles.playerHeaderLeft}>
-          <Ionicons
-            name={headerIcon}
-            size={18}
-            color={colors.primary}
-            style={styles.chevronIcon}
-          />
-          <Text style={styles.playerAssignmentName}>{title}</Text>
-        </View>
-        {badgeLabel ? (
-          <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
-            {badgeLabel}
-          </Text>
-        ) : (
-          <View style={styles.playerBadge}>
-            <Text testID={badgeTestID} style={styles.playerBadgeText}>
-              {selectedCount}/{totalCount}
-            </Text>
+      <View style={[styles.playerHeader, flat && flatHeaderStyle]}>
+        <TouchableOpacity
+          accessibilityRole={onToggleCollapsed ? "button" : undefined}
+          accessibilityState={
+            onToggleCollapsed ? { expanded: !collapsed } : undefined
+          }
+          disabled={!onToggleCollapsed}
+          style={headerButtonStyle}
+          onPress={onToggleCollapsed}
+          activeOpacity={0.7}
+        >
+          <View style={styles.playerHeaderLeft}>
+            {!flat ? <Ionicons
+              name={headerIcon}
+              size={18}
+              color={colors.primary}
+              style={styles.chevronIcon}
+            /> : null}
+            <Text style={styles.playerAssignmentName}>{title}</Text>
           </View>
-        )}
-      </TouchableOpacity>
+          {badgeLabel ? (
+            <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
+              {badgeLabel}
+            </Text>
+          ) : (
+            <View style={styles.playerBadge}>
+              <Text testID={badgeTestID} style={styles.playerBadgeText}>
+                {selectedCount}/{totalCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {headerAction}
+      </View>
       {collapsed ? null : children}
     </View>
   );
-};
+}

@@ -1,345 +1,40 @@
-import React, { useMemo } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-} from "react-native";
+import React from "react";
+import { Modal, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Text, XStack, YStack, useTheme } from "tamagui";
-
-import type { GuestRoomSession, GuestRoomSessionStatus } from "../../types/guestRoom";
-import AppIcon from "../../components/ui/AppIcon";
+import { Text, XStack, YStack } from "tamagui";
 import { ShellActionButton, ShellCard } from "../../components/ui";
 import { GuestJoinForm } from "./GuestJoinForm";
-import { GuestJoinLobby } from "./GuestJoinLobby";
 
 interface GuestJoinModalProps {
   visible: boolean;
   joinCode: string;
   guestName: string;
-  session: GuestRoomSession | null;
-  status: GuestRoomSessionStatus;
   error: string | null;
   isSubmitting: boolean;
   onClose: () => void;
   onJoinCodeChange: (value: string) => void;
   onGuestNameChange: (value: string) => void;
   onSubmit: () => void;
-  onLeaveRoom: () => void | Promise<void>;
-  /** Submits the guest's complete next pick set in player-picked mode (#185). */
-  onSetPicks?: (matchIds: string[]) => void | Promise<void>;
-  /** True while a pick submission and its follow-up refresh are in flight. */
-  isPickBusy?: boolean;
 }
 
-const createStyles = (isWideLayout: boolean) =>
-  StyleSheet.create({
-    safeArea: {
-      flex: 1,
-    },
-    backdrop: {
-      flex: 1,
-      justifyContent: "center",
-      padding: 16,
-    },
-    contentTouchable: {
-      width: "100%",
-      alignSelf: "center",
-      maxWidth: isWideLayout ? 460 : 420,
-    },
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: "center",
-    },
-  });
-
-const getModalCopy = (
-  status: GuestJoinModalProps["status"],
-  session: GuestRoomSession | null,
-) => {
-  const title =
-    status === "pending_leave"
-      ? "Departure pending"
-      : status === "renewing"
-        ? "Renewing guest access"
-        : status === "left"
-          ? "Guest room left"
-          : session
-            ? "Guest Room Active"
-            : "Join as a guest";
-  const subtitle = session
-    ? `Connected as ${session.grant.displayName}`
-    : status === "pending_leave"
-      ? "Room actions are paused until departure is confirmed."
-      : status === "renewing"
-        ? "Room actions are paused until renewal is confirmed."
-        : status === "left"
-          ? "Your departure was confirmed and guest access was revoked."
-          : "Enter a room to play";
-
-  return { title, subtitle };
-};
-
-type GuestJoinModalBodyProps = Pick<
-  GuestJoinModalProps,
-  | "status"
-  | "session"
-  | "error"
-  | "isSubmitting"
-  | "guestName"
-  | "joinCode"
-  | "onLeaveRoom"
-  | "onSetPicks"
-  | "isPickBusy"
-  | "onGuestNameChange"
-  | "onJoinCodeChange"
-  | "onSubmit"
->;
-
-const PendingGuestRoomPanel = ({
-  status,
-  error,
-  onLeaveRoom,
-}: Pick<GuestJoinModalBodyProps, "status" | "error" | "onLeaveRoom">) => (
-  <YStack gap="$3">
-    <Text color="$colorMuted" fontSize={14} lineHeight={20}>
-      {status === "pending_leave"
-        ? "We have not confirmed that your guest access was revoked. We will retry when connected."
-        : "Your guest identity is being renewed. We will retry safely with the same request."}
-    </Text>
-    {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
-    {status === "pending_leave" ? (
-      <ShellActionButton
-        label="Retry departure"
-        onPress={() => { void onLeaveRoom(); }}
-        variant="surface"
-      />
-    ) : null}
-  </YStack>
-);
-
-const ActiveGuestRoomPanel = ({
-  session,
-  error,
-  onLeaveRoom,
-  onSetPicks,
-  isPickBusy,
-}: Pick<GuestJoinModalBodyProps, "session" | "error" | "onLeaveRoom" | "onSetPicks" | "isPickBusy"> & {
-  session: GuestRoomSession;
-}) => {
-  const theme = useTheme();
-  return (
-    <YStack gap="$5">
-      <GuestJoinLobby
-        session={session}
-        onSetPicks={onSetPicks}
-        isBusy={isPickBusy}
-      />
-      {error ? <Text color="$danger" fontSize={13}>{error}</Text> : null}
-      <ShellActionButton
-        icon={
-          <AppIcon
-            color={theme.color.val}
-            name="close-circle-outline"
-            size={18}
-          />
-        }
-        label="Leave Guest Room"
-        onPress={() => { void onLeaveRoom(); }}
-        variant="surface"
-      />
-    </YStack>
-  );
-};
-
-const JoinGuestRoomPanel = ({
-  status,
-  guestName,
-  joinCode,
-  error,
-  isSubmitting,
-  onGuestNameChange,
-  onJoinCodeChange,
-  onSubmit,
-}: Pick<
-  GuestJoinModalBodyProps,
-  | "status"
-  | "guestName"
-  | "joinCode"
-  | "error"
-  | "isSubmitting"
-  | "onGuestNameChange"
-  | "onJoinCodeChange"
-  | "onSubmit"
->) => (
-  <YStack gap="$3">
-    {status === "left" ? (
-      <Text color="$colorMuted" fontSize={13} lineHeight={18}>
-        You can join again only if the host is still accepting guests. Otherwise, ask for a new invitation.
-      </Text>
-    ) : null}
-    <GuestJoinForm
-      error={error}
-      guestName={guestName}
-      isSubmitting={isSubmitting}
-      joinCode={joinCode}
-      onGuestNameChange={onGuestNameChange}
-      onJoinCodeChange={onJoinCodeChange}
-      onSubmit={onSubmit}
-      retryMessage={error
-        ? "Check your invitation or try again. If access was lost, ask the host for a fresh invitation."
-        : null}
-      submitLabel={error ? "Retry Join" : "Join Room"}
-    />
-  </YStack>
-);
-
-const GuestJoinModalBody = (props: GuestJoinModalBodyProps) => {
-  if (props.status === "pending_leave" || props.status === "renewing") {
-    return (
-      <PendingGuestRoomPanel
-        status={props.status}
-        error={props.error}
-        onLeaveRoom={props.onLeaveRoom}
-      />
-    );
-  }
-  if (props.session) {
-    return (
-      <ActiveGuestRoomPanel
-        session={props.session}
-        error={props.error}
-        onLeaveRoom={props.onLeaveRoom}
-        onSetPicks={props.onSetPicks}
-        isPickBusy={props.isPickBusy}
-      />
-    );
-  }
-  return <JoinGuestRoomPanel {...props} />;
-};
-
-export const GuestJoinModal: React.FC<GuestJoinModalProps> = ({
-  visible,
-  joinCode,
-  guestName,
-  session,
-  status,
-  error,
-  isSubmitting,
-  onClose,
-  onJoinCodeChange,
-  onGuestNameChange,
-  onSubmit,
-  onLeaveRoom,
-  onSetPicks,
-  isPickBusy,
-}) => {
-  const theme = useTheme();
-  const { width } = useWindowDimensions();
-  const isWideLayout = width >= 1024;
-  const styles = useMemo(() => createStyles(isWideLayout), [isWideLayout]);
-  const { title, subtitle } = getModalCopy(status, session);
-  const headerIconColor = session ? theme.success.val : theme.primary.val;
-  const headerBackground = session
-    ? theme.successLight.val
-    : theme.primaryTransparentLight.val;
-  const closeIconColor = theme.colorMuted.val;
-  const backdropColor = theme.backgroundModalOverlay.val;
-
-  return (
-    <Modal
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      transparent
-      visible={visible}
-    >
-      <SafeAreaView style={styles.safeArea}>
-        <Pressable
-          onPress={onClose}
-          style={[styles.backdrop, { backgroundColor: backdropColor }]}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Pressable
-              onPress={() => undefined}
-              style={styles.contentTouchable}
-            >
-              <ShellCard
-                elevated
-                padding="$6"
-                style={{ gap: 24, width: "100%" }}
-              >
-                <XStack
-                  alignItems="center"
-                  gap="$4"
-                  justifyContent="space-between"
-                >
-                  <XStack alignItems="center" flex={1} gap="$4">
-                    <YStack
-                      alignItems="center"
-                      backgroundColor={headerBackground}
-                      borderRadius="$9"
-                      height={48}
-                      justifyContent="center"
-                      width={48}
-                    >
-                      <AppIcon
-                        color={headerIconColor}
-                        name={session ? "people" : "people-outline"}
-                        size={24}
-                      />
-                    </YStack>
-                    <YStack flex={1} gap="$1">
-                      <Text color="$color" fontSize={20} fontWeight="700">
-                        {title}
-                      </Text>
-                      <Text color="$colorMuted" fontSize={14}>
-                        {subtitle}
-                      </Text>
-                    </YStack>
-                  </XStack>
-
-                  <Pressable
-                    accessibilityLabel="Close guest join modal"
-                    onPress={onClose}
-                  >
-                    <YStack
-                      alignItems="center"
-                      backgroundColor="$backgroundLight"
-                      borderRadius="$9"
-                      height={36}
-                      justifyContent="center"
-                      width={36}
-                    >
-                      <AppIcon color={closeIconColor} name="close" size={20} />
-                    </YStack>
-                  </Pressable>
-                </XStack>
-
-                <GuestJoinModalBody
-                  status={status}
-                  session={session}
-                  error={error}
-                  isSubmitting={isSubmitting}
-                  guestName={guestName}
-                  joinCode={joinCode}
-                  onLeaveRoom={onLeaveRoom}
-                  onSetPicks={onSetPicks}
-                  isPickBusy={isPickBusy}
-                  onGuestNameChange={onGuestNameChange}
-                  onJoinCodeChange={onJoinCodeChange}
-                  onSubmit={onSubmit}
-                />
-              </ShellCard>
-            </Pressable>
-          </ScrollView>
-        </Pressable>
+export function GuestJoinModal(props: GuestJoinModalProps) {
+  return <Modal animationType="none" transparent visible={props.visible} onRequestClose={props.onClose}>
+    <YStack flex={1} backgroundColor="$backgroundModalOverlay">
+      <SafeAreaView style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 16 }} keyboardShouldPersistTaps="handled">
+          <ShellCard padding="$5" width="100%" maxWidth={420} alignSelf="center" gap="$4">
+            <XStack alignItems="center" justifyContent="space-between" gap="$2">
+              <Text color="$color" fontSize={22} fontWeight="700" flex={1}>Join as a guest</Text>
+              <ShellActionButton variant="text" widthMode="fit" label="Close" accessibilityLabel="Close guest join modal" onPress={props.onClose} />
+            </XStack>
+            <GuestJoinForm guestName={props.guestName} joinCode={props.joinCode} error={props.error}
+              isSubmitting={props.isSubmitting} onGuestNameChange={props.onGuestNameChange}
+              onJoinCodeChange={props.onJoinCodeChange} onSubmit={props.onSubmit}
+              submitLabel={props.error ? "Retry Join" : "Join Room"}
+              retryMessage={props.error ? "Check your invitation or try again." : null} />
+          </ShellCard>
+        </ScrollView>
       </SafeAreaView>
-    </Modal>
-  );
-};
+    </YStack>
+  </Modal>;
+}
