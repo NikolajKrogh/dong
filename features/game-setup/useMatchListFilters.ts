@@ -28,7 +28,6 @@ type MatchListFilterAction =
   | { type: "setStartTime"; value: string }
   | { type: "setEndTime"; value: string }
   | { type: "toggleLeague"; league: LeagueEndpoint }
-  | { type: "syncLeagues"; leagues: LeagueEndpoint[] }
   | { type: "addCustomTeam"; team: TeamWithLeague };
 
 const getInitialSelectedLeagues = (storedDefaultLeagues: LeagueEndpoint[]) => {
@@ -85,8 +84,6 @@ const matchListFilterReducer = (
           : [...state.selectedLeagues, action.league],
       };
     }
-    case "syncLeagues":
-      return { ...state, selectedLeagues: action.leagues };
     case "addCustomTeam":
       return {
         ...state,
@@ -151,10 +148,6 @@ export const useMatchListFilters = ({
     [selectedLeagues],
   );
 
-  const syncSelectedLeagues = useCallback((leagues: LeagueEndpoint[]) => {
-    dispatch({ type: "syncLeagues", leagues });
-  }, []);
-
   return {
     selectedDate,
     selectedLeagues,
@@ -167,7 +160,6 @@ export const useMatchListFilters = ({
     setSelectedDate,
     setStartTime,
     setEndTime,
-    syncSelectedLeagues,
     handleLeagueChange,
     addCustomHomeTeam: (value: string) => addCustomTeam(value, "home"),
     addCustomAwayTeam: (value: string) => addCustomTeam(value, "away"),

@@ -157,5 +157,5 @@ reconnects — reverse tunnels do not persist across USB re-attach.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at specs/030-reduce-espn-requests/plan.md
+at specs/031-cache-match-discovery/plan.md
 <!-- SPECKIT END -->

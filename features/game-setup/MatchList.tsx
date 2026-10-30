@@ -1,4 +1,5 @@
-import React, { FC, useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { useIsFocused } from "expo-router";
 import {
   ActivityIndicator,
   Text,
@@ -16,6 +17,7 @@ import { filterMatchesByDateAndTime } from "../football-matches/matchFilters";
 import { normalizeMatchTeamName } from "../football-matches/teamNames";
 import { useMatchData } from "../football-matches/useMatchData";
 import { useTeamDirectory } from "../football-matches/useTeamDirectory";
+import { AVAILABLE_LEAGUES } from "../../constants/leagues";
 import LeagueFilter from "./LeagueFilter";
 import LeagueMatchSections from "./LeagueMatchSections";
 import MatchFilter from "./MatchFilter";
@@ -63,7 +65,7 @@ interface MatchListViewProps {
   disableSelection: boolean;
   showSectionTitle: boolean;
   manualEntry: React.ReactNode;
-  loadingFeedback: React.ReactNode;
+  discovery: Pick<ReturnType<typeof useMatchData>, "isInitialLoading" | "isUpdating" | "leagueStates" | "retry">;
   processingState: ReturnType<typeof useMatchBatchInsertion>["processingState"];
   leagueFilterProps: React.ComponentProps<typeof LeagueFilter>;
   matchFilterProps: React.ComponentProps<typeof MatchFilter>;
@@ -73,7 +75,7 @@ interface MatchListViewProps {
   colors: ReturnType<typeof useColors>;
 }
 
-const MatchListView = ({
+function MatchListView({
   fixedMatchIds,
   matches,
   poolMatchIds,
@@ -81,15 +83,63 @@ const MatchListView = ({
   showSectionTitle,
   manualEntry,
   processingState,
-  loadingFeedback,
+  discovery,
   leagueFilterProps,
   matchFilterProps,
   onToggleMatch,
   onClearAll,
   styles,
   colors,
-}: MatchListViewProps) => {
+}: MatchListViewProps): React.JSX.Element {
   const fixedIds = new Set(fixedMatchIds);
+  const { isInitialLoading, isUpdating, leagueStates, retry } = discovery;
+  let loadingFeedback: React.ReactNode = null;
+  if (isInitialLoading) {
+    loadingFeedback = (
+      <View style={styles.loadingContainer} accessible accessibilityRole="progressbar"
+        accessibilityLabel="Loading matches" accessibilityState={{ busy: true }}>
+        <PlatformAnimation
+          kind="loading"
+          source={require("../../assets/lottie/football_loading.json")}
+          autoPlay
+          loop
+          style={styles.lottieAnimation}
+          fallback={
+            <AppIcon name="football-outline" size={48} color={colors.primary} />
+          }
+        />
+      </View>
+    );
+  }
+
+  const discoveryMessages = leagueStates.filter(state => state.message).map(state => {
+    const leagueName = leagueFilterProps.availableLeagues.find(league => league.code === state.leagueCode)?.name ?? state.leagueCode;
+    return `${leagueName}: ${state.message}`;
+  });
+  const shouldShowRetry = leagueStates.some(state => !["initial", "available", "empty", "updating"].includes(state.status));
+  const isRetryDisabled = isInitialLoading || isUpdating;
+  const discoveryFeedback = <>
+    {loadingFeedback}
+    {leagueFilterProps.selectedLeagues.length === 0 ? <Text style={{ color: colors.textMuted }}>Select a league to find fixtures.</Text> : null}
+    {discoveryMessages.length ? (
+      <View style={styles.errorContainer}>
+        <Text accessibilityRole="alert" style={styles.errorText}>{discoveryMessages.join("\n")}</Text>
+        {shouldShowRetry ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading matches"
+            disabled={isRetryDisabled}
+            accessibilityState={{ disabled: isRetryDisabled }}
+            onPress={() => { void retry(); }}
+            style={{ minHeight: 48, justifyContent: "center" }}
+          >
+            <Text style={{ color: colors.primary }}>Retry</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+    ) : null}
+  </>;
+
   return (
   <View style={styles.tabContent}>
     {showSectionTitle ? <Text style={styles.sectionTitle}>Matches</Text> : null}
@@ -98,7 +148,7 @@ const MatchListView = ({
       <View testID="MatchListControls" style={styles.matchListControls}>
         <LeagueFilter {...leagueFilterProps} />
         <MatchFilter {...matchFilterProps} />
-        {loadingFeedback}
+        {discoveryFeedback}
 
         {processingState.isProcessing && (
           <View style={styles.processingIndicator}>
@@ -150,7 +200,7 @@ const MatchListView = ({
     </View>
   </View>
   );
-};
+}
 
 /**
  * Functional component that renders a list of matches with filtering and team selection.
@@ -171,7 +221,7 @@ const MatchListView = ({
  * @param {MatchListProps} props - The props for the MatchList component.
  * @return {JSX.Element} A React functional component.
  */
-const MatchList: FC<MatchListProps> = ({
+function MatchList({
   matches,
   homeTeam,
   awayTeam,
@@ -182,18 +232,26 @@ const MatchList: FC<MatchListProps> = ({
   showSectionTitle = true,
   disableSelection = false,
   fixedMatchIds = [],
-}) => {
+}: MatchListProps): React.JSX.Element {
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
-  const { defaultSelectedLeagues: storedDefaultLeagues } = useGameStore();
+  const { defaultSelectedLeagues: storedDefaultLeagues, configuredLeagues } = useGameStore();
+  const routeFocused = useIsFocused();
+  const availableLeagues = useMemo(
+    () => configuredLeagues.map(league =>
+      AVAILABLE_LEAGUES.find(candidate => candidate.code === league.code) ?? league,
+    ),
+    [configuredLeagues],
+  );
   const {
     isLoading: isTeamLoading,
+    isError: isTeamError,
     teamsData: allTeamsData,
   } = useTeamDirectory();
   const {
     selectedDate,
-    selectedLeagues,
+    selectedLeagues: selectedLeagueFilters,
     startTime,
     endTime,
     homeTeamOptions,
@@ -203,7 +261,6 @@ const MatchList: FC<MatchListProps> = ({
     setSelectedDate,
     setStartTime,
     setEndTime,
-    syncSelectedLeagues,
     handleLeagueChange,
     addCustomHomeTeam,
     addCustomAwayTeam,
@@ -212,15 +269,25 @@ const MatchList: FC<MatchListProps> = ({
     allTeamsData,
   });
 
+  const selectedLeagues = useMemo(
+    () => selectedLeagueFilters.filter(league =>
+      availableLeagues.some(option => option.code === league.code),
+    ),
+    [selectedLeagueFilters, availableLeagues],
+  );
+
   const {
-    isLoading: isMatchLoading,
-    errorMessage: matchErrorMessage,
-    availabilityMessage,
+    isInitialLoading: isInitialDiscoveryLoading,
+    isUpdating,
+    leagueStates,
     retry: retryMatchDiscovery,
     teamsData: matchTeamsData,
     apiData,
-    availableLeagues,
-  } = useMatchData(selectedDate);
+  } = useMatchData({
+    date: selectedDate,
+    leagueCodes: selectedLeagues.map(league => league.code),
+    active: routeFocused,
+  });
 
   /**
    * Appends a hand-typed fixture to the pool and clears the two fields.
@@ -255,26 +322,6 @@ const MatchList: FC<MatchListProps> = ({
     handleAddMatchLocally,
     setGlobalMatches,
   );
-
-  useEffect(() => {
-    if (availableLeagues.length === 0 || selectedLeagues.length === 0) {
-      return;
-    }
-
-    const selectedLeagueNames = new Set(
-      selectedLeagues.map((league) => league.name),
-    );
-    const updatedSelectedLeagues = availableLeagues.filter((league) =>
-      selectedLeagueNames.has(league.name),
-    );
-
-    if (
-      updatedSelectedLeagues.length > 0 &&
-      JSON.stringify(updatedSelectedLeagues) !== JSON.stringify(selectedLeagues)
-    ) {
-      syncSelectedLeagues(updatedSelectedLeagues);
-    }
-  }, [availableLeagues, selectedLeagues, syncSelectedLeagues]);
 
   const filteredMatches = useMemo(() => {
     if (!apiData || apiData.length === 0 || selectedLeagues.length === 0) {
@@ -370,7 +417,6 @@ const MatchList: FC<MatchListProps> = ({
     [matches],
   );
 
-  const isLoading = isMatchLoading || isTeamLoading;
   const teamSelection = (
     <View>
       <TouchableOpacity testID="SetupManualMatchToggle" accessibilityRole="button"
@@ -381,6 +427,9 @@ const MatchList: FC<MatchListProps> = ({
         <Text style={{ color: colors.primary }}>Add a match manually</Text>
         <AppIcon name={manualEntryOpen ? "arrow-up" : "chevron-down"} size={18} color={colors.primary} />
       </TouchableOpacity>
+      {manualEntryOpen && (isTeamLoading || isTeamError) ? (
+        <Text style={{ color: colors.textMuted }}>{isTeamError ? "Team suggestions are unavailable. You can still enter names." : "Preparing team suggestions…"}</Text>
+      ) : null}
       {manualEntryOpen ? (
         <TeamSelectionRow
           homeTeam={homeTeam}
@@ -397,39 +446,6 @@ const MatchList: FC<MatchListProps> = ({
     </View>
   );
 
-  let loadingFeedback: React.ReactNode = null;
-  if (isLoading) {
-    loadingFeedback = (
-      <View style={styles.loadingContainer}>
-        <PlatformAnimation
-          kind="loading"
-          source={require("../../assets/lottie/football_loading.json")}
-          autoPlay
-          loop
-          style={styles.lottieAnimation}
-          fallback={
-            <AppIcon name="football-outline" size={48} color={colors.primary} />
-          }
-        />
-        <Text style={styles.loadingText}>Loading matches and teams...</Text>
-      </View>
-    );
-  }
-
-  const discoveryMessage = matchErrorMessage || availabilityMessage;
-  const discoveryFeedback = <>
-    {loadingFeedback}
-    {discoveryMessage ? (
-      <View style={styles.errorContainer}>
-        <Text accessibilityRole="alert" style={styles.errorText}>{discoveryMessage}</Text>
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel="Retry loading matches"
-          disabled={isMatchLoading} accessibilityState={{ disabled: isMatchLoading }}
-          onPress={() => { void retryMatchDiscovery(); }} style={{ minHeight: 48, justifyContent: "center" }}>
-          <Text style={{ color: colors.primary }}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    ) : null}
-  </>;
 
   return (
     <MatchListView
@@ -440,7 +456,7 @@ const MatchList: FC<MatchListProps> = ({
       showSectionTitle={showSectionTitle}
       manualEntry={teamSelection}
       processingState={processingState}
-      loadingFeedback={discoveryFeedback}
+      discovery={{ isInitialLoading: isInitialDiscoveryLoading, isUpdating, leagueStates, retry: retryMatchDiscovery }}
       leagueFilterProps={{
         availableLeagues,
         selectedLeagues,
@@ -457,7 +473,7 @@ const MatchList: FC<MatchListProps> = ({
         isTimeFilterActive,
         isDateFilterActive,
         filteredMatches,
-        isLoading,
+        isLoading: isInitialDiscoveryLoading,
       }}
       onToggleMatch={handleRemoveMatch}
       onClearAll={handleClearAllMatches}
@@ -465,6 +481,6 @@ const MatchList: FC<MatchListProps> = ({
       colors={colors}
     />
   );
-};
+}
 
 export default MatchList;

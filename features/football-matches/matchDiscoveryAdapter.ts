@@ -1,7 +1,7 @@
 import type { FootballMatchService, MatchDiscoveryResult, MatchLifecycle } from "../../types/footballMatch";
 import { getFootballMatchService } from "./footballMatchService";
 
-export interface MatchDiscoveryRequest {
+interface MatchDiscoveryRequest {
   leagueCodes: string[];
   requestedAt?: string | null;
 }
@@ -34,8 +34,6 @@ export interface MatchDiscoveryApiClient {
 }
 
 
-let cachedMatchDiscoveryApiClient: MatchDiscoveryApiClient | null = null;
-
 export const createMatchDiscoveryApiClient = (
   footballMatchService: Pick<FootballMatchService, "discoverMatches"> = getFootballMatchService(),
 ): MatchDiscoveryApiClient => {
@@ -59,10 +57,4 @@ export const createMatchDiscoveryApiClient = (
       })) };
     },
   };
-};
-
-export const getMatchDiscoveryApiClient = () => {
-  cachedMatchDiscoveryApiClient ??= createMatchDiscoveryApiClient();
-
-  return cachedMatchDiscoveryApiClient;
 };

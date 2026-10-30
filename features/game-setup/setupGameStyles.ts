@@ -685,11 +685,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       alignItems: "center",
       justifyContent: "center",
     },
-    loadingText: {
-      marginTop: 10,
-      color: colors.primary,
-      fontSize: 16,
-    },
     errorContainer: {
       padding: 20,
       alignItems: "center",

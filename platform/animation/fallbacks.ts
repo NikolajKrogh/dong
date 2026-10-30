@@ -103,11 +103,11 @@ const ANIMATION_IMPLEMENTATIONS: CapabilityImplementation[] = [
   {
     capability: "animation",
     platform: "web",
-    driver: "platform fallback renderer",
+    driver: "lottie-react-native web player and static splash fallback",
     entryPoint: "platform/animation/PlatformAnimation",
     behaviorClass: "degraded",
     notes:
-      "Uses an explicit static or icon fallback instead of the native Lottie runtime.",
+      "Plays loading Lottie assets on web; keeps static splash branding and a fallback for reduced motion or renderer failure.",
   },
 ];
 
