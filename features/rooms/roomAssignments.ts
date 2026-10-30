@@ -95,8 +95,10 @@ export function createRoomAssignments(
         }
       } catch (error) {
         const code = (error as { message?: string })?.message;
-        return { issue: code === "not_host" ? "not_host" : code === "configuration_conflict" ? "stale" :
-          code && /^invalid_|^insufficient_|^per_player_|^missing_/.test(code) ? "invalid_configuration" : "unavailable" };
+        if (code === "not_host") return { issue: "not_host" };
+        if (code === "configuration_conflict") return { issue: "stale" };
+        if (code && /^invalid_|^insufficient_|^per_player_|^missing_/.test(code)) return { issue: "invalid_configuration" };
+        return { issue: "unavailable" };
       }
       return { issue: "busy" };
     });

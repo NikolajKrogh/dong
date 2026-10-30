@@ -31,6 +31,10 @@ The constrained integrated worker used256MiB, CPU soft1500ms/hard2000ms, per-req
 
 React Doctor's scoped static scan completed without errors. Remaining warnings concern two complex UI/draft functions, constant-size two-player selection lookups, bounded test/probe lookups and intentionally sequential test cases. No rules were suppressed and no numeric score was requested. The initial unbounded/default-base scan was stopped; the completed scan used the multiplayer base and a90s budget.
 
+## Simplification follow-up
+
+The preview's pair inspection now owns its selection state, draft pool requirements are calculated once per render, and nested labels/error branches are explicit. Public preview/commit behavior, consent reset identity, legacy formulas and frozen retries are unchanged. Five affected client suites pass46 tests, including four new legacy/v2 pool-rule cases; TypeScript, ESLint, Knip and the working diff check pass. The scoped React Doctor scan reports no errors and two reviewed warnings (the draft hook's complexity and a lookup over at most two selected players). This client-only refactor requires no database or Edge deployment; E2E/Android remain deferred.
+
 ## Supabase rollout
 
 Deployed to DONG qccvlhblytuedgmlqfef using CLI migration versions and explicit function packaging. Dry runs contained only the named migrations, with no seed, roles or Vault changes. All three files are immutable:

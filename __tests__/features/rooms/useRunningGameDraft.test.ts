@@ -78,6 +78,29 @@ it("keeps a zero override when the default changes and clears it on Use default"
   expect(getLatest().plan.targetsByParticipantId).toEqual({ host: 3 });
 });
 
+it.each([
+  { supportsTargets: false, mode: "automatic", effective: 2, required: 4 },
+  { supportsTargets: false, mode: "host_assigned", effective: 1, required: 2 },
+  { supportsTargets: true, mode: "automatic", effective: 1, required: 2 },
+  { supportsTargets: true, mode: "host_assigned", effective: 1, required: 2 },
+] as const)("preserves pool requirements for $mode with individual targets=$supportsTargets", ({ supportsTargets, mode, effective, required }) => {
+  const room: RoomSnapshot = {
+    ...snapshot,
+    assignmentMode: mode,
+    capabilities: { perPlayerMatchCounts: supportsTargets, assignmentPreview: supportsTargets },
+    participants: ["host", "second", "third"].map(id => ({
+      ...snapshot.participants[0], id, additionalMatchCount: id === "host" ? 0 : null,
+    })),
+    matches: [...snapshot.matches, ...snapshot.matches.map(match => ({ ...match, id: `extra-${match.id}` }))],
+    assignmentPlan: { ...snapshot.assignmentPlan, sharedMatchesPerPair: 1 },
+  };
+  const { getLatest } = renderHook(() => useRunningGameDraft(room));
+  expect(getLatest().plan).toMatchObject({
+    effectivePerPlayer: effective, requiredPoolSize: required, relaxedFloor: required,
+    feasible: true, startable: true,
+  });
+});
+
 it("recovers an unknown v2 save outcome before considering changed draft validation", async () => {
   mockPrepare.mockResolvedValue({ proposalId: null, expiresAt: null, assignments: { host: ["individual"] },
     targetsByParticipantId: { host: 1 }, sharingPolicy: "preference", requiresSharingConsent: false, quality: null });

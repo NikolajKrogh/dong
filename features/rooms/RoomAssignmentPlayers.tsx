@@ -41,7 +41,7 @@ export function RoomAssignmentPlayers({
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const disabledMatchIds = isBusy
+  const busyMatchIds = isBusy
     ? matches.map((match) => match.id)
     : undefined;
 
@@ -64,6 +64,10 @@ export function RoomAssignmentPlayers({
         const selected = selectedMatchIdsFor(participant.id);
         const selectedIds = new Set(selected);
         const target = targetsByParticipantId?.[participant.id] ?? matchesPerPlayer;
+        let disabledMatchIds = busyMatchIds;
+        if (onToggleAllocation && !isBusy && selected.length >= target) {
+          disabledMatchIds = matches.filter(match => !selectedIds.has(match.id)).map(match => match.id);
+        }
         return (
           <MatchSelectionCard
             key={participant.id}
@@ -93,7 +97,7 @@ export function RoomAssignmentPlayers({
             <SelectableMatchList
               matches={matches}
               selectedMatchIds={selected}
-              disabledMatchIds={isBusy ? disabledMatchIds : selected.length >= target ? matches.filter(m => !selectedIds.has(m.id)).map(m => m.id) : undefined}
+              disabledMatchIds={disabledMatchIds}
               testIDPrefix={`lobby-allocate-${participant.id}`}
               onToggleMatch={(id) => onToggleAllocation?.(participant.id, id)}
             /> : null}
