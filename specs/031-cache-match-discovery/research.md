@@ -42,6 +42,8 @@ The revised rule makes a narrower, explicit promise: a complete, server-nonstale
 
 TanStack advances `dataUpdatedAt` on query success and cycle-state writes. Derive function-valued `staleTime` from the fixed source-check +60s deadline, never from receipt. Recheck that deadline before dispatch. The rule is specified in FR-007 and [data-model.md](data-model.md); SC-008 uses two such client periods, explicitly 120 seconds.
 
+Production correction, 2026-10-30: the client deadline determines eligibility for another request, not a user-facing outdated warning. Scheduled backend results can remain fresh for five minutes, so successful retries may return the same source timestamp after the client minute expires. Complete results with valid timing and `isStale: false` remain available/empty; server-stale or uncertain-timing responses still warn.
+
 **Alternatives considered**: A receipt-based TTL renews old data. Reconstructing exact private expiry duplicates server policy and can unnecessarily defeat reuse. If exact producer freshness becomes a requirement, the catalog module should expose its own expiry fact in a separate contract change; it is not inferred in this client-only phase.
 
 ## 5. Cycles, lifecycle and retention

@@ -209,7 +209,8 @@ export function createMatchDiscoveryQueries({ queryClient, discoverOnce }: {
       else if (result.isFetching) status = 'updating';
       else if (availability === 'pending' || availability === 'partial' || availability === 'deferred') status = availability;
       else if (availability === 'unavailable') status = 'error';
-      else if (result.isStale || !isReusable(snapshot)) status = 'outdated';
+      // The reuse deadline schedules another check; the server decides whether returned fixtures are outdated.
+      else if (snapshot.reuseExpiresAt === 0) status = 'outdated';
       else status = snapshot.matches.length ? 'available' : 'empty';
       let message = DISCOVERY_STATUS_MESSAGES[status];
       if (status === 'pending' && snapshot.canAutomaticallyRetry) {
