@@ -47,6 +47,16 @@ describe("generateAssignments", () => {
     expect(overlap(assignments.p0, assignments.p1)).toBe(1);
     expect(quality.exactPreferenceAchieved).toBe(true);
   });
+  it.each([9, 12])("keeps equal-count shared matches exclusive to each pair with a pool of %s", async (poolSize) => {
+    const { assignments } = await generate(input([4, 4, 4], 1, poolSize));
+    for (const matches of Object.values(assignments)) expect(matches).toHaveLength(4);
+    for (const match of new Set(Object.values(assignments).flat())) {
+      expect(Object.values(assignments).filter(matches => matches.includes(match)).length).toBeLessThanOrEqual(2);
+    }
+    expect(overlap(assignments.p0, assignments.p1)).toBe(1);
+    expect(overlap(assignments.p0, assignments.p2)).toBe(1);
+    expect(overlap(assignments.p1, assignments.p2)).toBe(1);
+  });
   it("never raises equal targets to the positive sharing minimum", async () => {
     await expect(generate(input([1, 1, 1], 1))).rejects.toThrow("sharing_minimum");
   });

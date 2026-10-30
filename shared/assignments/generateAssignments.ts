@@ -155,7 +155,7 @@ export async function generateAssignments(
   }
   const sharedCoreSize = Math.min(sharing, maxPlayerTarget);
   const requiredCorePoolSize = sharedCoreSize + participants.reduce((sum, { target }) => sum + Math.max(0, target - sharedCoreSize), 0);
-  if (pool.length >= requiredCorePoolSize && now() < generationDeadlineMs) {
+  if (!hasEqualTargets && pool.length >= requiredCorePoolSize && now() < generationDeadlineMs) {
     const candidateAssignments = createEmptyAssignments();
     poolCursor = sharedCoreSize;
     for (const { id, target } of participants) {
@@ -185,7 +185,9 @@ export async function generateAssignments(
       candidateAssignments[id].push(...shuffledPool.slice(poolCursor, poolCursor + privateMatchCount));
       poolCursor += privateMatchCount;
     }
-    retainBetterAssignments(candidateAssignments);
+    // Pair overlap alone cannot distinguish exclusive pair matches from a shared core.
+    assignments = candidateAssignments;
+    totalDeviation = assessDeviation(assignments);
   }
   let quality: AssignmentQuality["quality"] = totalDeviation === 0 ? "optimal" : "fallback";
   let reason: AssignmentQuality["reason"] = null;
