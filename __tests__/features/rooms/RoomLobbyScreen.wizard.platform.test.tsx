@@ -12,6 +12,8 @@ import { act } from "react-test-renderer";
 
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+import { RoomAssignmentPlayers } from "../../../features/rooms/RoomAssignmentPlayers";
+import type { RoomSnapshot } from "../../../types/room";
 
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
@@ -25,6 +27,8 @@ jest.mock("../../../platform/navigation/useNavigationReady", () => ({ useNavigat
 const mockLobby: Record<string, unknown> = {};
 const mockSetCommonMatch = jest.fn();
 const mockStartGame = jest.fn();
+let mockSupportsTargets = false;
+const mockSetPlayerMatchCount = jest.fn();
 let mockAuthStatus = "ready";
 let mockActiveRoom: { sessionId: string; participantId: string } | null = { sessionId: "room-1", participantId: "p1" };
 let mockMembershipError: string | null = null;
@@ -85,6 +89,9 @@ jest.mock("../../../features/rooms/useRoomLobby", () => ({
 
 jest.mock("../../../features/rooms/useRoomConfigure", () => ({
   useRoomConfigure: () => ({
+    supportsTargets: mockSupportsTargets,
+    setPlayerMatchCount: mockSetPlayerMatchCount,
+    assignmentPreview: { preview: null, review: jest.fn(), commit: jest.fn() },
     isBusy: false,
     error: null,
     addMatch: jest.fn(),
@@ -225,6 +232,7 @@ describe("pre-start lobby, as the setup wizard", () => {
     mockParams = {};
     mockNavigationReady = true;
     mockPreviousRoute = undefined;
+    mockSupportsTargets = false;
   });
 
   it("uses server membership instead of the participant query parameter", () => {
@@ -232,6 +240,22 @@ describe("pre-start lobby, as the setup wizard", () => {
     const tree = renderLobby();
     expect(mockUseRoomLobby).toHaveBeenCalledWith("room-1", "p1");
     tree.unmount();
+  });
+
+  it("keeps the host's count control available while the host picks their own matches", () => {
+    setLobby({ role: "owner" });
+    mockSupportsTargets = true;
+    const snapshot = mockLobby.snapshot as RoomSnapshot;
+    snapshot.assignmentPolicyVersion = 2;
+    snapshot.assignmentMode = "player_picked";
+    snapshot.assignmentPlan.targetsByParticipantId = { p1: 1 };
+    const lobby = renderLobby();
+    const step = renderStep(wizardProps(lobby).steps[3].content);
+    const players = step.root.findByType(RoomAssignmentPlayers);
+    expect(players.props.participants.map((p: { id: string }) => p.id)).toContain("p1");
+    act(() => players.props.onSetPlayerMatchCount("p1", 0));
+    expect(mockSetPlayerMatchCount).toHaveBeenCalledWith("p1", 0);
+    act(() => { step.unmount(); lobby.unmount(); });
   });
 
   it("offers sign-in with a return URL while signed out", () => {

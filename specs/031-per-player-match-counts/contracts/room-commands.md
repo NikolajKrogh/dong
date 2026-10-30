@@ -1,6 +1,6 @@
 # Contract: Room Commands and Proposals
 
-Names below are proposed interfaces to implement, not endpoints already available. Existing v1 RPC signatures and Java compatibility routes remain available for v1 games. V2 target mutation and automatic commit use explicit new contracts, preventing old payloads from discarding overrides.
+The interfaces below are implemented. See [implementation evidence](../implementation.md) for deployment and validation limits. Existing v1 RPC signatures and Java compatibility routes remain available for v1 games. V2 target mutation and automatic commit use explicit new contracts, preventing old payloads from discarding overrides.
 
 These are internal transport contracts. The lobby and running editor use the [RoomAssignments module interface](assignment-module.md), rather than coordinating these operations themselves. The module owns tokens, preview reservations, expiry, transport selection, replay keys and stale responses.
 

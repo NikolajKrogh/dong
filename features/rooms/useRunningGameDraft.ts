@@ -5,8 +5,9 @@ import { getRoomRpcClient } from "./roomRpcClient";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 import { toAddRequest, toDisplayMatch } from "./useRoomMatchPool";
 import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
+import { useAssignmentPreview } from "./useAssignmentPreview";
 
-export function useRunningGameDraft(snapshot: RoomSnapshot) {
+export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = snapshot) {
   const [matches, setMatches] = useState(() => snapshot.matches.map(toDisplayMatch));
   const [mode, setMode] = useState<RunningGameConfiguration["assignmentMode"]>(
     snapshot.assignmentMode === "automatic" ? "automatic" : "host_assigned",
@@ -16,6 +17,10 @@ export function useRunningGameDraft(snapshot: RoomSnapshot) {
     sharedMatchesPerPair: snapshot.assignmentPlan.sharedMatchesPerPair,
   });
   const [assignments, setAssignments] = useState(() => snapshot.assignments.filter(a => a.matchId !== snapshot.commonMatchId));
+  const [playerMatchCounts, setPlayerMatchCounts] = useState<Record<string, number>>(() => Object.fromEntries(
+    roomSnapshotToActiveRoster(snapshot).filter(p => p.additionalMatchCount != null).map(p => [p.id, p.additionalMatchCount!]),
+  ));
+  const supportsTargets = snapshot.capabilities?.perPlayerMatchCounts === true;
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasConflict, setHasConflict] = useState(false);
@@ -26,6 +31,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot) {
   const fixedIds = new Set(fixedMatchIds);
   const activeIds = new Set(participants.map(p => p.id));
   const n = participants.length;
+  const targets = Object.fromEntries(participants.map(p => [p.id, playerMatchCounts[p.id] ?? settings.matchesPerPlayer]));
   const effective = mode === "automatic"
     ? Math.max(settings.matchesPerPlayer, settings.sharedMatchesPerPair * Math.max(0, n - 1))
     : settings.matchesPerPlayer;
@@ -34,12 +40,26 @@ export function useRunningGameDraft(snapshot: RoomSnapshot) {
     : effective + 1;
   const plan = {
     ...snapshot.assignmentPlan, ...settings, participantCount: n, poolSize: matches.length,
-    effectivePerPlayer: effective, requiredPoolSize: required, relaxedFloor: required,
-    feasible: matches.length >= required, startable: matches.length >= required,
+    effectivePerPlayer: supportsTargets ? Math.max(0, ...Object.values(targets)) : effective,
+    requiredPoolSize: supportsTargets ? Math.max(0, ...Object.values(targets)) + 1 : required,
+    relaxedFloor: supportsTargets ? Math.max(0, ...Object.values(targets)) + 1 : required,
+    feasible: supportsTargets ? matches.length > Math.max(0, ...Object.values(targets)) : matches.length >= required,
+    startable: supportsTargets ? matches.length > Math.max(0, ...Object.values(targets)) : matches.length >= required,
+    targetsByParticipantId: supportsTargets ? targets : undefined,
   };
   const validAssignments = mode === "automatic" || participants.every(p =>
-    assignments.filter(a => a.participantId === p.id && matches.some(m => m.id === a.matchId)).length === effective,
+    assignments.filter(a => a.participantId === p.id && matches.some(m => m.id === a.matchId)).length === (supportsTargets ? targets[p.id] : effective),
   );
+  const configuration: RunningGameConfiguration = {
+    assignmentMode: mode, ...settings,
+    ...(supportsTargets ? { assignmentPolicyVersion: 2 as const, playerMatchCounts } : {}),
+    newMatches: matches.filter(match => !fixedIds.has(match.id)).map(match => ({ ...toAddRequest(match), clientId: match.id })),
+    assignments: assignments.filter(a => activeIds.has(a.participantId)),
+  };
+  const assignmentPreview = useAssignmentPreview(snapshot.sessionId, "running_save", {
+    revision: currentSnapshot.configurationToken ?? "", expectedToken: snapshot.configurationToken ?? "",
+    targetsByParticipantId: targets, configuration,
+  });
 
   function updateMatches(next: Match[]): void {
     if (inFlight.current) return;
@@ -54,18 +74,15 @@ export function useRunningGameDraft(snapshot: RoomSnapshot) {
     setAssignments(previous => {
       const exists = previous.some(a => a.participantId === participantId && a.matchId === matchId);
       if (exists) return previous.filter(a => a.participantId !== participantId || a.matchId !== matchId);
+      if (previous.filter(a => a.participantId === participantId).length >= (supportsTargets ? targets[participantId] : effective)) return previous;
       return [...previous, { participantId, matchId }];
     });
   }
 
-  async function save(): Promise<RoomSnapshot | null> {
-    if (inFlight.current || !plan.feasible || !validAssignments || !snapshot.configurationToken) return null;
-    const configuration: RunningGameConfiguration = {
-      assignmentMode: mode, ...settings,
-      newMatches: matches.filter(match => !fixedIds.has(match.id))
-        .map(match => ({ ...toAddRequest(match), clientId: match.id })),
-      assignments: assignments.filter(a => activeIds.has(a.participantId)),
-    };
+  async function save(acceptRelaxedSharing = false): Promise<RoomSnapshot | null> {
+    if (inFlight.current || !snapshot.configurationToken) return null;
+    if (supportsTargets) return assignmentPreview.commit(acceptRelaxedSharing);
+    if (!plan.feasible || !validAssignments) return null;
     const fingerprint = JSON.stringify(configuration);
     if (request.current?.fingerprint !== fingerprint) {
       request.current = { fingerprint, key: generateIdempotencyKey() };
@@ -92,8 +109,17 @@ export function useRunningGameDraft(snapshot: RoomSnapshot) {
   }
 
   return {
-    matches, updateMatches, mode, setMode, settings, setSettings, plan, participants, fixedMatchIds,
-    assignments, toggleAssignment, isSaving, error, hasConflict, save,
-    canSave: Boolean(snapshot.configurationToken) && plan.feasible && validAssignments && !hasConflict,
+    supportsTargets, assignmentPreview,
+    setPlayerMatchCount: (id: string, count: number | null) => setPlayerMatchCounts(previous => {
+      const next = { ...previous };
+      if (count === null) delete next[id]; else next[id] = count;
+      return next;
+    }),
+    matches, updateMatches, mode, setMode, settings, setSettings, plan,
+    participants: supportsTargets ? participants.map(p => ({ ...p, additionalMatchCount: playerMatchCounts[p.id] ?? null })) : participants,
+    fixedMatchIds,
+    assignments, toggleAssignment, isSaving: isSaving || assignmentPreview.isBusy,
+    error: error ?? assignmentPreview.error, hasConflict: hasConflict || assignmentPreview.issue === "stale", save,
+    canSave: Boolean(snapshot.configurationToken) && plan.feasible && validAssignments && !hasConflict && assignmentPreview.issue !== "stale",
   };
 }

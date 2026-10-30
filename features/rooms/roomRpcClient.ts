@@ -24,6 +24,7 @@ import type {
 } from "../../types/room";
 
 export interface RoomRpcClient {
+  setAssignmentConfiguration(sessionId: string, settings: RoomAssignmentSettingsRequest, expectedToken: string, key: string): Promise<void>;
   saveRunningGameConfiguration(input: SaveRunningGameInput): Promise<RoomSnapshot>;
   joinRoomAsRegistered(joinCode: string): Promise<RegisteredJoinResponse>;
   getRoomSnapshot(sessionId: string): Promise<RoomSnapshot>;
@@ -106,6 +107,13 @@ export const createRoomRpcClient = (
   client: SupabaseClient<Database> = getSupabaseClient(),
 ): RoomRpcClient => {
   return {
+    async setAssignmentConfiguration(sessionId, settings, expectedToken, key) {
+      const { error } = await client.rpc("set_room_assignment_configuration_v2", {
+        session_id: sessionId, configuration: { ...settings, assignmentPolicyVersion: 2 } as unknown as Json,
+        expected_token: expectedToken, idempotency_key: key,
+      });
+      if (error) throw error;
+    },
  ...createRoomGameplayOperations(client),
     async joinRoomAsRegistered(joinCode) {
       const { data, error } = await client

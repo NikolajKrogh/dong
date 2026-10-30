@@ -1,8 +1,8 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SELECT no_plan();
-SELECT ok(NOT has_function_privilege('authenticated','public.set_room_assignment_configuration_v2(uuid,jsonb,text,uuid)','EXECUTE'),
-  'unfinished v2 adoption is unavailable in the staged deployment');
+SELECT ok(has_function_privilege('authenticated','public.set_room_assignment_configuration_v2(uuid,jsonb,text,uuid)','EXECUTE'),
+  'complete v2 adoption is available to authenticated hosts');
 SELECT ok(NOT has_function_privilege('anon','public.set_room_assignment_configuration_v2(uuid,jsonb,text,uuid)','EXECUTE'),
   'anonymous callers cannot adopt v2');
 -- Exercise the future command's host/replay contract without enabling it outside this rollback.
@@ -33,7 +33,7 @@ SELECT throws_ok($$SELECT public.set_room_assignment_configuration_v2('00000000-
 SELECT set_config('request.jwt.claim.sub','00000000-0000-4031-8000-000000000001',true);
 UPDATE counts_context SET response=public.set_room_assignment_configuration_v2('00000000-0000-4031-8000-000000000010',config,token,key);
 SELECT is((SELECT response->>'assignmentPolicyVersion' FROM counts_context),'2','explicit configuration adopts policy2');
-SELECT is((SELECT response#>>'{capabilities,perPlayerMatchCounts}' FROM counts_context),'false','snapshot does not advertise incomplete start/save support');
+SELECT is((SELECT response#>>'{capabilities,perPlayerMatchCounts}' FROM counts_context),'true','snapshot advertises complete start/save support');
 SELECT is((SELECT response#>>'{assignmentPlan,targetsByParticipantId,00000000-0000-4031-8000-000000000012}' FROM counts_context),'0','zero is an override');
 SELECT is((SELECT response#>>'{assignmentPlan,targetsByParticipantId,00000000-0000-4031-8000-000000000011}' FROM counts_context),'3','missing override follows default');
 SELECT lives_ok($$SELECT public.set_room_assignment_configuration_v2('00000000-0000-4031-8000-000000000010',config,token,key) FROM counts_context$$,'accepted replay precedes stale-token validation');
@@ -53,11 +53,34 @@ SELECT throws_ok($$SELECT public.set_room_assignment_configuration_v2('00000000-
 SELECT is((SELECT response#>>'{assignmentPlan,targetsByParticipantId,00000000-0000-4031-8000-000000000011}' FROM counts_context),'3','failed reduction leaves prior response unchanged');
 RESET ROLE;
 SELECT is((SELECT matches_per_player FROM public.game_sessions WHERE id='00000000-0000-4031-8000-000000000010'),3,'failed reduction leaves canonical default unchanged');
+UPDATE public.game_sessions SET common_match_id=null WHERE id='00000000-0000-4031-8000-000000000010';
+UPDATE counts_context SET token=private.running_configuration_token('00000000-0000-4031-8000-000000000010');
+SET LOCAL ROLE authenticated;
+SELECT throws_ok($$SELECT public.set_room_assignment_configuration_v2('00000000-0000-4031-8000-000000000010',jsonb_set(config,'{matchesPerPlayer}','0'),token,gen_random_uuid()) FROM counts_context$$,'P0001','target_below_existing_selections','reductions validate selections before a Common Match is chosen');
+RESET ROLE;
+UPDATE public.game_sessions SET common_match_id='00000000-0000-4031-8000-000000000020' WHERE id='00000000-0000-4031-8000-000000000010';
 DELETE FROM public.assignments WHERE session_id='00000000-0000-4031-8000-000000000010';
 UPDATE counts_context SET token=private.running_configuration_token('00000000-0000-4031-8000-000000000010'),config='{"assignmentPolicyVersion":2,"matchesPerPlayer":0,"sharedMatchesPerPair":1,"playerMatchCounts":{}}';
 SET LOCAL ROLE authenticated;
 UPDATE counts_context SET response=public.set_room_assignment_configuration_v2('00000000-0000-4031-8000-000000000010',config,token,gen_random_uuid());
 SELECT is((SELECT response#>>'{assignmentPlan,sharingPolicy}' FROM counts_context),'common_only','zero targets bypass sharing without resetting preference');
 SELECT is((SELECT response#>>'{assignmentPlan,sharedMatchesPerPair}' FROM counts_context),'1','stored sharing preference survives common-only');
+
+RESET ROLE;
+CREATE TEMP TABLE created_room(result jsonb);
+GRANT ALL ON created_room TO authenticated;
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000064',true);
+INSERT INTO created_room SELECT public.create_room_as_host_v2();
+RESET ROLE;
+SELECT is((SELECT assignment_policy_version::integer FROM public.game_sessions WHERE id=(SELECT (result->>'sessionId')::uuid FROM created_room)),2,'explicit maintained creation creates a v2 room');
+UPDATE public.game_sessions SET assignment_policy_version=1 WHERE id=(SELECT (result->>'sessionId')::uuid FROM created_room);
+SET LOCAL ROLE authenticated;
+SELECT lives_ok($$SELECT public.create_room_as_host_v2()$$,'repeat creation recovers the existing room');
+RESET ROLE;
+SELECT is((SELECT assignment_policy_version::integer FROM public.game_sessions WHERE id=(SELECT (result->>'sessionId')::uuid FROM created_room)),1,'recovering an existing legacy room never silently adopts it');
+SELECT has_index('private','assignment_proposals','assignment_proposals_actor_account','proposal owner FK has a covering index');
+SELECT ok(EXISTS(SELECT 1 FROM public.gameplay_events WHERE session_id='00000000-0000-4031-8000-000000000010' AND payload->'previousConfiguration' IS NOT NULL AND payload->'targetsByParticipantId' IS NOT NULL),'target changes retain previous configuration and accepted targets');
 SELECT * FROM finish();
+
 ROLLBACK;

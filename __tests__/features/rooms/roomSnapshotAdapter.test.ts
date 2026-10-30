@@ -97,3 +97,11 @@ describe("room snapshot projections", () => {
     ]);
   });
 });
+
+it("requires authoritative individual targets for v2 but preserves legacy snapshots", () => {
+  expect(roomSnapshotUtils.roomSnapshotHasAssignmentTargets(snapshot)).toBe(true);
+  expect(roomSnapshotUtils.roomSnapshotHasAssignmentTargets({ ...snapshot, assignmentPolicyVersion: 2 })).toBe(false);
+  const targets = Object.fromEntries((snapshot.activeRoster ?? snapshot.participants).map(p => [p.id, 0]));
+  expect(roomSnapshotUtils.roomSnapshotHasAssignmentTargets({ ...snapshot, assignmentPolicyVersion: 2,
+    assignmentPlan: { ...snapshot.assignmentPlan, targetsByParticipantId: targets } })).toBe(true);
+});

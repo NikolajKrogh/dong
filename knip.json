@@ -9,6 +9,7 @@
     "e2e/fixtures.ts",
     "platform/**/*.{native,web,android,ios}.{ts,tsx}",
     "supabase/functions/*/index.ts",
+    "supabase/functions/*/*_test.ts",
     "supabase/functions/_shared/assignments/runtimeProbe.ts"
   ],
   "project": [

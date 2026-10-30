@@ -1,3 +1,7 @@
+# Current rollout status
+
+All three feature migrations and the authenticated preview Edge function are deployed. Capabilities are active;39 pre-existing games remain v1 with zero overrides. See [implementation.md](implementation.md) for immutable hashes, security checks and validation limits. The historical foundation-only record below is superseded by this completed rollout.
+
 # Hosted foundation deployment — 2026-10-30
 
 The user authorized applying the required Supabase migrations. Deployed to DONG (`qccvlhblytuedgmlqfef`) using the CLI to preserve the repository migration version.

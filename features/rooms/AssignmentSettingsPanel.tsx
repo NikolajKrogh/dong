@@ -34,9 +34,10 @@ export function AssignmentSettingsPanel({
   return (
     <AssignmentPanel compact testID="lobby-assignment-settings">
       <AssignmentCounter
-        label="Matches per player"
+        label={plan.targetsByParticipantId ? "Default matches per player" : "Matches per player"}
         description="Plus the common match"
         value={plan.matchesPerPlayer}
+        max={100}
         disabled={isBusy}
         testID="lobby-matches-per-player"
         onChange={(matchesPerPlayer) =>
@@ -46,6 +47,11 @@ export function AssignmentSettingsPanel({
           })
         }
       />
+      {mode === "automatic" && plan.sharingPolicy === "exact" && plan.effectivePerPlayer > 0 &&
+        plan.effectivePerPlayer < plan.sharedMatchesPerPair * Math.max(0, plan.participantCount - 1) ?
+        <Text accessibilityRole="alert" style={styles.assignmentDescription}>
+          Equal counts need at least {plan.sharedMatchesPerPair * Math.max(0, plan.participantCount - 1)} additional matches per player for this sharing setting. Increase the counts or choose individual counts.
+        </Text> : null}
       {mode === "automatic" ? (
         <>
           <TouchableOpacity
@@ -69,8 +75,9 @@ export function AssignmentSettingsPanel({
           {showShared ? (
             <AssignmentCounter
               label="Shared by each pair"
-              description="Matches each pair of players shares, excluding the common match."
+              description={plan.sharingPolicy === "preference" ? "Preferred shared matches per pair; individual counts stay fixed." : "Matches each pair of players shares, excluding the common match."}
               value={plan.sharedMatchesPerPair}
+              max={100}
               disabled={isBusy}
               testID="lobby-shared-matches-per-pair"
               onChange={(sharedMatchesPerPair) =>

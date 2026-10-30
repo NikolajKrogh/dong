@@ -46,3 +46,7 @@ Replace redundant tests that pin the old scalar formulas or shallow transport ch
 ## Required interface-level examples
 
 The same observable examples apply to production and in-memory transport adapters: relaxed sharing cannot commit without consent to that preview; a late A response cannot invalidate reviewed B; identical in-flight preview requests do not multiply solves; a changed draft cannot commit an old preview; an accepted commit can be retried after a lost response using the original identity; all-zero local/hosted v2 targets remain Common-Match-only. Performance checks include the entire generation operation, not only the solver call.
+
+## Implementation binding
+
+V2 lifecycle ownership is implemented by roomAssignments.ts, with the production SDK adapter in roomAssignmentTransport.ts and React binding in useAssignmentPreview.ts. Manual/picked preparation is a local selection summary; automatic preparation calls authenticated Edge ingress. Legacy rooms retain their existing hook transport paths and behavior until explicit adoption. `invalid_configuration` additionally distinguishes known, rejected business input from an unknown network outcome.

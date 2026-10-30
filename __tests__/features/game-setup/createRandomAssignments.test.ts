@@ -1,5 +1,22 @@
-import { createRandomAssignments } from "../../../features/game-setup/createRandomAssignments";
+import { createRandomAssignments, createTargetedAssignments, validateLocalAssignments } from "../../../features/game-setup/createRandomAssignments";
 import { shuffle } from "../../../features/game-setup/shuffle";
+
+it("adapts individual targets to local assignments including the common match", async () => {
+  const { players, matches } = fixture(3, 3);
+  const result = await createTargetedAssignments(players, matches, "0", 3, { "2": 1 }, () => 0.5);
+  expect(players.map(({ id }) => result[id].length)).toEqual([4, 4, 2]);
+  expect(players.every(({ id }) => result[id].includes("0"))).toBe(true);
+  expect(() => validateLocalAssignments(players, matches, "0", result, 3, { "2": 1 })).not.toThrow();
+  expect(() => validateLocalAssignments(players, matches, "0", result, 3, { "2": 0 })).toThrow(/Player 2/);
+});
+
+it("supports zero targets and validates distinct additional counts independently of common representation", async () => {
+  const { players, matches } = fixture(3);
+  const result = await createTargetedAssignments(players, matches, "0", 0, {});
+  expect(result).toEqual({ "0": ["0"], "1": ["0"], "2": ["0"] });
+  expect(() => validateLocalAssignments(players, matches, "0", { "0": [], "1": [], "2": [] }, 0, {})).not.toThrow();
+  expect(() => validateLocalAssignments(players, matches, "0", { ...result, "1": ["1", "1"] }, 1, {})).toThrow();
+});
 
 it("Fisher–Yates reaches each three-item permutation once for the six equal draw intervals", () => {
   const permutations = new Set<string>();

@@ -413,7 +413,8 @@ backend = "postgres"
 verify_jwt = false
 
 [functions.room-assignment-preview]
-enabled = false
+enabled = true
+verify_jwt = false
 static_files = ["./functions/_shared/assignments/highs.wasm"]
 
 # Experimental features may be deprecated any time

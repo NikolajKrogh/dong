@@ -339,3 +339,12 @@ describe("GuestRoomContent", () => {
     TestRenderer.act(() => tree.unmount());
   });
 });
+
+it("uses a guest's zero target rather than the larger room default", () => {
+  const base = buildSession();
+  const tree = renderLobby({ session: buildSession({ assignmentPolicyVersion: 2, assignmentMode: "player_picked",
+    assignmentPlan: { ...base.snapshot.assignmentPlan, matchesPerPlayer: 3,
+      targetsByParticipantId: { "owner-1": 3, "guest-1": 0 } } }), onSetPicks: jest.fn() });
+  expect(tree.root.findByType(PlayerPickPanel).props.cap).toBe(0);
+  TestRenderer.act(() => tree.unmount());
+});

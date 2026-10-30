@@ -114,5 +114,34 @@ UPDATE edit_context SET token=private.running_configuration_token('00000000-0000
 SET LOCAL ROLE authenticated;
 SELECT lives_ok($$SELECT public.save_running_game_configuration('00000000-0000-4800-8000-000000000201','{"assignmentMode":"automatic","matchesPerPlayer":1,"sharedMatchesPerPair":0,"newMatches":[],"assignments":[]}',(SELECT token FROM edit_context),gen_random_uuid())$$,'automatic redistribution uses the existing room pool');
 SELECT is((SELECT count(*)::int FROM public.assignments WHERE session_id='00000000-0000-4800-8000-000000000201'),6,'redistribution assigns one individual and one common match per player');
+RESET ROLE;
+GRANT EXECUTE ON FUNCTION public.save_running_game_configuration_v2(uuid,jsonb,uuid,text,uuid,boolean) TO authenticated;
+CREATE TEMP TABLE v2_edit AS SELECT private.running_configuration_token(gs.id) AS token,
+ jsonb_build_object('assignmentPolicyVersion',2,'assignmentMode','host_assigned','matchesPerPlayer',1,'sharedMatchesPerPair',0,
+ 'playerMatchCounts',jsonb_build_object('00000000-0000-4800-8000-000000000301',0),'newMatches','[]'::jsonb,
+ 'assignments',(SELECT coalesce(jsonb_agg(jsonb_build_object('participantId',a.participant_id,'matchId',a.match_id)),'[]')
+ FROM public.assignments a JOIN public.participants p ON p.id=a.participant_id AND p.session_id=a.session_id WHERE a.session_id=gs.id
+ AND a.participant_id<>'00000000-0000-4800-8000-000000000301' AND a.match_id<>gs.common_match_id
+ AND private.is_active_room_roster_member(p.membership_type::text,p.left_at,p.guest_rejoin_token_hash,p.guest_grant_expires_at))) AS config,
+ (SELECT jsonb_agg(jsonb_build_array(id,home_score,away_score) ORDER BY id) FROM public.matches WHERE session_id=gs.id) AS scores,
+ (SELECT jsonb_agg(jsonb_build_array(id,current_drink_total) ORDER BY id) FROM public.participants WHERE session_id=gs.id) AS drinks,
+ (SELECT count(*) FROM public.matches WHERE session_id=gs.id) AS match_count,
+ gen_random_uuid() AS key
+ FROM public.game_sessions gs WHERE id='00000000-0000-4800-8000-000000000201';
+GRANT ALL ON v2_edit TO authenticated;
+SET LOCAL ROLE authenticated;
+SELECT lives_ok($$SELECT public.save_running_game_configuration_v2('00000000-0000-4800-8000-000000000201',config,null,token,key,false) FROM v2_edit$$,'running host-assigned edits honor an explicit zero target');
+RESET ROLE;
+SELECT is((SELECT count(*)::integer FROM public.assignments WHERE participant_id='00000000-0000-4800-8000-000000000301'),1,'zero-target host retains only Common Match');
+SELECT is((SELECT jsonb_agg(jsonb_build_array(id,home_score,away_score) ORDER BY id) FROM public.matches WHERE session_id='00000000-0000-4800-8000-000000000201'),(SELECT scores FROM v2_edit),'v2 edit preserves recorded scores');
+SELECT is((SELECT jsonb_agg(jsonb_build_array(id,current_drink_total) ORDER BY id) FROM public.participants WHERE session_id='00000000-0000-4800-8000-000000000201'),(SELECT drinks FROM v2_edit),'v2 edit preserves drink totals');
+SET LOCAL ROLE authenticated;
+SELECT lives_ok($$SELECT public.save_running_game_configuration_v2('00000000-0000-4800-8000-000000000201',config,null,token,key,false) FROM v2_edit$$,'running accepted replay precedes stale fence validation');
+RESET ROLE;
+UPDATE v2_edit SET token=private.running_configuration_token('00000000-0000-4800-8000-000000000201');
+SET LOCAL ROLE authenticated;
+SELECT throws_ok($$SELECT public.save_running_game_configuration_v2('00000000-0000-4800-8000-000000000201',jsonb_set(jsonb_set(config,'{newMatches}','[{"clientId":"rollback","sourceProvider":"manual","homeTeamName":"New","awayTeamName":"Match"}]'),'{assignments}','[]'),null,token,gen_random_uuid(),false) FROM v2_edit$$,'P0001','assignment_count_mismatch','bad v2 counts roll back new matches and assignment replacement');
+RESET ROLE;
+SELECT is((SELECT count(*) FROM public.matches WHERE session_id='00000000-0000-4800-8000-000000000201'),(SELECT match_count FROM v2_edit),'failed save inserts no draft matches');
 SELECT * FROM finish();
 ROLLBACK;

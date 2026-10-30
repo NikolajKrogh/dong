@@ -1,6 +1,6 @@
 # Quickstart: Per-Player Match Counts
 
-This is a validation/run guide for the planned implementation, not a claim the feature or new commands exist yet. Run from the repository root. See [module interfaces](contracts/assignment-module.md), [room commands](contracts/room-commands.md), [optimization](contracts/assignment-optimization.md), [UI/time](contracts/ui-and-time.md), and [data model](data-model.md).
+This is the validation/run guide for the implemented feature. See [implementation.md](implementation.md) and [deployment.md](deployment.md) for verified results and rollout status. Run from the repository root. See [module interfaces](contracts/assignment-module.md), [room commands](contracts/room-commands.md), [optimization](contracts/assignment-optimization.md), [UI/time](contracts/ui-and-time.md), and [data model](data-model.md).
 
 **Current-run exception (2026-10-30)**: The user requested unit tests instead of E2E and no Android-device testing. Do not perform ARTEMIS/device exploration, author/run E2E tests, or execute browser integration journeys in this run. Retain non-UI unit/database unit tests, static checks and the HiGHS runtime probe. Sections describing device/E2E work remain deferred guidance; their absence must be reported as unverified coverage, never as a pass.
 
@@ -125,3 +125,9 @@ Add the new preview entry point to `typecheck:edge` during implementation; the c
 Validate locally, then deploy schema/commands/projections before Edge assets and the capability-gated client. Hosted deployment requires its own authorized execution; this guide does not authorize a production rollout.
 
 Recovery: disable new adoption/previews if needed, retain existing v2 schema/read/commit support and saved overrides, and let adopted games complete. Do not drop target columns, delete events, backfill invented targets, change stored kickoff instants, or re-enable old scalar writers for v2. Verify history, accepted command replays and guest/member access remain functional after recovery.
+
+## Current verification commands
+
+Use `npm run test:ci -- --runInBand --cacheDirectory=test-results/jest-cache`, `npm run typecheck`, `npm run lint`, `npm run check:unused`, `npm run typecheck:edge`, and `npm run test:assignments:edge`. The CI test script includes the repository Expo/Node setup; running Jest directly bypasses it. Edge tests use Deno and the `_test.ts` convention.
+
+For the separate disposable database set `DONG_DB_WORKDIR=test-results/per-player-match-counts/db031` before generated-type checks; do not reset or seed a hosted database. Apply all three versioned migrations in order. V2 automatic starts/saves require the authenticated `room-assignment-preview` function and bundled WASM; maintained new rooms call `create_room_as_host_v2`.

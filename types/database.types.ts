@@ -699,13 +699,16 @@ export type Database = {
         Views: {
             "completed_session_summaries": {
                 Row: {
+                    "assignment_policy_version": number | null;
                     "assignments_changed_during_play": boolean | null;
                     "common_match_id": string | null;
                     "completed_at": string | null;
+                    "configured_default_match_count": number | null;
                     "matches": Json | null;
                     "matches_per_player": number | null;
                     "owner_account_id": string | null;
                     "player_assignments": Json | null;
+                    "player_match_counts": Json | null;
                     "players": Json | null;
                     "session_id": string | null;
                     "session_total_drinks": number | null;
@@ -983,6 +986,10 @@ export type Database = {
                 Args: Record<PropertyKey, never>;
                 Returns: Json;
             };
+            "create_room_as_host_v2": {
+                Args: Record<PropertyKey, never>;
+                Returns: Json;
+            };
             "end_game_session": {
                 Args: {
                     "session_id": string;
@@ -1086,6 +1093,15 @@ export type Database = {
                 };
                 Returns: Json;
             };
+            "prepare_room_assignment_preview": {
+                Args: {
+                    "configuration": Json;
+                    "expected_token": string;
+                    "purpose": string;
+                    "session_id": string;
+                };
+                Returns: Json;
+            };
             "purge_assignment_snapshots_for_sessions": {
                 Args: {
                     "session_ids": (string)[];
@@ -1158,6 +1174,17 @@ export type Database = {
                     "configuration": Json;
                     "expected_token": string;
                     "idempotency_key": string;
+                    "session_id": string;
+                };
+                Returns: Json;
+            };
+            "save_running_game_configuration_v2": {
+                Args: {
+                    "accept_relaxed_sharing"?: boolean;
+                    "configuration": Json;
+                    "expected_token": string;
+                    "idempotency_key": string;
+                    "proposal_id": string;
                     "session_id": string;
                 };
                 Returns: Json;
@@ -1249,6 +1276,24 @@ export type Database = {
                     "idempotency_key": string;
                     "relax_constraints"?: boolean;
                     "session_id": string;
+                };
+                Returns: Json;
+            };
+            "start_game_session_v2": {
+                Args: {
+                    "accept_relaxed_sharing"?: boolean;
+                    "expected_token": string;
+                    "idempotency_key": string;
+                    "proposal_id": string;
+                    "session_id": string;
+                };
+                Returns: Json;
+            };
+            "store_room_assignment_proposal": {
+                Args: {
+                    "assignments": Json;
+                    "proposal_id": string;
+                    "quality": Json;
                 };
                 Returns: Json;
             };
