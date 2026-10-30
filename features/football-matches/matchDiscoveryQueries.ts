@@ -53,7 +53,7 @@ const DISCOVERY_UNAVAILABLE_MESSAGE = 'Match discovery is temporarily unavailabl
 const DISCOVERY_STATUS_MESSAGES: Record<LeagueDiscoveryState['status'], string | null> = {
   initial: null,
   available: null,
-  empty: 'No fixtures for this league on this date.',
+  empty: null,
   updating: 'Updating fixtures. Available matches are still shown.',
   partial: 'Some fixtures may be missing. Available matches are still shown.',
   pending: 'Fixtures are still pending. Retry to check again.',
