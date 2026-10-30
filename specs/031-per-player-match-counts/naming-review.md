@@ -28,4 +28,5 @@ Reviewed workflow ownership, preview state, running drafts, generation, solver d
 | args | commitArguments | Identifies RPC commit parameters |
 
 Short callback names were expanded where they obscured participant, assignment or match identity. Existing domain names such as commonMatchId, assignmentPolicyVersion, matchesPerPlayer and targetsByParticipantId remain consistent across contracts. SQL parameter prefixes and mathematical loop indices are conventional in their local context; deployed migration files remain immutable. No database renaming migration is warranted for these local readability changes.
-`nValidation: 32 client suites / 275 tests passed; client and Edge typechecks, ESLint and Knip passed. The Deno runtime probe validated the renamed solver/generation code. E2E and Android remain excluded by the user request.
+
+Validation: 32 client suites / 275 tests passed; client and Edge typechecks, ESLint and Knip passed. The Deno runtime probe validated the renamed solver/generation code. E2E and Android remain excluded by the user request.
