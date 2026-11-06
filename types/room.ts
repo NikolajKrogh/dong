@@ -79,6 +79,14 @@ export interface AssignmentPlan {
   startable: boolean;
 }
 
+export interface RoomProviderGoal {
+  sequence: number;
+  matchId: string;
+  team: "home" | "away";
+  homeScore: number;
+  awayScore: number;
+}
+
 export interface RoomSnapshot {
   assignmentPolicyVersion?: 1 | 2;
   capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean };
@@ -89,6 +97,7 @@ export interface RoomSnapshot {
   ownerParticipantId?: string | null;
   /** Monotonic room event fence used to reject stale poll responses. */
   lastEventSequence?: number;
+  providerGoals?: RoomProviderGoal[];
   lastScoresCheckedAt?: string | null;
   providerAvailabilityReason?: string | null;
   roomProcessingPending?: boolean;

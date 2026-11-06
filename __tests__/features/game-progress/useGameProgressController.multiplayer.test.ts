@@ -1,5 +1,6 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import Toast from "react-native-toast-message";
 
 import { useLiveScores } from "../../../features/football-matches/useLiveScores";
 import useGameProgressController from "../../../features/game-progress/useGameProgressController";
@@ -210,6 +211,38 @@ describe("useGameProgressController multiplayer routing", () => {
     expect(latest()).toHaveProperty("sourceStatusMessage", "Score updates are being applied. Saved scores are shown.");
     expect(latest().lastUpdated).toBeNull();
     await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it("plays feedback for a fresh committed goal across normal snapshot refreshes", async () => {
+    useGameStore.setState({ commonMatchNotificationsEnabled: true });
+    const goal = { sequence: 4, matchId: "m1", team: "home" as const, homeScore: 1, awayScore: 0 };
+    const snapshot = {
+      sessionId: "room-1", state: "in_progress", lastEventSequence: 4, providerGoals: [goal],
+    } as NonNullable<ActiveGameRoomSync["snapshot"]>;
+    const show = jest.spyOn(Toast, "show").mockImplementation(() => {});
+    mockSync.mockReturnValue({ ...multiplayerSync, snapshot });
+    const { renderer } = renderController();
+    const play = mockGoalSound.mock.results[0].value.playGoalSound;
+    try {
+      expect(play).not.toHaveBeenCalled();
+      await TestRenderer.act(async () => {
+        mockSync.mockReturnValue({ ...multiplayerSync, status: "refreshing", snapshot });
+        useGameStore.setState({ players: [...useGameStore.getState().players] });
+      });
+      const next = { ...snapshot, lastEventSequence: 5, providerGoals: [
+        goal, { ...goal, sequence: 5, homeScore: 2 },
+      ] };
+      await TestRenderer.act(async () => {
+        mockSync.mockReturnValue({ ...multiplayerSync, snapshot: next, isHost: false });
+        useGameStore.setState({ players: [...useGameStore.getState().players] });
+      });
+      expect(play).toHaveBeenCalledTimes(1);
+      expect(show).toHaveBeenCalledWith(expect.objectContaining({ text1: "Arsenal 2-0 Chelsea" }));
+      expect(changeManualScore).not.toHaveBeenCalled();
+    } finally {
+      show.mockRestore();
+      await TestRenderer.act(async () => renderer.unmount());
+    }
   });
 
   it("routes manual goals and drinks through canonical commands", async () => {

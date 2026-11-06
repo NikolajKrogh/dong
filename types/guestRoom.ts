@@ -1,4 +1,4 @@
-import type { AssignmentMode, AssignmentPlan } from "./room";
+import type { AssignmentMode, AssignmentPlan, RoomProviderGoal } from "./room";
 
 export type GuestRoomSessionStatus =
   "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired" | "pending_leave" | "renewing" | "left" | "ended";
@@ -96,6 +96,7 @@ export interface GuestRoomSnapshot {
   state: GuestRoomSessionState;
   ownerParticipantId?: string | null;
   lastEventSequence?: number;
+  providerGoals?: RoomProviderGoal[];
   lastScoresCheckedAt?: string | null;
   providerAvailabilityReason?: string | null;
   roomProcessingPending?: boolean;
