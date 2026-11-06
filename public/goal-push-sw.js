@@ -1,3 +1,4 @@
+const notificationIcon = "/dong-notification-icon.png";
 const deliveryIdPattern = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
 
 self.addEventListener("push", (event) => {
@@ -15,6 +16,7 @@ self.addEventListener("push", (event) => {
   if (payload.kind === "test") {
     event.waitUntil(self.registration.showNotification("DONG notifications", {
       body: "This is a test notification.",
+      icon: notificationIcon,
       tag: payload.id,
     }));
     return;
@@ -27,6 +29,7 @@ self.addEventListener("push", (event) => {
   ) {
     event.waitUntil(self.registration.showNotification(payload.title, {
       body: payload.body,
+      icon: notificationIcon,
       tag: payload.id,
       data: { id: payload.id },
     }));
