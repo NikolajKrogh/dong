@@ -19,6 +19,7 @@ interface GameActionsSheetProps {
   showLeaveGame?: boolean;
   showEndGame: boolean;
   floatingToggle: React.ReactNode;
+  notificationSettings?: React.ReactNode;
 }
 
 interface ActionRowProps {
@@ -80,6 +81,7 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
   showLeaveGame,
   showEndGame,
   floatingToggle,
+  notificationSettings,
 }) => {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -154,6 +156,7 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
               onPress={onBackToSetup}
               testID="FooterSetupButton"
             />
+            {notificationSettings}
             {showLeaveGame && onLeaveGame ? (
               <ActionRow
                 danger

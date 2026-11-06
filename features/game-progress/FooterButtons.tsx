@@ -24,6 +24,7 @@ interface FooterButtonsProps {
   showLeaveGame?: boolean;
   /** Only the current multiplayer host can use this action. */
   showEndGame?: boolean;
+  notificationSettings?: React.ReactNode;
 }
 
 /**
@@ -41,6 +42,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   onLeaveGame,
   showLeaveGame = false,
   showEndGame = true,
+  notificationSettings,
 }) => {
   const router = useRouter();
   const colors = useColors();
@@ -122,6 +124,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
           open={open}
           position={sheetPosition}
           showEndGame={showEndGame}
+          notificationSettings={notificationSettings}
           floatingToggle={renderToggle(true, dismiss)}
         />}
       </TaskOverlay>

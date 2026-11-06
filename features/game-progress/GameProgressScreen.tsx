@@ -18,6 +18,8 @@ import { useRoomExit } from "../rooms/useRoomExit";
 import EndGameModal from "./EndGameModal";
 import FooterButtons from "./FooterButtons";
 import GameProgressTabs from "./GameProgressTabs";
+import { GoalNotificationSettings } from "./GoalNotificationSettings";
+import { useGoalNotifications } from "./useGoalNotifications";
 import MatchesGrid from "./MatchesGrid";
 import MatchQuickActionsModal from "./MatchQuickActionsModal/MatchQuickActionsModal";
 import { MultiplayerGameStatus } from "./MultiplayerGameStatus";
@@ -91,6 +93,7 @@ const GameProgressScreen = () => {
     } as NonNullable<typeof activeGameFromController>);
 
   const departure = useGameDeparture(activeGame);
+  const goalNotifications = useGoalNotifications(hasHydrated);
   const { departurePending, canLeave, setLeaveConfirmVisible } = departure;
   const controlsDisabled = activeGame.isMultiplayer && (!activeGame.isEditable || departurePending);
 
@@ -160,6 +163,7 @@ const GameProgressScreen = () => {
 
           <View style={styles.footerContainer}>
             <FooterButtons
+              notificationSettings={<GoalNotificationSettings controls={goalNotifications} />}
               onHome={handleGoHome}
               onBackToSetup={handleBackToSetup}
               configurationLabel={configurationLabel}

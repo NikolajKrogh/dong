@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(31);
 
 select ok(has_function_privilege('goal_notification_backend',
   'private.goal_notification_status(text,text,bytea,uuid,bytea,bigint)', 'execute'),
@@ -118,6 +118,29 @@ set guest_grant_issued_at = now() - interval '2 hours', guest_grant_expires_at =
 where id = (select guest_id from goal_room_fixture);
 select is(private.goal_notification_owner('guest', room_id, null, null, guest_proof), null::uuid,
   'expired guest proof no longer authorizes test sends') from goal_room_fixture;
+
+
+select ok(not has_function_privilege('authenticated',
+  'private.disable_goal_notification_installation(uuid,bytea,bigint,text)', 'execute'),
+  'browser roles cannot revoke installations through SQL');
+select ok(not private.disable_goal_notification_installation(installation_id, extensions.digest('wrong', 'sha256'), 1, 'local'),
+  'wrong control credential cannot stop a registered installation') from goal_fixture;
+select ok(not private.disable_goal_notification_installation(installation_id, control, 2, 'local'),
+  'future generation cannot stop the current registration') from goal_fixture;
+select ok(not private.disable_goal_notification_installation(installation_id, control, null, 'local'),
+  'missing generation cannot stop the current registration') from goal_fixture;
+select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
+  'valid control stops the installation') from goal_fixture;
+select ok(not i.consent and i.generation = 2 and s.installation_id is null,
+  'stop clears consent, advances the generation and removes the endpoint')
+from goal_fixture f join private.goal_notification_installations i on i.id = f.installation_id
+left join private.goal_notification_subscriptions s on s.installation_id = i.id;
+update private.goal_notification_installations set consent = true, revoked_at = null
+where id = (select installation_id from goal_fixture);
+select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
+  'an old stop retry is acknowledged idempotently') from goal_fixture;
+select ok(i.consent and i.generation = 2, 'the old stop cannot revoke a newer generation')
+from goal_fixture f join private.goal_notification_installations i on i.id = f.installation_id;
 
 select * from finish();
 rollback;

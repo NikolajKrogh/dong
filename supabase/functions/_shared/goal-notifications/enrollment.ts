@@ -60,6 +60,13 @@ export function createGoalEnrollment(config: GoalEnrollmentConfig) {
         ...(['available', 'registered', 'repair_required'].includes(row.status) ? { publicKey: config.vapid.publicKey } : {}),
       });
     }
+    if (input.operation === 'disable') {
+      const [row] = await sql<{ stopped: boolean }[]>`
+        select private.disable_goal_notification_installation(${input.installation.id}::uuid,
+          decode(${control}, 'hex'), ${input.installation.generation}::bigint, ${config.environment}) as stopped
+      `;
+      return row.stopped ? result({ status: 'disabled' }) : failure('not_eligible', 403);
+    }
     if (input.operation !== 'register' && input.operation !== 'test') return failure('not_eligible', 403);
     const identity = await resolveGoalNotificationAuthority(input.proof, request, {
       authUrl: config.authUrl, publicKey: apiKey, fetch: config.fetch,
