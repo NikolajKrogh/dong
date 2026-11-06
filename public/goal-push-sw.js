@@ -1,4 +1,4 @@
-const notificationIcon = "/dong-notification-icon.png";
+const notificationIcon = "/dong-icon-192.png";
 const deliveryIdPattern = /^[\da-f]{8}-(?:[\da-f]{4}-){3}[\da-f]{12}$/i;
 
 self.addEventListener("push", (event) => {
