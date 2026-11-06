@@ -52,58 +52,43 @@ create function private.goal_notification_owner(
   end;
 $$;
 
-create function private.goal_notification_test_enabled(p_environment text, p_mode text, p_target text)
+create function private.goal_notification_test_enabled(p_target text)
 returns boolean language sql stable set search_path = '' as $$
   select p.test_enabled and p_target = any (p.test_targets)
-    and case
-      when p_mode = 'iphone_verification' then p_environment = 'production'
-        and p_target = 'iphone_home_screen' and p.iphone_verification_enabled
-      when p_mode = 'preview' then p_environment <> 'production' and p_target <> 'iphone_home_screen'
-      when p_mode = 'pilot' then p_environment = 'production' and p_target <> 'iphone_home_screen'
-      else false
-    end
   from private.goal_notification_policy p;
 $$;
 
 create function private.goal_notification_status(
-  p_environment text, p_target text, p_grant bytea, p_installation uuid, p_control bytea, p_generation bigint
+  p_environment text, p_target text, p_installation uuid, p_control bytea, p_generation bigint
 ) returns text language sql stable security definer set search_path = '' as $$
   select case
+    when not coalesce(private.goal_notification_test_enabled(p_target), false) then 'unavailable'
+    when p_installation is null then 'available'
     when exists (
       select from private.goal_notification_installations i
       where i.id = p_installation and i.control_digest = p_control and i.generation = p_generation
         and i.consent and i.environment = p_environment and i.target = p_target
-        and (i.approval_expires_at is null or i.approval_expires_at > statement_timestamp())
-        and private.goal_notification_test_enabled(i.environment, i.mode, i.target)
     ) then case when exists (
       select from private.goal_notification_subscriptions s
       where s.installation_id = p_installation and s.invalid_at is null
     ) then 'registered' else 'repair_required' end
-    when exists (
-      select from private.goal_notification_enrollment_grants g
-      where g.digest = p_grant and g.environment = p_environment and g.target = p_target
-        and g.consumed_at is null and g.expires_at > statement_timestamp()
-        and (g.approval_expires_at is null or g.approval_expires_at > statement_timestamp())
-        and private.goal_notification_test_enabled(g.environment, g.mode, g.target)
-    ) then 'available'
-    when p_environment = 'production' and p_target = 'iphone_home_screen' then 'awaiting_device_verification'
-    else 'pilot_access_required'
+    else 'unavailable'
   end;
 $$;
 
 create function private.register_goal_notification_installation(
-  p_id uuid, p_environment text, p_target text, p_enrollment_grant bytea,
+  p_id uuid, p_environment text, p_target text,
   p_kind text, p_game uuid, p_account uuid, p_auth_session uuid, p_proof_digest bytea,
   p_control bytea, p_endpoint text, p_key bytea, p_auth_key bytea, p_vapid_key_id text
 ) returns bigint language plpgsql security definer set search_path = '' as $$
 declare
   v_owner uuid;
   v_cap integer;
-  v_grant private.goal_notification_enrollment_grants%rowtype;
   v_existing bigint;
 begin
-  -- Serialize registration with grant consumption and the global admission cap.
+  -- Serialize registration with the global admission cap.
   select max_installations into v_cap from private.goal_notification_policy for update;
+  if not coalesce(private.goal_notification_test_enabled(p_target), false) then return null; end if;
   v_owner := private.goal_notification_owner(p_kind, p_game, p_account, p_auth_session, p_proof_digest);
   if v_owner is null then return null; end if;
 
@@ -113,18 +98,9 @@ begin
   where i.id = p_id and i.owner_id = v_owner and i.owner_kind = p_kind and i.control_digest = p_control
     and i.environment = p_environment and i.target = p_target and i.consent
     and s.endpoint = p_endpoint and s.p256dh = p_key and s.auth_key = p_auth_key
-    and s.vapid_key_id = p_vapid_key_id and s.invalid_at is null
-    and (i.approval_expires_at is null or i.approval_expires_at > statement_timestamp())
-    and private.goal_notification_test_enabled(i.environment, i.mode, i.target);
+    and s.vapid_key_id = p_vapid_key_id and s.invalid_at is null;
   if found then return v_existing; end if;
 
-  select * into v_grant from private.goal_notification_enrollment_grants
-  where digest = p_enrollment_grant and environment = p_environment and target = p_target
-    and consumed_at is null and expires_at > statement_timestamp()
-    and (approval_expires_at is null or approval_expires_at > statement_timestamp());
-  if not found or not private.goal_notification_test_enabled(p_environment, v_grant.mode, p_target) then
-    return null;
-  end if;
   if (select count(*) from private.goal_notification_installations where consent) >= v_cap
     or (select count(*) from private.goal_notification_installations
         where consent and owner_kind = p_kind and owner_id = v_owner) >= 3
@@ -132,15 +108,12 @@ begin
 
   begin
     insert into private.goal_notification_installations
-      (id, owner_kind, owner_id, control_digest, consent, environment, mode, target, approval_expires_at)
-    values (p_id, p_kind, v_owner, p_control, true, p_environment, v_grant.mode, p_target, v_grant.approval_expires_at);
+      (id, owner_kind, owner_id, control_digest, consent, environment, target)
+    values (p_id, p_kind, v_owner, p_control, true, p_environment, p_target);
     insert into private.goal_notification_subscriptions
       (installation_id, endpoint, p256dh, auth_key, vapid_key_id)
     values (p_id, p_endpoint, p_key, p_auth_key, p_vapid_key_id);
-    if not private.consume_goal_notification_enrollment_grant(p_enrollment_grant, p_id) then
-      raise exception 'grant_unavailable' using errcode = 'P0001';
-    end if;
-  exception when unique_violation or raise_exception then
+  exception when unique_violation then
     return null;
   end;
   return 1;
@@ -159,10 +132,9 @@ begin
   select * into v_installation from private.goal_notification_installations
   where id = p_id and control_digest = p_control and generation = p_generation
     and consent and environment = p_environment and owner_kind = p_kind
-    and (approval_expires_at is null or approval_expires_at > statement_timestamp())
   for update;
   if not found or not private.goal_notification_test_enabled(
-    v_installation.environment, v_installation.mode, v_installation.target
+    v_installation.target
   ) then return jsonb_build_object('status', 'not_eligible'); end if;
   v_owner := private.goal_notification_owner(p_kind, p_game, p_account, p_auth_session, p_proof_digest);
   if v_owner is distinct from v_installation.owner_id then return jsonb_build_object('status', 'not_eligible'); end if;
@@ -214,15 +186,15 @@ returns text language sql security definer set search_path = '' as $$
 $$;
 
 revoke all on function private.goal_notification_owner(text, uuid, uuid, uuid, bytea),
-  private.goal_notification_test_enabled(text, text, text),
-  private.goal_notification_status(text, text, bytea, uuid, bytea, bigint),
-  private.register_goal_notification_installation(uuid, text, text, bytea, text, uuid, uuid, uuid, bytea, bytea, text, bytea, bytea, text),
+  private.goal_notification_test_enabled(text),
+  private.goal_notification_status(text, text, uuid, bytea, bigint),
+  private.register_goal_notification_installation(uuid, text, text, text, uuid, uuid, uuid, bytea, bytea, text, bytea, bytea, text),
   private.reserve_goal_notification_test(uuid, bytea, bigint, text, uuid, text, uuid, uuid, uuid, bytea),
   private.complete_goal_notification_test(uuid, bigint, uuid, text),
   private.cache_goal_notification_apple_authorization(text, text, text)
 from public, anon, authenticated, service_role;
-grant execute on function private.goal_notification_status(text, text, bytea, uuid, bytea, bigint),
-  private.register_goal_notification_installation(uuid, text, text, bytea, text, uuid, uuid, uuid, bytea, bytea, text, bytea, bytea, text),
+grant execute on function private.goal_notification_status(text, text, uuid, bytea, bigint),
+  private.register_goal_notification_installation(uuid, text, text, text, uuid, uuid, uuid, bytea, bytea, text, bytea, bytea, text),
   private.reserve_goal_notification_test(uuid, bytea, bigint, text, uuid, text, uuid, uuid, uuid, bytea),
   private.complete_goal_notification_test(uuid, bigint, uuid, text),
   private.cache_goal_notification_apple_authorization(text, text, text)

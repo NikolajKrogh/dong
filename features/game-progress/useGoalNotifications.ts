@@ -5,22 +5,17 @@ import type {
 } from "../../platform/notifications/goalNotificationBrowser";
 import { invokeGoalNotification, readNotificationIdentity, type NotificationIdentity } from "./goalNotificationClient";
 
-type Status = "access_required" | "awaiting_device_verification" | "ready" |
+type Status = "checking" | "ready" |
   "registered" | "denied" | "pending_stop" | "repair_required" | "registration_unavailable" | "unavailable";
 
-type PreparedEnrollment = { target: GoalNotificationTarget; publicKey: string; grant: string; owner: string };
-
-function restingStatus(target: GoalNotificationTarget): Status {
-  if (browser.permission() === "denied") return "denied";
-  return target === "iphone_home_screen" ? "awaiting_device_verification" : "access_required";
-}
+type PreparedEnrollment = { target: GoalNotificationTarget; publicKey: string; owner: string };
 
 async function register(
   saved: SavedEnrollment, identity: NotificationIdentity, target: GoalNotificationTarget,
-  subscription: BrowserPushSubscription, grant?: string,
+  subscription: BrowserPushSubscription,
 ) {
   const response = await invokeGoalNotification<{ installation: InstallationControl }>({
-    operation: "register", requestId: saved.requestId, target, proof: identity.proof, subscription, grant,
+    operation: "register", requestId: saved.requestId, target, proof: identity.proof, subscription,
   }, identity.bearer);
   if (response.installation?.id !== saved.requestId ||
       typeof response.installation.credential !== "string" || !Number.isSafeInteger(response.installation.generation)) {
@@ -32,8 +27,9 @@ async function register(
 async function stop(saved: SavedEnrollment) {
   if (!saved.installation) return;
   browser.save({ ...saved, pendingStop: true });
-  void browser.unsubscribe().catch(() => {});
+  const unsubscribe = browser.unsubscribe().catch(() => {});
   await invokeGoalNotification({ operation: "disable", installation: saved.installation });
+  await unsubscribe;
   const current = browser.read();
   if (current?.installation?.id === saved.installation.id &&
       current.installation.generation === saved.installation.generation) browser.save(null);
@@ -43,11 +39,13 @@ export function useGoalNotifications(hydrated: boolean) {
   const [availability, setAvailability] = useState(browser.availability);
   const [status, setStatus] = useState<Status>(() => {
     const available = browser.availability();
-    return available.kind === "supported" ? restingStatus(available.target) : "unavailable";
+    if (available.kind !== "supported") return "unavailable";
+    return browser.permission() === "denied" ? "denied" : "checking";
   });
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+  const setupRequested = useRef(false);
   const prepared = useRef<PreparedEnrollment | null>(null);
   const testRequest = useRef<string | null>(null);
 
@@ -62,6 +60,34 @@ export function useGoalNotifications(hydrated: boolean) {
     }
   }, []);
 
+  const prepareEnrollment = useCallback(async (target: GoalNotificationTarget) => {
+    prepared.current = null;
+    if (browser.permission() === "denied") {
+      setStatus("denied");
+      return;
+    }
+    if (!setupRequested.current) return;
+    setStatus("checking");
+    try {
+      const identity = await readNotificationIdentity();
+      if (!identity) {
+        setStatus("unavailable");
+        setMessage("Open an eligible active game to set up notifications.");
+        return;
+      }
+      const result = await invokeGoalNotification<{ status: string; publicKey?: string }>({ operation: "status", target });
+      if (result.status !== "available" || !result.publicKey) {
+        setStatus("unavailable");
+        return;
+      }
+      await browser.prepare();
+      prepared.current = { target, publicKey: result.publicKey, owner: identity.owner };
+      setStatus("ready");
+    } catch {
+      setStatus("unavailable");
+    }
+  }, []);
+
   const reconcile = useCallback(() => {
     void run(async () => {
       const available = browser.availability();
@@ -69,7 +95,7 @@ export function useGoalNotifications(hydrated: boolean) {
       if (available.kind !== "supported") return;
       const saved = browser.read();
       if (!saved) {
-        if (!prepared.current || browser.permission() === "denied") setStatus(restingStatus(available.target));
+        await prepareEnrollment(available.target);
         return;
       }
       try {
@@ -79,8 +105,8 @@ export function useGoalNotifications(hydrated: boolean) {
           setStatus("pending_stop");
           prepared.current = null;
           await stop(saved);
-          setStatus(restingStatus(available.target));
           setMessage(saved.pendingStop ? "Notifications turned off." : "");
+          await prepareEnrollment(available.target);
           return;
         }
         const subscription = browser.permission() === "granted" ? await browser.subscription() : null;
@@ -90,9 +116,9 @@ export function useGoalNotifications(hydrated: boolean) {
               await register(saved, identity, available.target, subscription);
               setStatus("registered");
               return;
-            } catch { /* A grant that never reached the server can still be entered again. */ }
+            } catch { /* The player can retry a registration that did not complete. */ }
           }
-          if (!prepared.current) setStatus(restingStatus(available.target));
+          await prepareEnrollment(available.target);
           return;
         }
         if (!subscription) {
@@ -109,7 +135,7 @@ export function useGoalNotifications(hydrated: boolean) {
         setStatus(current?.pendingStop ? "pending_stop" : current?.installation ? "registration_unavailable" : "unavailable");
       }
     }, false);
-  }, [run]);
+  }, [prepareEnrollment, run]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -118,26 +144,9 @@ export function useGoalNotifications(hydrated: boolean) {
     return () => { clearTimeout(timeout); remove(); };
   }, [hydrated, reconcile]);
 
-  function checkAccess(grant: string) {
-    void run(async () => {
-      const available = browser.availability();
-      if (available.kind !== "supported" || browser.read()?.installation) return;
-      if (browser.permission() === "denied") { setStatus("denied"); return; }
-      try {
-        const identity = await readNotificationIdentity();
-        if (!identity) { setMessage("Open an eligible active game to set up test alerts."); return; }
-        const result = await invokeGoalNotification<{ status: string; publicKey?: string }>({
-          operation: "status", target: available.target, grant,
-        });
-        if (result.status !== "available" || !result.publicKey) {
-          setMessage("This access code is unavailable. Check the code and try again.");
-          return;
-        }
-        await browser.prepare();
-        prepared.current = { target: available.target, publicKey: result.publicKey, grant, owner: identity.owner };
-        setStatus("ready");
-      } catch { setMessage("Notification setup is unavailable. Try again."); }
-    });
+  function openSettings() {
+    setupRequested.current = true;
+    reconcile();
   }
 
   function enable() {
@@ -153,7 +162,7 @@ export function useGoalNotifications(hydrated: boolean) {
         if (current?.installation || current?.pendingStop) throw new Error("existing_registration");
         const saved = current?.owner === identity.owner ? current : { owner: identity.owner, requestId: crypto.randomUUID() };
         browser.save(saved);
-        await register(saved, identity, access.target, subscription, access.grant);
+        await register(saved, identity, access.target, subscription);
         prepared.current = null;
         setStatus("registered");
       } catch {
@@ -198,11 +207,11 @@ export function useGoalNotifications(hydrated: boolean) {
       setStatus("pending_stop");
       try {
         await stop(saved);
-        setStatus(restingStatus(available.target));
         setMessage("Notifications turned off.");
+        await prepareEnrollment(available.target);
       } catch { setMessage("Notification stop pending until DONG reconnects."); }
     });
   }
 
-  return { availability, status, message, busy, checkAccess, enable, sendTest, disable, reconcile };
+  return { availability, status, message, busy, openSettings, enable, sendTest, disable };
 }

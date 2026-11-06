@@ -25,6 +25,7 @@ Deno.test('registration accepts only the supported proof and endpoint shapes', (
     { ...request, proof, subscription: { ...subscription, endpoint: 'http://push.example/endpoint' } },
     { ...request, proof, subscription: { ...subscription, keys: { ...subscription.keys, auth: capability } } },
     { ...request, proof, recipientId: id },
+    { ...request, proof, grant: capability },
   ]) {
     if (goalNotificationRequest.safeParse(invalid).success) throw new Error('Invalid registration accepted');
   }

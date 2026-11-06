@@ -33,7 +33,7 @@
 
 - [x] CHK018 - Are setup and recovery requirements distinct for an ordinary iPhone tab, its Home Screen website, an embedded browser and a denied or revoked permission? [Coverage, Spec §FR-002, §FR-014, §FR-019, §FR-020]
 - [x] CHK019 - Are accessibility, essential notification content and the limits of a test notification stated for both successful setup and unsupported conditions? [Completeness, Spec §FR-002, §FR-021, §FR-023, §SC-004, §SC-008]
-- [x] CHK020 - Do the spec and plan consistently distinguish Android pilot eligibility from the physical iPhone gate, and explain what users see on configurations awaiting validation? [Consistency, Spec §Mobile browser release scope, §FR-014, Plan §Implementation sequence]
+- [x] CHK020 - Do the spec and plan agree on code-free opt-in, target policy, Android preview checks and iPhone feedback from production users? [Consistency, Spec §FR-014, Plan §Implementation sequence]
 - [x] CHK021 - Are pilot capacity, rollout stop conditions and rollback expectations specified, including outstanding deliveries and preservation of score history? [Dependency, Spec §SC-006, Plan §Technical Context, §Implementation sequence, Quickstart §Phone evidence and staged enablement]
 
 ## Review resolutions

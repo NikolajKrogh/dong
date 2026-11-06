@@ -1,19 +1,18 @@
 begin;
-select plan(31);
+select plan(37);
 
 select ok(has_function_privilege('goal_notification_backend',
-  'private.goal_notification_status(text,text,bytea,uuid,bytea,bigint)', 'execute'),
+  'private.goal_notification_status(text,text,uuid,bytea,bigint)', 'execute'),
   'server login may check enrollment status');
 select ok(not has_table_privilege('goal_notification_backend', 'private.goal_notification_subscriptions', 'select'),
   'server login cannot browse subscription material');
 select ok(not has_function_privilege('authenticated',
-  'private.goal_notification_status(text,text,bytea,uuid,bytea,bigint)', 'execute'),
+  'private.goal_notification_status(text,text,uuid,bytea,bigint)', 'execute'),
   'authenticated browser cannot call private operations');
 
 create temp table goal_fixture as
 select gen_random_uuid() as solo_id, gen_random_uuid() as installation_id, gen_random_uuid() as test_id,
-  extensions.digest('solo-proof', 'sha256') as solo_proof, extensions.digest('installation-proof', 'sha256') as control,
-  extensions.digest('enrollment-proof', 'sha256') as enrollment;
+  extensions.digest('solo-proof', 'sha256') as solo_proof, extensions.digest('installation-proof', 'sha256') as control;
 
 insert into private.provider_matches(league_id, source_event_id, home_name, away_name, lifecycle, kickoff_validity)
 select id, 'goal-notification-fixture', 'Home', 'Away', 'live', 'confirmed'
@@ -26,31 +25,51 @@ from goal_fixture;
 insert into private.solo_tracked_matches (grant_id, match_id, admitted_until)
 select solo_id, m.id, now() + interval '1 hour' from goal_fixture
 join private.provider_matches m on m.source_event_id = 'goal-notification-fixture';
-insert into private.goal_notification_enrollment_grants (digest, environment, mode, target, expires_at)
-select enrollment, 'local', 'preview', 'android_chrome', now() + interval '1 hour' from goal_fixture;
-
-select is(private.goal_notification_status('local', 'android_chrome', enrollment, null, null, null),
-  'pilot_access_required', 'default policy blocks enrollment despite a valid grant') from goal_fixture;
-update private.goal_notification_policy set test_enabled = true, test_targets = array['android_chrome'];
-select is(private.goal_notification_status('local', 'android_chrome', enrollment, null, null, null),
-  'available', 'approved preview grant exposes enrollment') from goal_fixture;
-select is(private.goal_notification_status('production', 'android_chrome', enrollment, null, null, null),
-  'pilot_access_required', 'the preview grant cannot be used in production') from goal_fixture;
-select is(private.goal_notification_status('production', 'iphone_home_screen', null, null, null, null),
-  'awaiting_device_verification', 'public iPhone verification remains gated');
-
-select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome', enrollment,
+select is(private.goal_notification_status('local', 'android_chrome', null, null, null),
+  'unavailable', 'default policy blocks enrollment');
+select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
   'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
-  1::bigint, 'authorized enrollment consumes the grant') from goal_fixture;
-select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome', enrollment,
+  null::bigint, 'disabled policy blocks registration even with current game authority') from goal_fixture;
+update private.goal_notification_policy set test_enabled = true, test_targets = array['android_chrome'];
+select is(private.goal_notification_status('local', 'android_chrome', null, null, null),
+  'available', 'enabled browsers can enroll without an invite');
+select is(private.goal_notification_status('production', 'iphone_home_screen', null, null, null),
+  'unavailable', 'targets outside the configured rollout are unavailable');
+update private.goal_notification_policy set test_targets = array['android_chrome', 'iphone_home_screen'];
+select is(private.goal_notification_status('production', 'iphone_home_screen', null, null, null),
+  'available', 'enabled iPhone Home Screen uses the same enrollment flow');
+
+select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
+  'solo', null, null, null, extensions.digest('wrong', 'sha256'), control, 'https://fcm.googleapis.com/fcm/send/fixture',
+  decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
+  null::bigint, 'registration still requires current game authority') from goal_fixture;
+select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
+  'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
+  decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
+  1::bigint, 'authorized enrollment succeeds without an invite') from goal_fixture;
+select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
   'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
   1::bigint, 'exact registration replay is safe') from goal_fixture;
-select is(private.register_goal_notification_installation(gen_random_uuid(), 'local', 'android_chrome', enrollment,
+select is(private.register_goal_notification_installation(gen_random_uuid(), 'local', 'android_chrome',
   'solo', null, null, null, solo_proof, extensions.digest('different-control', 'sha256'), 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
-  null::bigint, 'consumed grant cannot enroll another installation') from goal_fixture;
+  null::bigint, 'duplicate endpoint cannot enroll another installation') from goal_fixture;
+select is(private.goal_notification_status('production', 'android_chrome', installation_id, control, 1),
+  'unavailable', 'installation credentials remain scoped to the environment') from goal_fixture;
+select is(private.register_goal_notification_installation(gen_random_uuid(), 'production', 'iphone_home_screen',
+  'solo', null, null, null, solo_proof, extensions.digest('iphone-control-one', 'sha256'), 'https://web.push.apple.com/fixture-one',
+  decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
+  1::bigint, 'an iPhone Home Screen installation can enroll directly') from goal_fixture;
+select is(private.register_goal_notification_installation(gen_random_uuid(), 'production', 'iphone_home_screen',
+  'solo', null, null, null, solo_proof, extensions.digest('iphone-control-two', 'sha256'), 'https://web.push.apple.com/fixture-two',
+  decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
+  1::bigint, 'a second iPhone installation uses the same opt-in') from goal_fixture;
+select is(private.register_goal_notification_installation(gen_random_uuid(), 'production', 'iphone_home_screen',
+  'solo', null, null, null, solo_proof, extensions.digest('iphone-control-three', 'sha256'), 'https://web.push.apple.com/fixture-three',
+  decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
+  null::bigint, 'the per-owner installation cap still applies') from goal_fixture;
 select is(private.reserve_goal_notification_test(installation_id, extensions.digest('wrong', 'sha256'),
   1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'status',
   'not_eligible', 'test send requires the installation credential') from goal_fixture;
@@ -73,7 +92,7 @@ begin
   from goal_fixture;
 end;
 $$;
-select is(private.goal_notification_status('local', 'android_chrome', null, installation_id, control, 1),
+select is(private.goal_notification_status('local', 'android_chrome', installation_id, control, 1),
   'repair_required', 'provider expiry preserves consent and requests repair') from goal_fixture;
 select is(private.cache_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key', 'first'),
   'first', 'first Apple header is cached');

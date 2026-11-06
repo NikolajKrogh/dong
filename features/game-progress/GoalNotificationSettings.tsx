@@ -1,26 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { Input, Label, Switch, Text, XStack, YStack } from "tamagui";
+import { Switch, Text, XStack, YStack } from "tamagui";
 import { ShellActionButton } from "../../components/ui";
 import { useColors } from "../../styles/theme";
 import type { useGoalNotifications } from "./useGoalNotifications";
 
 type Controls = ReturnType<typeof useGoalNotifications>;
-
-function AccessCode({ controls }: { controls: Controls }) {
-  const [grant, setGrant] = useState("");
-  return (
-    <>
-      {controls.status === "awaiting_device_verification" &&
-        <Text color="$color">iPhone notifications are awaiting device verification.</Text>}
-      <Label htmlFor="goal-notification-access-code" color="$color" fontSize="$3">Notification access code</Label>
-      <Input id="goal-notification-access-code" type="password"
-        value={grant} onChangeText={setGrant} autoCapitalize="none" autoComplete="off" maxLength={64} size="$4" minHeight={44} fontSize="$4" />
-      <ShellActionButton label="Check access" variant="surface" disabled={controls.busy || !grant.trim()}
-        onPress={() => controls.checkAccess(grant.trim())} />
-    </>
-  );
-}
 
 function BrowserControls({ controls }: { controls: Controls }) {
   const { availability, status, busy } = controls;
@@ -65,8 +49,10 @@ function BrowserControls({ controls }: { controls: Controls }) {
           <ShellActionButton label="Turn off notifications" variant="surface" disabled={busy} onPress={controls.disable} />
         </>
       );
-    default:
-      return <AccessCode controls={controls} />;
+    case "checking":
+      return <Text color="$colorMuted" role="status">Checking notification availability…</Text>;
+    case "unavailable":
+      return <Text color="$colorMuted">Notifications are unavailable right now.</Text>;
   }
 }
 

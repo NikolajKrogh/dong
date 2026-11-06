@@ -45,19 +45,18 @@ export function createGoalEnrollment(config: GoalEnrollmentConfig) {
   async function handle(input: GoalNotificationRequest, request: Request, apiKey: string): Promise<Response> {
     const installation = 'installation' in input ? input.installation : undefined;
     const control = installation ? await sha256Hex(decodeCapability(installation.credential)) : null;
-    const grant = 'grant' in input && input.grant ? await sha256Hex(decodeCapability(input.grant)) : null;
     if (input.operation === 'status') {
       if (!config.destinations[input.target]?.length) {
-        return result({ status: input.target === 'iphone_home_screen' ? 'awaiting_device_verification' : 'unavailable' });
+        return result({ status: 'unavailable' });
       }
       const [row] = await sql<{ status: string }[]>`
         select private.goal_notification_status(${config.environment}, ${input.target},
-          decode(${grant}, 'hex'), ${installation?.id ?? null}::uuid,
+          ${installation?.id ?? null}::uuid,
           decode(${control}, 'hex'), ${installation?.generation ?? null}::bigint) as status
       `;
       return result({
         status: row.status,
-        ...(['available', 'registered', 'repair_required'].includes(row.status) ? { publicKey: config.vapid.publicKey } : {}),
+        ...(row.status === 'available' ? { publicKey: config.vapid.publicKey } : {}),
       });
     }
     if (input.operation === 'disable') {
@@ -88,7 +87,7 @@ export function createGoalEnrollment(config: GoalEnrollmentConfig) {
       const authKey = Buffer.from(auth).toString('hex');
       const [row] = await sql<{ generation: string | null }[]>`
         select private.register_goal_notification_installation(${input.requestId}::uuid, ${config.environment},
-          ${input.target}, decode(${grant}, 'hex'), ${identity.kind}, ${identity.game}::uuid, ${identity.account}::uuid,
+          ${input.target}, ${identity.kind}, ${identity.game}::uuid, ${identity.account}::uuid,
           ${identity.authSession}::uuid, decode(${identity.grantDigest}, 'hex'), decode(${controlDigest}, 'hex'),
           ${input.subscription.endpoint}, decode(${key}, 'hex'), decode(${authKey}, 'hex'), ${config.vapid.keyId}) as generation
       `;

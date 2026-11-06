@@ -36,6 +36,6 @@
 - Reviewed against user-confirmed scope on 2026-10-30; no unresolved quality issues remain.
 - Updated after mobile-browser research: explicit Android browser targets, installed iPhone support, separate storage recovery, permission reconciliation, visible-push requirements and realistic expiry/delivery semantics.
 - Release validation narrowed to Android Chrome, Firefox, Samsung Internet and the iPhone Home Screen website; other browsers are not notification release gates and existing gameplay support is unchanged.
-- Exact browser versions, runtime compatibility and capacity measurements belong to planning; native Android delivery is explicitly deferred. Real iPhone validation remains a release requirement.
+- Exact browser versions, runtime compatibility and capacity measurements belong to planning; native Android delivery is explicitly deferred. Collect iPhone Home Screen feedback from users after production enablement.
 - Testing tools appear only in the required test strategy; delivery technologies and package choices are kept in feasibility.md.
 - Ready for `/speckit-plan`.

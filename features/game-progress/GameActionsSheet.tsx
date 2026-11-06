@@ -162,7 +162,7 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
   const activeNotifications = showNotifications ? goalNotifications : undefined;
   const notificationsOpen = Boolean(activeNotifications);
   const notificationStatus = goalNotifications?.status === "registered" ? "Test only"
-    : goalNotifications?.status === "access_required" || goalNotifications?.status === "ready" ? "Off"
+    : goalNotifications?.status === "ready" ? "Off"
     : undefined;
 
   useLayoutEffect(() => {
@@ -272,7 +272,10 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
                       icon="notifications-outline"
                       iconColor={colors.textMuted}
                       label="Goal notifications"
-                      onPress={() => setShowNotifications(true)}
+                      onPress={() => {
+                        goalNotifications.openSettings();
+                        setShowNotifications(true);
+                      }}
                       testID="FooterGoalNotificationsButton"
                     />
                   )

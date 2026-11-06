@@ -37,7 +37,6 @@ export const goalNotificationRequest = z.discriminatedUnion('operation', [
   z.strictObject({
     operation: z.literal('status'),
     target,
-    grant: capability.optional(),
     installation: installation.optional(),
   }),
   z.strictObject({
@@ -46,7 +45,6 @@ export const goalNotificationRequest = z.discriminatedUnion('operation', [
     target,
     proof,
     subscription,
-    grant: capability.optional(),
     installation: installation.optional(),
   }),
   z.strictObject({
