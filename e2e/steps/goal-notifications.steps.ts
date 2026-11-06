@@ -91,6 +91,40 @@ async function openNotificationControls(page: Page, iphone = false) {
 Given("a solo game has a controlled notification service", async ({ page }) => openNotificationControls(page));
 Given("a solo game is open in an iPhone browser tab", async ({ page }) => openNotificationControls(page, true));
 
+When("I open Goal notifications from Game actions", async ({ page }) => {
+  const sheet = page.getByTestId("GameActionsSheetFrame");
+  await expect(sheet.getByRole("heading", { name: "Game actions" })).toBeVisible();
+  await expect(sheet.getByLabel("Notification access code")).toHaveCount(0);
+  await sheet.getByRole("button", { name: "Goal notifications" }).click();
+});
+Then("the sheet shows the notification controls and focuses Back", async ({ page }) => {
+  const sheet = page.getByTestId("GameActionsSheetFrame");
+  await expect(sheet.getByRole("heading", { name: "Goal notifications" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Back to game actions" })).toBeFocused();
+  await expect(sheet.getByRole("button", { name: "End Game" })).toHaveCount(0);
+  await expect(sheet.getByLabel("Notification access code")).toHaveAttribute("type", "password");
+});
+When("I go back to Game actions from Goal notifications", async ({ page }) => {
+  await page.getByRole("button", { name: "Back to game actions" }).click();
+});
+Then("the sheet shows the action list and focuses the Goal notifications row", async ({ page }) => {
+  const sheet = page.getByTestId("GameActionsSheetFrame");
+  await expect(sheet.getByRole("heading", { name: "Game actions" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Goal notifications" })).toBeFocused();
+});
+When("I close and reopen Game actions", async ({ page }) => {
+  await page.getByRole("button", { name: "Close game actions" }).click();
+  const openGameActions = page.getByRole("button", { name: "Open game actions" });
+  await expect(openGameActions).toBeFocused();
+  await openGameActions.click();
+});
+Then("the sheet starts on the action list", async ({ page }) => {
+  const sheet = page.getByTestId("GameActionsSheetFrame");
+  await expect(sheet.getByRole("heading", { name: "Game actions" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Goal notifications" })).toBeVisible();
+  await expect(sheet.getByRole("button", { name: "Back to game actions" })).toHaveCount(0);
+});
+
 When("I check an approved notification access code", async ({ page }) => {
   await page.getByLabel("Notification access code").fill(accessCode);
   await page.getByRole("button", { name: "Check access" }).click();
@@ -107,7 +141,7 @@ Then("DONG reports push-service acceptance", async ({ page }) => {
 });
 Then("the notification controls pass the accessibility audit", async ({ page }) => {
   await page.addScriptTag({ content: axe.source });
-  const violations = await page.getByTestId("GoalNotificationSettings").evaluate(async node =>
+  const violations = await page.getByTestId("GameActionsSheetFrame").evaluate(async node =>
     (await (window as unknown as Window & { axe: typeof axe }).axe.run(node, {
       runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] },
     })).violations.map(({ id, nodes }) => ({ id, targets: nodes.map(item => item.target) })));

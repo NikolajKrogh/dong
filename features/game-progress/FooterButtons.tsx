@@ -5,6 +5,7 @@ import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 import GameActionsSheet from "./GameActionsSheet";
+import type { useGoalNotifications } from "./useGoalNotifications";
 import { useReducedMotion } from "../../platform/animation/useReducedMotion";
 import { TaskOverlay } from "../../platform/navigation/taskNavigation";
 
@@ -24,7 +25,7 @@ interface FooterButtonsProps {
   showLeaveGame?: boolean;
   /** Only the current multiplayer host can use this action. */
   showEndGame?: boolean;
-  notificationSettings?: React.ReactNode;
+  goalNotifications?: ReturnType<typeof useGoalNotifications>;
 }
 
 /**
@@ -42,7 +43,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   onLeaveGame,
   showLeaveGame = false,
   showEndGame = true,
-  notificationSettings,
+  goalNotifications,
 }) => {
   const router = useRouter();
   const colors = useColors();
@@ -124,7 +125,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
           open={open}
           position={sheetPosition}
           showEndGame={showEndGame}
-          notificationSettings={notificationSettings}
+          goalNotifications={goalNotifications}
           floatingToggle={renderToggle(true, dismiss)}
         />}
       </TaskOverlay>

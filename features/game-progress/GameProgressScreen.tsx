@@ -18,7 +18,6 @@ import { useRoomExit } from "../rooms/useRoomExit";
 import EndGameModal from "./EndGameModal";
 import FooterButtons from "./FooterButtons";
 import GameProgressTabs from "./GameProgressTabs";
-import { GoalNotificationSettings } from "./GoalNotificationSettings";
 import { useGoalNotifications } from "./useGoalNotifications";
 import MatchesGrid from "./MatchesGrid";
 import MatchQuickActionsModal from "./MatchQuickActionsModal/MatchQuickActionsModal";
@@ -163,7 +162,7 @@ const GameProgressScreen = () => {
 
           <View style={styles.footerContainer}>
             <FooterButtons
-              notificationSettings={<GoalNotificationSettings controls={goalNotifications} />}
+              goalNotifications={goalNotifications.availability.kind !== "native" ? goalNotifications : undefined}
               onHome={handleGoHome}
               onBackToSetup={handleBackToSetup}
               configurationLabel={configurationLabel}
