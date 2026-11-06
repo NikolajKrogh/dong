@@ -164,9 +164,12 @@ const useGameProgressController = () => {
     }
     if (sequence <= previous.sequence) return;
     providerGoalCursor.current = { sessionId: snapshot.sessionId, sequence };
-    for (const goal of snapshot.providerGoals ?? []) {
+    const goals = snapshot.providerGoals;
+    if (!goals?.length) return;
+    const matchesById = new Map(matches.map(match => [match.id, match]));
+    for (const goal of goals) {
       if (goal.sequence <= previous.sequence || goal.sequence > sequence) continue;
-      const match = matches.find(candidate => candidate.id === goal.matchId);
+      const match = matchesById.get(goal.matchId);
       if (!match) continue;
       handleGoalNotification({
         match, matchId: match.id, team: goal.team, isLiveUpdate: true,
