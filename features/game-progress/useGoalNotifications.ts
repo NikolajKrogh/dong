@@ -3,7 +3,11 @@ import { goalNotifications as browser } from "../../platform/notifications/goalN
 import type {
   BrowserPushSubscription, GoalNotificationTarget, InstallationControl, SavedEnrollment,
 } from "../../platform/notifications/goalNotificationBrowser";
-import { invokeGoalNotification, readNotificationIdentity, type NotificationIdentity } from "./goalNotificationClient";
+import { useGameStore } from "../../store/gameStore";
+import {
+  bindGoalNotifications, invokeGoalNotification, readNotificationIdentity, type GoalGameBinding,
+  type NotificationIdentity, type NotificationScope, stopGoalNotificationInstallation,
+} from "./goalNotificationClient";
 
 type Status = "checking" | "ready" |
   "registered" | "denied" | "pending_stop" | "repair_required" | "registration_unavailable" | "unavailable";
@@ -22,17 +26,7 @@ async function register(
     throw new Error("invalid_registration");
   }
   browser.save({ ...saved, installation: response.installation });
-}
-
-async function stop(saved: SavedEnrollment) {
-  if (!saved.installation) return;
-  browser.save({ ...saved, pendingStop: true });
-  const unsubscribe = browser.unsubscribe().catch(() => {});
-  await invokeGoalNotification({ operation: "disable", installation: saved.installation });
-  await unsubscribe;
-  const current = browser.read();
-  if (current?.installation?.id === saved.installation.id &&
-      current.installation.generation === saved.installation.generation) browser.save(null);
+  return response.installation;
 }
 
 export function useGoalNotifications(hydrated: boolean) {
@@ -43,6 +37,16 @@ export function useGoalNotifications(hydrated: boolean) {
     return browser.permission() === "denied" ? "denied" : "checking";
   });
   const [message, setMessage] = useState("");
+  const [gameBinding, setBinding] = useState<(GoalGameBinding & { gameKey: string }) | null>(null);
+  const [needsBinding, setNeedsBinding] = useState(false);
+  const bindingRevision = useRef<number | null>(null);
+  const gameKey = useGameStore(state => state.activeGameContext.mode === "multiplayer"
+    ? state.activeGameContext.sessionId : state.soloTracking?.grant?.state === "active" ? state.soloTracking.grant.grantToken : null);
+  const binding = gameBinding?.gameKey === gameKey ? gameBinding : null;
+  const soloSelection = useGameStore(state => state.soloTracking?.grant?.state === "active"
+    ? state.soloTracking.grant.selectionVersion : null);
+  const commonPreference = useGameStore(state => state.commonMatchNotificationsEnabled);
+  const commonMatch = useGameStore(state => state.commonMatchId);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
   const setupRequested = useRef(false);
@@ -88,6 +92,24 @@ export function useGoalNotifications(hydrated: boolean) {
     }
   }, []);
 
+  const refreshGame = useCallback(async (
+    installation: InstallationControl, identity: NotificationIdentity, replace = false,
+  ) => {
+    try {
+      let result = await bindGoalNotifications(installation, identity, bindingRevision.current);
+      if (result.status === "stale_binding" && (replace || result.sameGame)) {
+        result = await bindGoalNotifications(installation, identity, result.revision);
+      }
+      bindingRevision.current = result.revision;
+      const gameKey = identity.proof.kind === "solo" ? identity.proof.grantToken : identity.proof.sessionId;
+      setBinding(result.status === "bound" ? { ...result, gameKey } : null);
+      setNeedsBinding(result.status !== "bound");
+    } catch {
+      setBinding(null);
+      setNeedsBinding(true);
+    }
+  }, []);
+
   const reconcile = useCallback(() => {
     void run(async () => {
       const available = browser.availability();
@@ -103,8 +125,10 @@ export function useGoalNotifications(hydrated: boolean) {
         if (saved.installation && (saved.pendingStop || browser.permission() !== "granted" ||
             (identity !== null && identity.owner !== saved.owner))) {
           setStatus("pending_stop");
+          setBinding(null);
+          bindingRevision.current = null;
           prepared.current = null;
-          await stop(saved);
+          await stopGoalNotificationInstallation(saved);
           setMessage(saved.pendingStop ? "Notifications turned off." : "");
           await prepareEnrollment(available.target);
           return;
@@ -113,7 +137,8 @@ export function useGoalNotifications(hydrated: boolean) {
         if (!saved.installation) {
           if (identity?.owner === saved.owner && subscription) {
             try {
-              await register(saved, identity, available.target, subscription);
+              const installation = await register(saved, identity, available.target, subscription);
+              await refreshGame(installation, identity);
               setStatus("registered");
               return;
             } catch { /* The player can retry a registration that did not complete. */ }
@@ -128,6 +153,11 @@ export function useGoalNotifications(hydrated: boolean) {
         const result = await invokeGoalNotification<{ status: string }>({
           operation: "status", target: available.target, installation: saved.installation,
         });
+        if (result.status === "registered" && identity?.owner === saved.owner) {
+          await refreshGame(saved.installation, identity);
+        } else {
+          setBinding(null);
+        }
         setStatus(result.status === "registered" ? "registered" :
           result.status === "repair_required" ? "repair_required" : "registration_unavailable");
       } catch {
@@ -135,14 +165,14 @@ export function useGoalNotifications(hydrated: boolean) {
         setStatus(current?.pendingStop ? "pending_stop" : current?.installation ? "registration_unavailable" : "unavailable");
       }
     }, false);
-  }, [prepareEnrollment, run]);
+  }, [prepareEnrollment, refreshGame, run]);
 
   useEffect(() => {
     if (!hydrated) return;
     const timeout = setTimeout(reconcile, 0);
     const remove = browser.onResume(reconcile);
     return () => { clearTimeout(timeout); remove(); };
-  }, [hydrated, reconcile]);
+  }, [hydrated, reconcile, gameKey, soloSelection, commonPreference, commonMatch]);
 
   function openSettings() {
     setupRequested.current = true;
@@ -162,13 +192,74 @@ export function useGoalNotifications(hydrated: boolean) {
         if (current?.installation || current?.pendingStop) throw new Error("existing_registration");
         const saved = current?.owner === identity.owner ? current : { owner: identity.owner, requestId: crypto.randomUUID() };
         browser.save(saved);
-        await register(saved, identity, access.target, subscription);
+        const installation = await register(saved, identity, access.target, subscription);
+        await refreshGame(installation, identity, true);
         prepared.current = null;
         setStatus("registered");
       } catch {
         if (browser.permission() === "denied") setStatus("denied");
         else setMessage("Could not register this browser. Try again.");
       }
+    });
+  }
+
+  function bindCurrentGame() {
+    void run(async () => {
+      const saved = browser.read();
+      const identity = await readNotificationIdentity().catch(() => null);
+      if (saved?.installation && !saved.pendingStop && identity?.owner === saved.owner) {
+        await refreshGame(saved.installation, identity, true);
+      }
+    });
+  }
+
+  function changeScope(scope: NotificationScope) {
+    void run(async () => {
+      if (binding?.scopeRevision == null || binding.scope === scope) return;
+      try {
+        const saved = browser.read();
+        const identity = await readNotificationIdentity();
+        if (!saved?.installation || saved.pendingStop || identity?.owner !== saved.owner || identity.proof.kind === "solo") return;
+        const result = await invokeGoalNotification<GoalGameBinding | {
+          status: "stale_scope"; scope: NotificationScope; scopeRevision: number;
+        }>({
+          operation: "scope", installation: saved.installation, proof: identity.proof,
+          expectedScopeRevision: binding.scopeRevision, scope,
+        }, identity.bearer);
+        if (result.status === "bound") setBinding({ ...result, gameKey: binding.gameKey });
+        else {
+          setBinding({ ...binding, scope: result.scope, scopeRevision: result.scopeRevision });
+          setMessage("The match choice changed in another tab. Try again.");
+        }
+      } catch { setMessage("Could not change which matches to follow."); }
+    });
+  }
+
+  function repair() {
+    void run(async () => {
+      const saved = browser.read();
+      const available = browser.availability();
+      if (!saved?.installation || saved.pendingStop || available.kind !== "supported" || browser.permission() !== "granted") return;
+      try {
+        const identity = await readNotificationIdentity();
+        if (identity?.owner !== saved.owner) return;
+        const { publicKey } = await invokeGoalNotification<{ status: string; publicKey?: string }>({
+          operation: "status", target: available.target,
+        });
+        if (!publicKey) throw new Error("unavailable");
+        await browser.prepare();
+        await browser.unsubscribe();
+        const subscription = await browser.subscribe(publicKey);
+        const latestIdentity = await readNotificationIdentity();
+        if (!latestIdentity || latestIdentity.owner !== identity.owner ||
+          JSON.stringify(latestIdentity.proof) !== JSON.stringify(identity.proof)) throw new Error("changed_game_identity");
+        await invokeGoalNotification({
+          operation: "repair", target: available.target, installation: saved.installation, proof: identity.proof, subscription,
+        }, identity.bearer);
+        await refreshGame(saved.installation, identity, true);
+        setStatus("registered");
+        setMessage("Browser notifications repaired.");
+      } catch { setMessage("Could not repair browser notifications. Try again."); }
     });
   }
 
@@ -207,13 +298,19 @@ export function useGoalNotifications(hydrated: boolean) {
       const saved = browser.read();
       if (!saved?.installation || available.kind !== "supported") return;
       setStatus("pending_stop");
+      setBinding(null);
+      setNeedsBinding(false);
+      bindingRevision.current = null;
       try {
-        await stop(saved);
+        await stopGoalNotificationInstallation(saved);
         setMessage("Notifications turned off.");
         await prepareEnrollment(available.target);
       } catch { setMessage("Notification stop pending until DONG reconnects."); }
     });
   }
 
-  return { availability, status, message, busy, openSettings, enable, sendTest, disable };
+  return {
+    availability, status, message, busy, openSettings, enable, sendTest, disable, repair,
+    binding, needsBinding, bindCurrentGame, changeScope, commonPreference,
+  };
 }

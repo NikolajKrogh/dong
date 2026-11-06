@@ -193,6 +193,10 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   const signOut = async () => {
     const client = getSupabaseClient();
     pendingManualSignOutRef.current = true;
+    if (user) {
+      const { stopGoalNotificationsForAccount } = await import("../game-progress/goalNotificationClient");
+      await stopGoalNotificationsForAccount(user.id).catch(() => undefined);
+    }
     const { error } = await client.auth.signOut();
 
     if (error) {

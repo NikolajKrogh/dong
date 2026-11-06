@@ -78,6 +78,12 @@ npx --yes deno@2.9.6 test --no-config --no-lock --node-modules-dir=none --allow-
 - The isolated database passed 44 pgTAP assertions, including direct enrollment for two iPhone Home Screen installations under the shared cap, replay and opt-out. The local Edge handler also passed status, registration, replay and opt-out against that database with fixture subscriptions.
 - One phone-width Playwright happy path covers direct enablement, fixed test handoff and opt-out. Physical Android Chrome passed the same controlled flow with zero scoped axe violations. These fixture checks do not establish push delivery on an iPhone.
 
+## Live sender configuration
+
+Use a dedicated database login with membership in `goal_notification_dispatcher` and configure `GOAL_NOTIFICATION_DISPATCH_DATABASE_URL`. Configure the same environment and VAPID key pair used by browser enrollment. The database scheduler reads `goal_notification_environment`, `goal_notification_project_url` and `goal_notification_wake_secret` from Vault. Set `GOAL_NOTIFICATION_WAKE_SECRET` on the dispatcher to the same dedicated secret. Only the HMAC for the short-lived wake enters the HTTP queue.
+
+The `dong-goal-notifications` send job is installed inactive. Enable it only after configuring the isolated preview and live target policy. The `dong-goal-notification-cleanup` job runs independently and makes no outbound requests.
+
 ## Phone evidence and staged enablement
 
 1. Enable the Android targets in the isolated HTTPS preview. Enroll through Enable notifications. Record OS/browser versions, foreground and closed delivery, handoff versus display, tap routing and opt-out. Verify the push endpoint families and record redacted path patterns only.

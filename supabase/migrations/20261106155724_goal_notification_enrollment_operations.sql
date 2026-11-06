@@ -58,11 +58,18 @@ returns boolean language sql stable set search_path = '' as $$
   from private.goal_notification_policy p;
 $$;
 
+create function private.goal_notification_enrollment_enabled(p_target text)
+returns boolean language sql stable set search_path = '' as $$
+  select (p.test_enabled and p_target = any(p.test_targets))
+    or (p.live_enabled and p_target = any(p.live_targets))
+  from private.goal_notification_policy p;
+$$;
+
 create function private.goal_notification_status(
   p_environment text, p_target text, p_installation uuid, p_control bytea, p_generation bigint
 ) returns text language sql stable security definer set search_path = '' as $$
   select case
-    when not coalesce(private.goal_notification_test_enabled(p_target), false) then 'unavailable'
+    when not coalesce(private.goal_notification_enrollment_enabled(p_target), false) then 'unavailable'
     when p_installation is null then 'available'
     when exists (
       select from private.goal_notification_installations i
@@ -88,7 +95,7 @@ declare
 begin
   -- Serialize registration with the global admission cap.
   select max_installations into v_cap from private.goal_notification_policy for update;
-  if not coalesce(private.goal_notification_test_enabled(p_target), false) then return null; end if;
+  if not coalesce(private.goal_notification_enrollment_enabled(p_target), false) then return null; end if;
   v_owner := private.goal_notification_owner(p_kind, p_game, p_account, p_auth_session, p_proof_digest);
   if v_owner is null then return null; end if;
 
@@ -187,6 +194,7 @@ $$;
 
 revoke all on function private.goal_notification_owner(text, uuid, uuid, uuid, bytea),
   private.goal_notification_test_enabled(text),
+  private.goal_notification_enrollment_enabled(text),
   private.goal_notification_status(text, text, uuid, bytea, bigint),
   private.register_goal_notification_installation(uuid, text, text, text, uuid, uuid, uuid, bytea, bytea, text, bytea, bytea, text),
   private.reserve_goal_notification_test(uuid, bytea, bigint, text, uuid, text, uuid, uuid, uuid, bytea),

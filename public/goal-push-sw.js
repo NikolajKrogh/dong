@@ -35,3 +35,23 @@ self.addEventListener("push", (event) => {
     }));
   }
 });
+
+self.addEventListener("notificationclick", (event) => {
+  const id = event.notification.data?.id;
+  event.notification.close();
+  if (typeof id !== "string" || !deliveryIdPattern.test(id)) return;
+
+  const url = new URL("/goalNotification", self.location.origin);
+  url.searchParams.set("deliveryId", id);
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const existing = windows.find(client => client.url === url.href);
+    if (existing) return existing.focus();
+    const game = windows.find(client => new URL(client.url).pathname === "/gameProgress");
+    if (game) {
+      const target = await game.navigate(url.href).catch(() => null);
+      if (target) return target.focus();
+    }
+    return self.clients.openWindow(url.href);
+  })());
+});

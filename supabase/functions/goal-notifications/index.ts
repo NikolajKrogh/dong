@@ -1,6 +1,7 @@
 import { decodeCanonicalBase64Url } from '../../../shared/encoding/base64url.ts';
 import { goalNotificationRequest, MAX_GOAL_NOTIFICATION_REQUEST_BYTES } from '../_shared/goal-notifications/contracts.ts';
-import { createGoalEnrollment, type GoalEnrollmentConfig } from '../_shared/goal-notifications/enrollment.ts';
+import { readGoalPushConfiguration } from '../_shared/goal-notifications/pushConfiguration.ts';
+import { createGoalEnrollment } from '../_shared/goal-notifications/enrollment.ts';
 
 const origins = new Set((Deno.env.get('GOAL_NOTIFICATION_ORIGINS') ?? '').split(',').map(origin => origin.trim()).filter(Boolean));
 const publicKeys = new Set([Deno.env.get('SUPABASE_ANON_KEY') ?? '']);
@@ -16,44 +17,16 @@ let enrollment: ReturnType<typeof createGoalEnrollment> | undefined;
 
 function getEnrollment() {
   if (enrollment) return enrollment;
-  const environment = Deno.env.get('GOAL_NOTIFICATION_ENVIRONMENT') ?? '';
+  const config = readGoalPushConfiguration();
   const controlKey = decodeCanonicalBase64Url(Deno.env.get('GOAL_NOTIFICATION_CONTROL_KEY'));
-  const vapid = {
-    keyId: Deno.env.get('GOAL_NOTIFICATION_VAPID_KEY_ID') ?? '',
-    subject: Deno.env.get('GOAL_NOTIFICATION_VAPID_SUBJECT') ?? '',
-    publicKey: Deno.env.get('GOAL_NOTIFICATION_VAPID_PUBLIC_KEY') ?? '',
-    privateKey: Deno.env.get('GOAL_NOTIFICATION_VAPID_PRIVATE_KEY') ?? '',
-  };
-  if (
-    !/^[a-z0-9][a-z0-9_-]{0,63}$/.test(environment) || controlKey?.length !== 32 ||
-    decodeCanonicalBase64Url(vapid.publicKey)?.length !== 65 ||
-    decodeCanonicalBase64Url(vapid.privateKey)?.length !== 32 || !vapid.keyId || !vapid.subject
-  ) throw new Error('configuration_required');
-  const destinations = parseDestinations(Deno.env.get('GOAL_NOTIFICATION_DESTINATIONS') ?? '{}');
+  if (controlKey?.length !== 32) throw new Error('configuration_required');
   enrollment = createGoalEnrollment({
+    ...config,
     databaseUrl: Deno.env.get('GOAL_NOTIFICATION_DATABASE_URL') ?? '',
     authUrl: Deno.env.get('SUPABASE_URL') ?? '',
-    environment, controlKey, vapid, destinations,
+    controlKey,
   });
   return enrollment;
-}
-
-function parseDestinations(raw: string): GoalEnrollmentConfig['destinations'] {
-  const config: unknown = JSON.parse(raw);
-  if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('configuration_required');
-  const result: GoalEnrollmentConfig['destinations'] = {};
-  for (const target of ['android_chrome', 'android_firefox', 'android_samsung', 'iphone_home_screen', 'other'] as const) {
-    const entries = (config as Record<string, unknown>)[target];
-    if (!Array.isArray(entries)) continue;
-    result[target] = entries.filter(entry => {
-      if (!entry || typeof entry !== 'object' || typeof entry.origin !== 'string' ||
-        typeof entry.pathPrefix !== 'string' || !/^\/(?:[a-zA-Z0-9_-]+\/)*$/.test(entry.pathPrefix)) return false;
-      if (entry.provider === 'fcm') return entry.origin === 'https://fcm.googleapis.com';
-      if (entry.provider === 'mozilla') return entry.origin === 'https://updates.push.services.mozilla.com';
-      return entry.provider === 'apple' && /^https:\/\/(?:[a-z0-9-]+\.)+push\.apple\.com$/.test(entry.origin);
-    });
-  }
-  return result;
 }
 
 async function readRequest(request: Request) {

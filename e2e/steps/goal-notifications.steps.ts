@@ -77,6 +77,11 @@ async function openNotificationControls(page: Page) {
       return route.fulfill({ headers, json: { ...json, installation: registration } });
     }
     expect(request.installation).toEqual(registration);
+    if (request.operation === "bind") {
+      return route.fulfill({ headers, json: {
+        ...json, status: "bound", revision: 1, liveEnabled: false, testEnabled: true, scope: null, scopeRevision: null,
+      } });
+    }
     if (request.operation === "disable") {
       registration = undefined;
       return route.fulfill({ headers, json: { ...json, status: "disabled" } });

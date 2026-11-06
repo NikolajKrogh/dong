@@ -1,4 +1,5 @@
 import { z } from 'npm:zod@4.4.3';
+import { isPositivePostgresBigint } from '../../../../shared/validation/identifiers.ts';
 import { decodeCanonicalBase64Url } from '../../../../shared/encoding/base64url.ts';
 
 export const MAX_GOAL_NOTIFICATION_REQUEST_BYTES = 4096;
@@ -53,7 +54,7 @@ export const goalNotificationRequest = z.discriminatedUnion('operation', [
     proof,
     expectedAssociationRevision: revision.nullable(),
     notifyCommonMatch: z.boolean().optional(),
-    commonCatalogMatchId: z.int().positive().optional(),
+    commonCatalogMatchId: z.string().refine(isPositivePostgresBigint).optional(),
   }),
   z.strictObject({
     operation: z.literal('scope'),
@@ -63,7 +64,7 @@ export const goalNotificationRequest = z.discriminatedUnion('operation', [
     scope: z.enum(['assigned_and_common', 'all_room_matches']),
   }),
   z.strictObject({ operation: z.literal('disable'), installation }),
-  z.strictObject({ operation: z.literal('repair'), installation, proof, subscription }),
+  z.strictObject({ operation: z.literal('repair'), installation, target, proof, subscription }),
   z.strictObject({ operation: z.literal('test'), installation, proof, requestId: opaqueId }),
   z.strictObject({ operation: z.literal('resolve'), deliveryId: opaqueId, proof }),
 ]);

@@ -1,3 +1,5 @@
+import { goalNotifications as browser } from "../../platform/notifications/goalNotifications";
+import type { InstallationControl, SavedEnrollment } from "../../platform/notifications/goalNotificationBrowser";
 import { getSupabaseClient, getSupabasePublicConfig } from "../../lib/supabase";
 import { useGameStore } from "../../store/gameStore";
 
@@ -62,4 +64,45 @@ export async function invokeGoalNotification<T>(
     throw new Error(payload?.code === "rate_limited" ? "rate_limited" : "unavailable");
   }
   return payload as T;
+}
+
+export type NotificationScope = "assigned_and_common" | "all_room_matches";
+
+export type GoalGameBinding = {
+  status: "bound";
+  revision: number;
+  liveEnabled: boolean;
+  testEnabled: boolean;
+  scope: NotificationScope | null;
+  scopeRevision: number | null;
+};
+
+export function bindGoalNotifications(
+  installation: InstallationControl, identity: NotificationIdentity, expectedAssociationRevision: number | null,
+) {
+  const { matches, commonMatchId, commonMatchNotificationsEnabled, soloTracking } = useGameStore.getState();
+  const common = matches.find(match => match.id === commonMatchId)?.catalogMatchId;
+  const admitted = soloTracking?.grant?.state === "active" && common
+    && soloTracking.grant.catalogMatchIds.includes(common) ? common : undefined;
+  return invokeGoalNotification<GoalGameBinding | { status: "stale_binding"; revision: number | null; sameGame: boolean }>({
+    operation: "bind", installation, proof: identity.proof, expectedAssociationRevision,
+    notifyCommonMatch: commonMatchNotificationsEnabled,
+    ...(identity.proof.kind === "solo" && admitted ? { commonCatalogMatchId: admitted } : {}),
+  }, identity.bearer);
+}
+
+export async function stopGoalNotificationInstallation(saved: SavedEnrollment) {
+  if (!saved.installation) return;
+  browser.save({ ...saved, pendingStop: true });
+  const unsubscribe = browser.unsubscribe().catch(() => {});
+  await invokeGoalNotification({ operation: "disable", installation: saved.installation });
+  await unsubscribe;
+  const current = browser.read();
+  if (current?.installation?.id === saved.installation.id &&
+      current.installation.generation === saved.installation.generation) browser.save(null);
+}
+
+export async function stopGoalNotificationsForAccount(accountId: string) {
+  const saved = browser.read();
+  if (saved?.owner === "account:" + accountId) await stopGoalNotificationInstallation(saved);
 }

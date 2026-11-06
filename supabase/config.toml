@@ -421,6 +421,10 @@ static_files = ["./functions/_shared/assignments/highs.wasm"]
 [functions.goal-notifications]
 verify_jwt = false
 
+# The handler checks the dedicated HMAC and a single-use database wake.
+[functions.dispatch-goal-notifications]
+verify_jwt = false
+
 # Experimental features may be deprecated any time
 [experimental]
 # Configures Postgres storage engine to use OrioleDB (S3)
