@@ -14,15 +14,18 @@ export interface NotificationIdentity {
   bearer?: string;
 }
 
+async function soloOwner(grantToken: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(grantToken));
+  return "solo:" + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export async function readNotificationIdentity(): Promise<NotificationIdentity | null> {
   const { activeGameContext: game, soloTracking } = useGameStore.getState();
   if (game.mode === "solo") {
     const grant = soloTracking?.grant;
     if (grant?.state !== "active" || Date.parse(grant.expiresAt) <= Date.now()) return null;
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(grant.grantToken));
-    const owner = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
     return {
-      owner: "solo:" + owner,
+      owner: await soloOwner(grant.grantToken),
       proof: { kind: "solo", grantToken: grant.grantToken },
     };
   }
@@ -91,18 +94,55 @@ export function bindGoalNotifications(
   }, identity.bearer);
 }
 
+let stopInFlight: { installation: InstallationControl; done: Promise<void> } | undefined;
+
+function isSameEnrollment(current: InstallationControl | undefined, expected: InstallationControl) {
+  return current?.id === expected.id && current.generation === expected.generation;
+}
+
 export async function stopGoalNotificationInstallation(saved: SavedEnrollment) {
-  if (!saved.installation) return;
-  browser.save({ ...saved, pendingStop: true });
-  const unsubscribe = browser.unsubscribe().catch(() => {});
-  await invokeGoalNotification({ operation: "disable", installation: saved.installation });
-  await unsubscribe;
+  const installation = saved.installation;
+  if (!installation) return;
+  if (stopInFlight && isSameEnrollment(stopInFlight.installation, installation)) return stopInFlight.done;
   const current = browser.read();
-  if (current?.installation?.id === saved.installation.id &&
-      current.installation.generation === saved.installation.generation) browser.save(null);
+  if (!current || !isSameEnrollment(current.installation, installation)) return;
+
+  browser.save({ ...current, pendingStop: true });
+  // A resumed stop only needs to revoke the old enrollment on the server.
+  const unsubscribe = current.pendingStop ? undefined : browser.unsubscribe().catch(() => {});
+  const done = (async () => {
+    try {
+      await invokeGoalNotification({ operation: "disable", installation });
+    } finally {
+      await unsubscribe;
+    }
+    if (isSameEnrollment(browser.read()?.installation, installation)) browser.save(null);
+  })();
+  stopInFlight = { installation, done };
+  try {
+    await done;
+  } finally {
+    if (stopInFlight?.done === done) stopInFlight = undefined;
+  }
+}
+
+export function watchPendingGoalNotificationStop() {
+  function retry() {
+    const saved = browser.read();
+    if (saved?.pendingStop) void stopGoalNotificationInstallation(saved).catch(() => {});
+  }
+  retry();
+  return browser.onResume(retry);
 }
 
 export async function stopGoalNotificationsForAccount(accountId: string) {
   const saved = browser.read();
   if (saved?.owner === "account:" + accountId) await stopGoalNotificationInstallation(saved);
+}
+
+export async function stopGoalNotificationsForSoloGame(grantToken: string) {
+  const saved = browser.read();
+  if (saved?.owner.startsWith("solo:") && saved.owner === await soloOwner(grantToken)) {
+    await stopGoalNotificationInstallation(saved);
+  }
 }

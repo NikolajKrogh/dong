@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Stack, usePathname } from "expo-router";
 import Head from "expo-router/head";
 import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
 import RandomMatchesToast from "../features/game-setup/RandomMatchesToast";
 import { goalToastConfig } from "../features/game-progress/GoalToast";
+import { watchPendingGoalNotificationStop } from "../features/game-progress/goalNotificationClient";
 import { PlatformGestureRoot } from "../platform";
 import { TamaguiAppProvider } from "../components/ui";
 import { AccountAuthProvider } from "../features/account";
@@ -41,6 +43,7 @@ export default function Layout() {
   const pathname = usePathname();
   const pageTitle = pageTitles[pathname] ?? (pathname.startsWith("/lobby/") ? "Room" : "DONG");
   useGuestRoomEndedNavigation();
+  useEffect(watchPendingGoalNotificationStop, []);
   return (
     <QueryClientProvider client={queryClient}>
     {Platform.OS === "web" && <Head><title>{pageTitle === "DONG" ? "DONG" : `${pageTitle} · DONG`}</title></Head>}
