@@ -225,9 +225,9 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
                 <Button
                   ref={backButton}
                   aria-label="Back to game actions"
-                  backgroundColor="$backgroundLight"
+                  alignItems="center"
+                  justifyContent="center"
                   borderRadius="$3"
-                  borderWidth={0}
                   focusVisibleStyle={{ outlineWidth: 2, outlineStyle: "solid", outlineColor: "$primaryFocus" }}
                   height={44}
                   onPress={() => {
@@ -235,14 +235,16 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
                     setShowNotifications(false);
                   }}
                   pressStyle={{ opacity: 0.82 }}
+                  unstyled
                   width={44}
                 >
-                  <Ionicons color={colors.textPrimary} name="arrow-back" size={24} accessible={false} aria-hidden />
+                  <Ionicons color={colors.primaryDark} name="arrow-back" size={24} accessible={false} aria-hidden />
                 </Button>
               )}
               <Text
                 color="$color"
                 flexShrink={1}
+                fontFamily={notificationsOpen ? "system-ui" : undefined}
                 fontSize="$5"
                 fontWeight="700"
                 {...(Platform.OS === "web" ? { role: "heading", "aria-level": 1 } : { accessibilityRole: "header" })}

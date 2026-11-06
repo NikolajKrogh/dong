@@ -131,7 +131,7 @@ When("I check an approved notification access code", async ({ page }) => {
 });
 When("I enable browser notifications", async ({ page }) => {
   await page.getByRole("button", { name: "Enable notifications" }).click();
-  await expect(page.getByText("Browser registered for test alerts.")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Test alerts" })).toBeChecked();
 });
 When("I send a test notification", async ({ page }) => {
   await page.getByRole("button", { name: "Send test notification" }).click();
@@ -148,7 +148,7 @@ Then("the notification controls pass the accessibility audit", async ({ page }) 
   expect(violations).toEqual([]);
 });
 When("I turn off browser notifications", async ({ page }) => {
-  await page.getByRole("button", { name: "Turn off notifications" }).click();
+  await page.getByRole("switch", { name: "Test alerts" }).click();
 });
 Then("DONG confirms the browser notification stop", async ({ page }) => {
   await expect(page.getByText("Notifications turned off.")).toBeVisible();
@@ -157,7 +157,7 @@ When("I turn off notifications offline and reconnect", async ({ page }) => {
   const url = "**/functions/v1/goal-notifications";
   const offline = (route: Route) => route.abort("internetdisconnected");
   await page.route(url, offline);
-  await page.getByRole("button", { name: "Turn off notifications" }).click();
+  await page.getByRole("switch", { name: "Test alerts" }).click();
   await expect(page.getByText("Notification stop pending until DONG reconnects.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Retry notification stop" })).toBeVisible();
   await page.unroute(url, offline);

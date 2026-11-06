@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Input, Label, Text, XStack, YStack } from "tamagui";
+import { Input, Label, Switch, Text, XStack, YStack } from "tamagui";
 import { ShellActionButton } from "../../components/ui";
 import { useColors } from "../../styles/theme";
 import type { useGoalNotifications } from "./useGoalNotifications";
@@ -54,27 +54,54 @@ function BrowserControls({ controls }: { controls: Controls }) {
         </>
       );
     case "registered":
+      return <RegisteredControls controls={controls} />;
     case "repair_required":
     case "registration_unavailable":
-      return <RegisteredControls controls={controls} />;
+      return (
+        <>
+          <Text color="$color">{status === "repair_required"
+            ? "This browser’s subscription needs repair. Your registration is saved."
+            : "Could not check notification registration. You can still turn it off."}</Text>
+          <ShellActionButton label="Turn off notifications" variant="surface" disabled={busy} onPress={controls.disable} />
+        </>
+      );
     default:
       return <AccessCode controls={controls} />;
   }
 }
 
 function RegisteredControls({ controls }: { controls: Controls }) {
-  const { status, busy } = controls;
+  const colors = useColors();
+  const { busy, disable, sendTest } = controls;
   return (
     <>
-      {status === "registered" && (
-        <>
-          <Text color="$color">Browser registered for test alerts.</Text>
-          <ShellActionButton label="Send test notification" variant="surface" disabled={busy} onPress={controls.sendTest} />
-        </>
-      )}
-      {status === "repair_required" && <Text color="$color">This browser’s subscription needs repair. Your registration is saved.</Text>}
-      {status === "registration_unavailable" && <Text color="$color">Could not check notification registration. You can still turn it off.</Text>}
-      <ShellActionButton label="Turn off notifications" variant="surface" disabled={busy} onPress={controls.disable} />
+      <XStack alignItems="center" gap="$3" minHeight={48} paddingBottom="$2" borderBottomWidth={1} borderBottomColor="$borderColor">
+        <Ionicons color={colors.primaryDark} name="notifications-outline" size={22} accessible={false} aria-hidden />
+        <Text color="$color" flex={1} fontFamily="system-ui" fontSize="$4">Test alerts</Text>
+        <Switch
+          aria-label="Test alerts"
+          checked
+          disabled={busy}
+          size="$10"
+          padding={0}
+          focusVisibleStyle={{ outlineWidth: 2, outlineStyle: "solid", outlineColor: "$primaryFocus" }}
+          opacity={busy ? 0.55 : 1}
+          borderWidth={2}
+          borderColor="$primary"
+          activeStyle={{ backgroundColor: "$primary" }}
+          onCheckedChange={disable}
+        >
+          <Switch.Thumb backgroundColor="$textLight" size="$8" />
+        </Switch>
+      </XStack>
+      <ShellActionButton
+        label="Send test notification"
+        variant="text"
+        justifyContent="flex-start"
+        paddingHorizontal={0}
+        disabled={busy}
+        onPress={sendTest}
+      />
     </>
   );
 }
