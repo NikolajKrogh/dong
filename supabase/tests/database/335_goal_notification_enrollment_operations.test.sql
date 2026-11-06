@@ -1,5 +1,5 @@
 begin;
-select plan(37);
+select plan(49);
 
 select ok(has_function_privilege('goal_notification_backend',
   'private.goal_notification_status(text,text,uuid,bytea,bigint)', 'execute'),
@@ -9,9 +9,16 @@ select ok(not has_table_privilege('goal_notification_backend', 'private.goal_not
 select ok(not has_function_privilege('authenticated',
   'private.goal_notification_status(text,text,uuid,bytea,bigint)', 'execute'),
   'authenticated browser cannot call private operations');
+select ok(has_function_privilege('goal_notification_backend',
+  'private.read_goal_notification_apple_authorization(text,text)', 'execute'),
+  'the sender can read the cached Apple token through the narrow function');
+select ok(not has_function_privilege('authenticated',
+  'private.read_goal_notification_apple_authorization(text,text)', 'execute'),
+  'browser roles cannot read the cached Apple token through SQL');
 
 create temp table goal_fixture as
 select gen_random_uuid() as solo_id, gen_random_uuid() as installation_id, gen_random_uuid() as test_id,
+  gen_random_uuid() as next_test_id,
   extensions.digest('solo-proof', 'sha256') as solo_proof, extensions.digest('installation-proof', 'sha256') as control;
 
 insert into private.provider_matches(league_id, source_event_id, home_name, away_name, lifecycle, kickoff_validity)
@@ -76,15 +83,30 @@ select is(private.reserve_goal_notification_test(installation_id, extensions.dig
 select is(private.reserve_goal_notification_test(installation_id, control,
   1, 'local', test_id, 'solo', null, null, null, extensions.digest('wrong', 'sha256'))->>'status',
   'not_eligible', 'test send requires current game authority') from goal_fixture;
-select is(private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'endpoint',
-  'https://fcm.googleapis.com/fcm/send/fixture', 'test destination is the stored endpoint') from goal_fixture;
+create temp table goal_test_reservation as
+select installation_id, private.reserve_goal_notification_test(installation_id, control,
+  1, 'local', test_id, 'solo', null, null, null, solo_proof) as reservation
+from goal_fixture;
+select is(reservation->>'endpoint', 'https://fcm.googleapis.com/fcm/send/fixture',
+  'test destination is the stored endpoint') from goal_test_reservation;
+select is((r.reservation->>'deadline')::timestamptz, i.last_test_at + interval '1 minute',
+  'the sender receives the same deadline as the replay cooldown')
+from goal_test_reservation r join private.goal_notification_installations i on i.id = r.installation_id;
 select is(private.reserve_goal_notification_test(installation_id, control,
   1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'status',
   'pending', 'test replay cannot reserve another send') from goal_fixture;
 select is(private.reserve_goal_notification_test(installation_id, control,
   1, 'local', gen_random_uuid(), 'solo', null, null, null, solo_proof)->>'status',
   'rate_limited', 'a different request must respect the cooldown') from goal_fixture;
+
+update private.goal_notification_installations set last_test_at = clock_timestamp() - interval '61 seconds'
+where id = (select installation_id from goal_fixture);
+select is(private.reserve_goal_notification_test(installation_id, control,
+  1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'status',
+  'unconfirmed', 'an abandoned reservation expires without reserving a second send') from goal_fixture;
+select is(private.reserve_goal_notification_test(installation_id, control,
+  1, 'local', next_test_id, 'solo', null, null, null, solo_proof)->>'status',
+  'reserved', 'an explicit new test can be reserved after the cooldown') from goal_fixture;
 
 do $$
 begin
@@ -93,12 +115,37 @@ begin
 end;
 $$;
 select is(private.goal_notification_status('local', 'android_chrome', installation_id, control, 1),
+  'registered', 'a late completion cannot invalidate a newer test reservation') from goal_fixture;
+do $$
+begin
+  perform private.complete_goal_notification_test(installation_id, 1, next_test_id, 'invalid_endpoint')
+  from goal_fixture;
+end;
+$$;
+select is(private.goal_notification_status('local', 'android_chrome', installation_id, control, 1),
   'repair_required', 'provider expiry preserves consent and requests repair') from goal_fixture;
+select is(private.read_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key'),
+  null::text, 'an empty Apple cache has no token');
 select is(private.cache_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key', 'first'),
   'first', 'first Apple header is cached');
+create temp table goal_cached_apple_token as
+select ctid::text as row_version from private.goal_notification_apple_authorizations
+where origin = 'https://web.push.apple.com' and public_key = 'test-public-key';
+select is(private.read_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key'),
+  'first', 'the sender can reuse a fresh Apple token without offering a replacement');
 select is(private.cache_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key', 'second'),
   'first', 'subsequent worker calls reuse the current Apple header');
-
+select is(a.ctid::text, f.row_version, 'the cache hit and redundant refresh attempt leave the row untouched')
+from private.goal_notification_apple_authorizations a cross join goal_cached_apple_token f
+where a.origin = 'https://web.push.apple.com' and a.public_key = 'test-public-key';
+update private.goal_notification_apple_authorizations set generated_at = now() - interval '61 minutes'
+where origin = 'https://web.push.apple.com' and public_key = 'test-public-key';
+select is(private.read_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key'),
+  null::text, 'an expired cache entry requests a fresh Apple token');
+select is(private.cache_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key', 'replacement'),
+  'replacement', 'an expired Apple token can be refreshed');
+select is(private.read_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key'),
+  'replacement', 'the replacement is immediately reusable');
 
 create temp table goal_room_fixture as
 select gen_random_uuid() as owner_id, gen_random_uuid() as auth_id, gen_random_uuid() as room_id,

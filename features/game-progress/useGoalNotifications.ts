@@ -189,7 +189,9 @@ export function useGoalNotifications(hydrated: boolean) {
         if (result.outcome !== "pending") testRequest.current = null;
         setMessage(result.outcome === "accepted"
           ? "The push service accepted the test. Check your notification tray."
-          : result.outcome === "pending" ? "The test is still being sent." : "The test could not be sent.");
+          : result.outcome === "pending" ? "The test is still being sent."
+          : result.outcome === "unconfirmed" ? "The test could not be confirmed. Check your notification tray or send another test."
+          : "The test could not be sent.");
       } catch (error) {
         if (error instanceof Error && error.message === "rate_limited") {
           testRequest.current = null;

@@ -7,14 +7,17 @@ import { decodeCapability, resolveGoalNotificationAuthority, sha256Hex } from '.
 import type { GoalNotificationRequest, GoalNotificationTarget } from './contracts.ts';
 import { selectPushDestination, sendGoalPush, type VerifiedPushDestination } from './webPush.ts';
 
-interface TestReservation {
-  status: 'not_eligible' | 'rate_limited' | 'pending' | 'accepted' | 'failed' | 'reserved';
-  target: GoalNotificationTarget;
-  endpoint: string;
-  p256dh: string;
-  authKey: string;
-  vapidKeyId: string;
-}
+type TestReservation =
+  | { status: 'not_eligible' | 'rate_limited' | 'pending' | 'accepted' | 'failed' | 'unconfirmed' }
+  | {
+    status: 'reserved';
+    target: GoalNotificationTarget;
+    endpoint: string;
+    p256dh: string;
+    authKey: string;
+    vapidKeyId: string;
+    deadline: string;
+  };
 
 export interface GoalEnrollmentConfig {
   databaseUrl: string;
@@ -115,17 +118,24 @@ export function createGoalEnrollment(config: GoalEnrollmentConfig) {
           },
         },
         payload: { version: 1, kind: 'test', id: input.requestId },
-        deadline: Date.now() + 60_000,
+        deadline: Date.parse(reservation.deadline),
         destinations: config.destinations[reservation.target] ?? [],
         authorization: async destination => {
+          if (destination.provider === 'apple') {
+            const [cached] = await sql<{ vapid_header: string | null }[]>`
+              select private.read_goal_notification_apple_authorization(${destination.origin},
+                ${config.vapid.publicKey}) as vapid_header
+            `;
+            if (cached.vapid_header) return cached.vapid_header;
+          }
           const header = webPush.getVapidHeaders(destination.origin, config.vapid.subject, config.vapid.publicKey,
             config.vapid.privateKey, 'aes128gcm', Math.floor(Date.now() / 1000) + 7200).Authorization;
           if (destination.provider !== 'apple') return header;
-          const [cached] = await sql<{ vapid_header: string }[]>`
+          const [stored] = await sql<{ vapid_header: string }[]>`
             select private.cache_goal_notification_apple_authorization(${destination.origin},
               ${config.vapid.publicKey}, ${header}) as vapid_header
           `;
-          return cached.vapid_header;
+          return stored.vapid_header;
         },
         fetch: config.fetch,
       })
