@@ -3,7 +3,7 @@ import { isPositivePostgresBigint } from '../../../../shared/validation/identifi
 import { decodeCanonicalBase64Url } from '../../../../shared/encoding/base64url.ts';
 
 export const MAX_GOAL_NOTIFICATION_REQUEST_BYTES = 4096;
-export const MAX_PUSH_ENDPOINT_LENGTH = 2048;
+const MAX_PUSH_ENDPOINT_LENGTH = 2048;
 
 const opaqueId = z.uuid().transform(value => value.toLowerCase());
 const generation = z.int().positive();
@@ -86,12 +86,3 @@ export const goalPushPayload = z.discriminatedUnion('kind', [
 ]);
 
 export type GoalPushPayload = z.infer<typeof goalPushPayload>;
-
-export type GoalNotificationErrorCode =
-  | 'invalid_request'
-  | 'unauthorized'
-  | 'invalid_destination'
-  | 'not_eligible'
-  | 'stale_revision'
-  | 'rate_limited'
-  | 'unavailable';
