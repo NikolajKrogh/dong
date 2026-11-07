@@ -5,7 +5,13 @@ import type { VerifiedPushDestination } from './webPush.ts';
 
 type PushDestinations = Partial<Record<GoalNotificationTarget, VerifiedPushDestination[]>>;
 
-export function readGoalPushConfiguration() {
+export interface GoalPushConfiguration {
+  environment: string;
+  vapid: { keyId: string; subject: string; publicKey: string; privateKey: string };
+  destinations: PushDestinations;
+}
+
+export function readGoalPushConfiguration(): GoalPushConfiguration {
   const environment = Deno.env.get('GOAL_NOTIFICATION_ENVIRONMENT') ?? '';
   const vapid = {
     keyId: Deno.env.get('GOAL_NOTIFICATION_VAPID_KEY_ID') ?? '',

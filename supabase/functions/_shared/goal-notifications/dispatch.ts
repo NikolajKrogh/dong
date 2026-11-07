@@ -3,7 +3,7 @@ import { Buffer } from 'node:buffer';
 import webPush from 'npm:web-push@3.6.7';
 import { encodeBase64Url } from '../../../../shared/encoding/base64url.ts';
 import type { GoalNotificationTarget } from './contracts.ts';
-import { connectGoalNotificationDatabase, readGoalPushConfiguration } from './pushConfiguration.ts';
+import { connectGoalNotificationDatabase, type GoalPushConfiguration } from './pushConfiguration.ts';
 import { goalScoreMessage, type GoalScoreChange } from './scoreChange.ts';
 import { sendGoalPush } from './webPush.ts';
 
@@ -23,7 +23,7 @@ const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const hexHmac = /^[0-9a-f]{64}$/;
 
 export function createGoalNotificationDispatcher(
-  config: ReturnType<typeof readGoalPushConfiguration>, databaseUrl: string, secret: string,
+  config: GoalPushConfiguration, databaseUrl: string, secret: string,
 ) {
   if (secret.length < 32) throw new Error('configuration_required');
   const sql = connectGoalNotificationDatabase(databaseUrl, config.environment, 'dong-goal-dispatch');

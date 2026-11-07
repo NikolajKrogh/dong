@@ -1,17 +1,14 @@
 import { Buffer } from 'node:buffer';
-import { connectGoalNotificationDatabase } from './pushConfiguration.ts';
+import { connectGoalNotificationDatabase, type GoalPushConfiguration } from './pushConfiguration.ts';
 import { decodeCanonicalBase64Url, encodeBase64Url } from '../../../../shared/encoding/base64url.ts';
 import { decodeCapability, resolveGoalNotificationAuthority, sha256Hex } from './authorize.ts';
-import type { GoalNotificationRequest, GoalNotificationTarget } from './contracts.ts';
-import { selectPushDestination, type VerifiedPushDestination } from './webPush.ts';
+import type { GoalNotificationRequest } from './contracts.ts';
+import { selectPushDestination } from './webPush.ts';
 
-export interface GoalEnrollmentConfig {
+export interface GoalEnrollmentConfig extends GoalPushConfiguration {
   databaseUrl: string;
-  environment: string;
   authUrl: string;
   controlKey: Uint8Array<ArrayBuffer>;
-  vapid: { keyId: string; subject: string; publicKey: string; privateKey: string };
-  destinations: Partial<Record<GoalNotificationTarget, VerifiedPushDestination[]>>;
   fetch?: typeof fetch;
 }
 
