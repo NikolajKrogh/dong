@@ -21,7 +21,10 @@ function deferred(value: SqlResult): DeferredWork {
 export function createPostgresFootballMatchRepository(connectionString: string): FootballMatchRepository {
   const address = new URL(connectionString);
   if (!['postgres:', 'postgresql:'].includes(address.protocol)) throw new Error('configuration_required');
-  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(address.hostname.toLowerCase());
+  // The disposable E2E Edge container reaches its sibling database over Docker's private network.
+  const localFixtureDatabase = Deno.env.get('MATCH_CATALOG_FIXTURES_ONLY') === 'true'
+    && address.hostname === 'db.supabase.internal' && address.port === '5432';
+  const loopback = localFixtureDatabase || ['localhost', '127.0.0.1', '[::1]'].includes(address.hostname.toLowerCase());
   const sslMode = address.searchParams.get('sslmode');
   if (!loopback && sslMode !== null && sslMode !== 'verify-full') throw new Error('configuration_required');
   // The pinned driver implements max_pipeline but omits it from its public types.

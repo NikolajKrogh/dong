@@ -1,0 +1,40 @@
+name: local E2E
+
+on:
+  pull_request:
+  push:
+    branches: [multiplayer, master]
+
+permissions:
+  contents: read
+
+jobs:
+  happy-paths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4.1.7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4.0.4
+        with:
+          node-version-file: package.json
+          cache: npm
+      - uses: actions/setup-java@v4.2.2
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Check local database TLS boundary
+        run: npx --yes deno@2.9.6 test --no-lock --node-modules-dir=none --allow-env supabase/functions/_shared/football-matches/postgresFootballMatchRepository_test.ts
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: local-e2e-failure
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

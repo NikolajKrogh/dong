@@ -15,9 +15,7 @@
     "test": "jest --watchAll",
     "test:ci": "node --no-experimental-webstorage -r ./scripts/jest-ci-env.cjs ./node_modules/jest/bin/jest.js --ci",
     "lint": "eslint . --max-warnings 0",
-    "bdd:gen": "bddgen",
-    "test:e2e": "bddgen && playwright test --config=playwright.config.ts",
-    "test:e2e:home": "playwright test --config=playwright.home.config.ts",
+    "test:e2e": "node scripts/e2e.mjs",
     "db:start": "npx supabase start",
     "db:stop": "npx supabase stop",
     "db:reset": "npx supabase db reset",
@@ -32,7 +30,6 @@
     "check:unused": "knip",
     "check:league-catalog": "node scripts/check-league-catalog.mjs",
     "doctor": "npx react-doctor@latest",
-    "test:e2e:schedule": "bddgen --config=playwright.schedule.config.ts && playwright test --config=playwright.schedule.config.ts",
     "test:assignments:edge": "npx --yes deno@2.9.6 test --config supabase/functions/room-assignment-preview/deno.json supabase/functions/room-assignment-preview/handler_test.ts"
   },
   "jest": {
@@ -125,7 +122,8 @@
     "playwright-bdd": "^9.2.0",
     "react-test-renderer": "19.2.3",
     "supabase": "2.118.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "yaml": "2.9.1"
   },
   "expo": {
     "doctor": {

@@ -1,112 +1,134 @@
-import { test as base } from "@playwright/test";
-import type { GuestRoomSessionState } from "../types/guestRoom";
+import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { test as base } from "playwright-bdd";
+import axe from "axe-core";
+import { createRequire } from "node:module";
 
-export const test = base.extend<{ appUrl: string }>({
-  appUrl: ["http://localhost:8081", { option: true }],
+const nodeRequire = createRequire(`${process.cwd()}/package.json`);
+
+interface JourneyWorld {
+  guest?: Page;
+  freshAccount?: Page;
+  roomId?: string;
+  newPage: () => Promise<Page>;
+}
+
+export const test = base.extend<{ localServices: void; world: JourneyWorld }>({
+  world: async ({ browser, baseURL }, provideFixture) => {
+    const contexts: { context: BrowserContext; assertLocal: () => void }[] = [];
+    try {
+      await provideFixture({ newPage: async () => {
+        const context = await browser.newContext({
+          baseURL,
+          viewport: { width: 390, height: 844 },
+          timezoneId: "UTC",
+          serviceWorkers: "block",
+        });
+        const assertLocal = await guardLocalServices(context);
+        contexts.push({ context, assertLocal });
+        return context.newPage();
+      } });
+    } finally {
+      try {
+        for (const { assertLocal } of contexts) assertLocal();
+      } finally {
+        await Promise.all(contexts.map(({ context }) => context.close()));
+      }
+    }
+  },
+  localServices: [async ({ context }, provideFixture) => {
+    const assertLocal = await guardLocalServices(context);
+    try {
+      await provideFixture();
+    } finally {
+      assertLocal();
+    }
+  }, { auto: true }],
 });
 
-export interface GuestRoomFixtureParticipant {
-  id: string;
-  displayName: string;
-  membershipType: "registered" | "guest";
-  sessionRole: "owner" | "member";
-  currentDrinkTotal: number;
-}
-
-export interface GuestRoomFixtureMatch {
-  id: string;
-  sourceProvider: string;
-  sourceMatchId: string | null;
-  homeTeamName: string;
-  awayTeamName: string;
-  kickoffAt: string | null;
-  homeScore: number;
-  awayScore: number;
-}
-
-export interface GuestRoomFixtureAssignment {
-  participantId: string;
-  matchId: string;
-}
-
-/** A participant's pre-start pick in player-picked mode (#185). */
-export interface GuestRoomFixturePick {
-  participantId: string;
-  matchId: string;
-}
-
-export interface GuestRoomHostFixture {
-  sessionId: string;
-  joinCode: string;
-  state: GuestRoomSessionState;
-  commonMatchId: string | null;
-  defaultGuestName: string;
-  participants: GuestRoomFixtureParticipant[];
-  matches: GuestRoomFixtureMatch[];
-  assignments: GuestRoomFixtureAssignment[];
-  /** Room assignment mode (#184/#185). Defaults to `automatic`. */
-  assignmentMode: "automatic" | "host_assigned" | "player_picked";
-  /** Player-picked draft picks (#185). Empty outside player-picked mode. */
-  picks: GuestRoomFixturePick[];
-  /** The per-player pick cap surfaced via `assignmentPlan.matchesPerPlayer`. */
-  matchesPerPlayer: number;
-}
-
-export const createGuestRoomHostFixture = (
-  overrides: Partial<GuestRoomHostFixture> = {},
-): GuestRoomHostFixture => {
-  const defaultParticipants: GuestRoomFixtureParticipant[] = [
-    {
-      id: "owner-participant-1",
-      displayName: "Host Owner",
-      membershipType: "registered",
-      sessionRole: "owner",
-      currentDrinkTotal: 0,
-    },
-    {
-      id: "member-participant-1",
-      displayName: "Registered Player",
-      membershipType: "registered",
-      sessionRole: "member",
-      currentDrinkTotal: 1,
-    },
+async function guardLocalServices(context: BrowserContext) {
+  const unexpected: string[] = [];
+  const serviceUrls = [
+    new URL(fixtureEnv("PLAYWRIGHT_BASE_URL")),
+    new URL(fixtureEnv("E2E_SUPABASE_URL")),
+    new URL("http://127.0.0.1:18080"),
   ];
+  for (const url of serviceUrls) {
+    if (url.protocol !== "http:" || url.hostname !== "127.0.0.1" || !["18093", "60321", "18080"].includes(url.port)) {
+      throw new Error("E2E services must use the isolated loopback ports; run npm run test:e2e.");
+    }
+  }
+  const localHosts = new Set(serviceUrls.map(url => url.host));
+  await context.route("**/*", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.hostname === "raw.githubusercontent.com" && url.pathname.startsWith("/openfootball/football.json/")) {
+      await route.fulfill({
+        json: { matches: [
+          { team1: "Arsenal", team2: "Chelsea" },
+          { team1: "Liverpool", team2: "Everton" },
+          { team1: "Manchester City", team2: "Manchester United" },
+        ] },
+        headers: { "access-control-allow-origin": "*" },
+      });
+      return;
+    }
+    if (["cdn.jsdelivr.net", "unpkg.com"].includes(url.hostname) && url.pathname.endsWith("/dist/dotlottie-player.wasm")) {
+      await route.fulfill({
+        path: nodeRequire.resolve("@lottiefiles/dotlottie-web/dist/dotlottie-player.wasm"),
+        contentType: "application/wasm",
+        headers: { "access-control-allow-origin": "*" },
+      });
+      return;
+    }
+    if (localHosts.has(url.host)) {
+      await route.continue();
+      return;
+    }
+    if (["document", "fetch", "xhr"].includes(request.resourceType())) {
+      unexpected.push(`${request.method()} ${url.origin}${url.pathname}`);
+    }
+    await route.abort("blockedbyclient");
+  });
+  await context.routeWebSocket(/.*/, (socket) => {
+    const url = new URL(socket.url());
+    if (localHosts.has(url.host)) socket.connectToServer();
+    else {
+      unexpected.push(`WebSocket ${url.origin}${url.pathname}`);
+      socket.close();
+    }
+  });
+  return () => expect(unexpected, "Application traffic must stay on the local test stack").toEqual([]);
+}
 
-  const defaultMatches: GuestRoomFixtureMatch[] = [
-    {
-      id: "match-1",
-      sourceProvider: "espn",
-      sourceMatchId: "espn-match-1",
-      homeTeamName: "Arsenal",
-      awayTeamName: "Chelsea",
-      kickoffAt: "2026-05-15T18:00:00.000Z",
-      homeScore: 1,
-      awayScore: 0,
-    },
-  ];
-
-  const defaultAssignments: GuestRoomFixtureAssignment[] = [
-    {
-      participantId: "owner-participant-1",
-      matchId: "match-1",
-    },
-    {
-      participantId: "member-participant-1",
-      matchId: "match-1",
-    },
-  ];
-
-  return {
-    sessionId: overrides.sessionId ?? "guest-room-session-1",
-    joinCode: overrides.joinCode ?? "ROOM42",
-    state: overrides.state ?? "joinable",
-    commonMatchId: overrides.commonMatchId ?? "match-1",
-    defaultGuestName: overrides.defaultGuestName ?? "Guest Player",
-    participants: overrides.participants ?? defaultParticipants,
-    matches: overrides.matches ?? defaultMatches,
-    assignments: overrides.assignments ?? defaultAssignments,
-    assignmentMode: overrides.assignmentMode ?? "automatic",
-    picks: overrides.picks ?? [],
-    matchesPerPlayer: overrides.matchesPerPlayer ?? 1,
-  };
+const fixtureEnvironment = {
+  PLAYWRIGHT_BASE_URL: process.env.PLAYWRIGHT_BASE_URL,
+  E2E_SUPABASE_URL: process.env.E2E_SUPABASE_URL,
+  E2E_HOST_EMAIL: process.env.E2E_HOST_EMAIL,
+  E2E_ACCOUNT_EMAIL: process.env.E2E_ACCOUNT_EMAIL,
+  E2E_PASSWORD: process.env.E2E_PASSWORD,
 };
+
+export function fixtureEnv(name: keyof typeof fixtureEnvironment): string {
+  const value = fixtureEnvironment[name];
+  if (!value) throw new Error(`Missing ${name}; run npm run test:e2e.`);
+  return value;
+}
+
+export async function signIn(page: Page, email: string) {
+  await page.goto("/userPreferences");
+  await page.getByRole("button", { name: "Sign in or create account", exact: true }).click();
+  await page.getByLabel("Email address", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(fixtureEnv("E2E_PASSWORD"));
+  await page.getByRole("button", { name: /^Sign in.*→$/ }).click();
+  await expect(page.getByRole("button", { name: "Profile & username", exact: true })).toBeVisible();
+}
+
+export async function expectAccessible(page: Page) {
+  await page.addScriptTag({ content: axe.source });
+  const violations = await page.evaluate(async () => {
+    const browserAxe = (window as unknown as { axe: typeof import("axe-core") }).axe;
+    const result = await browserAxe.run({ runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] } });
+    return result.violations.map(({ id, impact, description, nodes }) => ({ id, impact, description, targets: nodes.map(node => node.target) }));
+  });
+  expect(violations, "The journey screen should have no WCAG A/AA violations").toEqual([]);
+}

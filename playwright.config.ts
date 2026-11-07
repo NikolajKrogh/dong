@@ -1,67 +1,35 @@
 import { defineConfig, devices } from "@playwright/test";
 import { defineBddConfig } from "playwright-bdd";
-import {
-  CONFIGURE_START_GAME_API_URL,
-  MOCK_AUTH_ANON_KEY,
-  MOCK_AUTH_PUBLISHABLE_KEY,
-  MOCK_AUTH_SUPABASE_URL,
-} from "./e2e/steps/browser-flow.helpers";
-import {
-  DESKTOP_WIDE_VIEWPORT,
-  PHONE_SIZED_VIEWPORT,
-} from "./e2e/steps/fixtures";
 
-const testDir = defineBddConfig({
-  features: "e2e/features/**/*.feature",
-  steps: "e2e/steps/**/*.steps.ts",
-});
-
-const webPort = Number(process.env.PLAYWRIGHT_WEB_PORT ?? "8093");
-const baseURL =
-  process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${webPort}`;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:18093";
+if (baseURL !== "http://127.0.0.1:18093") {
+  throw new Error("Run npm run test:e2e so the isolated local stack is configured first.");
+}
 
 export default defineConfig({
-  testDir,
-  timeout: 30_000,
+  testDir: defineBddConfig({
+    features: "e2e/features/**/*.feature",
+    steps: ["e2e/fixtures.ts", "e2e/steps/**/*.steps.ts"],
+  }),
+  outputDir: "test-results/browser",
+  fullyParallel: false,
+  workers: 1,
   retries: 0,
+  timeout: 120_000,
+  expect: { timeout: 15_000 },
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
     headless: true,
+    actionTimeout: 15_000,
+    navigationTimeout: 60_000,
+    timezoneId: "UTC",
+    serviceWorkers: "block",
     screenshot: "only-on-failure",
+    trace: "retain-on-failure",
   },
-  projects: [
-    {
-      name: "chromium-phone",
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: PHONE_SIZED_VIEWPORT,
-      },
-    },
-    {
-      name: "chromium-desktop",
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: DESKTOP_WIDE_VIEWPORT,
-      },
-    },
-  ],
-  webServer: {
-    command: `npx expo start --web --port ${webPort}`,
-    port: webPort,
-    reuseExistingServer: true,
-    env: {
-      EXPO_PUBLIC_SUPABASE_URL:
-        process.env.EXPO_PUBLIC_SUPABASE_URL ??
-        MOCK_AUTH_SUPABASE_URL,
-      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-        process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-        MOCK_AUTH_PUBLISHABLE_KEY,
-      EXPO_PUBLIC_SUPABASE_ANON_KEY:
-        process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
-        MOCK_AUTH_ANON_KEY,
-      EXPO_PUBLIC_GAME_API_URL:
-        process.env.EXPO_PUBLIC_GAME_API_URL ??
-        CONFIGURE_START_GAME_API_URL,
-    },
-  },
+  projects: [{
+    name: "chromium-phone",
+    use: { ...devices["Desktop Chrome"], viewport: { width: 390, height: 844 } },
+  }],
 });

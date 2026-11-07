@@ -220,7 +220,7 @@ For focused validation of this slice, use:
 npm run db:reset
 npx supabase test db supabase/tests/database/032_host_profile_and_settings.test.sql
 npm test -- __tests__/hooks/useAccountAuth.test.ts __tests__/components/preferences/ProfileSection.platform.test.tsx __tests__/components/preferences/AccountSection.platform.test.tsx __tests__/components/preferences/AppearanceSettings.platform.test.tsx __tests__/components/preferences/SoundNotificationSettings.platform.test.tsx __tests__/components/preferences/LeagueSettings.platform.test.tsx __tests__/app/userPreferences.platform.test.tsx
-npm run bdd:gen
+npm run test:e2e
 ```
 
 2. Start the app in development mode:
@@ -258,3 +258,7 @@ eas build --platform android --profile development
 Contributions are welcome. New features MUST include unit tests, and
 substantial UI changes MUST include end-to-end coverage for the primary user
 journey. Run `npm test` and `npm run lint` before opening a pull request.
+
+## End-to-end testing
+
+Run `npm run test:e2e` for three happy-path journeys against an isolated local stack. See [local E2E setup](docs/e2e-testing.md) for prerequisites, lifecycle and coverage.

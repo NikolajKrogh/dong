@@ -3,7 +3,7 @@ import type { AssignmentMode, AssignmentPlan, RoomProviderGoal, RoomState } from
 export type GuestRoomSessionStatus =
   "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired" | "pending_leave" | "renewing" | "left" | "ended";
 
-export type GuestRoomSessionState = RoomState;
+type GuestRoomSessionState = RoomState;
 
 type GuestRoomMembershipType = "registered" | "guest";
 
@@ -24,7 +24,7 @@ export type GuestRoomErrorCode =
   | "invalid_request"
   | "unknown_error";
 
-export interface GuestRoomParticipantSummary {
+interface GuestRoomParticipantSummary {
   id: string;
   displayName: string;
   membershipType: GuestRoomMembershipType;
