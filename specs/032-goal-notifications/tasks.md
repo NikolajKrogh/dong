@@ -127,4 +127,5 @@ Start with a test alert on the Android phone (T003–T013) using the isolated pr
 
 - [x] T038 Remove manual test sending from the UI, browser hook, request contract, Edge enrollment handler and worker. Keep one automated happy path for enabling and disabling real game alerts.
 - [x] T039 Add a forward migration retiring test reservations, test policy fields and test-only registration metadata. Preserve applied migration history and automatic-delivery safeguards.
-- [ ] T040 Validate and deploy the production-only migration and functions, restrict production origins, enable automatic goal policy and scheduling, and record hosted verification.
+- [x] T040 Validate and deploy the production-only migration and functions, restrict production origins, enable automatic goal policy and scheduling, and record hosted verification.
+- [x] T041 Replace the global rollout enrollment cap with bounded fair sender scans, preserving the per-owner device limit. Verify admission beyond fifty installations and scan rotation.
