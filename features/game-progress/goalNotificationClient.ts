@@ -14,7 +14,7 @@ export interface NotificationIdentity {
   bearer?: string;
 }
 
-async function soloOwner(grantToken: string) {
+async function hashSoloNotificationOwnerId(grantToken: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(grantToken));
   return "solo:" + Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
@@ -25,7 +25,7 @@ export async function readNotificationIdentity(): Promise<NotificationIdentity |
     const grant = soloTracking?.grant;
     if (grant?.state !== "active" || Date.parse(grant.expiresAt) <= Date.now()) return null;
     return {
-      owner: await soloOwner(grant.grantToken),
+      owner: await hashSoloNotificationOwnerId(grant.grantToken),
       proof: { kind: "solo", grantToken: grant.grantToken },
     };
   }
@@ -83,13 +83,17 @@ export function bindGoalNotifications(
   installation: InstallationControl, identity: NotificationIdentity, expectedAssociationRevision: number | null,
 ) {
   const { matches, commonMatchId, commonMatchNotificationsEnabled, soloTracking } = useGameStore.getState();
-  const common = matches.find(match => match.id === commonMatchId)?.catalogMatchId;
-  const admitted = soloTracking?.grant?.state === "active" && common
-    && soloTracking.grant.catalogMatchIds.includes(common) ? common : undefined;
+  const selectedCommonCatalogMatchId = matches.find(match => match.id === commonMatchId)?.catalogMatchId;
+  const allowedCommonCatalogMatchId =
+    soloTracking?.grant?.state === "active" && selectedCommonCatalogMatchId &&
+    soloTracking.grant.catalogMatchIds.includes(selectedCommonCatalogMatchId)
+      ? selectedCommonCatalogMatchId
+      : undefined;
   return invokeGoalNotification<GoalGameBinding | { status: "stale_binding"; revision: number | null; sameGame: boolean }>({
     operation: "bind", installation, proof: identity.proof, expectedAssociationRevision,
     notifyCommonMatch: commonMatchNotificationsEnabled,
-    ...(identity.proof.kind === "solo" && admitted ? { commonCatalogMatchId: admitted } : {}),
+    ...(identity.proof.kind === "solo" && allowedCommonCatalogMatchId
+      ? { commonCatalogMatchId: allowedCommonCatalogMatchId } : {}),
   }, identity.bearer);
 }
 
@@ -126,12 +130,12 @@ export async function stopGoalNotificationInstallation(saved: SavedEnrollment) {
 }
 
 export function watchPendingGoalNotificationStop() {
-  function retry() {
+  function retryPendingStop() {
     const saved = browser.read();
     if (saved?.pendingStop) void stopGoalNotificationInstallation(saved).catch(() => {});
   }
-  retry();
-  return browser.onResume(retry);
+  retryPendingStop();
+  return browser.onResume(retryPendingStop);
 }
 
 export async function stopGoalNotificationsForAccount(accountId: string) {
@@ -141,7 +145,7 @@ export async function stopGoalNotificationsForAccount(accountId: string) {
 
 export async function stopGoalNotificationsForSoloGame(grantToken: string) {
   const saved = browser.read();
-  if (saved?.owner.startsWith("solo:") && saved.owner === await soloOwner(grantToken)) {
+  if (saved?.owner.startsWith("solo:") && saved.owner === await hashSoloNotificationOwnerId(grantToken)) {
     await stopGoalNotificationInstallation(saved);
   }
 }

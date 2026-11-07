@@ -9,7 +9,7 @@ import {
   type NotificationIdentity, type NotificationScope, stopGoalNotificationInstallation,
 } from "./goalNotificationClient";
 
-type Status = "checking" | "ready" |
+type GoalNotificationStatus = "checking" | "ready" |
   "registered" | "denied" | "pending_stop" | "repair_required" | "registration_unavailable" | "unavailable";
 
 type PreparedEnrollment = { target: GoalNotificationTarget; publicKey: string; owner: string };
@@ -31,7 +31,7 @@ async function register(
 
 export function useGoalNotifications(hydrated: boolean) {
   const [availability, setAvailability] = useState(browser.availability);
-  const [status, setStatus] = useState<Status>(() => {
+  const [status, setStatus] = useState<GoalNotificationStatus>(() => {
     const available = browser.availability();
     if (available.kind !== "supported") return "unavailable";
     return browser.permission() === "denied" ? "denied" : "checking";
@@ -39,10 +39,14 @@ export function useGoalNotifications(hydrated: boolean) {
   const [message, setMessage] = useState("");
   const [gameBinding, setBinding] = useState<(GoalGameBinding & { gameKey: string }) | null>(null);
   const [needsBinding, setNeedsBinding] = useState(false);
-  const bindingRevision = useRef<number | null>(null);
-  const gameKey = useGameStore(state => state.activeGameContext.mode === "multiplayer"
-    ? state.activeGameContext.sessionId : state.soloTracking?.grant?.state === "active" ? state.soloTracking.grant.grantToken : null);
+  const associationRevision = useRef<number | null>(null);
+  const gameKey = useGameStore(state => {
+    if (state.activeGameContext.mode === "multiplayer") return state.activeGameContext.sessionId;
+    const grant = state.soloTracking?.grant;
+    return grant?.state === "active" ? grant.grantToken : null;
+  });
   const binding = gameBinding?.gameKey === gameKey ? gameBinding : null;
+  const isEnabledForCurrentGame = binding?.liveEnabled === true && !needsBinding;
   const soloSelection = useGameStore(state => state.soloTracking?.grant?.state === "active"
     ? state.soloTracking.grant.selectionVersion : null);
   const commonPreference = useGameStore(state => state.commonMatchNotificationsEnabled);
@@ -52,11 +56,13 @@ export function useGoalNotifications(hydrated: boolean) {
   const setupRequested = useRef(false);
   const prepared = useRef<PreparedEnrollment | null>(null);
 
-  const run = useCallback(async (operation: () => Promise<void>, interactive = true) => {
+  const runIfIdle = useCallback(async (
+    operation: () => Promise<void>, { clearMessage = true }: { clearMessage?: boolean } = {},
+  ) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusy(true);
-    if (interactive) setMessage("");
+    if (clearMessage) setMessage("");
     try { await operation(); } finally {
       inFlight.current = false;
       setBusy(false);
@@ -92,14 +98,15 @@ export function useGoalNotifications(hydrated: boolean) {
   }, []);
 
   const refreshGame = useCallback(async (
-    installation: InstallationControl, identity: NotificationIdentity, replace = false,
+    installation: InstallationControl, identity: NotificationIdentity,
+    { forceRetryStaleBinding = false }: { forceRetryStaleBinding?: boolean } = {},
   ) => {
     try {
-      let result = await bindGoalNotifications(installation, identity, bindingRevision.current);
-      if (result.status === "stale_binding" && (replace || result.sameGame)) {
+      let result = await bindGoalNotifications(installation, identity, associationRevision.current);
+      if (result.status === "stale_binding" && (forceRetryStaleBinding || result.sameGame)) {
         result = await bindGoalNotifications(installation, identity, result.revision);
       }
-      bindingRevision.current = result.revision;
+      associationRevision.current = result.revision;
       const gameKey = identity.proof.kind === "solo" ? identity.proof.grantToken : identity.proof.sessionId;
       setBinding(result.status === "bound" ? { ...result, gameKey } : null);
       setNeedsBinding(result.status !== "bound");
@@ -110,7 +117,7 @@ export function useGoalNotifications(hydrated: boolean) {
   }, []);
 
   const reconcile = useCallback(() => {
-    void run(async () => {
+    void runIfIdle(async () => {
       const available = browser.availability();
       setAvailability(available);
       if (available.kind !== "supported") return;
@@ -125,7 +132,7 @@ export function useGoalNotifications(hydrated: boolean) {
             (identity !== null && identity.owner !== saved.owner))) {
           setStatus("pending_stop");
           setBinding(null);
-          bindingRevision.current = null;
+          associationRevision.current = null;
           prepared.current = null;
           await stopGoalNotificationInstallation(saved);
           setMessage(saved.pendingStop ? "Notifications turned off." : "");
@@ -157,14 +164,17 @@ export function useGoalNotifications(hydrated: boolean) {
         } else {
           setBinding(null);
         }
-        setStatus(result.status === "registered" ? "registered" :
-          result.status === "repair_required" ? "repair_required" : "registration_unavailable");
+        if (result.status === "registered") setStatus("registered");
+        else if (result.status === "repair_required") setStatus("repair_required");
+        else setStatus("registration_unavailable");
       } catch {
         const current = browser.read();
-        setStatus(current?.pendingStop ? "pending_stop" : current?.installation ? "registration_unavailable" : "unavailable");
+        if (current?.pendingStop) setStatus("pending_stop");
+        else if (current?.installation) setStatus("registration_unavailable");
+        else setStatus("unavailable");
       }
-    }, false);
-  }, [prepareEnrollment, refreshGame, run]);
+    }, { clearMessage: false });
+  }, [prepareEnrollment, refreshGame, runIfIdle]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -179,7 +189,7 @@ export function useGoalNotifications(hydrated: boolean) {
   }
 
   function enable() {
-    void run(async () => {
+    void runIfIdle(async () => {
       const access = prepared.current;
       if (!access) return;
       try {
@@ -192,7 +202,7 @@ export function useGoalNotifications(hydrated: boolean) {
         const saved = current?.owner === identity.owner ? current : { owner: identity.owner, requestId: crypto.randomUUID() };
         browser.save(saved);
         const installation = await register(saved, identity, access.target, subscription);
-        await refreshGame(installation, identity, true);
+        await refreshGame(installation, identity, { forceRetryStaleBinding: true });
         prepared.current = null;
         setStatus("registered");
       } catch {
@@ -203,17 +213,17 @@ export function useGoalNotifications(hydrated: boolean) {
   }
 
   function bindCurrentGame() {
-    void run(async () => {
+    void runIfIdle(async () => {
       const saved = browser.read();
       const identity = await readNotificationIdentity().catch(() => null);
       if (saved?.installation && !saved.pendingStop && identity?.owner === saved.owner) {
-        await refreshGame(saved.installation, identity, true);
+        await refreshGame(saved.installation, identity, { forceRetryStaleBinding: true });
       }
     });
   }
 
   function changeScope(scope: NotificationScope) {
-    void run(async () => {
+    void runIfIdle(async () => {
       if (binding?.scopeRevision == null || binding.scope === scope) return;
       try {
         const saved = browser.read();
@@ -235,7 +245,7 @@ export function useGoalNotifications(hydrated: boolean) {
   }
 
   function repair() {
-    void run(async () => {
+    void runIfIdle(async () => {
       const saved = browser.read();
       const available = browser.availability();
       if (!saved?.installation || saved.pendingStop || available.kind !== "supported" || browser.permission() !== "granted") return;
@@ -255,7 +265,7 @@ export function useGoalNotifications(hydrated: boolean) {
         await invokeGoalNotification({
           operation: "repair", target: available.target, installation: saved.installation, proof: identity.proof, subscription,
         }, identity.bearer);
-        await refreshGame(saved.installation, identity, true);
+        await refreshGame(saved.installation, identity, { forceRetryStaleBinding: true });
         setStatus("registered");
         setMessage("Browser notifications repaired.");
       } catch { setMessage("Could not repair browser notifications. Try again."); }
@@ -263,14 +273,14 @@ export function useGoalNotifications(hydrated: boolean) {
   }
 
   function disable() {
-    void run(async () => {
+    void runIfIdle(async () => {
       const available = browser.availability();
       const saved = browser.read();
       if (!saved?.installation || available.kind !== "supported") return;
       setStatus("pending_stop");
       setBinding(null);
       setNeedsBinding(false);
-      bindingRevision.current = null;
+      associationRevision.current = null;
       try {
         await stopGoalNotificationInstallation(saved);
         setMessage("Notifications turned off.");
@@ -281,6 +291,6 @@ export function useGoalNotifications(hydrated: boolean) {
 
   return {
     availability, status, message, busy, openSettings, enable, disable, repair,
-    binding, needsBinding, bindCurrentGame, changeScope, commonPreference,
+    binding, needsBinding, isEnabledForCurrentGame, bindCurrentGame, changeScope, commonPreference,
   };
 }

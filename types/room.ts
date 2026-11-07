@@ -1,5 +1,6 @@
 import type { SharingPolicy } from "../shared/assignments/types";
 
+/** Values from public.session_state, shared by the host and guest projections. */
 export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
 
 /** How a room's assignments get decided (FR-026). `player_picked` exists as a

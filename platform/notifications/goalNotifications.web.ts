@@ -32,9 +32,10 @@ function serialize(subscription: PushSubscription): BrowserPushSubscription {
   return { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } };
 }
 
-async function existingWorker() {
-  const worker = await navigator.serviceWorker.getRegistration("/");
-  return worker?.active?.scriptURL === new URL(workerPath, location.origin).href ? worker : undefined;
+async function findNotificationWorkerRegistration() {
+  const workerRegistration = await navigator.serviceWorker.getRegistration("/");
+  return workerRegistration?.active?.scriptURL === new URL(workerPath, location.origin).href
+    ? workerRegistration : undefined;
 }
 
 export const goalNotifications: GoalNotificationBrowser = {
@@ -55,8 +56,8 @@ export const goalNotifications: GoalNotificationBrowser = {
     }
   },
   async subscription() {
-    const worker = await existingWorker();
-    const subscription = await worker?.pushManager.getSubscription();
+    const workerRegistration = await findNotificationWorkerRegistration();
+    const subscription = await workerRegistration?.pushManager.getSubscription();
     return subscription ? serialize(subscription) : null;
   },
   subscribe(publicKey) {
@@ -65,8 +66,8 @@ export const goalNotifications: GoalNotificationBrowser = {
     return registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes }).then(serialize);
   },
   async unsubscribe() {
-    const worker = await existingWorker();
-    const subscription = await worker?.pushManager.getSubscription();
+    const workerRegistration = await findNotificationWorkerRegistration();
+    const subscription = await workerRegistration?.pushManager.getSubscription();
     await subscription?.unsubscribe();
   },
   read() {

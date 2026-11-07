@@ -4,9 +4,9 @@ import { ShellActionButton } from "../../components/ui";
 import { useColors } from "../../styles/theme";
 import type { useGoalNotifications } from "./useGoalNotifications";
 
-type Controls = ReturnType<typeof useGoalNotifications>;
+type GoalNotificationControls = ReturnType<typeof useGoalNotifications>;
 
-function BrowserControls({ controls }: { controls: Controls }) {
+function BrowserControls({ controls }: { controls: GoalNotificationControls }) {
   const { availability, status, busy } = controls;
   const colors = useColors();
   if (availability.kind === "installation_required") {
@@ -63,7 +63,7 @@ const matchChoices = [
   { scope: "all_room_matches", label: "All matches", icon: "football-outline" },
 ] as const;
 
-function MatchesToFollow({ controls }: { controls: Controls }) {
+function MatchesToFollow({ controls }: { controls: GoalNotificationControls }) {
   const colors = useColors();
   const scope = controls.binding?.scope;
   if (!scope) return null;
@@ -97,11 +97,11 @@ function MatchesToFollow({ controls }: { controls: Controls }) {
   );
 }
 
-function RegisteredControls({ controls }: { controls: Controls }) {
+function RegisteredControls({ controls }: { controls: GoalNotificationControls }) {
   const colors = useColors();
   const { busy, disable } = controls;
   const label = "Alerts for this game";
-  const enabled = controls.binding?.liveEnabled === true && !controls.needsBinding;
+  const enabled = controls.isEnabledForCurrentGame;
   return (
     <>
       <XStack alignItems="center" gap="$3" minHeight={48} paddingBottom="$2" borderBottomWidth={1} borderBottomColor="$borderColor">
@@ -130,7 +130,7 @@ function RegisteredControls({ controls }: { controls: Controls }) {
   );
 }
 
-export function GoalNotificationSettings({ controls }: { controls: Controls }) {
+export function GoalNotificationSettings({ controls }: { controls: GoalNotificationControls }) {
   return (
     <YStack gap="$2" testID="GoalNotificationSettings">
       <BrowserControls controls={controls} />

@@ -161,9 +161,11 @@ const GameActionsSheet: React.FC<GameActionsSheetProps> = ({
   const returnFocusToRow = useRef(false);
   const activeNotifications = showNotifications ? goalNotifications : undefined;
   const notificationsOpen = Boolean(activeNotifications);
-  const notificationStatus = goalNotifications?.status === "registered" ? "Test only"
-    : goalNotifications?.status === "ready" ? "Off"
-    : undefined;
+  let notificationStatus: string | undefined;
+  if (goalNotifications?.status === "registered") {
+    notificationStatus = goalNotifications.isEnabledForCurrentGame ? "On" : "Off";
+  }
+  else if (goalNotifications?.status === "ready") notificationStatus = "Off";
 
   useLayoutEffect(() => {
     if (Platform.OS !== "web") return;

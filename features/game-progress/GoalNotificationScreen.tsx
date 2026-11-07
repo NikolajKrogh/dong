@@ -18,7 +18,7 @@ export default function GoalNotificationScreen() {
 
   useEffect(() => {
     if (!ready || !hydrated) return;
-    let current = true;
+    let isCurrent = true;
 
     async function openActiveGame() {
       try {
@@ -31,14 +31,14 @@ export default function GoalNotificationScreen() {
         const latest = await readNotificationIdentity();
         if (outcome.status !== "active" || latest?.owner !== identity.owner ||
           JSON.stringify(latest.proof) !== JSON.stringify(identity.proof)) throw new Error("unavailable");
-        if (current) router.replace("/gameProgress");
+        if (isCurrent) router.replace("/gameProgress");
       } catch {
-        if (current) setUnavailable(true);
+        if (isCurrent) setUnavailable(true);
       }
     }
 
     void openActiveGame();
-    return () => { current = false; };
+    return () => { isCurrent = false; };
   }, [deliveryId, hydrated, ready, router]);
 
   return (

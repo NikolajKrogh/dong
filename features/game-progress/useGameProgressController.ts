@@ -9,7 +9,7 @@ import { useLiveScores } from "../football-matches/useLiveScores";
 import { usePersistedTeamLogos } from "../football-matches/usePersistedTeamLogos";
 import { useActiveGameRoomSync } from "../rooms/useActiveGameRoomSync";
 import { createGameProgressStyles } from "./gameProgressStyles";
-import { LastGoalInfo, updateMatchForGoal } from "./goalScoring";
+import { type LastGoalInfo, updateMatchForGoal } from "./goalScoring";
 import { migrateLegacyMatch } from "./matchMigration";
 import { getGameSourcePresentation } from "./sourceStatus";
 import {
@@ -144,21 +144,24 @@ const useGameProgressController = () => {
   );
 
   const providerGoalCursor = useRef<{ sessionId: string; sequence: number } | null>(null);
-  const pausedSnapshot = useRef<typeof activeGame.snapshot>(null);
+  const lastUntrackedSnapshot = useRef<typeof activeGame.snapshot>(null);
   useEffect(() => {
     const snapshot = activeGame.snapshot;
-    if (!isInteractive || snapshot?.state !== "in_progress" || (activeGame.status !== "ready" && activeGame.status !== "refreshing")) {
+    const canRetainProviderGoalCursor = isInteractive
+      && snapshot?.state === "in_progress"
+      && (activeGame.status === "ready" || activeGame.status === "refreshing");
+    if (!canRetainProviderGoalCursor) {
       providerGoalCursor.current = null;
-      pausedSnapshot.current = snapshot;
+      lastUntrackedSnapshot.current = snapshot;
       return;
     }
     if (activeGame.status !== "ready") return;
     const sequence = snapshot.lastEventSequence ?? 0;
     const previous = providerGoalCursor.current;
     if (previous?.sessionId !== snapshot.sessionId) {
-      if (pausedSnapshot.current !== snapshot) {
+      if (lastUntrackedSnapshot.current !== snapshot) {
         providerGoalCursor.current = { sessionId: snapshot.sessionId, sequence };
-        pausedSnapshot.current = null;
+        lastUntrackedSnapshot.current = null;
       }
       return;
     }
