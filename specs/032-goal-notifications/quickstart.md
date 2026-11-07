@@ -111,3 +111,9 @@ Connect Playwright to physical Android Chrome through an isolated ADB forward an
 - Frontend changes remain in PR #212 until merge and the normal web release. Current physical browser delivery and capacity/latency measurements remain unverified. iPhone observations will come from production users.
 
 To pause sending, set `private.goal_notification_policy.live_enabled` to false and set the `dong-goal-notifications` Cron job inactive. Leave `dong-goal-notification-cleanup` active. A request already authorized before the stop may still arrive.
+
+## Notification recovery fixes
+
+Apply `20261107151215_goal_notification_recovery_fences.sql` before deploying the updated dispatcher. Deliveries now pin an association UUID as well as its revision, so cleanup and rebinding cannot redirect an old alert. Pre-migration deliveries retain their diagnostics but intentionally cannot authorize or resolve: their original association identity cannot be recovered safely. New goals continue normally. FCM 404/410 responses invalidate the endpoint while preserving consent for browser repair. Retrying disable after retention has purged the installation acknowledges the completed stop; existing installations still require valid credentials, environment and generation.
+
+Local validation covers 82 pgTAP assertions in rollback-only transactions, seven Deno tests, the pending-stop client regression and Edge typechecking. This recovery migration and dispatcher update have not been deployed to production. For rollback, pause sends using the procedure above and keep cleanup active; retain the association identity checks rather than restoring the unsafe resolver.

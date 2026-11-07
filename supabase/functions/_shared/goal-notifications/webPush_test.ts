@@ -27,6 +27,9 @@ Deno.test('response mapping distinguishes a handoff from permanent endpoint fail
   check((await classifyPushResponse('apple', new Response(null, { status: 404 }), time)).kind === 'failed', 'Apple invalid path retired enrollment');
   check((await classifyPushResponse('apple', new Response(null, { status: 403 }), time)).kind === 'failed', 'Apple auth error retired enrollment');
   check((await classifyPushResponse('apple', new Response(null, { status: 410 }), time)).kind === 'invalid_endpoint', 'Apple expiry missed');
+  check((await classifyPushResponse('fcm', new Response(null, { status: 404 }), time)).kind === 'invalid_endpoint', 'FCM missing endpoint missed');
+  check((await classifyPushResponse('fcm', new Response(null, { status: 410 }), time)).kind === 'invalid_endpoint', 'FCM expiry missed');
+  check((await classifyPushResponse('fcm', new Response(null, { status: 403 }), time)).kind === 'failed', 'FCM auth error retired enrollment');
   check((await classifyPushResponse('mozilla', Response.json({ errno: 102 }, { status: 404 }), time)).kind === 'invalid_endpoint', 'Mozilla invalid endpoint missed');
   check((await classifyPushResponse('mozilla', Response.json({ errno: 106 }, { status: 410 }), time)).kind === 'invalid_endpoint', 'Mozilla expiry missed');
   const throttled = await classifyPushResponse('mozilla', new Response(null, { status: 429, headers: { 'retry-after': '4' } }), time);

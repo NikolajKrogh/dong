@@ -75,6 +75,7 @@ export async function classifyPushResponse(
   void response.body?.cancel().catch(() => {});
   if (status === 201 || status === 202) return { kind: 'accepted' };
   if (provider === 'apple' && status === 410) return { kind: 'invalid_endpoint' };
+  if (provider === 'fcm' && (status === 404 || status === 410)) return { kind: 'invalid_endpoint' };
   if (status === 429 || status >= 500) {
     return { kind: 'retryable', retryAfterSeconds: retryAfterSeconds(response.headers.get('retry-after'), now), uncertain: false };
   }

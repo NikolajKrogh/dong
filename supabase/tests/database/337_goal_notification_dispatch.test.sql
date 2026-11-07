@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(31);
 
 create temp table goal_dispatch_fixture as
 select gen_random_uuid() as installation_id, gen_random_uuid() as solo_id,
@@ -64,6 +64,36 @@ select ok(private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null
   'an alert resolves to the current authorized game') from goal_claim c cross join goal_dispatch_fixture f;
 select ok(not private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null,
   extensions.digest('other-player', 'sha256')), 'another player cannot resolve the alert') from goal_claim c;
+
+savepoint legacy_delivery;
+update private.goal_notification_deliveries set association_id = null;
+select ok(not private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null, f.proof),
+  'a legacy delivery without a trustworthy association fails closed') from goal_claim c cross join goal_dispatch_fixture f;
+rollback to legacy_delivery;
+
+savepoint recreated_association;
+update private.solo_tracking_grants set ended_at = now() where id = (select solo_id from goal_dispatch_fixture);
+select private.clean_goal_notifications();
+select is((select count(*) from private.goal_notification_game_associations), 0::bigint,
+  'cleanup removes the ended association');
+update private.solo_tracking_grants set ended_at = null where id = (select solo_id from goal_dispatch_fixture);
+select is(private.goal_notification_game_operation(installation_id, control, 1, 'local', 'solo', null, null, null,
+  proof, null, true, null, null)->>'status', 'bound', 'the installation can bind after association cleanup') from goal_dispatch_fixture;
+select is((select revision from private.goal_notification_game_associations), 1::bigint,
+  'a recreated association reuses the initial revision');
+select ok(not private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null, f.proof),
+  'an old alert cannot resolve through a recreated association') from goal_claim c cross join goal_dispatch_fixture f;
+-- Restore send eligibility apart from association identity to isolate the fence.
+update private.goal_notification_match_boundaries set baseline = 1;
+update private.goal_notification_deliveries set state = 'leased', authorized_at = null,
+  claim_token = (select token from goal_claim), claim_until = clock_timestamp() + interval '45 seconds';
+select is(private.authorize_goal_notification_delivery(id, token, 'local', 'fixture'), null::jsonb,
+  'a recreated association cannot authorize an old delivery') from goal_claim;
+update private.goal_notification_deliveries set state = 'leased', authorized_at = clock_timestamp();
+select private.finish_goal_notification_delivery(id, token, 'invalid_endpoint', 0, false) from goal_claim;
+select ok((select invalid_at is null from private.goal_notification_subscriptions),
+  'an old delivery cannot invalidate the recreated association endpoint');
+rollback to recreated_association;
 insert into private.provider_match_observations(match_id, observation_version, accepted_at, attempt_sequence, source_scope,
   source_event_id, home_score, away_score, lifecycle, kickoff_validity)
 select id, 3, clock_timestamp(), 3, 'fixture', source_event_id, 2, 0, 'live', 'confirmed'
@@ -79,6 +109,13 @@ where wake.consumed_at is null;
 select is((select count(*) from next_goal_claim), 1::bigint, 'a later goal has a distinct delivery');
 select is(private.authorize_goal_notification_delivery(id, gen_random_uuid(), 'local', 'fixture'),
   null::jsonb, 'a wrong claim token cannot authorize a send') from next_goal_claim;
+savepoint endpoint_expiry;
+select private.authorize_goal_notification_delivery(id, token, 'local', 'fixture') from next_goal_claim;
+select private.finish_goal_notification_delivery(id, token, 'invalid_endpoint', 0, false) from next_goal_claim;
+select ok((select invalid_at is not null from private.goal_notification_subscriptions),
+  'provider expiry invalidates the current endpoint');
+select ok((select consent from private.goal_notification_installations), 'provider expiry preserves consent for repair');
+rollback to endpoint_expiry;
 select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
   'the browser can acknowledge opt-out while a delivery is claimed') from goal_dispatch_fixture;
 select is(private.authorize_goal_notification_delivery(id, token, 'local', 'fixture'),

@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(45);
 
 select ok(has_function_privilege('goal_notification_backend',
   'private.goal_notification_status(text,text,uuid,bytea,bigint)', 'execute'),
@@ -153,6 +153,8 @@ select ok(not private.disable_goal_notification_installation(installation_id, co
   'future generation cannot stop the current registration') from goal_fixture;
 select ok(not private.disable_goal_notification_installation(installation_id, control, null, 'local'),
   'missing generation cannot stop the current registration') from goal_fixture;
+select ok(not private.disable_goal_notification_installation(installation_id, control, 1, 'other'),
+  'a different environment cannot stop the current registration') from goal_fixture;
 select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
   'valid control stops the installation') from goal_fixture;
 select ok(not i.consent and i.generation = 2 and s.installation_id is null,
@@ -165,6 +167,18 @@ select ok(private.disable_goal_notification_installation(installation_id, contro
   'an old stop retry is acknowledged idempotently') from goal_fixture;
 select ok(i.consent and i.generation = 2, 'the old stop cannot revoke a newer generation')
 from goal_fixture f join private.goal_notification_installations i on i.id = f.installation_id;
+
+select ok(private.disable_goal_notification_installation(installation_id, control, 2, 'local'),
+  'the current generation can stop after a stale retry') from goal_fixture;
+update private.goal_notification_installations set revoked_at = now() - interval '8 days'
+where id = (select installation_id from goal_fixture);
+select private.clean_goal_notifications();
+select ok(not exists (select from private.goal_notification_installations i join goal_fixture f on i.id = f.installation_id),
+  'retention purges the revoked installation');
+select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
+  'a lost stop response can recover after installation retention expires') from goal_fixture;
+select ok(not private.disable_goal_notification_installation(installation_id, control, null, 'local'),
+  'an absent installation still requires a valid generation') from goal_fixture;
 
 select * from finish();
 rollback;
