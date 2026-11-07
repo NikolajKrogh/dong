@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(19);
 
 create temp table goal_dispatch_fixture as
 select gen_random_uuid() as installation_id, gen_random_uuid() as solo_id,
@@ -7,8 +7,7 @@ select gen_random_uuid() as installation_id, gen_random_uuid() as solo_id,
   extensions.digest('delivery-solo', 'sha256') as proof,
   gen_random_uuid() as wake;
 
-update private.goal_notification_policy set test_enabled = true, live_enabled = true,
-  test_targets = array['android_chrome'], live_targets = array['android_chrome'];
+update private.goal_notification_policy set live_enabled = true, live_targets = array['android_chrome'];
 
 insert into private.provider_matches(league_id, source_event_id, home_name, away_name, lifecycle, kickoff_validity,
   home_score, away_score, observation_version)
@@ -63,6 +62,31 @@ select is(private.authorize_goal_notification_delivery(id, token, 'local', 'fixt
 select private.finish_goal_notification_delivery(id, token, 'accepted', 0, false) from goal_claim;
 select ok(private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null, f.proof),
   'an alert resolves to the current authorized game') from goal_claim c cross join goal_dispatch_fixture f;
+select ok(not private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null,
+  extensions.digest('other-player', 'sha256')), 'another player cannot resolve the alert') from goal_claim c;
+insert into private.provider_match_observations(match_id, observation_version, accepted_at, attempt_sequence, source_scope,
+  source_event_id, home_score, away_score, lifecycle, kickoff_validity)
+select id, 3, clock_timestamp(), 3, 'fixture', source_event_id, 2, 0, 'live', 'confirmed'
+from private.provider_matches where source_event_id = 'goal-dispatch-fixture';
+update private.provider_matches set home_score = 2, observation_version = 3 where source_event_id = 'goal-dispatch-fixture';
+select private.queue_goal_notification_deliveries('local');
+insert into private.goal_notification_dispatch_wakes(environment, expires_at)
+values ('local', clock_timestamp() + interval '30 seconds');
+create temp table next_goal_claim as
+select claim.* from private.goal_notification_dispatch_wakes wake
+cross join lateral private.claim_goal_notification_deliveries(wake.id, 'local') claim
+where wake.consumed_at is null;
+select is((select count(*) from next_goal_claim), 1::bigint, 'a later goal has a distinct delivery');
+select is(private.authorize_goal_notification_delivery(id, gen_random_uuid(), 'local', 'fixture'),
+  null::jsonb, 'a wrong claim token cannot authorize a send') from next_goal_claim;
+select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
+  'the browser can acknowledge opt-out while a delivery is claimed') from goal_dispatch_fixture;
+select is(private.authorize_goal_notification_delivery(id, token, 'local', 'fixture'),
+  null::jsonb, 'acknowledged opt-out prevents the final authorization') from next_goal_claim;
+select is((select state from private.goal_notification_deliveries where id = (select id from next_goal_claim)),
+  'suppressed', 'the cancelled delivery records suppression');
+select ok(private.disable_goal_notification_installation(installation_id, control, 1, 'local'),
+  'retrying the old stop is idempotent') from goal_dispatch_fixture;
 update private.solo_tracking_grants set ended_at = now() where id = (select solo_id from goal_dispatch_fixture);
 select ok(not private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null, f.proof),
   'an alert cannot reopen an ended game') from goal_claim c cross join goal_dispatch_fixture f;

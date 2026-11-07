@@ -13,15 +13,6 @@ self.addEventListener("push", (event) => {
     return;
   }
 
-  if (payload.kind === "test") {
-    event.waitUntil(self.registration.showNotification("DONG notifications", {
-      body: "This is a test notification.",
-      icon: notificationIcon,
-      tag: payload.id,
-    }));
-    return;
-  }
-
   if (
     payload.kind === "goal" &&
     typeof payload.title === "string" && payload.title.length > 0 && payload.title.length <= 100 &&

@@ -75,7 +75,6 @@ export type GoalGameBinding = {
   status: "bound";
   revision: number;
   liveEnabled: boolean;
-  testEnabled: boolean;
   scope: NotificationScope | null;
   scopeRevision: number | null;
 };

@@ -1,5 +1,5 @@
 begin;
-select plan(49);
+select plan(40);
 
 select ok(has_function_privilege('goal_notification_backend',
   'private.goal_notification_status(text,text,uuid,bytea,bigint)', 'execute'),
@@ -17,9 +17,7 @@ select ok(not has_function_privilege('authenticated',
   'browser roles cannot read the cached Apple token through SQL');
 
 create temp table goal_fixture as
-select gen_random_uuid() as solo_id, gen_random_uuid() as installation_id, gen_random_uuid() as test_id,
-  gen_random_uuid() as next_test_id,
-  extensions.digest('solo-proof', 'sha256') as solo_proof, extensions.digest('installation-proof', 'sha256') as control;
+select gen_random_uuid() as solo_id, gen_random_uuid() as installation_id, extensions.digest('solo-proof', 'sha256') as solo_proof, extensions.digest('installation-proof', 'sha256') as control;
 
 insert into private.provider_matches(league_id, source_event_id, home_name, away_name, lifecycle, kickoff_validity)
 select id, 'goal-notification-fixture', 'Home', 'Away', 'live', 'confirmed'
@@ -38,12 +36,12 @@ select is(private.register_goal_notification_installation(installation_id, 'loca
   'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
   null::bigint, 'disabled policy blocks registration even with current game authority') from goal_fixture;
-update private.goal_notification_policy set test_enabled = true, test_targets = array['android_chrome'];
+update private.goal_notification_policy set live_enabled = true, live_targets = array['android_chrome'];
 select is(private.goal_notification_status('local', 'android_chrome', null, null, null),
   'available', 'enabled browsers can enroll without an invite');
 select is(private.goal_notification_status('production', 'iphone_home_screen', null, null, null),
   'unavailable', 'targets outside the configured rollout are unavailable');
-update private.goal_notification_policy set test_targets = array['android_chrome', 'iphone_home_screen'];
+update private.goal_notification_policy set live_targets = array['android_chrome', 'iphone_home_screen'];
 select is(private.goal_notification_status('production', 'iphone_home_screen', null, null, null),
   'available', 'enabled iPhone Home Screen uses the same enrollment flow');
 
@@ -77,51 +75,8 @@ select is(private.register_goal_notification_installation(gen_random_uuid(), 'pr
   'solo', null, null, null, solo_proof, extensions.digest('iphone-control-three', 'sha256'), 'https://web.push.apple.com/fixture-three',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
   null::bigint, 'the per-owner installation cap still applies') from goal_fixture;
-select is(private.reserve_goal_notification_test(installation_id, extensions.digest('wrong', 'sha256'),
-  1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'status',
-  'not_eligible', 'test send requires the installation credential') from goal_fixture;
-select is(private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', test_id, 'solo', null, null, null, extensions.digest('wrong', 'sha256'))->>'status',
-  'not_eligible', 'test send requires current game authority') from goal_fixture;
-create temp table goal_test_reservation as
-select installation_id, private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', test_id, 'solo', null, null, null, solo_proof) as reservation
-from goal_fixture;
-select is(reservation->>'endpoint', 'https://fcm.googleapis.com/fcm/send/fixture',
-  'test destination is the stored endpoint') from goal_test_reservation;
-select is((r.reservation->>'deadline')::timestamptz, i.last_test_at + interval '1 minute',
-  'the sender receives the same deadline as the replay cooldown')
-from goal_test_reservation r join private.goal_notification_installations i on i.id = r.installation_id;
-select is(private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'status',
-  'pending', 'test replay cannot reserve another send') from goal_fixture;
-select is(private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', gen_random_uuid(), 'solo', null, null, null, solo_proof)->>'status',
-  'rate_limited', 'a different request must respect the cooldown') from goal_fixture;
-
-update private.goal_notification_installations set last_test_at = clock_timestamp() - interval '61 seconds'
-where id = (select installation_id from goal_fixture);
-select is(private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', test_id, 'solo', null, null, null, solo_proof)->>'status',
-  'unconfirmed', 'an abandoned reservation expires without reserving a second send') from goal_fixture;
-select is(private.reserve_goal_notification_test(installation_id, control,
-  1, 'local', next_test_id, 'solo', null, null, null, solo_proof)->>'status',
-  'reserved', 'an explicit new test can be reserved after the cooldown') from goal_fixture;
-
-do $$
-begin
-  perform private.complete_goal_notification_test(installation_id, 1, test_id, 'invalid_endpoint')
-  from goal_fixture;
-end;
-$$;
-select is(private.goal_notification_status('local', 'android_chrome', installation_id, control, 1),
-  'registered', 'a late completion cannot invalidate a newer test reservation') from goal_fixture;
-do $$
-begin
-  perform private.complete_goal_notification_test(installation_id, 1, next_test_id, 'invalid_endpoint')
-  from goal_fixture;
-end;
-$$;
+update private.goal_notification_subscriptions set invalid_at = clock_timestamp()
+where installation_id = (select installation_id from goal_fixture);
 select is(private.goal_notification_status('local', 'android_chrome', installation_id, control, 1),
   'repair_required', 'provider expiry preserves consent and requests repair') from goal_fixture;
 select is(private.read_goal_notification_apple_authorization('https://web.push.apple.com', 'test-public-key'),
@@ -174,7 +129,7 @@ select is(private.goal_notification_owner('registered', room_id, owner_id, auth_
   'registered room authority requires the live Auth session and participant') from goal_room_fixture;
 delete from auth.sessions where id = (select auth_id from goal_room_fixture);
 select is(private.goal_notification_owner('registered', room_id, owner_id, auth_id, null), null::uuid,
-  'revoked Auth session no longer authorizes test sends') from goal_room_fixture;
+  'revoked Auth session no longer authorizes notifications') from goal_room_fixture;
 select is(private.goal_notification_owner('guest', room_id, null, null, guest_proof), guest_id,
   'active guest grant resolves only its participant') from goal_room_fixture;
 select is(private.goal_notification_owner('guest', gen_random_uuid(), null, null, guest_proof), null::uuid,
@@ -183,7 +138,7 @@ update public.participants
 set guest_grant_issued_at = now() - interval '2 hours', guest_grant_expires_at = now() - interval '1 hour'
 where id = (select guest_id from goal_room_fixture);
 select is(private.goal_notification_owner('guest', room_id, null, null, guest_proof), null::uuid,
-  'expired guest proof no longer authorizes test sends') from goal_room_fixture;
+  'expired guest proof no longer authorizes notifications') from goal_room_fixture;
 
 
 select ok(not has_function_privilege('authenticated',

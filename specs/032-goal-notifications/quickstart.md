@@ -1,5 +1,10 @@
 # Validation Quickstart: Active Game Goal Notifications
 
+## Production scope agreed 2026-11-07
+
+Notifications are automatic goal alerts for the current authorized game. The product has no manual send action, fixed test message, test-only enrollment state, invitation code or development-origin access on the production backend. Browser and server automated tests use isolated fixtures. Production accepts only https://dongthegame.com and https://www.dongthegame.com. Signed-in, guest and solo authorization, per-player session scope, bounded retries, cleanup and operational stop controls remain required. iPhone Home Screen users provide production feedback after release.
+
+
 Run these checks in the original DONG checkout. Use an isolated local Supabase stack and HTTPS preview for Android. Collect iPhone Home Screen evidence from production users after release. Use synthetic observations only in isolated environments, and keep credentials and raw endpoints out of Git and logs.
 
 ## Local setup and automated checks

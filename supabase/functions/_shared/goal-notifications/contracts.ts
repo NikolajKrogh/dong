@@ -65,7 +65,6 @@ export const goalNotificationRequest = z.discriminatedUnion('operation', [
   }),
   z.strictObject({ operation: z.literal('disable'), installation }),
   z.strictObject({ operation: z.literal('repair'), installation, target, proof, subscription }),
-  z.strictObject({ operation: z.literal('test'), installation, proof, requestId: opaqueId }),
   z.strictObject({ operation: z.literal('resolve'), deliveryId: opaqueId, proof }),
 ]);
 
@@ -74,15 +73,12 @@ export type GoalNotificationProof = z.infer<typeof proof>;
 export type GoalNotificationTarget = z.infer<typeof target>;
 export type GoalPushSubscription = z.infer<typeof subscription>;
 
-export const goalPushPayload = z.discriminatedUnion('kind', [
-  z.strictObject({ version: z.literal(1), kind: z.literal('test'), id: opaqueId }),
-  z.strictObject({
-    version: z.literal(1),
-    kind: z.literal('goal'),
-    id: opaqueId,
-    title: z.string().min(1).max(100),
-    body: z.string().min(1).max(180),
-  }),
-]);
+export const goalPushPayload = z.strictObject({
+  version: z.literal(1),
+  kind: z.literal('goal'),
+  id: opaqueId,
+  title: z.string().min(1).max(100),
+  body: z.string().min(1).max(180),
+});
 
 export type GoalPushPayload = z.infer<typeof goalPushPayload>;

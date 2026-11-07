@@ -51,7 +51,6 @@ export function useGoalNotifications(hydrated: boolean) {
   const inFlight = useRef(false);
   const setupRequested = useRef(false);
   const prepared = useRef<PreparedEnrollment | null>(null);
-  const testRequest = useRef<string | null>(null);
 
   const run = useCallback(async (operation: () => Promise<void>, interactive = true) => {
     if (inFlight.current) return;
@@ -263,35 +262,6 @@ export function useGoalNotifications(hydrated: boolean) {
     });
   }
 
-  function sendTest() {
-    void run(async () => {
-      try {
-        const saved = browser.read();
-        const identity = await readNotificationIdentity();
-        if (!saved?.installation || saved.pendingStop || identity?.owner !== saved.owner ||
-            browser.permission() !== "granted" || !await browser.subscription()) {
-          setMessage("The current game or browser subscription is unavailable.");
-          return;
-        }
-        const requestId = testRequest.current ??= crypto.randomUUID();
-        const result = await invokeGoalNotification<{ outcome: string }>({
-          operation: "test", requestId, installation: saved.installation, proof: identity.proof,
-        }, identity.bearer);
-        if (result.outcome !== "pending") testRequest.current = null;
-        setMessage(result.outcome === "accepted"
-          ? "The push service accepted the test. Check your notification tray."
-          : result.outcome === "pending" ? "The test is still being sent."
-          : result.outcome === "unconfirmed" ? "The test could not be confirmed. Check your notification tray or send another test."
-          : "The test could not be sent.");
-      } catch (error) {
-        if (error instanceof Error && error.message === "rate_limited") {
-          testRequest.current = null;
-          setMessage("Wait a minute before sending another test.");
-        } else setMessage("The test could not be confirmed. Try again.");
-      }
-    });
-  }
-
   function disable() {
     void run(async () => {
       const available = browser.availability();
@@ -310,7 +280,7 @@ export function useGoalNotifications(hydrated: boolean) {
   }
 
   return {
-    availability, status, message, busy, openSettings, enable, sendTest, disable, repair,
+    availability, status, message, busy, openSettings, enable, disable, repair,
     binding, needsBinding, bindCurrentGame, changeScope, commonPreference,
   };
 }

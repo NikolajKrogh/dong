@@ -79,15 +79,14 @@ async function openNotificationControls(page: Page) {
     expect(request.installation).toEqual(registration);
     if (request.operation === "bind") {
       return route.fulfill({ headers, json: {
-        ...json, status: "bound", revision: 1, liveEnabled: false, testEnabled: true, scope: null, scopeRevision: null,
+        ...json, status: "bound", revision: 1, liveEnabled: true, scope: null, scopeRevision: null,
       } });
     }
     if (request.operation === "disable") {
       registration = undefined;
       return route.fulfill({ headers, json: { ...json, status: "disabled" } });
     }
-    expect(request.operation).toBe("test");
-    return route.fulfill({ headers, json: { ...json, outcome: "accepted" } });
+    throw new Error("Unexpected notification operation: " + request.operation);
   });
   await mockTeamDataCatalogue(page);
   await page.route("**/v1/matches**", route => route.fulfill({ json: [] }));
@@ -99,22 +98,17 @@ Given("a solo game has a controlled notification service", async ({ page }) => o
 When("I open Goal notifications from Game actions", async ({ page }) => {
   const sheet = page.getByTestId("GameActionsSheetFrame");
   await expect(sheet.getByRole("heading", { name: "Game actions" })).toBeVisible();
-  await expect(sheet.getByLabel("Notification access code")).toHaveCount(0);
   await sheet.getByRole("button", { name: "Goal notifications" }).click();
   await expect(sheet.getByRole("heading", { name: "Goal notifications" })).toBeVisible();
-  await expect(sheet.getByLabel("Notification access code")).toHaveCount(0);
 });
 When("I enable browser notifications", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Enable notifications" })).toBeEnabled();
   expect(await page.evaluate(() => Notification.permission)).toBe("default");
   await page.getByRole("button", { name: "Enable notifications" }).click();
-  await expect(page.getByRole("switch", { name: "Test alerts" })).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Alerts for this game" })).toBeChecked();
 });
-When("I send a test notification", async ({ page }) => {
-  await page.getByRole("button", { name: "Send test notification" }).click();
-});
-Then("DONG reports push-service acceptance", async ({ page }) => {
-  await expect(page.getByText("The push service accepted the test. Check your notification tray.")).toBeVisible();
+Then("goal alerts are enabled for this game", async ({ page }) => {
+  await expect(page.getByRole("switch", { name: "Alerts for this game" })).toBeChecked();
 });
 Then("the notification controls pass the accessibility audit", async ({ page }) => {
   await page.addScriptTag({ content: axe.source });
@@ -125,7 +119,7 @@ Then("the notification controls pass the accessibility audit", async ({ page }) 
   expect(violations).toEqual([]);
 });
 When("I turn off browser notifications", async ({ page }) => {
-  await page.getByRole("switch", { name: "Test alerts" }).click();
+  await page.getByRole("switch", { name: "Alerts for this game" }).click();
 });
 Then("DONG confirms the browser notification stop", async ({ page }) => {
   await expect(page.getByText("Notifications turned off.")).toBeVisible();

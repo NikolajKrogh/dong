@@ -1,23 +1,9 @@
 import { Buffer } from 'node:buffer';
-// @deno-types="npm:@types/web-push@3.6.4"
-import webPush from 'npm:web-push@3.6.7';
 import { connectGoalNotificationDatabase } from './pushConfiguration.ts';
 import { decodeCanonicalBase64Url, encodeBase64Url } from '../../../../shared/encoding/base64url.ts';
 import { decodeCapability, resolveGoalNotificationAuthority, sha256Hex } from './authorize.ts';
 import type { GoalNotificationRequest, GoalNotificationTarget } from './contracts.ts';
-import { selectPushDestination, sendGoalPush, type VerifiedPushDestination } from './webPush.ts';
-
-type TestReservation =
-  | { status: 'not_eligible' | 'rate_limited' | 'pending' | 'accepted' | 'failed' | 'unconfirmed' }
-  | {
-    status: 'reserved';
-    target: GoalNotificationTarget;
-    endpoint: string;
-    p256dh: string;
-    authKey: string;
-    vapidKeyId: string;
-    deadline: string;
-  };
+import { selectPushDestination, type VerifiedPushDestination } from './webPush.ts';
 
 export interface GoalEnrollmentConfig {
   databaseUrl: string;
@@ -116,53 +102,7 @@ export function createGoalEnrollment(config: GoalEnrollmentConfig) {
       return result({ installation: { id: input.requestId, credential: secret, generation: Number(row.generation) } });
     }
 
-    const [row] = await sql<{ reservation: TestReservation }[]>`
-      select private.reserve_goal_notification_test(${input.installation.id}::uuid, decode(${control}, 'hex'),
-        ${input.installation.generation}::bigint, ${config.environment}, ${input.requestId}::uuid, ${identity.kind},
-        ${identity.game}::uuid, ${identity.account}::uuid, ${identity.authSession}::uuid,
-        decode(${identity.grantDigest}, 'hex')) as reservation
-    `;
-    const reservation = row.reservation;
-    if (reservation.status === 'rate_limited') return failure('rate_limited', 429);
-    if (reservation.status === 'not_eligible') return failure('not_eligible', 403);
-    if (reservation.status !== 'reserved') return result({ outcome: reservation.status });
-    const outcome = reservation.vapidKeyId === config.vapid.keyId
-      ? await sendGoalPush({
-        subscription: {
-          endpoint: reservation.endpoint,
-          keys: {
-            p256dh: encodeBase64Url(Buffer.from(reservation.p256dh, 'hex')),
-            auth: encodeBase64Url(Buffer.from(reservation.authKey, 'hex')),
-          },
-        },
-        payload: { version: 1, kind: 'test', id: input.requestId },
-        deadline: Date.parse(reservation.deadline),
-        destinations: config.destinations[reservation.target] ?? [],
-        authorization: async destination => {
-          if (destination.provider === 'apple') {
-            const [cached] = await sql<{ vapid_header: string | null }[]>`
-              select private.read_goal_notification_apple_authorization(${destination.origin},
-                ${config.vapid.publicKey}) as vapid_header
-            `;
-            if (cached.vapid_header) return cached.vapid_header;
-          }
-          const header = webPush.getVapidHeaders(destination.origin, config.vapid.subject, config.vapid.publicKey,
-            config.vapid.privateKey, 'aes128gcm', Math.floor(Date.now() / 1000) + 7200).Authorization;
-          if (destination.provider !== 'apple') return header;
-          const [stored] = await sql<{ vapid_header: string }[]>`
-            select private.cache_goal_notification_apple_authorization(${destination.origin},
-              ${config.vapid.publicKey}, ${header}) as vapid_header
-          `;
-          return stored.vapid_header;
-        },
-        fetch: config.fetch,
-      })
-      : { kind: 'failed' } as const;
-
-    const kind = outcome.kind === 'accepted' || outcome.kind === 'invalid_endpoint' ? outcome.kind : 'failed';
-    await sql`select private.complete_goal_notification_test(${input.installation.id}::uuid,
-      ${input.installation.generation}::bigint, ${input.requestId}::uuid, ${kind})`;
-    return result({ outcome: kind === 'accepted' ? 'accepted' : 'failed' });
+    return failure('invalid_request', 400);
   }
 
   return { handle, close: () => sql.end() };

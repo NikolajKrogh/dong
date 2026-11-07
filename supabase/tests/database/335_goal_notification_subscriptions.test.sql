@@ -1,8 +1,7 @@
 begin;
 select plan(7);
 
-select ok(not test_enabled and not live_enabled
-  and cardinality(test_targets) = 0 and cardinality(live_targets) = 0,
+select ok(not live_enabled and cardinality(live_targets) = 0,
   'a fresh migration cannot send or admit a target')
 from private.goal_notification_policy;
 select is((select max_installations from private.goal_notification_policy), 50, 'bounded initial enrollment cap');

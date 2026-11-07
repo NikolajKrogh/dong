@@ -99,8 +99,9 @@ function MatchesToFollow({ controls }: { controls: Controls }) {
 
 function RegisteredControls({ controls }: { controls: Controls }) {
   const colors = useColors();
-  const { busy, disable, sendTest } = controls;
-  const label = controls.binding?.liveEnabled ? "Alerts for this game" : "Test alerts";
+  const { busy, disable } = controls;
+  const label = "Alerts for this game";
+  const enabled = controls.binding?.liveEnabled === true && !controls.needsBinding;
   return (
     <>
       <XStack alignItems="center" gap="$3" minHeight={48} paddingBottom="$2" borderBottomWidth={1} borderBottomColor="$borderColor">
@@ -108,7 +109,7 @@ function RegisteredControls({ controls }: { controls: Controls }) {
         <Text color="$color" flex={1} fontFamily="system-ui" fontSize="$4">{label}</Text>
         <Switch
           aria-label={label}
-          checked
+          checked={enabled}
           disabled={busy}
           size="$10"
           padding={0}
@@ -117,7 +118,7 @@ function RegisteredControls({ controls }: { controls: Controls }) {
           borderWidth={2}
           borderColor="$primary"
           activeStyle={{ backgroundColor: "$primary" }}
-          onCheckedChange={disable}
+          onCheckedChange={value => value ? controls.bindCurrentGame() : disable()}
         >
           <Switch.Thumb backgroundColor="$textLight" size="$8" />
         </Switch>
@@ -125,16 +126,6 @@ function RegisteredControls({ controls }: { controls: Controls }) {
       {controls.binding?.liveEnabled ? <MatchesToFollow controls={controls} /> : null}
       {controls.needsBinding ? <ShellActionButton label="Enable alerts for this game" variant="surface"
         onPress={controls.bindCurrentGame} disabled={busy} /> : null}
-      {controls.binding?.testEnabled !== false ? (
-        <ShellActionButton
-          label="Send test notification"
-          variant="text"
-          justifyContent="flex-start"
-          paddingHorizontal={0}
-          disabled={busy}
-          onPress={sendTest}
-        />
-      ) : null}
     </>
   );
 }

@@ -1,5 +1,10 @@
 # Tasks: Active Game Goal Notifications
 
+## Production scope agreed 2026-11-07
+
+Notifications are automatic goal alerts for the current authorized game. The product has no manual send action, fixed test message, test-only enrollment state, invitation code or development-origin access on the production backend. Browser and server automated tests use isolated fixtures. Production accepts only https://dongthegame.com and https://www.dongthegame.com. Signed-in, guest and solo authorization, per-player session scope, bounded retries, cleanup and operational stop controls remain required. iPhone Home Screen users provide production feedback after release.
+
+
 **Input**: [Spec](spec.md), [plan](plan.md), [research](research.md), [data model](data-model.md), [contracts](contracts/goal-notifications.md), and [validation guide](quickstart.md) in `specs/032-goal-notifications/`.
 
 **Tests**: Constitution V requires unit, pgTAP and primary browser-journey coverage. Use one happy path for the notification browser suite. Use isolated fixtures. Explore the real Android browser with Playwright and axe before authoring mobile journeys. Use ARTEMIS to verify the Android notification tray. A separate lock-screen check is outside this validation matrix. Track a skipped device gate as unverified.
@@ -117,3 +122,9 @@
 ## Implementation strategy
 
 Start with a test alert on the Android phone (T003–T013) using the isolated preview. Use one pull request targeting `multiplayer`. Group T014 with T018–T024 in focused eligibility commits, then group T015–T017 with T025–T030 in live delivery commits. Keep T031–T033 as a dedicated multiplayer foreground-fix commit. Complete US1 against controlled evidence, including UI opt-in and game binding, for the MVP. Keep general live delivery disabled until the per-player lifecycle, safe opening, foreground fix and relevant verification are ready. Keep foreground feedback independent of push and record iPhone feedback from production users.
+
+## Production-only follow-up
+
+- [x] T038 Remove manual test sending from the UI, browser hook, request contract, Edge enrollment handler and worker. Keep one automated happy path for enabling and disabling real game alerts.
+- [x] T039 Add a forward migration retiring test reservations, test policy fields and test-only registration metadata. Preserve applied migration history and automatic-delivery safeguards.
+- [ ] T040 Validate and deploy the production-only migration and functions, restrict production origins, enable automatic goal policy and scheduling, and record hosted verification.

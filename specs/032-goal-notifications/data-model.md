@@ -1,5 +1,10 @@
 # Data Model: Active Game Goal Notifications
 
+## Production scope agreed 2026-11-07
+
+Notifications are automatic goal alerts for the current authorized game. The product has no manual send action, fixed test message, test-only enrollment state, invitation code or development-origin access on the production backend. Browser and server automated tests use isolated fixtures. Production accepts only https://dongthegame.com and https://www.dongthegame.com. Signed-in, guest and solo authorization, per-player session scope, bounded retries, cleanup and operational stop controls remain required. iPhone Home Screen users provide production feedback after release.
+
+
 All new relations live in `private`, deny public, anon, and authenticated grants, and use explicit least-privilege server access. Apply RLS as defense in depth. Keep credentials out of responses, logs and analytics. Privileged functions use a fixed empty search path and named relations. Use the existing identity tables for ownership and lifecycle checks.
 
 | Entity | Fields and constraints |
@@ -8,8 +13,8 @@ All new relations live in `private`, deny public, anon, and authenticated grants
 | Game association | One active binding per subscription. Bind to either room/session and participant with verified account or guest grant epoch, or finalized solo tracking grant ID. Store acknowledged version, bound time, expiry and revocation state. For guests and unsigned solo, record acknowledged common-match preference. For solo, a supplied common-match ID must be in the admitted selection. Signed-in preference uses existing account settings. Never store raw room guest or solo tokens. |
 | Multiplayer scope | Keyed by room session and participant. Choices `assigned_and_common` and `all_room_matches`, with B as the implicit default. Version and acknowledged change boundary. Same participant in the same session sees the same choice on authorized browsers. Reject changes to another participant and reset for a new session. |
 | Match eligibility boundary | Keyed by association and catalog match. Record membership identity or source selection revision, effective time and baseline accepted observation version. A new association, scope expansion, re-enabled common match, reassignment or re-added match baselines prior accepted scores. Existing authorized matches can preserve the boundary where membership continuity is proven. |
-| Delivery ledger | UUID and unique `(subscription_id, catalog_match_id, observation_version)` for goal work. Store association generation, compact score projection or stable source references, accepted/deadline timestamps, state, attempt count, due time, lease token/expiry and redacted outcome class. No catalog FK that pins history. Test sends use a separate request ID and bounded throttle. |
-| Dispatch policy | Private controls for test and live delivery, enabled targets, policy generation and enrollment limits. Starts disabled. Installations record their environment and target. Recheck target policy, consent and current eligibility before delivery. |
+| Delivery ledger | UUID and unique `(subscription_id, catalog_match_id, observation_version)` for goal work. Store association generation, compact score projection or stable source references, accepted/deadline timestamps, state, attempt count, due time, lease token/expiry and redacted outcome class. No catalog FK that pins history. |
+| Dispatch policy | Private controls for automatic goal delivery, enabled targets, policy generation and enrollment limits. Starts disabled. Installations record their environment and target. Recheck target policy, consent and current eligibility before delivery. |
 
 ## Eligibility and concurrency
 

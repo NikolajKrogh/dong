@@ -1,5 +1,10 @@
 # Feature Specification: Active Game Goal Notifications
 
+## Production scope agreed 2026-11-07
+
+Notifications are automatic goal alerts for the current authorized game. The product has no manual send action, fixed test message, test-only enrollment state, invitation code or development-origin access on the production backend. Browser and server automated tests use isolated fixtures. Production accepts only https://dongthegame.com and https://www.dongthegame.com. Signed-in, guest and solo authorization, per-player session scope, bounded retries, cleanup and operational stop controls remain required. iPhone Home Screen users provide production feedback after release.
+
+
 **Feature Branch**: `feat/goal-notifications`
 
 **Created**: 2026-10-30
@@ -124,7 +129,7 @@ A player opens an alert to return to its game, with clear handling when the game
 - **FR-020**: Reconcile current permission and subscription with stored opt-in when DONG opens or returns to the foreground; expose repair for an expired or missing endpoint while permission and consent still hold. When DONG observes browser permission has been revoked or reset, clear DONG consent, stop eligibility and require a fresh opt-in after the player restores permission. Recovery MUST work from the page without relying on a background subscription-change event. Never automatically request denied permission.
 - **FR-021**: The essential alert MUST remain understandable with plain title/body and a normal tap. Custom sound, vibration, images and action buttons MUST NOT be prerequisites, and system mute/Focus choices MUST be respected.
 - **FR-022**: Dispatch an eligible system notification whether the game is visible, backgrounded or closed. Foreground visibility and in-game feedback MUST NOT suppress push. Each supported delivery path MUST honor its visible-notification rules. Do not use silent push as background polling. Validate duplicate handling without violating those rules.
-- **FR-023**: Provide a user-triggered test notification and describe its result accurately. Distinguish server handoff from user-confirmed receipt; provide device/browser settings guidance when registration succeeds but delivery is not observed.
+- **FR-023**: Expose only automatic alerts for accepted goals. Do not include a manual send operation or test-only UI. Report enabled status only after the current game association is acknowledged, and provide browser permission recovery when needed.
 
 ### Key Entities
 

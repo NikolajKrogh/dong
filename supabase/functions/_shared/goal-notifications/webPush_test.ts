@@ -37,7 +37,7 @@ Deno.test('the encrypted sender enforces the remaining TTL and stable hexadecima
   const receiver = webPush.generateVAPIDKeys();
   const options = {
     subscription: { endpoint, keys: { p256dh: receiver.publicKey, auth: encodeBase64Url(new Uint8Array(16)) } },
-    payload: { version: 1, kind: 'test', id } as const,
+    payload: { version: 1, kind: 'goal', id, title: 'Home scored', body: 'Home 1 - 0 Away' } as const,
     destinations: [target],
     authorization: () => Promise.resolve('vapid t=fixture,k=fixture'),
     now: () => time,
@@ -61,5 +61,5 @@ Deno.test('the encrypted sender enforces the remaining TTL and stable hexadecima
       return Promise.resolve(new Response(null, { status: 201 }));
     },
   });
-  check(attempts === 1 && accepted.kind === 'accepted', 'test handoff failed');
+  check(attempts === 1 && accepted.kind === 'accepted', 'goal handoff failed');
 });
