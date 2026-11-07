@@ -1,5 +1,7 @@
 import { goalNotifications as browser } from "../../platform/notifications/goalNotifications";
-import type { InstallationControl, SavedEnrollment } from "../../platform/notifications/goalNotificationBrowser";
+import type {
+  BrowserPushSubscription, GoalNotificationTarget, InstallationControl, SavedEnrollment,
+} from "../../platform/notifications/goalNotificationBrowser";
 import { getSupabaseClient, getSupabasePublicConfig } from "../../lib/supabase";
 import { useGameStore } from "../../store/gameStore";
 
@@ -67,6 +69,21 @@ export async function invokeGoalNotification<T>(
     throw new Error(payload?.code === "rate_limited" ? "rate_limited" : "unavailable");
   }
   return payload as T;
+}
+
+export async function registerGoalNotificationInstallation(
+  saved: SavedEnrollment, identity: NotificationIdentity, target: GoalNotificationTarget,
+  subscription: BrowserPushSubscription,
+): Promise<InstallationControl> {
+  const response = await invokeGoalNotification<{ installation: InstallationControl }>({
+    operation: "register", requestId: saved.requestId, target, proof: identity.proof, subscription,
+  }, identity.bearer);
+  if (response.installation?.id !== saved.requestId ||
+      typeof response.installation.credential !== "string" || !Number.isSafeInteger(response.installation.generation)) {
+    throw new Error("invalid_registration");
+  }
+  browser.save({ ...saved, installation: response.installation });
+  return response.installation;
 }
 
 export type NotificationScope = "assigned_and_common" | "all_room_matches";

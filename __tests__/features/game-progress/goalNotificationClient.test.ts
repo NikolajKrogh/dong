@@ -1,5 +1,5 @@
 import {
-  stopGoalNotificationInstallation, watchPendingGoalNotificationStop,
+  registerGoalNotificationInstallation, stopGoalNotificationInstallation, watchPendingGoalNotificationStop,
 } from "../../../features/game-progress/goalNotificationClient";
 import type { SavedEnrollment } from "../../../platform/notifications/goalNotificationBrowser";
 import { goalNotifications as browser } from "../../../platform/notifications/goalNotifications";
@@ -49,4 +49,30 @@ it("retries a pending stop on launch and reconnection without replacing a newer 
   expect(browser.unsubscribe).not.toHaveBeenCalled();
   stopWatching();
   expect(remove).toHaveBeenCalledTimes(1);
+});
+
+it.each([true, false])("persists registration only when the server acknowledges this installation (%s)", async (matchesRequest) => {
+  const saved: SavedEnrollment = { owner: "solo:fixture", requestId: "10000000-0000-4000-8000-000000000001" };
+  const identity = { owner: saved.owner, proof: { kind: "solo" as const, grantToken: "fixture-grant" } };
+  const subscription = {
+    endpoint: "https://fcm.googleapis.com/fcm/send/fixture",
+    keys: { p256dh: "fixture-key", auth: "fixture-auth" },
+  };
+  const installation = { id: matchesRequest ? saved.requestId : "another-installation", credential: "control", generation: 1 };
+  jest.mocked(browser.save).mockReset();
+  const fetch = jest.spyOn(globalThis, "fetch").mockResolvedValue({
+    ok: true, json: async () => ({ ok: true, installation }),
+  } as Response);
+
+  const result = registerGoalNotificationInstallation(saved, identity, "android_chrome", subscription);
+  if (matchesRequest) {
+    await expect(result).resolves.toEqual(installation);
+    expect(browser.save).toHaveBeenCalledWith({ ...saved, installation });
+  } else {
+    await expect(result).rejects.toThrow("invalid_registration");
+    expect(browser.save).not.toHaveBeenCalled();
+  }
+  expect(JSON.parse(fetch.mock.calls[0][1]?.body as string)).toEqual({
+    operation: "register", requestId: saved.requestId, target: "android_chrome", proof: identity.proof, subscription,
+  });
 });

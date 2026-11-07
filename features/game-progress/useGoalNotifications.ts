@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { goalNotifications as browser } from "../../platform/notifications/goalNotifications";
 import type {
-  BrowserPushSubscription, GoalNotificationTarget, InstallationControl, SavedEnrollment,
+  GoalNotificationTarget, InstallationControl,
 } from "../../platform/notifications/goalNotificationBrowser";
 import { useGameStore } from "../../store/gameStore";
 import {
-  bindGoalNotifications, invokeGoalNotification, readNotificationIdentity, type GoalGameBinding,
+  bindGoalNotifications, invokeGoalNotification, readNotificationIdentity, registerGoalNotificationInstallation, type GoalGameBinding,
   type NotificationIdentity, type NotificationScope, stopGoalNotificationInstallation,
 } from "./goalNotificationClient";
 
@@ -13,21 +13,6 @@ type GoalNotificationStatus = "checking" | "ready" |
   "registered" | "denied" | "pending_stop" | "repair_required" | "registration_unavailable" | "unavailable";
 
 type PreparedEnrollment = { target: GoalNotificationTarget; publicKey: string; owner: string };
-
-async function register(
-  saved: SavedEnrollment, identity: NotificationIdentity, target: GoalNotificationTarget,
-  subscription: BrowserPushSubscription,
-) {
-  const response = await invokeGoalNotification<{ installation: InstallationControl }>({
-    operation: "register", requestId: saved.requestId, target, proof: identity.proof, subscription,
-  }, identity.bearer);
-  if (response.installation?.id !== saved.requestId ||
-      typeof response.installation.credential !== "string" || !Number.isSafeInteger(response.installation.generation)) {
-    throw new Error("invalid_registration");
-  }
-  browser.save({ ...saved, installation: response.installation });
-  return response.installation;
-}
 
 export function useGoalNotifications(hydrated: boolean) {
   const [availability, setAvailability] = useState(browser.availability);
@@ -143,7 +128,7 @@ export function useGoalNotifications(hydrated: boolean) {
         if (!saved.installation) {
           if (identity?.owner === saved.owner && subscription) {
             try {
-              const installation = await register(saved, identity, available.target, subscription);
+              const installation = await registerGoalNotificationInstallation(saved, identity, available.target, subscription);
               await refreshGame(installation, identity);
               setStatus("registered");
               return;
@@ -201,7 +186,7 @@ export function useGoalNotifications(hydrated: boolean) {
         if (current?.installation || current?.pendingStop) throw new Error("existing_registration");
         const saved = current?.owner === identity.owner ? current : { owner: identity.owner, requestId: crypto.randomUUID() };
         browser.save(saved);
-        const installation = await register(saved, identity, access.target, subscription);
+        const installation = await registerGoalNotificationInstallation(saved, identity, access.target, subscription);
         await refreshGame(installation, identity, { forceRetryStaleBinding: true });
         prepared.current = null;
         setStatus("registered");
