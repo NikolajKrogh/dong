@@ -17,8 +17,9 @@ export function goalScoreMessage(change: GoalScoreChange): { title: string; body
   if (homeIncrease < 0 || awayIncrease < 0 || homeIncrease + awayIncrease === 0) return null;
   const home = change.homeName.trim().slice(0, 75);
   const away = change.awayName.trim().slice(0, 75);
-  const scorer = homeIncrease === 1 && awayIncrease === 0 ? home
-    : awayIncrease === 1 && homeIncrease === 0 ? away : null;
+  let scorer: string | null = null;
+  if (homeIncrease === 1 && awayIncrease === 0) scorer = home;
+  else if (awayIncrease === 1 && homeIncrease === 0) scorer = away;
   return {
     title: scorer ? 'Goal for ' + scorer : 'Score update',
     body: home + ' ' + homeScore + '–' + awayScore + ' ' + away,

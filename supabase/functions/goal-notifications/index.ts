@@ -29,7 +29,7 @@ function getEnrollment() {
   return enrollment;
 }
 
-async function readRequest(request: Request) {
+async function readGoalNotificationRequest(request: Request) {
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('content-type') ?? '')) return null;
   const reader = request.body?.getReader();
   if (!reader) return null;
@@ -70,7 +70,7 @@ export default { async fetch(request: Request): Promise<Response> {
   if (request.method !== 'POST') return failure('invalid_request', 405);
   const key = request.headers.get('apikey');
   if (!key || !publicKeys.has(key)) return failure('unauthorized', 401);
-  const input = await readRequest(request);
+  const input = await readGoalNotificationRequest(request);
   if (!input?.success) return failure('invalid_request', 400);
   try {
     const response = await getEnrollment().handle(input.data, request, key);

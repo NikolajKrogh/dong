@@ -7,7 +7,7 @@ import { connectGoalNotificationDatabase, readGoalPushConfiguration } from './pu
 import { goalScoreMessage, type GoalScoreChange } from './scoreChange.ts';
 import { sendGoalPush } from './webPush.ts';
 
-type Claim = { id: string; token: string };
+type DeliveryClaim = { id: string; token: string };
 type AuthorizedDelivery = GoalScoreChange & {
   target: GoalNotificationTarget;
   endpoint: string;
@@ -30,7 +30,7 @@ export function createGoalNotificationDispatcher(
   const wakeKey = crypto.subtle.importKey('raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
 
-  async function send({ id, token }: Claim) {
+  async function sendClaimedDelivery({ id, token }: DeliveryClaim) {
     const [row] = await sql<{ delivery: AuthorizedDelivery | null }[]>`
       select private.authorize_goal_notification_delivery(${id}::uuid, ${token}::uuid,
         ${config.environment}, ${config.vapid.publicKey}) as delivery
@@ -77,9 +77,9 @@ export function createGoalNotificationDispatcher(
       !await crypto.subtle.verify('HMAC', await wakeKey, Buffer.from(proof, 'hex'), new TextEncoder().encode(wake))) {
       return new Response(null, { status: 403 });
     }
-    const claims = await sql<Claim[]>`select id, token from private.claim_goal_notification_deliveries(${wake}::uuid, ${config.environment})`;
+    const claims = await sql<DeliveryClaim[]>`select id, token from private.claim_goal_notification_deliveries(${wake}::uuid, ${config.environment})`;
     for (let offset = 0; offset < claims.length; offset += 5) {
-      await Promise.allSettled(claims.slice(offset, offset + 5).map(send));
+      await Promise.allSettled(claims.slice(offset, offset + 5).map(sendClaimedDelivery));
     }
     return Response.json({ claimed: claims.length }, { headers: { 'cache-control': 'no-store' } });
   };

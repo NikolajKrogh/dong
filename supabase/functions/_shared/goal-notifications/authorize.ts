@@ -40,9 +40,9 @@ export async function resolveGoalNotificationAuthority(
     };
   }
 
-  const bearer = request.headers.get('authorization');
-  if (!bearer?.startsWith('Bearer ') || bearer.length > 8192) return null;
-  const claimsBytes = decodeCanonicalBase64Url(bearer.slice(7).split('.')[1]);
+  const authorizationHeader = request.headers.get('authorization');
+  if (!authorizationHeader?.startsWith('Bearer ') || authorizationHeader.length > 8192) return null;
+  const claimsBytes = decodeCanonicalBase64Url(authorizationHeader.slice(7).split('.')[1]);
   if (!claimsBytes) return null;
   let claims: { sub?: unknown; session_id?: unknown };
   try { claims = JSON.parse(new TextDecoder().decode(claimsBytes)); } catch { return null; }
@@ -54,7 +54,7 @@ export async function resolveGoalNotificationAuthority(
   // Verify the same JWT with Auth before trusting its session ID. SQL then
   // checks that the session still exists and owns an active room participant.
   const response = await (config.fetch ?? fetch)(config.authUrl + '/auth/v1/user', {
-    headers: { authorization: bearer, apikey: config.publicKey },
+    headers: { authorization: authorizationHeader, apikey: config.publicKey },
     signal: AbortSignal.timeout(5000),
   });
   if (!response.ok) {
