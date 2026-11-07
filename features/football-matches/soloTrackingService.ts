@@ -1,6 +1,7 @@
 import { useGameStore } from "../../store/gameStore";
 import type { FootballMatchErrorCode, SoloTrackingSelection } from "../../types/footballMatch";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
+import { stopGoalNotificationsForSoloGame } from "../game-progress/goalNotificationClient";
 import { FootballMatchError, getFootballMatchService } from "./footballMatchService";
 
 const definitiveTrackingErrors = new Set<FootballMatchErrorCode>([
@@ -33,6 +34,10 @@ export function settleTrackingRejection(request: SoloTrackingSelection, error: u
 export async function endSoloTracking(): Promise<void> {
   const state = useGameStore.getState();
   if (!state.soloTracking || !state.soloTracking.pending && state.soloTracking.grant?.state !== "active") return;
+  const activeGrant = state.soloTracking.grant;
+  if (activeGrant?.state === "active") {
+    void stopGoalNotificationsForSoloGame(activeGrant.grantToken).catch(() => {});
+  }
   let attempted = state.soloTracking.pending;
   try {
     const footballMatchService = getFootballMatchService();

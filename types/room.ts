@@ -1,5 +1,6 @@
 import type { SharingPolicy } from "../shared/assignments/types";
 
+/** Values from public.session_state, shared by the host and guest projections. */
 export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
 
 /** How a room's assignments get decided (FR-026). `player_picked` exists as a
@@ -79,6 +80,14 @@ export interface AssignmentPlan {
   startable: boolean;
 }
 
+export interface RoomProviderGoal {
+  sequence: number;
+  matchId: string;
+  team: "home" | "away";
+  homeScore: number;
+  awayScore: number;
+}
+
 export interface RoomSnapshot {
   assignmentPolicyVersion?: 1 | 2;
   capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean };
@@ -89,6 +98,7 @@ export interface RoomSnapshot {
   ownerParticipantId?: string | null;
   /** Monotonic room event fence used to reject stale poll responses. */
   lastEventSequence?: number;
+  providerGoals?: RoomProviderGoal[];
   lastScoresCheckedAt?: string | null;
   providerAvailabilityReason?: string | null;
   roomProcessingPending?: boolean;

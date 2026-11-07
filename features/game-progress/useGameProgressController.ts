@@ -9,7 +9,7 @@ import { useLiveScores } from "../football-matches/useLiveScores";
 import { usePersistedTeamLogos } from "../football-matches/usePersistedTeamLogos";
 import { useActiveGameRoomSync } from "../rooms/useActiveGameRoomSync";
 import { createGameProgressStyles } from "./gameProgressStyles";
-import { LastGoalInfo, updateMatchForGoal } from "./goalScoring";
+import { type LastGoalInfo, updateMatchForGoal } from "./goalScoring";
 import { migrateLegacyMatch } from "./matchMigration";
 import { getGameSourcePresentation } from "./sourceStatus";
 import {
@@ -46,7 +46,7 @@ const useGameProgressController = () => {
     isQuickActionsVisible,
     refreshing,
   } = uiState;
-  const { visibilityState } = useAppVisibility();
+  const { visibilityState, isInteractive } = useAppVisibility();
   const activeGame = useActiveGameRoomSync();
   const lastActiveSessionIdRef = useRef<string | null>(null);
   const terminalSessionIdRef = useRef<string | null>(null);
@@ -142,6 +142,46 @@ const useGameProgressController = () => {
       enqueueGoalToast,
     ],
   );
+
+  const providerGoalCursor = useRef<{ sessionId: string; sequence: number } | null>(null);
+  const lastUntrackedSnapshot = useRef<typeof activeGame.snapshot>(null);
+  useEffect(() => {
+    const snapshot = activeGame.snapshot;
+    const canRetainProviderGoalCursor = isInteractive
+      && snapshot?.state === "in_progress"
+      && (activeGame.status === "ready" || activeGame.status === "refreshing");
+    if (!canRetainProviderGoalCursor) {
+      providerGoalCursor.current = null;
+      lastUntrackedSnapshot.current = snapshot;
+      return;
+    }
+    if (activeGame.status !== "ready") return;
+    const sequence = snapshot.lastEventSequence ?? 0;
+    const previous = providerGoalCursor.current;
+    if (previous?.sessionId !== snapshot.sessionId) {
+      if (lastUntrackedSnapshot.current !== snapshot) {
+        providerGoalCursor.current = { sessionId: snapshot.sessionId, sequence };
+        lastUntrackedSnapshot.current = null;
+      }
+      return;
+    }
+    if (sequence <= previous.sequence) return;
+    providerGoalCursor.current = { sessionId: snapshot.sessionId, sequence };
+    const goals = snapshot.providerGoals;
+    if (!goals?.length) return;
+    const matchesById = new Map(matches.map(match => [match.id, match]));
+    for (const goal of goals) {
+      if (goal.sequence <= previous.sequence || goal.sequence > sequence) continue;
+      const match = matchesById.get(goal.matchId);
+      if (!match) continue;
+      handleGoalNotification({
+        match, matchId: match.id, team: goal.team, isLiveUpdate: true,
+        newTotal: goal.team === "home" ? goal.homeScore : goal.awayScore,
+        otherTeamScore: goal.team === "home" ? goal.awayScore : goal.homeScore,
+        timestamp: Date.now(),
+      });
+    }
+  }, [activeGame.snapshot, activeGame.status, handleGoalNotification, isInteractive, matches]);
 
   const handleGoalIncrement = useCallback(
     (matchId: string, team: "home" | "away", newTotal?: number) => {

@@ -63,6 +63,19 @@ describe("GameActionsSheet", () => {
     TestRenderer.act(() => renderer.unmount());
   });
 
+  it.each([true, false])("shows the acknowledged goal alert state when enabled is %s", (isEnabledForCurrentGame) => {
+    const renderer = renderSheet(createProps({
+      goalNotifications: {
+        availability: { kind: "supported", target: "android_chrome" },
+        status: "registered",
+        isEnabledForCurrentGame,
+      },
+    }));
+    const status = renderer.root.findAllByProps({ id: "game-notification-status" })[0];
+    expect(status.props.children).toBe(isEnabledForCurrentGame ? "On" : "Off");
+    TestRenderer.act(() => renderer.unmount());
+  });
+
   it("uses fit mode without a fixed snap point", () => {
     const renderer = renderSheet(createProps());
     const sheet = renderer.root.findAll(

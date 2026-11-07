@@ -14,6 +14,7 @@ import { buildAccountAuthRedirectUrl } from "./accountAuthRoutes";
 import { getSupabaseClient, getSupabasePublicConfig, hasSupabasePublicConfig } from "../../lib/supabase";
 import { useAccountSessionSync } from "./useAccountSessionSync";
 import { useAccountSettingsSync } from "./useAccountSettingsSync";
+import { stopGoalNotificationsForAccount } from "../game-progress/goalNotificationClient";
 import { getAccountScope, isCurrentAccountScope } from '../../lib/queryClient';
 
 ;
@@ -193,6 +194,9 @@ export const AccountAuthProvider: React.FC<React.PropsWithChildren> = ({
   const signOut = async () => {
     const client = getSupabaseClient();
     pendingManualSignOutRef.current = true;
+    if (user) {
+      await stopGoalNotificationsForAccount(user.id).catch(() => undefined);
+    }
     const { error } = await client.auth.signOut();
 
     if (error) {

@@ -1,0 +1,12 @@
+{
+  "id": "/",
+  "name": "DONG",
+  "short_name": "DONG",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "icons": [
+    { "src": "/dong-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/dong-icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

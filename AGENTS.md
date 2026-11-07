@@ -1,5 +1,5 @@
 Read CLAUDE.md
 
 <!-- SPECKIT START -->
-Current feature plan: `specs/031-per-player-match-counts/plan.md`.
+Current feature plan: `specs/032-goal-notifications/plan.md`.
 <!-- SPECKIT END -->
