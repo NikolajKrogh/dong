@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(22);
 
 create temp table goal_dispatch_fixture as
 select gen_random_uuid() as installation_id, gen_random_uuid() as solo_id,
@@ -90,6 +90,21 @@ select ok(private.disable_goal_notification_installation(installation_id, contro
 update private.solo_tracking_grants set ended_at = now() where id = (select solo_id from goal_dispatch_fixture);
 select ok(not private.resolve_goal_notification_delivery(c.id, 'local', 'solo', null, null, null, f.proof),
   'an alert cannot reopen an ended game') from goal_claim c cross join goal_dispatch_fixture f;
+
+create temp table scan_installations as
+select gen_random_uuid() as id, gen_random_uuid() as owner_id from generate_series(1, 51);
+insert into private.goal_notification_installations(id, owner_kind, owner_id, control_digest, consent, environment, target)
+select id, 'solo', owner_id, extensions.digest(id::text, 'sha256'), true, 'local', 'android_chrome' from scan_installations;
+insert into private.goal_notification_game_associations(installation_id, solo_grant_id)
+select id, owner_id from scan_installations;
+select private.queue_goal_notification_deliveries('local');
+select is((select count(*) from private.goal_notification_installations i join scan_installations s using(id)
+  where last_scanned_at > '-infinity'::timestamptz), 50::bigint, 'one scan visits at most fifty installations');
+select private.queue_goal_notification_deliveries('local');
+select is((select count(*) from private.goal_notification_installations i join scan_installations s using(id)
+  where last_scanned_at > '-infinity'::timestamptz), 51::bigint, 'the next scan visits the waiting installation');
+select is((select count(*) from private.goal_notification_deliveries d join scan_installations s on s.id=d.installation_id),
+  0::bigint, 'an expired game creates no delivery while its installation awaits cleanup');
 
 select * from finish();
 rollback;

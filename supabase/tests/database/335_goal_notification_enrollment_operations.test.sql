@@ -32,6 +32,9 @@ select solo_id, m.id, now() + interval '1 hour' from goal_fixture
 join private.provider_matches m on m.source_event_id = 'goal-notification-fixture';
 select is(private.goal_notification_status('local', 'android_chrome', null, null, null),
   'unavailable', 'default policy blocks enrollment');
+insert into private.goal_notification_installations(owner_kind, owner_id, control_digest, consent, environment, target)
+select 'solo', gen_random_uuid(), extensions.digest(gen_random_uuid()::text, 'sha256'), true, 'local', 'android_chrome'
+from generate_series(1, 50);
 select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
   'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
@@ -52,7 +55,7 @@ select is(private.register_goal_notification_installation(installation_id, 'loca
 select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
   'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
-  1::bigint, 'authorized enrollment succeeds without an invite') from goal_fixture;
+  1::bigint, 'authorized enrollment succeeds beyond fifty existing installations') from goal_fixture;
 select is(private.register_goal_notification_installation(installation_id, 'local', 'android_chrome',
   'solo', null, null, null, solo_proof, control, 'https://fcm.googleapis.com/fcm/send/fixture',
   decode('04' || repeat('00', 64), 'hex'), decode(repeat('00', 16), 'hex'), 'fixture'),
