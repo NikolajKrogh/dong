@@ -18,7 +18,7 @@ export function AssignmentPlayerCard({ target, defaultCount, onSetCount, usesDef
     style={[{ backgroundColor: colors.surface, borderRadius: 8, padding: 16, marginBottom: 16,
       boxShadow: `0px 2px 3px ${colors.border}`, }, props.style]}
     headerAction={onSetCount ? <View>
-    <AssignmentCounter compact label={`${props.title}'s additional matches`} value={target} max={100}
+    <AssignmentCounter compact grouped label={`${props.title}'s additional matches`} value={target} max={100}
       disabled={disabled} onChange={onSetCount} />
     {!usesDefault ? <TouchableOpacity accessibilityRole="button" disabled={disabled}
       accessibilityLabel={`Use default count for ${props.title}`} onPress={() => onSetCount(null)}>

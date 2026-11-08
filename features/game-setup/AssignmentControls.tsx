@@ -121,6 +121,7 @@ export function AssignmentCounter({
   onChange,
   testID,
   compact = false,
+  grouped = false,
 }: {
   label: string;
   description?: string;
@@ -131,9 +132,12 @@ export function AssignmentCounter({
   onChange: (value: number) => void;
   testID?: string;
   compact?: boolean;
+  grouped?: boolean;
 }): React.JSX.Element {
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
+  const buttonStyle = [styles.counterButton, grouped && styles.groupedCounterButton];
+  const iconColor = grouped ? colors.primaryDark : colors.textLight;
   return (
     <View style={compact ? { flexDirection: "row", alignItems: "center" } : styles.matchCounterContainer}>
       {!compact ? <View style={styles.assignmentCounterLabel}>
@@ -142,25 +146,25 @@ export function AssignmentCounter({
           <Text style={styles.assignmentDescription}>{description}</Text>
         ) : null}
       </View> : null}
-      <View style={styles.counter}>
+      <View style={[styles.counter, grouped && styles.groupedCounter]}>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={`Decrease ${label.toLowerCase()}`}
           hitSlop={4}
           testID={testID ? `${testID}-decrement` : undefined}
-          style={[styles.counterButton, { opacity: disabled || value <= min ? 0.45 : 1 }]}
+          style={[buttonStyle, { opacity: disabled || value <= min ? 0.45 : 1 }]}
           disabled={disabled || value <= min}
           onPress={() => onChange(Math.max(min, value - 1))}
         >
           <Ionicons
             name="remove-outline"
             size={20}
-            color={colors.textLight}
+            color={iconColor}
           />
         </TouchableOpacity>
         <Text
           testID={testID ? `${testID}-value` : undefined}
-          style={styles.counterValue}
+          style={[styles.counterValue, grouped && styles.groupedCounterValue]}
         >
           {value}
         </Text>
@@ -169,11 +173,11 @@ export function AssignmentCounter({
           accessibilityLabel={`Increase ${label.toLowerCase()}`}
           hitSlop={4}
           testID={testID ? `${testID}-increment` : undefined}
-          style={[styles.counterButton, { opacity: disabled || value >= max ? 0.45 : 1 }]}
+          style={[buttonStyle, { opacity: disabled || value >= max ? 0.45 : 1 }]}
           disabled={disabled || value >= max}
           onPress={() => onChange(Math.min(max, value + 1))}
         >
-          <Ionicons name="add-outline" size={20} color={colors.textLight} />
+          <Ionicons name="add-outline" size={20} color={iconColor} />
         </TouchableOpacity>
       </View>
     </View>

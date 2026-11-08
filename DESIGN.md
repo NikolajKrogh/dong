@@ -4,6 +4,8 @@
 
 ### Assignment screens
 
+Per-player counts use a compact pale outlined stepper with blue minus/plus icons and a dark number, retaining 44px button targets. Keep the large filled circular counters for the shared default count only. The player stepper remains independent of the disclosure and available while collapsed.
+
 Use the original local-play setup screenshots as visual authority for assignment screens. Keep the grey page background, separate white player panels with soft shadows, pale inset disclosure headers, blue selected/target badges, circular blue counters, a white randomization panel with a full-width blue action, and filled blue Back / green Start Game footer buttons. Preserve the existing match-card gradients, team imagery and selected outlines. Hosting adds mode selection and editable per-player counts within these shared components; it does not introduce a flat list treatment or a separate visual language. Count badges represent non-common selections against the player's target. Retain accessible current-step and selected-mode states.
 
 This document describes the current DONG visual language as it exists in the product today. It is a documentation artifact, not a redesign brief.
