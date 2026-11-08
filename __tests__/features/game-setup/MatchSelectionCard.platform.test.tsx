@@ -1,111 +1,57 @@
 import React from "react";
+import { act } from "react-test-renderer";
+import { View } from "react-native";
+import { MatchSelectionCard } from "../../../features/game-setup/MatchSelectionCard";
+import { ShellCard } from "../../../components/ui/ShellCard";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 import { actCreate } from "../../../test-utils/render";
-
-const mockStyles = {
-  playerHeader: { testStyle: "playerHeader" },
-  playerHeaderLeft: { testStyle: "playerHeaderLeft" },
-  playerAssignmentName: { testStyle: "playerAssignmentName" },
-  playerBadge: { testStyle: "playerBadge" },
-  playerBadgeText: { testStyle: "playerBadgeText" },
-  chevronIcon: { testStyle: "chevronIcon" },
-};
-
-jest.mock("react-native", () => ({
-  Platform: {
-    OS: "web",
-    select: (o: Record<string, unknown>) => o.web ?? o.default,
-  },
-  View: "View",
-  Text: "Text",
-  TouchableOpacity: "TouchableOpacity",
-}));
 
 jest.mock("@expo/vector-icons", () => ({ Ionicons: "Ionicons" }));
 
-jest.mock("../../../styles/theme", () => ({
-  useColors: () => ({ primary: "#p" }),
-}));
-
-jest.mock("../../../features/game-setup/setupGameStyles", () => ({
-  __esModule: true,
-  default: () => mockStyles,
-}));
-
-const render = (props: Record<string, unknown> = {}) => {
-  const {
-    MatchSelectionCard,
-  } = require("../../../features/game-setup/MatchSelectionCard");
-
-  return actCreate(
-    React.createElement(
-      MatchSelectionCard,
-      {
-        title: "Alice",
-        selectedCount: 1,
-        totalCount: 3,
-        collapsed: false,
-        onToggleCollapsed: jest.fn(),
-        testID: "card",
-        badgeTestID: "badge",
-        ...props,
-      },
-      React.createElement("Text", { testID: "card-body" }, "body"),
-    ),
-  );
-};
+const renderCard = (props: Partial<React.ComponentProps<typeof MatchSelectionCard>> = {}) => actCreate(
+  <TamaguiTestProvider>
+    <MatchSelectionCard title="Alice" selectedCount={1} totalCount={3} collapsed={false}
+      onToggleCollapsed={jest.fn()} testID="card" badgeTestID="badge" {...props}>
+      <View testID="card-body" />
+    </MatchSelectionCard>
+  </TamaguiTestProvider>,
+);
 
 describe("MatchSelectionCard", () => {
-  beforeEach(() => jest.clearAllMocks());
-
-  // Both numbers are props because the solo flow counts against the pool while
-  // the pick surfaces count against the per-player cap.
-  it("renders the count badge exactly as given", () => {
-    const renderer = render({ selectedCount: 2, totalCount: 5 });
-
-    expect(
-      renderer.root.findByProps({ testID: "badge" }).props.children.join(""),
-    ).toBe("2/5");
+  it("renders the selected count and target", () => {
+    const tree = renderCard({ selectedCount: 2, totalCount: 5 });
+    const badge = tree.root.findAll(node => typeof node.type === "string" && node.props.testID === "badge")[0];
+    expect(badge.props.children.join("")).toBe("2/5");
   });
 
   it("keeps a customized badge outside the disclosure without duplicating it", () => {
-    const renderer = render({ collapsed: true, renderBadge: (badge: React.ReactNode) =>
-      React.createElement("View", { testID: "count-controls" }, badge) });
-    expect(renderer.root.findAllByProps({ testID: "badge" })).toHaveLength(1);
-    expect(renderer.root.findByProps({ testID: "count-controls" }).findByProps({ testID: "badge" })).toBeTruthy();
-    expect(renderer.root.findByProps({ accessibilityRole: "button" }).findAllByProps({ testID: "badge" })).toHaveLength(0);
+    const tree = renderCard({ collapsed: true, renderBadge: badge => <View testID="count-controls">{badge}</View> });
+    expect(tree.root.findAll(node => typeof node.type === "string" && node.props.testID === "badge")).toHaveLength(1);
+    const disclosure = tree.root.findAllByProps({ accessibilityLabel: "Alice, 1 of 3 matches" })[0];
+    expect(disclosure.findAllByProps({ testID: "badge" })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ testID: "count-controls" }).length).toBeGreaterThan(0);
   });
 
-  it("hides its body when collapsed and shows it when expanded", () => {
-    const collapsed = render({ collapsed: true });
-    expect(collapsed.root.findAllByProps({ testID: "card-body" })).toHaveLength(
-      0,
-    );
-
-    const expanded = render({ collapsed: false });
-    expect(
-      expanded.root.findAllByProps({ testID: "card-body" }).length,
-    ).toBeGreaterThan(0);
+  it("hides its body while collapsed", () => {
+    const tree = renderCard({ collapsed: true });
+    expect(tree.root.findAllByProps({ testID: "card-body" })).toHaveLength(0);
   });
 
-  it("reports header taps to the caller, which owns collapse state", () => {
+  it("shows the body while expanded", () => {
+    const tree = renderCard();
+    expect(tree.root.findAllByProps({ testID: "card-body" }).length).toBeGreaterThan(0);
+  });
+
+  it("reports header taps to the caller", () => {
     const onToggleCollapsed = jest.fn();
-    const renderer = render({ onToggleCollapsed });
-
-    renderer.root
-      .findByProps({ accessibilityRole: "button" })
-      .props.onPress();
-
+    const tree = renderCard({ onToggleCollapsed });
+    act(() => tree.root.findAllByProps({ accessibilityLabel: "Alice, 1 of 3 matches" })[0].props.onPress());
     expect(onToggleCollapsed).toHaveBeenCalledTimes(1);
   });
 
-  // Callers' existing tests assert on props.style of the node carrying testID,
-  // so the prop must be named `style` and reach the outer container.
-  it("passes its style through to the node carrying its testID", () => {
-    const style = [{ testStyle: "outer" }];
-    const renderer = render({ style });
-
-    renderer.root
-      .findAllByProps({ testID: "card" })
-      .forEach((node) => expect(node.props.style).toEqual(style));
+  it("preserves caller sizing", () => {
+    const style = { width: "48%" } as const;
+    const tree = renderCard({ style });
+    expect(tree.root.findByType(ShellCard).props.style).toEqual(style);
   });
 });

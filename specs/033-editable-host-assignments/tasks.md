@@ -11,5 +11,6 @@
 - [x] Deploy compatible migration before enabling the hosted client.
 - [x] Refine shared local/host presentation with compact original match cards, neutral counters and collapsed summaries.
 - [ ] Complete live-server end-to-end rollout verification.
+- [x] Migrate the shared assignment card and controls to Tamagui and remove their obsolete legacy style entries.
 - [x] Restore the original local-play panel, badge, circular-counter and filled-action styling across shared local/host assignment components.
 - [x] Combine host Players pick controls, start directly from the footer and remove the redundant Players pick review UI and tracking state.

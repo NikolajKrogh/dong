@@ -1,11 +1,12 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { StyleSheet } from "react-native";
 
 import { actCreate } from "../../../test-utils/render";
-jest.mock("tamagui", () => ({ XStack: "XStack", YStack: "YStack" }));
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 jest.mock("../../../components/ui/ShellActionButton", () => ({
-  ShellActionButton: ({ label, ...props }: { label: string }) => require("react").createElement("TouchableOpacity",
-    { ...props, accessibilityRole: "button", accessibilityLabel: label }, require("react").createElement("Text", null, label)),
+  ShellActionButton: ({ label, ...props }: { label?: string; accessibilityLabel?: string }) => require("react").createElement("TouchableOpacity",
+    { ...props, accessibilityRole: "button", accessibilityLabel: props.accessibilityLabel ?? label }, require("react").createElement("Text", null, label)),
 }));
 
 const mockUseWindowDimensions = jest.fn(() => ({
@@ -55,17 +56,11 @@ const mockStyles = {
   randomizeButtonText: { testStyle: "randomizeButtonText" },
 };
 
-jest.mock("react-native", () => ({
-  StyleSheet: { create: (styles: unknown) => styles },
-  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
-  View: "View",
-  Text: "Text",
-  FlatList: "FlatList",
-  TouchableOpacity: "TouchableOpacity",
-  Modal: "Modal",
-  Image: "Image",
-  useWindowDimensions: () => mockUseWindowDimensions(),
-}));
+jest.mock("react-native", () => {
+  const actual = jest.requireActual("react-native");
+  Object.defineProperty(actual, "useWindowDimensions", { configurable: true, value: () => mockUseWindowDimensions() });
+  return actual;
+});
 
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
@@ -89,6 +84,7 @@ jest.mock("../../../features/football-matches/teamLogos", () => ({
 }));
 
 jest.mock("../../../styles/theme", () => ({
+  ...jest.requireActual("../../../styles/theme"),
   useColors: () => ({
     primary: "#123456",
     primaryLight: "#345678",
@@ -110,7 +106,7 @@ const renderAssignmentSection = (
     require("../../../features/game-setup/AssignmentSection").default;
 
   return actCreate(
-    React.createElement(AssignmentSection, {
+    React.createElement(TamaguiTestProvider, null, React.createElement(AssignmentSection, {
       players: [
         { id: "p1", name: "Alice" },
         { id: "p2", name: "Bob" },
@@ -138,7 +134,7 @@ const renderAssignmentSection = (
       setMatchesPerPlayer: jest.fn(),
       handleRandomAssignment: jest.fn(),
       ...overrides,
-    }),
+    })),
   );
 };
 
@@ -209,11 +205,7 @@ describe("AssignmentSection responsive layout", () => {
       ]),
     );
     cards.forEach((card) => {
-      expect(card.props.style.flat()).toEqual(
-        expect.arrayContaining([
-          mockStyles.assignmentPlayerCardWide,
-        ]),
-      );
+      expect(StyleSheet.flatten(card.props.style)).toMatchObject({ width: "48%" });
     });
   });
 });
@@ -252,9 +244,9 @@ describe("shared solo and room assignment controls", () => {
   it("preserves both server settings when either shared counter changes", () => {
     const { AssignmentSettingsPanel } = require("../../../features/rooms/AssignmentSettingsPanel");
     const onChange = jest.fn();
-    const tree = actCreate(React.createElement(AssignmentSettingsPanel, {
+    const tree = actCreate(React.createElement(TamaguiTestProvider, null, React.createElement(AssignmentSettingsPanel, {
       plan: { matchesPerPlayer: 2, sharedMatchesPerPair: 1 }, mode: "automatic", isBusy: false, onChange,
-    }));
+    })));
     TestRenderer.act(() => tree.root.findByProps({ testID: "lobby-matches-per-player-increment" }).props.onPress());
     expect(onChange).toHaveBeenLastCalledWith({ matchesPerPlayer: 3, sharedMatchesPerPair: 1 });
     expect(tree.root.findAllByProps({ testID: "lobby-shared-matches-per-pair-decrement" })).toHaveLength(0);
@@ -268,11 +260,11 @@ describe("shared solo and room assignment controls", () => {
     const { MatchSelectionCard } = require("../../../features/game-setup/MatchSelectionCard");
     const { SelectableMatchList } = require("../../../features/game-setup/SelectableMatchList");
     const onToggleAllocation = jest.fn();
-    const tree = actCreate(React.createElement(RoomAssignmentPlayers, {
+    const tree = actCreate(React.createElement(TamaguiTestProvider, null, React.createElement(RoomAssignmentPlayers, {
       participants: [{ id: "p1", displayName: "Alice" }],
       matches: [{ id: "m2", homeTeam: "Liverpool", awayTeam: "Spurs" }],
       matchesPerPlayer: 2, selectedMatchIdsFor: () => ["m2"], isBusy: true, onToggleAllocation,
-    }));
+    })));
     const card = tree.root.findByType(MatchSelectionCard);
     expect(card.props.selectedCount).toBe(1);
     expect(card.props.totalCount).toBe(2);

@@ -1,7 +1,8 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Platform } from "react-native";
+import { Button, Text, YStack, useTheme } from "tamagui";
 import { Ionicons } from "@expo/vector-icons";
-import { useColors } from "../../styles/theme";
+import { ShellActionButton } from "../../components/ui/ShellActionButton";
 import { AssignmentCounter } from "./AssignmentControls";
 import { MatchSelectionCard } from "./MatchSelectionCard";
 
@@ -11,26 +12,24 @@ export function AssignmentPlayerCard({ target, defaultCount, onSetCount, usesDef
     usesDefault?: boolean; disabled?: boolean;
     defaultCount?: number;
   }) {
-  const colors = useColors();
   const remaining = target - props.selectedCount;
   const status = remaining === 0 ? `${props.selectedCount} selected` : remaining > 0 ? `${remaining} left` : `${-remaining} too many`;
-  return <MatchSelectionCard {...props} statusLabel={props.badgeLabel ? undefined : status}
-    style={[{ backgroundColor: colors.surface, borderRadius: 8, padding: 16, marginBottom: 16,
-      boxShadow: `0px 2px 3px ${colors.border}`, }, props.style]}
-    renderBadge={onSetCount ? badge => <View>
+  return <MatchSelectionCard {...props} appearance="player" statusLabel={props.badgeLabel ? undefined : status}
+    renderBadge={onSetCount ? badge => <YStack>
     <AssignmentCounter compact subtle valueContent={badge} label={`${props.title}'s additional matches`} value={target} max={100}
       disabled={disabled} onChange={onSetCount} />
-    {!usesDefault ? <TouchableOpacity accessibilityRole="button" disabled={disabled}
-      accessibilityLabel={`Use default count for ${props.title}`} onPress={() => onSetCount(null)}>
-      <Text style={{ color: colors.primaryDark, textAlign: "center", fontSize: 12, paddingVertical: 6 }}>Use default{defaultCount === undefined ? "" : ` (${defaultCount})`}</Text>
-    </TouchableOpacity> : null}
-  </View> : undefined} />;
+    {!usesDefault ? <Button unstyled alignSelf="center" disabled={disabled} paddingVertical="$1.5" paddingHorizontal={0}
+      {...(Platform.OS === "web" ? { "aria-label": `Use default count for ${props.title}` } : { accessibilityLabel: `Use default count for ${props.title}` })} onPress={() => onSetCount(null)}
+      pressStyle={{ opacity: 0.7 }} focusVisibleStyle={{ outlineWidth: 2, outlineColor: "$primaryFocus", outlineStyle: "solid", outlineOffset: 3 }}
+      >
+      <Text color="$primaryDark" textAlign="center" fontSize={12}>Use default{defaultCount === undefined ? "" : ` (${defaultCount})`}</Text>
+    </Button> : null}
+  </YStack> : undefined} />;
 }
 
 export function AssignmentLayoutToggle({ grid, onToggle }: { grid: boolean; onToggle: () => void }) {
-  const colors = useColors();
-  return <TouchableOpacity accessibilityRole="button" accessibilityLabel={grid ? "Switch to match list" : "Switch to match grid"}
-    onPress={onToggle} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-    <Ionicons name={grid ? "list" : "grid"} size={22} color={colors.primary} />
-  </TouchableOpacity>;
+  const theme = useTheme();
+  return <ShellActionButton variant="text" widthMode="fit" padding={0}
+    accessibilityLabel={grid ? "Switch to match list" : "Switch to match grid"} onPress={onToggle}
+    icon={<Ionicons name={grid ? "list" : "grid"} size={22} color={theme.primary.get()} />} />;
 }

@@ -60,7 +60,6 @@ export function AssignmentModeSelector({
         visible={showHelp}
         message={MODE_HELP[assignmentMode]}
         onClose={() => setShowHelp(false)}
-        styles={styles}
       />
       <View style={styles.assignmentModeTabs}>
         {MODES.filter(mode => allowPlayerPicked || mode !== "player_picked").map((mode) => (
