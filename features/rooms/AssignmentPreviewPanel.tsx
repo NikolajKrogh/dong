@@ -12,7 +12,6 @@ interface ReviewedAssignmentsProps {
   isBusy: boolean;
   onCommit: (acceptRelaxedSharing: boolean) => void;
   actionLabel: string;
-  showActions?: boolean;
 }
 
 interface AssignmentPreviewPanelProps extends Omit<ReviewedAssignmentsProps, "preview"> {
@@ -26,11 +25,11 @@ interface PairInspectionProps {
 }
 
 export function AssignmentPreviewPanel({
-  preview, participants, matches, isBusy, onReview, onCommit, actionLabel, showActions = true,
+  preview, participants, matches, isBusy, onReview, onCommit, actionLabel,
 }: AssignmentPreviewPanelProps): React.JSX.Element {
   return (
     <YStack gap="$2" testID="assignment-preview-panel">
-      {showActions ? <ShellActionButton label={isBusy ? "Preparing…" : "Preview assignments"} disabled={isBusy} onPress={onReview} /> : null}
+      <ShellActionButton label={isBusy ? "Preparing…" : "Preview assignments"} disabled={isBusy} onPress={onReview} />
       {preview ? (
         <ReviewedAssignments
           key={JSON.stringify(preview)}
@@ -40,7 +39,6 @@ export function AssignmentPreviewPanel({
           isBusy={isBusy}
           onCommit={onCommit}
           actionLabel={actionLabel}
-          showActions={showActions}
         />
       ) : null}
     </YStack>
@@ -48,7 +46,7 @@ export function AssignmentPreviewPanel({
 }
 
 function ReviewedAssignments({
-  preview, participants, matches, isBusy, onCommit, actionLabel, showActions,
+  preview, participants, matches, isBusy, onCommit, actionLabel,
 }: ReviewedAssignmentsProps): React.JSX.Element {
   const [consent, setConsent] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -102,11 +100,11 @@ function ReviewedAssignments({
           />
         </>
       ) : null}
-      {showActions ? <ShellActionButton
+      <ShellActionButton
         label={actionLabel}
         disabled={isBusy || (preview.requiresSharingConsent && !consent)}
         onPress={() => onCommit(consent)}
-      /> : null}
+      />
     </YStack>
   );
 }

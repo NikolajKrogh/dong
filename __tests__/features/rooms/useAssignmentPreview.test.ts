@@ -26,24 +26,19 @@ function fixture() {
     removeFirst: () => { pool = ["two"]; } };
 }
 
-it("requires fresh review when player picks or room configuration change", async () => {
+it("starts Players pick directly with the latest picks and no proposal", async () => {
   let context: AssignmentContext = { revision: "first", expectedToken: "first", targetsByParticipantId: { a: 1 },
     configuration: { assignmentPolicyVersion: 2, assignmentMode: "player_picked", matchesPerPlayer: 1,
       sharedMatchesPerPair: 1, playerMatchCounts: {}, newMatches: [], assignments: [{ participantId: "a", matchId: "one" }] } };
   const hook = renderHook(() => useAssignmentPreview("room", "start", context));
-  expect(hook.getLatest().isPreviewCurrent).toBe(false);
-  await act(async () => { await hook.getLatest().review(); });
-  expect(hook.getLatest().isPreviewCurrent).toBe(true);
-  context = { ...context, configuration: { ...context.configuration, assignments: [{ participantId: "a", matchId: "two" }] } };
+  context = { ...context, revision: "second", expectedToken: "second",
+    configuration: { ...context.configuration, assignments: [{ participantId: "a", matchId: "two" }] } };
   act(() => hook.rerender());
-  expect(hook.getLatest().isPreviewCurrent).toBe(false);
-  await act(async () => { await hook.getLatest().review(); });
-  expect(hook.getLatest().isPreviewCurrent).toBe(true);
-  context = { ...context, revision: "second", expectedToken: "second" };
-  act(() => hook.rerender());
-  expect(hook.getLatest().isPreviewCurrent).toBe(false);
+  await act(async () => { await hook.getLatest().commit(); });
+  expect(mockPrepare).not.toHaveBeenCalled();
+  expect(mockCommit).toHaveBeenCalledWith(expect.objectContaining({ proposalId: null, context }));
+  expect(mockCommit.mock.calls[0][0]).not.toHaveProperty("assignmentOverrides");
 });
-
 it("generates, allows over-selection, and commits the edited choices without changing Automatic mode", async () => {
   const hook = fixture();
   await act(async () => { await hook.getLatest().review(); });

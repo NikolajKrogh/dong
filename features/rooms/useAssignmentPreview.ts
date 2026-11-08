@@ -34,7 +34,6 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
   useLayoutEffect(() => { latestContextRef.current = context; }, [context]);
   const workflowOwnerRef = useRef<{ sessionId: string; purpose: string; assignmentWorkflow: ReturnType<typeof createRoomAssignments> } | null>(null);
   const [preview, setPreview] = useState<AssignmentPreview | null>(null);
-  const [reviewedContextKey, setReviewedContextKey] = useState<string | null>(null);
   const [recoveryRequired, setRecoveryRequired] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +53,6 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
       if ("issue" in result) { setIssue(result.issue); setError(ASSIGNMENT_ISSUE_MESSAGES[result.issue]); setPreview(null); }
       else {
         setPreview(result);
-        setReviewedContextKey(contextKey);
         if (options?.editable) setDraft({ sessionId, mode: context.configuration.assignmentMode, key: contextKey, status: "generated", assignments: Object.entries(result.assignments).flatMap(([participantId, ids]) => ids.map(matchId => ({ participantId, matchId }))) });
       }
     } finally { setIsBusy(false); }
@@ -63,7 +61,7 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
     if (options?.editable && activeDraft.status === "generated" && preview?.requiresSharingConsent && !acceptRelaxedSharing) {
       setIssue("confirmation_required"); setError("Confirm relaxed sharing before starting."); return null;
     }
-    if (!options?.editable && !preview) { setError("Review assignments before continuing."); return null; }
+    if (!options?.editable && !preview && !(purpose === "start" && context.configuration.assignmentMode === "player_picked")) { setError("Review assignments before continuing."); return null; }
     setIsBusy(true);
     setError(null);
     setIssue(null);
@@ -81,5 +79,5 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
   return { assignments, valid, toggleAssignment, resetDraft,
     status: activeDraft.key !== contextKey ? "stale" as const : activeDraft.status,
     hasRandomized: activeDraft.status !== "ungenerated",
-    preview, isPreviewCurrent: preview !== null && reviewedContextKey === contextKey, recoveryRequired, isBusy, error, issue, review, commit };
+    preview, recoveryRequired, isBusy, error, issue, review, commit };
 }

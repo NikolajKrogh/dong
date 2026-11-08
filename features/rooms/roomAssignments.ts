@@ -124,6 +124,9 @@ export function createRoomAssignments(
         }
         pendingCommitRequest = createFrozenCopy({ sessionId, purpose, context, proposalId: null,
           idempotencyKey: newKey(), acceptRelaxedSharing: false, assignmentOverrides });
+      } else if (purpose === "start" && readContext().configuration.assignmentMode === "player_picked") {
+        pendingCommitRequest = createFrozenCopy({ sessionId, purpose, context: readContext(), proposalId: null,
+          idempotencyKey: newKey(), acceptRelaxedSharing: false });
       } else {
         if (!reviewedPreview) return Promise.resolve({ issue: "stale" });
         if ("issue" in reviewedPreview) return Promise.resolve(reviewedPreview);

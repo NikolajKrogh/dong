@@ -5,6 +5,23 @@ const prepared: PreparedAssignmentPreview = {
   targetsByParticipantId: { a: 1 }, sharingPolicy: "exact", requiresSharingConsent: false,
   quality: null,
 };
+
+it("starts Players pick without review and preserves the request when retrying a lost response", async () => {
+  let context: AssignmentContext = { revision: "one", expectedToken: "one", targetsByParticipantId: { a: 2 },
+    configuration: { assignmentMode: "player_picked", assignmentPolicyVersion: 2, matchesPerPlayer: 2,
+      sharedMatchesPerPair: 1, playerMatchCounts: {}, newMatches: [], assignments: [{ participantId: "a", matchId: "one" }] } };
+  const transport: AssignmentTransport = { prepare: jest.fn(), commit: jest.fn()
+    .mockRejectedValueOnce(new Error("network failed")).mockResolvedValue({ sessionId: "room" }) };
+  const controller = createRoomAssignments("room", "start", () => context, transport);
+  expect(await controller.commit(null)).toEqual({ issue: "unavailable" });
+  const first = jest.mocked(transport.commit).mock.calls[0][0];
+  context = { ...context, revision: "two", expectedToken: "two" };
+  expect(await controller.commit(null)).toMatchObject({ sessionId: "room" });
+  expect(jest.mocked(transport.commit).mock.calls[1][0]).toBe(first);
+  expect(first).toMatchObject({ proposalId: null, context: { expectedToken: "one" } });
+  expect(first).not.toHaveProperty("assignmentOverrides");
+  expect(transport.prepare).not.toHaveBeenCalled();
+});
 function fixture() {
   let context: AssignmentContext = { revision: "one", expectedToken: "token", configuration: {
     assignmentMode: "automatic", assignmentPolicyVersion: 2, matchesPerPlayer: 1,

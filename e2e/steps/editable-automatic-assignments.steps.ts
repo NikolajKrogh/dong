@@ -8,7 +8,7 @@ import { mockEditableAssignments, editableAssignmentState } from "./editable-ass
 
 const { Given, When, Then } = createBdd();
 
-When("the host selects and reviews their own picks", async ({ page }) => {
+When("the host selects their own picks", async ({ page }) => {
   await page.getByRole("button", { name: "Players pick", exact: true }).click();
   await expect(page.getByRole("button", { name: "Players pick", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveCount(0);
@@ -17,22 +17,20 @@ When("the host selects and reviews their own picks", async ({ page }) => {
   await picks.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true }).click();
   await picks.getByRole("checkbox", { name: "Cagliari versus Lecce", exact: true }).click();
   await expect(page.getByRole("button", { name: "Preview assignments", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Review picks", exact: true }).click();
-  await expect(page.getByTestId("assignment-preview-panel")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Review picks", exact: true })).toHaveCount(0);
+  await expect(page.getByTestId("assignment-preview-panel")).toHaveCount(0);
   await expect(page.getByTestId("lobby-start-game")).toHaveText(/Start Game/);
 });
 
-Then("changing picks requires another review before starting", async ({ page }) => {
+Then("the host starts directly with the latest picks", async ({ page }) => {
   const picks = page.getByTestId("lobby-player-pick-panel");
   await picks.getByRole("button", { name: "Increase alice host's additional matches", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Review picks", exact: true })).toBeVisible();
+  await expect(page.getByTestId("lobby-start-game")).toHaveText(/Start Game/);
   await picks.getByRole("button", { name: "Use default count for Alice Host", exact: true }).click();
-  await page.getByRole("button", { name: "Review picks", exact: true }).click();
   await picks.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Review picks", exact: true })).toBeVisible();
+  await expect(page.getByTestId("lobby-start-game")).toHaveText(/Start Game/);
   await expect(page.getByTestId("assignment-preview-panel")).toHaveCount(0);
   await picks.getByRole("checkbox", { name: "Fulham versus Newcastle United", exact: true }).click();
-  await page.getByRole("button", { name: "Review picks", exact: true }).click();
   await page.getByTestId("lobby-start-game").click();
   await enterStartedGame(page);
   expect(editableAssignmentState().committed).toEqual([

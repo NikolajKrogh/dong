@@ -1,9 +1,9 @@
 Feature: Editable automatic assignments use the shared setup controls
 
-  Scenario: A host reviews their own picks using one player card and one footer action
+  Scenario: A host starts directly with their own latest picks
     Given a host is editing an automatic room with editable assignments
-    When the host selects and reviews their own picks
-    Then changing picks requires another review before starting
+    When the host selects their own picks
+    Then the host starts directly with the latest picks
 
   Scenario: A host changes randomized matches and starts with the exact selection
     Given a host is editing an automatic room with editable assignments

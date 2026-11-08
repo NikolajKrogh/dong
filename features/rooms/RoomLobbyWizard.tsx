@@ -75,10 +75,8 @@ export function RoomLobbyWizard({
   const [homeTeam, setHomeTeam] = useState("");
   const [awayTeam, setAwayTeam] = useState("");
   const startGame = configure.startGame;
-  const reviewingPicks = assignment.assignmentMode === "player_picked" && snapshot.assignmentPolicyVersion === 2;
-  const picksReviewed = reviewingPicks && (configure.assignmentPreview.isPreviewCurrent || configure.assignmentPreview.recoveryRequired);
   const handleStartGame = () => {
-    if (configure.supportsEditable || picksReviewed) { void startGame(); }
+    if (configure.supportsEditable || assignment.assignmentMode === "player_picked") { void startGame(); }
     else if (snapshot.assignmentPolicyVersion === 2) { changeStep("assign"); void configure.assignmentPreview.review(); }
     else void startGame();
   };
@@ -180,7 +178,7 @@ export function RoomLobbyWizard({
   };
   const finalAction = isHost
     ? {
-      label: reviewingPicks ? picksReviewed ? "Start Game" : "Review picks" : configure.supportsEditable ? "Start Game" : snapshot.assignmentPolicyVersion === 2 ? "Review assignments" : "Start Game",
+      label: configure.supportsEditable || assignment.assignmentMode === "player_picked" || snapshot.assignmentPolicyVersion !== 2 ? "Start Game" : "Review assignments",
       icon: "play" as const,
       testID: "lobby-start-game",
       disabled: configure.isBusy || (configure.supportsEditable ? !configure.assignmentPreview.valid : !assignment.plan.startable),
@@ -373,7 +371,7 @@ function HostAssignmentContent({
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
         {configure.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void configure.startGame(true); }} /> : null}
       </> : assignment.plan.targetsByParticipantId ? <>
-        {assignment.assignmentMode !== "player_picked" || configure.assignmentPreview.isPreviewCurrent ? <AssignmentPreviewPanel showActions={assignment.assignmentMode !== "player_picked"} preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
+        {assignment.assignmentMode !== "player_picked" ? <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
           onReview={() => { void configure.assignmentPreview.review(); }} actionLabel="Start with these assignments"
           onCommit={accept => { void configure.assignmentPreview.commit(accept); }} /> : null}
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
