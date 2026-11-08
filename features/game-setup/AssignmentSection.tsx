@@ -128,6 +128,7 @@ const ManualAssignmentSection = ({
             onToggleCollapsed={() => onToggleCollapse(player.id)}
           >
             <SelectableMatchList
+              density="compact"
               key={`${useGridLayout ? "grid" : "list"}-${player.id}`}
               matches={selectableMatches}
               selectedMatchIds={playerAssignments[player.id] ?? []}

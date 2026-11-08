@@ -93,6 +93,7 @@ export function RoomAssignmentPlayers({
           >
             {onToggleAllocation ?
             <SelectableMatchList
+              density="compact"
               matches={matches}
               selectedMatchIds={selected}
               disabledMatchIds={busyMatchIds}

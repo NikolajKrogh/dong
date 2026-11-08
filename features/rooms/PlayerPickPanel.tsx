@@ -157,6 +157,7 @@ export function PlayerPickPanel({
           </Text>
 
           <SelectableMatchList
+            density="compact"
             matches={matches}
             selectedMatchIds={localPicks}
             onToggleMatch={handleToggle}

@@ -9,5 +9,5 @@
 - [x] Add workflow, pgTAP and Playwright BDD coverage.
 - [x] Exercise phone/desktop journeys and axe on assignment screens.
 - [x] Deploy compatible migration before enabling the hosted client.
-- [x] Refine shared local/host presentation with compact fixture rows, neutral counters and collapsed summaries.
+- [x] Refine shared local/host presentation with compact original match cards, neutral counters and collapsed summaries.
 - [ ] Complete live-server end-to-end rollout verification.

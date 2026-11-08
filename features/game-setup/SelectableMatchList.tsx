@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
-import { XStack, YStack } from "tamagui";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { FlatList, Image, Platform, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { formatMatchTime } from "../football-matches/matchTime";
 import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
+import AppIcon from "../../components/ui/AppIcon";
 
 /**
  * The minimum a match needs to be rendered as selectable.
@@ -25,6 +26,8 @@ export interface SelectableMatch {
 }
 
 interface SelectableMatchListProps {
+  /** Assignment density changes spacing, never the original card composition. */
+  density?: "default" | "compact";
   matches: SelectableMatch[];
   selectedMatchIds: string[];
   onToggleMatch: (matchId: string) => void;
@@ -42,6 +45,7 @@ interface SelectableMatchListProps {
 }
 
 interface SelectableMatchRowProps {
+  density?: "default" | "compact";
   match: SelectableMatch;
   index: number;
   selected: boolean;
@@ -53,6 +57,8 @@ interface SelectableMatchRowProps {
 }
 
 const disabledMatchStyle = { opacity: 0.4 };
+const gradientStart = { x: 0, y: 0 };
+const gradientEnd = { x: 0, y: 1 };
 
 const SelectableMatchRow = React.memo(function SelectableMatchRow({
   match,
@@ -61,6 +67,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
   disabled,
   testID,
   compact,
+  density = "default",
   readOnly = false,
   onToggleMatch,
 }: SelectableMatchRowProps) {
@@ -84,11 +91,16 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
           disabled && disabledMatchStyle,
         ]
       : [
-          styles.assignmentMatchRow,
-          selected && { backgroundColor: colors.primaryLighter, borderColor: colors.primaryDark },
+          styles.matchCard,
+          selected && styles.selectedMatchCard,
+          styles.matchListItem,
           disabled && disabledMatchStyle,
         ],
-    [compact, disabled, selected, styles, colors.primaryLighter, colors.primaryDark],
+    [compact, disabled, selected, styles],
+  );
+  const gradientColors = React.useMemo(
+    () => [colors.primaryLighter, colors.surface] as const,
+    [colors.primaryLighter, colors.surface],
   );
   const kickoff = React.useMemo(
     () => compact ? null : formatMatchTime(match.startTime),
@@ -107,6 +119,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
         style={buttonStyle}
         onPress={handlePress}
       >
+        {density === "compact" && !selected ? <LinearGradient colors={gradientColors} start={gradientStart} end={gradientEnd} style={StyleSheet.absoluteFill} /> : null}
         <View style={styles.compactMatchNumberBadge}>
           <Text style={styles.compactMatchNumberText}>{index + 1}</Text>
         </View>
@@ -146,19 +159,62 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
       style={buttonStyle}
       onPress={handlePress}
     >
-      <XStack alignItems="center" gap="$3" minHeight={76} padding="$3">
-        <YStack flex={1} minWidth={0} gap="$2">
-          {[{ name: match.homeTeam, logo: homeTeamLogo }, { name: match.awayTeam, logo: awayTeamLogo }].map(({ name, logo }, team) => (
-            <XStack key={team} alignItems="center" gap="$2">
-              {logo ? <Image source={logo} style={styles.matchTeamLogo} resizeMode="contain" /> : <Text style={{ width: 24, color: colors.primary }}>{name.charAt(0)}</Text>}
-              <Text numberOfLines={2} style={styles.matchTeamName}>{name}</Text>
-            </XStack>
-          ))}
-        </YStack>
-        {kickoff ? <Text style={styles.assignmentKickoff}>{kickoff}</Text> : null}
-        {!readOnly ? <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={24}
-          color={selected ? colors.primaryDark : colors.textMuted} /> : null}
-      </XStack>
+      <View style={styles.matchNumberBadge}>
+        <Text style={styles.matchNumberText}>{index + 1}</Text>
+      </View>
+      <LinearGradient
+        colors={gradientColors}
+        start={gradientStart}
+        end={gradientEnd}
+        style={[styles.matchCardGradient, density === "compact" && styles.assignmentCardGradient]}
+      >
+        <View style={styles.matchTeamsContainer}>
+          <View style={styles.matchTeamColumn}>
+            <View style={[styles.logoContainer, density === "compact" && styles.assignmentCardLogo]}>
+              {homeTeamLogo ? (
+                <Image source={homeTeamLogo} style={[styles.teamLogo, density === "compact" && styles.assignmentCardTeamLogo]} />
+              ) : (
+                <View style={styles.teamLogoPlaceholder}>
+                  <Text style={styles.teamLogoPlaceholderText}>{match.homeTeam.charAt(0)}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.teamName, density === "compact" && styles.assignmentCardTeamName]}>
+              {match.homeTeam}
+            </Text>
+          </View>
+          <View style={styles.vsDividerHorizontal}>
+            <Text style={styles.vsText}>VS</Text>
+          </View>
+          <View style={styles.matchTeamColumn}>
+            <View style={[styles.logoContainer, density === "compact" && styles.assignmentCardLogo]}>
+              {awayTeamLogo ? (
+                <Image source={awayTeamLogo} style={[styles.teamLogo, density === "compact" && styles.assignmentCardTeamLogo]} />
+              ) : (
+                <View style={styles.teamLogoPlaceholder}>
+                  <Text style={styles.teamLogoPlaceholderText}>{match.awayTeam.charAt(0)}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={[styles.teamName, density === "compact" && styles.assignmentCardTeamName]}>
+              {match.awayTeam}
+            </Text>
+          </View>
+        </View>
+        {kickoff ? (
+          <View style={[styles.matchTimeHeader, density === "compact" && styles.assignmentCardKickoff]}>
+            <AppIcon name="time-outline" size={16} color={density === "compact" ? colors.primaryDark : colors.primary} />
+            <Text style={[styles.matchTimeText, density === "compact" && styles.assignmentCardKickoffText]}>{kickoff}</Text>
+          </View>
+        ) : null}
+        {!readOnly ? <View style={styles.selectionCheckmark}>
+          <Ionicons
+            name={selected ? "checkmark-circle" : "ellipse-outline"}
+            size={24}
+            color={selected ? colors.primary : colors.border}
+          />
+        </View> : null}
+      </LinearGradient>
     </TouchableOpacity>
   );
 });
@@ -179,6 +235,7 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
   onToggleMatch,
   disabledMatchIds,
   useGridLayout = false,
+  density = "default",
   testIDPrefix,
   readOnly = false,
 }) => {
@@ -202,11 +259,12 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
         disabled={disabledMatchSet.has(match.id)}
         testID={getTestID(match.id)}
         compact
+        density={density}
         readOnly={readOnly}
         onToggleMatch={onToggleMatch}
       />
     </View>
-  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem, readOnly]);
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem, readOnly, density]);
   const renderMatch = React.useCallback(({ item, index }: { item: SelectableMatch; index: number }) => (
     <SelectableMatchRow
       key={item.id}
@@ -216,10 +274,11 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
       disabled={disabledMatchSet.has(item.id)}
       testID={getTestID(item.id)}
       compact={false}
+      density={density}
       readOnly={readOnly}
       onToggleMatch={onToggleMatch}
     />
-  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, readOnly]);
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, readOnly, density]);
 
   if (useGridLayout) {
     return (
