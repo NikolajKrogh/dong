@@ -66,12 +66,15 @@ export function RoomAssignmentPlayers({
       {ownPicks}
       {participants.map((participant) => {
         const selected = selectedMatchIdsFor(participant.id);
+        const selectedIds = new Set(selected);
         const target = targetsByParticipantId?.[participant.id] ?? matchesPerPlayer;
         return (
           <AssignmentPlayerCard
             key={participant.id}
             compact
             target={target}
+            defaultCount={matchesPerPlayer}
+            selectedMatches={matches.filter(match => selectedIds.has(match.id))}
             disabled={isBusy}
             usesDefault={participant.additionalMatchCount == null}
             onSetCount={onSetPlayerMatchCount ? count => onSetPlayerMatchCount(participant.id, count) : undefined}

@@ -34,30 +34,35 @@ Given("a host is editing an automatic room with editable assignments", async ({ 
 When("the host adjusts a collapsed player's count and restores the default", async ({ page }) => {
   const card = page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`);
   await card.getByRole("button", { name: "Increase alice host's additional matches", exact: true }).click();
-  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("0/3");
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("3 left");
   await expect(card.getByRole("checkbox")).toHaveCount(0);
   await card.getByRole("button", { name: "Use default count for Alice Host", exact: true }).click();
-  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("0/2");
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("2 left");
 });
 
 When("the host randomizes and edits the full match pool in both views", async ({ page }) => {
   await page.getByRole("button", { name: "Randomize Matches", exact: true }).click();
   const card = page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`);
-  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("2/2");
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("2 selected");
   await card.getByRole("button", { expanded: false }).first().click();
   await expect(card.getByRole("checkbox")).toHaveCount(4);
+  const otherPlayer = page.getByTestId("lobby-assignment-player-editable-member");
+  await otherPlayer.getByRole("button", { expanded: false }).first().click();
+  await expect(otherPlayer.getByRole("checkbox")).toHaveCount(4);
   await card.getByRole("checkbox", { name: "Cagliari versus Lecce", exact: true }).click();
   await expect(page.getByTestId("lobby-start-game")).toBeDisabled();
+  await expect(card.getByText("1 too many", { exact: true })).toBeVisible();
   await card.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true }).click();
   await expect(page.getByTestId("lobby-start-game")).toBeEnabled();
   await page.getByRole("button", { name: "Switch to match grid", exact: true }).click();
   await expect(card.getByRole("checkbox", { name: "Cagliari versus Lecce", exact: true })).toBeChecked();
   await page.getByRole("button", { name: "Switch to match list", exact: true }).click();
+  await expect(otherPlayer.getByRole("button", { expanded: true }).first()).toBeVisible();
   await expect(card.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true })).not.toBeChecked();
   await page.addScriptTag({ content: readFileSync(createRequire(process.cwd() + "/package.json").resolve("axe-core"), "utf8") });
   const issues = await page.evaluate(async () => {
     const axe = (window as unknown as { axe: { run: (root: string, options: unknown) => Promise<{ violations: { id: string }[] }> } }).axe;
-    return (await axe.run("[data-testid=lobby-assignment-players]", { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } })).violations;
+    return (await axe.run("body", { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } })).violations;
   });
   expect(issues).toEqual([]);
 });
@@ -77,6 +82,9 @@ When("the host starts and edits the running automatic game", async ({ page }) =>
   await page.goto(new URL("/editGame", page.url()).toString());
   await page.getByRole("tab", { name: /^Assign, step/ }).click();
   const card = page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`);
+  await card.getByRole("button", { name: "Increase alice host's additional matches", exact: true }).click();
+  await expect(card.getByText("Use default (2)", { exact: true })).toBeVisible();
+  await card.getByRole("button", { name: "Use default count for Alice Host", exact: true }).click();
   await card.getByRole("button", { expanded: false }).first().click();
   await card.getByRole("checkbox", { name: "Fulham versus Newcastle United", exact: true }).click();
   await expect(page.getByTestId("EditGameSave")).toBeDisabled();

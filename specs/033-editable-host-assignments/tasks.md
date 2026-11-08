@@ -8,5 +8,6 @@
 - [x] Add compatible explicit-override RPC migration and generated types.
 - [x] Add workflow, pgTAP and Playwright BDD coverage.
 - [x] Exercise phone/desktop journeys and axe on assignment screens.
-- [ ] Deploy compatible migration before enabling the hosted client.
+- [x] Deploy compatible migration before enabling the hosted client.
+- [x] Refine shared local/host presentation with compact fixture rows, neutral counters and collapsed summaries.
 - [ ] Complete live-server end-to-end rollout verification.

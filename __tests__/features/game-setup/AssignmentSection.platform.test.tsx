@@ -2,6 +2,11 @@ import React from "react";
 import TestRenderer from "react-test-renderer";
 
 import { actCreate } from "../../../test-utils/render";
+jest.mock("tamagui", () => ({ XStack: "XStack", YStack: "YStack" }));
+jest.mock("../../../components/ui/ShellActionButton", () => ({
+  ShellActionButton: ({ label, ...props }: { label: string }) => require("react").createElement("TouchableOpacity",
+    { ...props, accessibilityRole: "button", accessibilityLabel: label }, require("react").createElement("Text", null, label)),
+}));
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -51,6 +56,7 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  StyleSheet: { create: (styles: unknown) => styles },
   Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
   View: "View",
   Text: "Text",
@@ -203,10 +209,8 @@ describe("AssignmentSection responsive layout", () => {
       ]),
     );
     cards.forEach((card) => {
-      expect(card.props.style).toEqual(
+      expect(card.props.style.flat()).toEqual(
         expect.arrayContaining([
-          mockStyles.assignmentContainer,
-          mockStyles.playerContainer,
           mockStyles.assignmentPlayerCardWide,
         ]),
       );
@@ -225,13 +229,7 @@ describe("AssignmentSection progress badge", () => {
     });
   });
 
-  // The badge shell moved into components/matchSelection/MatchSelectionCard,
-  // which is shared with the player-picked surfaces. Those count against the
-  // per-player CAP while this flow counts against the POOL, so the denominator
-  // is a prop -- and nothing else in this suite pins it. The fixture below
-  // deliberately makes pool size (3) differ from matchesPerPlayer (1) so a
-  // swapped denominator cannot pass (specs/022-player-picked-mode research.md R15).
-  it("counts each player's assignments against the non-common pool size, not matchesPerPlayer", () => {
+  it("shows how many picks are missing or excessive against each target", () => {
     const renderer = renderAssignmentSection({
       matches: [
         { id: "m1", homeTeam: "Arsenal", awayTeam: "Chelsea", homeGoals: 0, awayGoals: 0 },
@@ -244,11 +242,9 @@ describe("AssignmentSection progress badge", () => {
       matchesPerPlayer: 1,
     });
 
-    const badges = renderer.root
-      .findAllByProps({ style: mockStyles.playerBadgeText })
-      .map((node) => node.props.children.join(""));
-
-    expect(badges).toEqual(expect.arrayContaining(["2/3", "0/3"]));
+    const statuses = renderer.root.findAllByType("Text" as never).map(node => node.props.children);
+    expect(statuses).toEqual(expect.arrayContaining(["1 too many", "1 left"]));
+    expect(statuses).toContain("Liverpool–Spurs · Leeds–Villa");
   });
 });
 

@@ -41,7 +41,7 @@ export function AssignmentModeSelector({
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   return (
     <View testID="lobby-assignment-mode">
-      <View style={styles.sectionHeader}>
+      {allowHelp ? <View style={styles.sectionHeader}>
         <Text style={styles.filterSectionTitle}>Assignment mode</Text>
         {allowHelp ? <TouchableOpacity
           accessibilityRole="button"
@@ -55,7 +55,7 @@ export function AssignmentModeSelector({
             color={colors.primary}
           />
         </TouchableOpacity> : null}
-      </View>
+      </View> : null}
       <AssignmentInfoModal
         visible={showHelp}
         message={MODE_HELP[assignmentMode]}

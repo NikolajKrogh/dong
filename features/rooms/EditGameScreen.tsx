@@ -114,7 +114,7 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
             <RoomAssignmentPlayers editable={draft.supportsEditable} participants={draft.participants} matches={selectable}
               targetsByParticipantId={draft.plan.targetsByParticipantId}
               onSetPlayerMatchCount={draft.supportsTargets ? draft.setPlayerMatchCount : undefined}
-              matchesPerPlayer={draft.plan.effectivePerPlayer} isBusy={controlsBusy} pending={draft.mode === "automatic"} pendingLabel="On save"
+              matchesPerPlayer={draft.supportsEditable ? draft.plan.matchesPerPlayer : draft.plan.effectivePerPlayer} isBusy={controlsBusy} pending={draft.mode === "automatic"} pendingLabel="On save"
               selectedMatchIdsFor={id => draft.assignments.filter(a => a.participantId === id).map(a => a.matchId)}
               onToggleAllocation={draft.supportsEditable || draft.mode === "host_assigned" ? draft.toggleAssignment : undefined} />
             {draft.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void save(true); }} /> : null}

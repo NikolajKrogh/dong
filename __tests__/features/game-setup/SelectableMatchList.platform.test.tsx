@@ -1,8 +1,10 @@
 import React from "react";
 import { Platform } from "react-native";
 import { actCreate } from "../../../test-utils/render";
+jest.mock("tamagui", () => ({ XStack: "XStack", YStack: "YStack" }));
 
 const mockStyles = {
+  assignmentKickoff: { testStyle: "assignmentKickoff" },
   gridContainer: { testStyle: "gridContainer" },
   gridItem: { testStyle: "gridItem" },
   compactMatchItem: { testStyle: "compactMatchItem" },
@@ -36,6 +38,7 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  StyleSheet: { create: (styles: unknown) => styles },
   Platform: {
     OS: "web",
     select: (o: Record<string, unknown>) => o.web ?? o.default,
@@ -189,13 +192,13 @@ describe("SelectableMatchList", () => {
    *
    * Web rows render directly, so exercise the actual list tree.
    */
-  describe("kickoff footer", () => {
+  describe("inline kickoff", () => {
     const renderRow = (match: Record<string, unknown>) => {
       return render({ matches: [match], useGridLayout: false });
     };
 
     const footers = (row: ReturnType<typeof actCreate>) =>
-      row.root.findAllByProps({ style: mockStyles.matchTimeHeader });
+      row.root.findAllByProps({ style: mockStyles.assignmentKickoff });
 
     it("renders for a match with a bare clock time", () => {
       const row = renderRow({
@@ -207,7 +210,7 @@ describe("SelectableMatchList", () => {
 
       expect(footers(row)).toHaveLength(1);
       expect(
-        row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
+        row.root.findByProps({ style: mockStyles.assignmentKickoff }).props.children,
       ).toBe("15:00");
     });
 
@@ -221,13 +224,13 @@ describe("SelectableMatchList", () => {
 
       expect(footers(row)).toHaveLength(1);
       expect(
-        row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
+        row.root.findByProps({ style: mockStyles.assignmentKickoff }).props.children,
       ).toBe("23:59");
     });
 
     it.each(["00:00", "09:05", "12:00", "23:59"])("renders clock %s verbatim", (startTime) => {
       const row = renderRow({ ...MATCHES[0], startTime });
-      expect(row.root.findByProps({ style: mockStyles.matchTimeText }).props.children).toBe(startTime);
+      expect(row.root.findByProps({ style: mockStyles.assignmentKickoff }).props.children).toBe(startTime);
     });
 
     // A hand-typed fixture has no kickoff; it must not leave an empty row.
@@ -247,7 +250,7 @@ describe("SelectableMatchList", () => {
       });
 
       expect(
-        grid.root.findAllByProps({ style: mockStyles.matchTimeHeader }),
+        grid.root.findAllByProps({ style: mockStyles.assignmentKickoff }),
       ).toHaveLength(0);
     });
   });

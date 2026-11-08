@@ -17,16 +17,15 @@ interface MatchSelectionCardProps {
   /**
    * Badge numerator and denominator.
    *
-   * Both are props on purpose: the solo setup flow shows progress against the
-   * **pool size**, while a player-picked surface shows it against the **per-player
-   * cap**. Baking either one in would silently change the other's display
-   * (specs/022-player-picked-mode/research.md R15).
+   * Callers supply the per-player target; this presentation owns no selection rules.
    */
   selectedCount: number;
   totalCount: number;
   collapsed: boolean;
   onToggleCollapsed?: () => void;
   badgeLabel?: string;
+  statusLabel?: string;
+  summary?: string;
   compact?: boolean;
   flat?: boolean;
   children?: React.ReactNode;
@@ -77,6 +76,8 @@ export function MatchSelectionCard({
   testID,
   badgeTestID,
   badgeLabel,
+  statusLabel,
+  summary,
   compact = false,
   flat = false,
 }: MatchSelectionCardProps): React.JSX.Element {
@@ -108,15 +109,18 @@ export function MatchSelectionCard({
           activeOpacity={0.7}
         >
           <View style={styles.playerHeaderLeft}>
-            {!flat ? <Ionicons
+            {!flat || onToggleCollapsed ? <Ionicons
               name={headerIcon}
               size={18}
               color={colors.primary}
               style={styles.chevronIcon}
             /> : null}
-            <Text numberOfLines={2} style={styles.playerAssignmentName}>{title}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={2} style={styles.playerAssignmentName}>{title}</Text>
+              {statusLabel ? <Text accessibilityLiveRegion="polite" testID={badgeTestID} style={{ color: selectedCount === totalCount ? colors.textMuted : colors.dangerForeground, fontSize: 13, marginTop: 2 }}>{statusLabel}</Text> : null}
+            </View>
           </View>
-          {badgeLabel ? (
+          {statusLabel ? null : badgeLabel ? (
             <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
               {badgeLabel}
             </Text>
@@ -130,6 +134,7 @@ export function MatchSelectionCard({
         </TouchableOpacity>
         {headerAction}
       </View>
+      {collapsed && summary ? <Text numberOfLines={1} style={{ color: colors.textMuted, fontSize: 13, marginTop: 4, marginLeft: 26 }}>{summary}</Text> : null}
       {collapsed ? null : children}
     </View>
   );

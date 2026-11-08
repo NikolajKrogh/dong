@@ -258,7 +258,7 @@ function WizardStepIndicator({ steps, currentStep, setCurrentStep, styles, color
               style={[
                 styles.stepButton,
                 wideLayout && styles.stepButtonWide,
-                currentStep >= index && styles.activeStepButton,
+                currentStep === index && styles.activeStepButton,
               ]}
               onPress={() => setCurrentStep(index)}
               disabled={!step.canEnter}
@@ -267,14 +267,14 @@ function WizardStepIndicator({ steps, currentStep, setCurrentStep, styles, color
                 name={step.icon}
                 size={24}
                 color={
-                  currentStep >= index ? colors.textLight : colors.textMuted
+                  currentStep === index ? colors.textLight : colors.textMuted
                 }
               />
               {wideLayout ? (
                 <Text
                   style={[
                     styles.stepButtonLabel,
-                    currentStep >= index && styles.stepButtonLabelActive,
+                    currentStep === index && styles.stepButtonLabelActive,
                   ]}
                 >
                   {step.name}
@@ -314,6 +314,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
       style={[
         styles.navButton,
         wideLayout && styles.navButtonWide,
+        action.label === "Back" && { backgroundColor: "transparent" },
         action.backgroundColor
           ? { backgroundColor: action.backgroundColor }
           : null,
@@ -327,11 +328,11 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
           <AppIcon
             name={action.icon}
             size={20}
-            color={colors.textLight}
+            color={action.label === "Back" ? colors.primaryDark : colors.textLight}
             style={{ marginRight: 8 }}
           />
         ) : null}
-        <Text style={styles.navButtonText}>{action.label}</Text>
+        <Text style={[styles.navButtonText, action.label === "Back" && { color: colors.primaryDark }]}>{action.label}</Text>
         {action.iconPosition === "leading" ? null : (
           <AppIcon
             name={action.icon}

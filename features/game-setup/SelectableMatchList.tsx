@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { XStack, YStack } from "tamagui";
 import React from "react";
 import { FlatList, Image, Platform, Text, TouchableOpacity, View } from "react-native";
 
@@ -7,7 +7,6 @@ import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { formatMatchTime } from "../football-matches/matchTime";
 import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
-import AppIcon from "../../components/ui/AppIcon";
 
 /**
  * The minimum a match needs to be rendered as selectable.
@@ -54,8 +53,6 @@ interface SelectableMatchRowProps {
 }
 
 const disabledMatchStyle = { opacity: 0.4 };
-const gradientStart = { x: 0, y: 0 };
-const gradientEnd = { x: 0, y: 1 };
 
 const SelectableMatchRow = React.memo(function SelectableMatchRow({
   match,
@@ -87,16 +84,11 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
           disabled && disabledMatchStyle,
         ]
       : [
-          styles.matchCard,
-          selected && styles.selectedMatchCard,
-          styles.matchListItem,
+          styles.assignmentMatchRow,
+          selected && { backgroundColor: colors.primaryLighter, borderColor: colors.primaryDark },
           disabled && disabledMatchStyle,
         ],
-    [compact, disabled, selected, styles],
-  );
-  const gradientColors = React.useMemo(
-    () => [colors.primaryLighter, colors.surface] as const,
-    [colors.primaryLighter, colors.surface],
+    [compact, disabled, selected, styles, colors.primaryLighter, colors.primaryDark],
   );
   const kickoff = React.useMemo(
     () => compact ? null : formatMatchTime(match.startTime),
@@ -154,62 +146,19 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
       style={buttonStyle}
       onPress={handlePress}
     >
-      <View style={styles.matchNumberBadge}>
-        <Text style={styles.matchNumberText}>{index + 1}</Text>
-      </View>
-      <LinearGradient
-        colors={gradientColors}
-        start={gradientStart}
-        end={gradientEnd}
-        style={styles.matchCardGradient}
-      >
-        <View style={styles.matchTeamsContainer}>
-          <View style={styles.matchTeamColumn}>
-            <View style={styles.logoContainer}>
-              {homeTeamLogo ? (
-                <Image source={homeTeamLogo} style={styles.teamLogo} />
-              ) : (
-                <View style={styles.teamLogoPlaceholder}>
-                  <Text style={styles.teamLogoPlaceholderText}>{match.homeTeam.charAt(0)}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.teamName}>
-              {match.homeTeam}
-            </Text>
-          </View>
-          <View style={styles.vsDividerHorizontal}>
-            <Text style={styles.vsText}>VS</Text>
-          </View>
-          <View style={styles.matchTeamColumn}>
-            <View style={styles.logoContainer}>
-              {awayTeamLogo ? (
-                <Image source={awayTeamLogo} style={styles.teamLogo} />
-              ) : (
-                <View style={styles.teamLogoPlaceholder}>
-                  <Text style={styles.teamLogoPlaceholderText}>{match.awayTeam.charAt(0)}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.teamName}>
-              {match.awayTeam}
-            </Text>
-          </View>
-        </View>
-        {kickoff ? (
-          <View style={styles.matchTimeHeader}>
-            <AppIcon name="time-outline" size={16} color={colors.primary} />
-            <Text style={styles.matchTimeText}>{kickoff}</Text>
-          </View>
-        ) : null}
-        {!readOnly ? <View style={styles.selectionCheckmark}>
-          <Ionicons
-            name={selected ? "checkmark-circle" : "ellipse-outline"}
-            size={24}
-            color={selected ? colors.primary : colors.border}
-          />
-        </View> : null}
-      </LinearGradient>
+      <XStack alignItems="center" gap="$3" minHeight={76} padding="$3">
+        <YStack flex={1} minWidth={0} gap="$2">
+          {[{ name: match.homeTeam, logo: homeTeamLogo }, { name: match.awayTeam, logo: awayTeamLogo }].map(({ name, logo }, team) => (
+            <XStack key={team} alignItems="center" gap="$2">
+              {logo ? <Image source={logo} style={styles.matchTeamLogo} resizeMode="contain" /> : <Text style={{ width: 24, color: colors.primary }}>{name.charAt(0)}</Text>}
+              <Text numberOfLines={2} style={styles.matchTeamName}>{name}</Text>
+            </XStack>
+          ))}
+        </YStack>
+        {kickoff ? <Text style={styles.assignmentKickoff}>{kickoff}</Text> : null}
+        {!readOnly ? <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={24}
+          color={selected ? colors.primaryDark : colors.textMuted} /> : null}
+      </XStack>
     </TouchableOpacity>
   );
 });

@@ -1,8 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Text,
-  TouchableOpacity,
   useWindowDimensions,
   View,
 } from "react-native";
@@ -10,7 +8,7 @@ import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { Match, Player } from "../../store/gameStore";
-import { AssignmentCounter, AssignmentInfoModal, AssignmentPanel } from "./AssignmentControls";
+import { AssignmentRandomizer } from "./AssignmentControls";
 import { AssignmentPlayerCard, AssignmentLayoutToggle } from "./AssignmentPlayerCard";
 import {
   SelectableMatchList,
@@ -46,60 +44,6 @@ interface AssignmentSectionProps {
   handleRandomAssignment: (numMatches: number) => void;
 }
 
-interface RandomAssignmentSectionProps {
-  isAssigning?: boolean;
-  playerCount: number;
-  matchCount: number;
-  commonMatchId: string | null;
-  matchesPerPlayer: number;
-  setMatchesPerPlayer: (count: number) => void;
-  onRandomAssignment: (count: number) => void;
-  hasAssignments?: boolean;
-  styles: ReturnType<typeof createSetupGameStyles>;
-  colors: ReturnType<typeof useColors>;
-}
-
-function RandomAssignmentSection({
-  isAssigning,
-  playerCount,
-  matchCount,
-  commonMatchId,
-  matchesPerPlayer,
-  setMatchesPerPlayer,
-  onRandomAssignment,
-  hasAssignments,
-  styles,
-  colors,
-}: RandomAssignmentSectionProps): React.JSX.Element | null {
-  if (playerCount === 0 || matchCount === 0 || !commonMatchId) return null;
-
-  return (
-    <AssignmentPanel
-      title="Random Assignment"
-      help="Assign each player's additional matches. Equal counts use exact pair sharing; unequal counts use best-effort sharing. Everyone also gets the common match."
-    >
-      <AssignmentCounter
-        label="Default matches per player"
-        value={matchesPerPlayer}
-        min={0}
-        max={Math.min(100, matchCount - 1)}
-        disabled={isAssigning}
-        onChange={setMatchesPerPlayer}
-      />
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={hasAssignments ? "Randomize Again" : "Randomize Matches"}
-        disabled={isAssigning}
-        style={styles.randomizeButton}
-        onPress={() => onRandomAssignment(matchesPerPlayer)}
-      >
-        <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
-        <Text style={styles.randomizeButtonText}>{hasAssignments ? "Randomize Again" : "Randomize Matches"}</Text>
-      </TouchableOpacity>
-    </AssignmentPanel>
-  );
-}
-
 interface ManualAssignmentSectionProps {
   matchesPerPlayer: number;
   playerMatchCounts: Record<string, number>;
@@ -108,7 +52,7 @@ interface ManualAssignmentSectionProps {
   players: Player[];
   matchCount: number;
   commonMatchId: string | null;
-  nonCommonMatchCount: number;
+
   selectableMatches: SelectableMatch[];
   playerAssignments: { [playerId: string]: string[] };
   collapsedPlayers: Record<string, boolean>;
@@ -117,10 +61,7 @@ interface ManualAssignmentSectionProps {
   onToggleCollapse: (playerId: string) => void;
   onToggleAssignment: (playerId: string, matchId: string) => void;
   onToggleLayout: () => void;
-  modalVisible: boolean;
-  onToggleModal: () => void;
   styles: ReturnType<typeof createSetupGameStyles>;
-  colors: ReturnType<typeof useColors>;
 }
 
 const ManualAssignmentSection = ({
@@ -131,7 +72,6 @@ const ManualAssignmentSection = ({
   players,
   matchCount,
   commonMatchId,
-  nonCommonMatchCount,
   selectableMatches,
   playerAssignments,
   collapsedPlayers,
@@ -140,10 +80,7 @@ const ManualAssignmentSection = ({
   onToggleCollapse,
   onToggleAssignment,
   onToggleLayout,
-  modalVisible,
-  onToggleModal,
   styles,
-  colors,
 }: ManualAssignmentSectionProps) => {
   if (players.length === 0 || matchCount === 0) return null;
 
@@ -155,25 +92,12 @@ const ManualAssignmentSection = ({
   return (
     <View style={styles.assignmentSection}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Manual Assignment</Text>
+        <Text style={styles.sectionTitle}>Players</Text>
         <View style={styles.headerActionsRow}>
           <AssignmentLayoutToggle grid={useGridLayout} onToggle={onToggleLayout} />
-          <TouchableOpacity onPress={onToggleModal}>
-            <Ionicons
-              name="information-circle-outline"
-              size={24}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
+
         </View>
       </View>
-
-      <AssignmentInfoModal
-        visible={modalVisible}
-        message="Tap on matches below to select which matches each player will drink for."
-        onClose={onToggleModal}
-        styles={styles}
-      />
 
       <View
         testID="AssignmentPlayersGrid"
@@ -182,22 +106,24 @@ const ManualAssignmentSection = ({
           isWideLayout && styles.assignmentPlayersGridWide,
         ]}
       >
-        {players.map((player) => (
+        {players.map((player) => {
+          const selectedIds = new Set(playerAssignments[player.id] ?? []);
+          return (
           <AssignmentPlayerCard
             key={player.id}
             testID="AssignmentPlayerCard"
             style={[
-              styles.assignmentContainer,
-              styles.playerContainer,
               isWideLayout && styles.assignmentPlayerCardWide,
             ]}
             target={playerMatchCounts[player.id] ?? matchesPerPlayer}
+            defaultCount={matchesPerPlayer}
+            selectedMatches={selectableMatches.filter(match => selectedIds.has(match.id))}
             onSetCount={setPlayerMatchCount ? count => setPlayerMatchCount(player.id, count) : undefined}
             usesDefault={playerMatchCounts[player.id] === undefined}
             disabled={isAssigning}
             title={player.name}
             selectedCount={getAssignmentCount(player.id)}
-            totalCount={setPlayerMatchCount ? playerMatchCounts[player.id] ?? matchesPerPlayer : nonCommonMatchCount}
+            totalCount={playerMatchCounts[player.id] ?? matchesPerPlayer}
             collapsed={collapsedPlayers[player.id] ?? true}
             onToggleCollapsed={() => onToggleCollapse(player.id)}
           >
@@ -209,7 +135,8 @@ const ManualAssignmentSection = ({
               useGridLayout={useGridLayout}
             />
           </AssignmentPlayerCard>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
@@ -247,8 +174,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     [colors],
   );
   const isWideLayout = isWideViewport(width);
-  /** State to control the visibility of the manual assignment info modal. */
-  const [isModalVisible, setIsModalVisible] = useState(false);
+
   /**
    * State to track the current layout mode (grid or list).
    * @type {boolean} False for list view, true for grid view.
@@ -264,17 +190,6 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     });
     return initialState;
   });
-
-
-  /**
-   * Toggles the visibility of the manual assignment info modal.
-   *
-   * @function
-   * @returns {void}
-   */
-  const toggleModal = () => {
-    setIsModalVisible(!isModalVisible);
-  };
 
   /**
    * Toggles the layout mode between grid and list view for matches.
@@ -325,18 +240,14 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
 
   return (
     <View style={baseStyles.tabContent}>
-      <RandomAssignmentSection
-        isAssigning={isAssigning}
-        playerCount={players.length}
-        matchCount={matches.length}
-        commonMatchId={commonMatchId}
-        matchesPerPlayer={matchesPerPlayer}
-        setMatchesPerPlayer={setMatchesPerPlayer}
-        onRandomAssignment={handleRandomAssignment}
+      {players.length > 0 && matches.length > 0 && commonMatchId ? <AssignmentRandomizer
+        value={matchesPerPlayer}
+        max={Math.min(100, matches.length - 1)}
+        disabled={isAssigning}
+        onChange={setMatchesPerPlayer}
+        onRandomize={() => handleRandomAssignment(matchesPerPlayer)}
         hasAssignments={Object.values(playerAssignments).some(ids => ids.some(id => id !== commonMatchId))}
-        styles={baseStyles}
-        colors={colors}
-      />
+      /> : null}
       <ManualAssignmentSection
         matchesPerPlayer={matchesPerPlayer}
         playerMatchCounts={playerMatchCounts}
@@ -345,7 +256,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         players={players}
         matchCount={matches.length}
         commonMatchId={commonMatchId}
-        nonCommonMatchCount={nonCommonMatches.length}
+
         selectableMatches={selectableMatches}
         playerAssignments={playerAssignments}
         collapsedPlayers={collapsedPlayers}
@@ -354,10 +265,8 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         onToggleCollapse={togglePlayerCollapse}
         onToggleAssignment={toggleMatchAssignment}
         onToggleLayout={toggleLayoutMode}
-        modalVisible={isModalVisible}
-        onToggleModal={toggleModal}
+
         styles={baseStyles}
-        colors={colors}
       />
     </View>
   );

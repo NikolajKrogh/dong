@@ -23,4 +23,8 @@ Development evidence is under artifacts/assignment-*. Phone browser checks use i
 - Isolated SQL checks cover editable overrides, existing proposals, targets and modes. The clone required restoring source-equivalent test-role permissions after its schema-only import.
 - Type checking and scoped lint passed. Full lint still reports errors in pre-existing artifacts/host-ux-phone scripts. React Doctor scored 93/100 with five complexity warnings.
 
-The hosted migration and real-service end-to-end rollout remain unverified.
+The compatible migration was applied to the linked hosted DONG project. Real-service end-to-end rollout remains unverified.
+
+## Presentation refinement checks
+
+The compact local/host presentation passed 361 room/setup unit and component checks, phone/desktop Playwright journeys for local setup, editable Automatic and two-device Players pick, and full-page axe on connected Android Chrome. Phone checks include light Host assigns and Automatic, plus dark Automatic with a long name and 34 non-common fixtures. Type checking and scoped ESLint passed. React Doctor reports one complexity warning in the shared card. These checks use isolated room fixtures; this presentation refinement requires no new database migration.

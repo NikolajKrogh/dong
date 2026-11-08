@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { Modal, Text, TouchableOpacity, View } from "react-native";
+import { XStack, YStack } from "tamagui";
+import { ShellActionButton } from "../../components/ui/ShellActionButton";
 
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -146,14 +148,14 @@ export function AssignmentCounter({
           accessibilityLabel={`Decrease ${label.toLowerCase()}`}
           hitSlop={4}
           testID={testID ? `${testID}-decrement` : undefined}
-          style={styles.counterButton}
+          style={[styles.counterButton, { opacity: disabled || value <= min ? 0.45 : 1 }]}
           disabled={disabled || value <= min}
           onPress={() => onChange(Math.max(min, value - 1))}
         >
           <Ionicons
             name="remove-outline"
             size={20}
-            color={colors.primaryLight}
+            color={colors.primary}
           />
         </TouchableOpacity>
         <Text
@@ -167,13 +169,28 @@ export function AssignmentCounter({
           accessibilityLabel={`Increase ${label.toLowerCase()}`}
           hitSlop={4}
           testID={testID ? `${testID}-increment` : undefined}
-          style={styles.counterButton}
+          style={[styles.counterButton, { opacity: disabled || value >= max ? 0.45 : 1 }]}
           disabled={disabled || value >= max}
           onPress={() => onChange(Math.min(max, value + 1))}
         >
-          <Ionicons name="add-outline" size={20} color={colors.primaryLight} />
+          <Ionicons name="add-outline" size={20} color={colors.primary} />
         </TouchableOpacity>
       </View>
     </View>
   );
+}
+
+export function AssignmentRandomizer({ value, max = 100, disabled, hasAssignments, onChange, onRandomize, testID }:
+  { value: number; max?: number; disabled?: boolean; hasAssignments?: boolean; onChange: (count: number) => void; onRandomize: () => void; testID?: string }) {
+  const colors = useColors();
+  return <YStack gap="$2" testID={testID}>
+    <XStack alignItems="center" justifyContent="space-between" gap="$2">
+      <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500", flexShrink: 1 }}>Matches each</Text>
+      <AssignmentCounter compact label="Default matches per player" value={value} max={max} disabled={disabled}
+        testID={testID ? "lobby-matches-per-player" : undefined} onChange={onChange} />
+    </XStack>
+    <ShellActionButton variant="surface" size="small" disabled={disabled} onPress={onRandomize}
+      label={hasAssignments ? "Randomize Again" : "Randomize Matches"}
+      icon={<Ionicons name="shuffle" size={20} color={colors.primary} />} />
+  </YStack>;
 }
