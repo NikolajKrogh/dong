@@ -67,6 +67,14 @@ describe("MatchSelectionCard", () => {
     ).toBe("2/5");
   });
 
+  it("keeps a customized badge outside the disclosure without duplicating it", () => {
+    const renderer = render({ collapsed: true, renderBadge: (badge: React.ReactNode) =>
+      React.createElement("View", { testID: "count-controls" }, badge) });
+    expect(renderer.root.findAllByProps({ testID: "badge" })).toHaveLength(1);
+    expect(renderer.root.findByProps({ testID: "count-controls" }).findByProps({ testID: "badge" })).toBeTruthy();
+    expect(renderer.root.findByProps({ accessibilityRole: "button" }).findAllByProps({ testID: "badge" })).toHaveLength(0);
+  });
+
   it("hides its body when collapsed and shows it when expanded", () => {
     const collapsed = render({ collapsed: true });
     expect(collapsed.root.findAllByProps({ testID: "card-body" })).toHaveLength(

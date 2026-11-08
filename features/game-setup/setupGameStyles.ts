@@ -303,20 +303,9 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       marginHorizontal: 10,
       color: colors.textPrimary,
     },
-    groupedCounter: {
-      backgroundColor: colors.backgroundLight,
-      borderWidth: 1,
-      borderColor: colors.border,
-      borderRadius: 8,
-    },
-    groupedCounterButton: {
+    subtleCounterButton: {
       backgroundColor: "transparent",
       borderRadius: 8,
-    },
-    groupedCounterValue: {
-      minWidth: 24,
-      marginHorizontal: 0,
-      textAlign: "center",
     },
     randomizeButton: {
       ...makeBaseButton(),

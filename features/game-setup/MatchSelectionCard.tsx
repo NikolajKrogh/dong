@@ -30,6 +30,7 @@ interface MatchSelectionCardProps {
   flat?: boolean;
   children?: React.ReactNode;
   headerAction?: React.ReactNode;
+  renderBadge?: (badge: React.ReactNode) => React.ReactNode;
   /**
    * Applied to the outer container so callers keep their own layout styles.
    * Named `style` rather than `containerStyle` deliberately: callers' existing
@@ -72,6 +73,7 @@ export function MatchSelectionCard({
   onToggleCollapsed,
   children,
   headerAction,
+  renderBadge,
   style,
   testID,
   badgeTestID,
@@ -89,6 +91,15 @@ export function MatchSelectionCard({
     "person-outline";
   if (onToggleCollapsed)
     headerIcon = collapsed ? "chevron-forward" : "chevron-down";
+  const badge = badgeLabel ? (
+    <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>{badgeLabel}</Text>
+  ) : (
+    <View style={styles.playerBadge}>
+      <Text testID={badgeTestID} accessibilityLabel={statusLabel} accessibilityLiveRegion="polite" style={styles.playerBadgeText}>
+        {selectedCount}/{totalCount}
+      </Text>
+    </View>
+  );
 
   return (
     <View
@@ -119,18 +130,9 @@ export function MatchSelectionCard({
               <Text numberOfLines={2} style={styles.playerAssignmentName}>{title}</Text>
             </View>
           </View>
-          {badgeLabel ? (
-            <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
-              {badgeLabel}
-            </Text>
-          ) : (
-            <View style={styles.playerBadge}>
-              <Text testID={badgeTestID} accessibilityLabel={statusLabel} accessibilityLiveRegion="polite" style={styles.playerBadgeText}>
-                {selectedCount}/{totalCount}
-              </Text>
-            </View>
-          )}
+          {renderBadge ? null : badge}
         </TouchableOpacity>
+        {renderBadge?.(badge)}
         {headerAction}
       </View>
       {collapsed && summary ? <Text numberOfLines={1} style={{ color: colors.textMuted, fontSize: 13, marginTop: 4, marginLeft: 26 }}>{summary}</Text> : null}
