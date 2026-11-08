@@ -20,7 +20,7 @@ npm install               # install dependencies
 npm run auth:env          # bootstrap .env.local from linked Supabase project
 npm test                  # Jest unit tests
 npm run lint              # ESLint
-npm run test:e2e          # isolated local stack + three Playwright BDD happy paths
+npm run test:e2e          # isolated local stack + three Playwright BDD user journeys
 npx expo start --dev-client   # dev server (native)
 npx expo start --web          # dev server (web)
 ```

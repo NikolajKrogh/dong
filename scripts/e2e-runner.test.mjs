@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { assertWorkspaceConfig, ports } from "./e2e-workspace.mjs";
 import { configureGateway } from "./e2e-gateway.mjs";
-import { acquireRunnerLock, assertPortAvailable, capturedCommandError, stopProcess } from "./e2e-process.mjs";
+import { acquireRunnerLock, assertPortAvailable, extractCommandErrorMessage, stopProcess } from "./e2e-process.mjs";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { parse, stringify } from "yaml";
@@ -44,10 +44,10 @@ test("a competing worktree cannot acquire or remove the owning runner's lock", (
 
 test("captured CLI errors retain the failure reason without credentials", () => {
   const output = JSON.stringify({ error: { message: 'Port occupied; postgresql://fixture:private@localhost/db SUPABASE_SERVICE_ROLE_KEY="private-key" sb_secret_private eyJhbGciOiJIUzI1NiJ9.e30.private' } });
-  const message = capturedCommandError(output);
+  const message = extractCommandErrorMessage(output);
   assert.match(message, /Port occupied/);
   assert.doesNotMatch(message, /fixture|private/);
-  assert.equal(capturedCommandError('{"SERVICE_ROLE_KEY":"private"}'), undefined);
+  assert.equal(extractCommandErrorMessage('{"SERVICE_ROLE_KEY":"private"}'), undefined);
 });
 
 test("local gateway replaces spoofed caller headers and retains existing transforms", async () => {

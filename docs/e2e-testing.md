@@ -12,7 +12,7 @@ The command owns a disposable `dong-e2e` Supabase project under ignored `.supaba
 
 Reserved ports: Supabase 60320–60329, Edge inspector 60330, Java 18080, Expo 18093. Occupied ports and concurrent runs fail instead of reusing another application's services. An atomic lock in the operating system temp directory prevents separate worktrees from starting the same Docker project concurrently. The normal development Supabase project and database are not reset. Completion or interruption stops only processes and the stack owned by this run.
 
-## Three happy paths
+## Three user journeys
 
 Each scenario runs once in phone-sized Chromium, with one worker and no retries. The retained journeys include axe accessibility checks; no additional browser test matrix is introduced:
 

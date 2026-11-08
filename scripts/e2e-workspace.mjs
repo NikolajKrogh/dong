@@ -40,7 +40,7 @@ export function prepareWorkspace() {
   const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const key = { ...privateKey.export({ format: "jwk" }), kid: randomUUID(), use: "sig", alg: "ES256", key_ops: ["sign", "verify"] };
   writeFileSync(join(target, "signing_keys.json"), JSON.stringify([key]));
-  return { catalogSecret: randomBytes(32).toString("hex"), databasePassword: randomBytes(24).toString("hex") };
+  return { catalogSigningKey: randomBytes(32).toString("hex"), databasePassword: randomBytes(24).toString("hex") };
 }
 
 export function assertWorkspace() {

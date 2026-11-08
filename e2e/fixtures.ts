@@ -6,41 +6,41 @@ import { createRequire } from "node:module";
 const nodeRequire = createRequire(`${process.cwd()}/package.json`);
 
 interface JourneyWorld {
-  guest?: Page;
-  freshAccount?: Page;
+  guestPage?: Page;
+  freshSessionPage?: Page;
   roomId?: string;
-  newPage: () => Promise<Page>;
+  newIsolatedPage: () => Promise<Page>;
 }
 
-export const test = base.extend<{ localServices: void; world: JourneyWorld }>({
+export const test = base.extend<{ localServiceTrafficGuard: void; world: JourneyWorld }>({
   world: async ({ browser, baseURL }, provideFixture) => {
-    const contexts: { context: BrowserContext; assertLocal: () => void }[] = [];
+    const contexts: { context: BrowserContext; assertLocalServiceTraffic: () => void }[] = [];
     try {
-      await provideFixture({ newPage: async () => {
+      await provideFixture({ newIsolatedPage: async () => {
         const context = await browser.newContext({
           baseURL,
           viewport: { width: 390, height: 844 },
           timezoneId: "UTC",
           serviceWorkers: "block",
         });
-        const assertLocal = await guardLocalServices(context);
-        contexts.push({ context, assertLocal });
+        const assertLocalServiceTraffic = await guardLocalServices(context);
+        contexts.push({ context, assertLocalServiceTraffic });
         return context.newPage();
       } });
     } finally {
       try {
-        for (const { assertLocal } of contexts) assertLocal();
+        for (const { assertLocalServiceTraffic } of contexts) assertLocalServiceTraffic();
       } finally {
         await Promise.all(contexts.map(({ context }) => context.close()));
       }
     }
   },
-  localServices: [async ({ context }, provideFixture) => {
-    const assertLocal = await guardLocalServices(context);
+  localServiceTrafficGuard: [async ({ context }, provideFixture) => {
+    const assertLocalServiceTraffic = await guardLocalServices(context);
     try {
       await provideFixture();
     } finally {
-      assertLocal();
+      assertLocalServiceTraffic();
     }
   }, { auto: true }],
 });
@@ -48,8 +48,8 @@ export const test = base.extend<{ localServices: void; world: JourneyWorld }>({
 async function guardLocalServices(context: BrowserContext) {
   const unexpected: string[] = [];
   const serviceUrls = [
-    new URL(fixtureEnv("PLAYWRIGHT_BASE_URL")),
-    new URL(fixtureEnv("E2E_SUPABASE_URL")),
+    new URL(readRequiredTestEnv("PLAYWRIGHT_BASE_URL")),
+    new URL(readRequiredTestEnv("E2E_SUPABASE_URL")),
     new URL("http://127.0.0.1:18080"),
   ];
   for (const url of serviceUrls) {
@@ -108,7 +108,7 @@ const fixtureEnvironment = {
   E2E_PASSWORD: process.env.E2E_PASSWORD,
 };
 
-export function fixtureEnv(name: keyof typeof fixtureEnvironment): string {
+export function readRequiredTestEnv(name: keyof typeof fixtureEnvironment): string {
   const value = fixtureEnvironment[name];
   if (!value) throw new Error(`Missing ${name}; run npm run test:e2e.`);
   return value;
@@ -118,12 +118,12 @@ export async function signIn(page: Page, email: string) {
   await page.goto("/userPreferences");
   await page.getByRole("button", { name: "Sign in or create account", exact: true }).click();
   await page.getByLabel("Email address", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(fixtureEnv("E2E_PASSWORD"));
+  await page.getByLabel("Password", { exact: true }).fill(readRequiredTestEnv("E2E_PASSWORD"));
   await page.getByRole("button", { name: /^Sign in.*→$/ }).click();
   await expect(page.getByRole("button", { name: "Profile & username", exact: true })).toBeVisible();
 }
 
-export async function expectAccessible(page: Page) {
+export async function expectNoAxeViolations(page: Page) {
   await page.addScriptTag({ content: axe.source });
   const violations = await page.evaluate(async () => {
     const browserAxe = (window as unknown as { axe: typeof import("axe-core") }).axe;

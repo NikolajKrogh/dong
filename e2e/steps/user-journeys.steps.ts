@@ -1,6 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
-import { expectAccessible, fixtureEnv, signIn, test } from "../fixtures";
+import { expectNoAxeViolations, readRequiredTestEnv, signIn, test } from "../fixtures";
 
 const { Given, When, Then } = createBdd(test);
 const manualMatches = [
@@ -61,7 +61,7 @@ async function finishGame(page: Page) {
 
 Given("a player opens the local app", async ({ page }) => {
   await openHome(page);
-  await expectAccessible(page);
+  await expectNoAxeViolations(page);
 });
 
 When("the player configures and starts a solo game", async ({ page }) => {
@@ -108,7 +108,7 @@ Then("the completed solo game appears in history", async ({ page }) => {
 });
 
 Given("a host signs in to the local app", async ({ page }) => {
-  await signIn(page, fixtureEnv("E2E_HOST_EMAIL"));
+  await signIn(page, readRequiredTestEnv("E2E_HOST_EMAIL"));
   await openHome(page);
 });
 
@@ -118,17 +118,17 @@ When("the host creates a room and a guest joins", async ({ page, world }) => {
   const code = page.getByTestId("lobby-join-code");
   await expect(code).toHaveText(/^\d{6}$/);
   world.roomId = new URL(page.url()).pathname.split("/").pop();
-  const guest = await world.newPage();
-  world.guest = guest;
-  await openHome(guest);
-  await guest.getByTestId("home-start-game-button").click();
-  await guest.getByTestId("home-join-room-button").click();
-  await guest.getByLabel("Room Code", { exact: true }).fill((await code.innerText()).trim());
-  await guest.getByLabel("Guest Name", { exact: true }).fill("Casey");
-  await guest.getByRole("button", { name: "Join Room", exact: true }).click();
-  await expect(guest.getByRole("tab", { name: /^Room/ })).toBeVisible();
-  await guest.getByRole("tab", { name: /^Room/ }).click();
-  await expect(guest.getByText("E2EHost", { exact: true })).toBeVisible();
+  const guestPage = await world.newIsolatedPage();
+  world.guestPage = guestPage;
+  await openHome(guestPage);
+  await guestPage.getByTestId("home-start-game-button").click();
+  await guestPage.getByTestId("home-join-room-button").click();
+  await guestPage.getByLabel("Room Code", { exact: true }).fill((await code.innerText()).trim());
+  await guestPage.getByLabel("Guest Name", { exact: true }).fill("Casey");
+  await guestPage.getByRole("button", { name: "Join Room", exact: true }).click();
+  await expect(guestPage.getByRole("tab", { name: /^Room/ })).toBeVisible();
+  await guestPage.getByRole("tab", { name: /^Room/ }).click();
+  await expect(guestPage.getByText("E2EHost", { exact: true })).toBeVisible();
   await expect(page.getByText("Casey", { exact: false })).toBeVisible();
 });
 
@@ -145,9 +145,9 @@ When("the host configures and starts the shared game", async ({ page, world }) =
   await expect(page.getByRole("button", { name: "Casey: 1/1 additional matches", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Start with these assignments", exact: true }).click();
   await expect(page.getByTestId("GameProgressTabBarContainer")).toBeVisible();
-  const guest = world.guest!;
-  await expect(guest.getByTestId("GameProgressTabBarContainer")).toBeVisible();
-  await expectAccessible(page);
+  const guestPage = world.guestPage!;
+  await expect(guestPage.getByTestId("GameProgressTabBarContainer")).toBeVisible();
+  await expectNoAxeViolations(page);
 });
 
 When("the host records a shared goal", async ({ page }) => {
@@ -155,7 +155,7 @@ When("the host records a shared goal", async ({ page }) => {
 });
 
 Then("the guest sees the shared score", async ({ world }) => {
-  await expect(commonCard(world.guest!)).toContainText(/Common\s*1\s*-\s*0/);
+  await expect(commonCard(world.guestPage!)).toContainText(/Common\s*1\s*-\s*0/);
 });
 
 When("the host finishes the shared game", async ({ page }) => {
@@ -163,16 +163,16 @@ When("the host finishes the shared game", async ({ page }) => {
 });
 
 Then("both browsers see that the shared game ended", async ({ page, world }) => {
-  const guest = world.guest!;
-  await expect(guest.getByRole("heading", { name: "Game ended by host", exact: true })).toBeVisible();
-  await guest.getByRole("button", { name: "Go to Home now", exact: true }).click();
-  await expect(guest.getByRole("button", { name: "Start New Game", exact: true })).toBeVisible();
+  const guestPage = world.guestPage!;
+  await expect(guestPage.getByRole("heading", { name: "Game ended by host", exact: true })).toBeVisible();
+  await guestPage.getByRole("button", { name: "Go to Home now", exact: true }).click();
+  await expect(guestPage.getByRole("button", { name: "Start New Game", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Game Stats/ }).click();
   await expect(page.getByTestId(`HistoryGameItem-${world.roomId}`)).toContainText("Casey");
 });
 
 Given("an account owner signs in to the local app", async ({ page }) => {
-  await signIn(page, fixtureEnv("E2E_ACCOUNT_EMAIL"));
+  await signIn(page, readRequiredTestEnv("E2E_ACCOUNT_EMAIL"));
 });
 
 When("the owner changes their username and theme", async ({ page }) => {
@@ -190,14 +190,14 @@ When("the owner changes their username and theme", async ({ page }) => {
 When("the owner signs out and signs in with a fresh browser", async ({ page, world }) => {
   await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(page.getByRole("button", { name: "Sign in or create account", exact: true })).toBeVisible();
-  world.freshAccount = await world.newPage();
-  await signIn(world.freshAccount, fixtureEnv("E2E_ACCOUNT_EMAIL"));
+  world.freshSessionPage = await world.newIsolatedPage();
+  await signIn(world.freshSessionPage, readRequiredTestEnv("E2E_ACCOUNT_EMAIL"));
 });
 
 Then("the saved username and theme are restored", async ({ world }) => {
-  const page = world.freshAccount!;
+  const page = world.freshSessionPage!;
   await expect(page.getByText("E2EAccountUpdated", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /^Appearance/ }).click();
   await expect(page.getByRole("switch", { name: "Dark Mode", exact: true })).toBeChecked();
-  await expectAccessible(page);
+  await expectNoAxeViolations(page);
 });

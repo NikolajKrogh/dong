@@ -261,4 +261,4 @@ journey. Run `npm test` and `npm run lint` before opening a pull request.
 
 ## End-to-end testing
 
-Run `npm run test:e2e` for three happy-path journeys against an isolated local stack. See [local E2E setup](docs/e2e-testing.md) for prerequisites, lifecycle and coverage.
+Run `npm run test:e2e` for three user journeys against an isolated local stack. See [local E2E setup](docs/e2e-testing.md) for prerequisites, lifecycle and coverage.

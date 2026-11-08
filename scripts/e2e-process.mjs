@@ -28,7 +28,7 @@ export function acquireRunnerLock(path, worktree) {
   };
 }
 
-export function capturedCommandError(output) {
+export function extractCommandErrorMessage(output) {
   for (const line of output.trim().split(/\r?\n/).reverse()) {
     let error;
     try { error = JSON.parse(line).error; } catch { continue; }

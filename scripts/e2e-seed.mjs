@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Buffer } from "node:buffer";
 import { apiUrl, identities } from "./e2e-workspace.mjs";
 
-export async function seedEnvironment({ anonKey, serviceKey, executeSql, databasePassword }) {
+export async function seedEnvironment({ publishableKey, serviceRoleKey, executeSql, databasePassword }) {
   await executeSql(`
     set timezone='UTC';
     update cron.job set active=false;
@@ -22,12 +22,12 @@ export async function seedEnvironment({ anonKey, serviceKey, executeSql, databas
       cross join (values ('e2e-arsenal-chelsea','Arsenal','Chelsea'),('e2e-liverpool-everton','Liverpool','Everton'),('e2e-city-united','Manchester City','Manchester United')) fixture(event_id,home,away)
       where l.league_code='eng.1';
   `);
-  const admin = createClient(apiUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient(apiUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
   let hostAccessToken;
   for (const [email, username] of [[identities.hostEmail, "E2EHost"], [identities.accountEmail, "E2EAccount"]]) {
     const created = await admin.auth.admin.createUser({ email, password: identities.password, email_confirm: true });
     if (created.error) throw new Error(`Could not create local ${username}: ${created.error.message}`);
-    const client = createClient(apiUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const client = createClient(apiUrl, publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const signedIn = await client.auth.signInWithPassword({ email, password: identities.password });
     if (signedIn.error) throw new Error(`Local Auth login failed: ${signedIn.error.message}`);
     if (email === identities.hostEmail) hostAccessToken = signedIn.data.session.access_token;
