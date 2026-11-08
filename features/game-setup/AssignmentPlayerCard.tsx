@@ -4,20 +4,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useColors } from "../../styles/theme";
 import { AssignmentCounter } from "./AssignmentControls";
 import { MatchSelectionCard } from "./MatchSelectionCard";
-import type { SelectableMatch } from "./SelectableMatchList";
 
-export function AssignmentPlayerCard({ target, defaultCount, selectedMatches = [], onSetCount, usesDefault = true, disabled, ...props }:
+export function AssignmentPlayerCard({ target, defaultCount, onSetCount, usesDefault = true, disabled, ...props }:
   React.ComponentProps<typeof MatchSelectionCard> & {
     target: number; onSetCount?: (count: number | null) => void;
     usesDefault?: boolean; disabled?: boolean;
-    defaultCount?: number; selectedMatches?: SelectableMatch[];
+    defaultCount?: number;
   }) {
   const colors = useColors();
   const remaining = target - props.selectedCount;
   const status = remaining === 0 ? `${props.selectedCount} selected` : remaining > 0 ? `${remaining} left` : `${-remaining} too many`;
-  return <MatchSelectionCard {...props} flat statusLabel={props.badgeLabel ? undefined : status}
-    summary={selectedMatches.map(match => `${match.homeTeam}–${match.awayTeam}`).join(" · ")}
-    style={[props.style, { padding: 0, borderWidth: 0, borderRadius: 0, borderBottomWidth: 1, borderBottomColor: colors.borderLight, paddingVertical: 10, marginBottom: 0 }]}
+  return <MatchSelectionCard {...props} statusLabel={props.badgeLabel ? undefined : status}
+    style={[{ backgroundColor: colors.surface, borderRadius: 8, padding: 16, marginBottom: 16,
+      boxShadow: `0px 2px 3px ${colors.border}`, }, props.style]}
     headerAction={onSetCount ? <View>
     <AssignmentCounter compact label={`${props.title}'s additional matches`} value={target} max={100}
       disabled={disabled} onChange={onSetCount} />

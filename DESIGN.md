@@ -2,6 +2,10 @@
 
 ## Overview
 
+### Assignment screens
+
+Use the original local-play setup screenshots as visual authority for assignment screens. Keep the grey page background, separate white player panels with soft shadows, pale inset disclosure headers, blue selected/target badges, circular blue counters, a white randomization panel with a full-width blue action, and filled blue Back / green Start Game footer buttons. Preserve the existing match-card gradients, team imagery and selected outlines. Hosting adds mode selection and editable per-player counts within these shared components; it does not introduce a flat list treatment or a separate visual language. Count badges represent non-common selections against the player's target. Retain accessible current-step and selected-mode states.
+
 This document describes the current DONG visual language as it exists in the product today. It is a documentation artifact, not a redesign brief.
 
 The app presents itself as a clean, game-day utility: bright action blue, white or near-black surfaces, strong semantic feedback, and card-based sections that keep live match data readable at a glance. The interface is mobile-first, but several screens already include wider-layout behavior such as wrapped badge rows, two-up cards, constrained dialogs, and full-width tab panes.

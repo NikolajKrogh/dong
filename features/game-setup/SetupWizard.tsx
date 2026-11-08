@@ -267,7 +267,7 @@ function WizardStepIndicator({ steps, currentStep, setCurrentStep, styles, color
                 name={step.icon}
                 size={24}
                 color={
-                  currentStep === index ? colors.textLight : colors.textMuted
+                  colors.textLight
                 }
               />
               {wideLayout ? (
@@ -315,7 +315,6 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
         styles.navButton,
         { flexShrink: 1, minWidth: 0 },
         wideLayout && styles.navButtonWide,
-        action.label === "Back" && { backgroundColor: "transparent" },
         action.backgroundColor
           ? { backgroundColor: action.backgroundColor }
           : null,
@@ -329,11 +328,11 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
           <AppIcon
             name={action.icon}
             size={20}
-            color={action.label === "Back" ? colors.primaryDark : colors.textLight}
+            color={colors.textLight}
             style={{ marginRight: 8 }}
           />
         ) : null}
-        <Text style={[styles.navButtonText, { flexShrink: 1 }, action.label === "Back" && { color: colors.primaryDark }]}>{action.label}</Text>
+        <Text style={[styles.navButtonText, { flexShrink: 1 }]}>{action.label}</Text>
         {action.iconPosition === "leading" ? null : (
           <AppIcon
             name={action.icon}

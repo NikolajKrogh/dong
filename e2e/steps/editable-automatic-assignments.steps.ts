@@ -68,16 +68,16 @@ Given("a host is editing an automatic room with editable assignments", async ({ 
 When("the host adjusts a collapsed player's count and restores the default", async ({ page }) => {
   const card = page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`);
   await card.getByRole("button", { name: "Increase alice host's additional matches", exact: true }).click();
-  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("3 left");
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("0/3");
   await expect(card.getByRole("checkbox")).toHaveCount(0);
   await card.getByRole("button", { name: "Use default count for Alice Host", exact: true }).click();
-  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("2 left");
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("0/2");
 });
 
 When("the host randomizes and edits the full match pool in both views", async ({ page }) => {
   await page.getByRole("button", { name: "Randomize Matches", exact: true }).click();
   const card = page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`);
-  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("2 selected");
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("2/2");
   await card.getByRole("button", { expanded: false }).first().click();
   await expect(card.getByRole("checkbox")).toHaveCount(4);
   const otherPlayer = page.getByTestId("lobby-assignment-player-editable-member");
@@ -85,7 +85,7 @@ When("the host randomizes and edits the full match pool in both views", async ({
   await expect(otherPlayer.getByRole("checkbox")).toHaveCount(4);
   await card.getByRole("checkbox", { name: "Cagliari versus Lecce", exact: true }).click();
   await expect(page.getByTestId("lobby-start-game")).toBeDisabled();
-  await expect(card.getByText("1 too many", { exact: true })).toBeVisible();
+  await expect(card.getByTestId(`lobby-allocation-status-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveText("3/2");
   await card.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true }).click();
   await expect(page.getByTestId("lobby-start-game")).toBeEnabled();
   await page.getByRole("button", { name: "Switch to match grid", exact: true }).click();

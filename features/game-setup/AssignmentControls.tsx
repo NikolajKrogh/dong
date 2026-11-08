@@ -155,7 +155,7 @@ export function AssignmentCounter({
           <Ionicons
             name="remove-outline"
             size={20}
-            color={colors.primary}
+            color={colors.textLight}
           />
         </TouchableOpacity>
         <Text
@@ -173,7 +173,7 @@ export function AssignmentCounter({
           disabled={disabled || value >= max}
           onPress={() => onChange(Math.min(max, value + 1))}
         >
-          <Ionicons name="add-outline" size={20} color={colors.primary} />
+          <Ionicons name="add-outline" size={20} color={colors.textLight} />
         </TouchableOpacity>
       </View>
     </View>
@@ -183,20 +183,20 @@ export function AssignmentCounter({
 export function AssignmentRandomizer({ value, max = 100, disabled, hasAssignments, onChange, onRandomize, testID }:
   { value: number; max?: number; disabled?: boolean; hasAssignments?: boolean; onChange: (count: number) => void; onRandomize: () => void; testID?: string }) {
   const colors = useColors();
-  return <YStack gap="$2" testID={testID}>
+  return <AssignmentPanel title="Random Assignment" testID={testID}><YStack gap="$3">
     <AssignmentDefaultCount value={value} max={max} disabled={disabled} onChange={onChange}
       testID={testID ? "lobby-matches-per-player" : undefined} />
-    <ShellActionButton variant="surface" size="small" disabled={disabled} onPress={onRandomize}
+    <ShellActionButton disabled={disabled} onPress={onRandomize}
       label={hasAssignments ? "Randomize Again" : "Randomize Matches"}
-      icon={<Ionicons name="shuffle" size={20} color={colors.primary} />} />
-  </YStack>;
+      icon={<Ionicons name="shuffle" size={20} color={colors.textLight} />} />
+  </YStack></AssignmentPanel>;
 }
 
 export function AssignmentDefaultCount({ value, max = 100, disabled, onChange, testID }:
   { value: number; max?: number; disabled?: boolean; onChange: (count: number) => void; testID?: string }) {
   const colors = useColors();
   return <XStack alignItems="center" justifyContent="space-between" gap="$2">
-    <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500", flexShrink: 1 }}>Matches each</Text>
+    <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500", flexShrink: 1 }}>Matches per player:</Text>
     <AssignmentCounter compact label="Default matches per player" value={value} max={max} disabled={disabled}
       testID={testID} onChange={onChange} />
   </XStack>;

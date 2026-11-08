@@ -242,9 +242,8 @@ describe("AssignmentSection progress badge", () => {
       matchesPerPlayer: 1,
     });
 
-    const statuses = renderer.root.findAllByType("Text" as never).map(node => node.props.children);
+    const statuses = renderer.root.findAllByType("Text" as never).map(node => node.props.accessibilityLabel);
     expect(statuses).toEqual(expect.arrayContaining(["1 too many", "1 left"]));
-    expect(statuses).toContain("Liverpool–Spurs · Leeds–Villa");
   });
 });
 

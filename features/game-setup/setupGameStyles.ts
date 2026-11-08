@@ -287,10 +287,8 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     counterButton: {
       width: 44,
       height: 44,
-      borderRadius: 8,
-      backgroundColor: colors.backgroundLight,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
+      borderRadius: 22,
+      backgroundColor: colors.primary,
       justifyContent: "center",
       alignItems: "center",
     },
@@ -537,9 +535,9 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     wizardMainPanel: {
       flex: 1,
       minWidth: 0,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
+      backgroundColor: colors.background,
+      borderRadius: 0,
+      borderWidth: 0,
       borderColor: colors.borderLight,
       overflow: "hidden",
     },
@@ -552,7 +550,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       paddingVertical: 8,
       paddingHorizontal: 0,
       borderRadius: 20,
-      backgroundColor: colors.backgroundSubtle,
+      backgroundColor: colors.primary,
     },
     stepButtonWide: {
       width: "100%",
@@ -567,7 +565,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.primary,
     },
     stepButtonLabel: {
-      color: colors.textMuted,
+      color: colors.textLight,
       fontSize: 15,
       fontWeight: "600",
     },
@@ -587,7 +585,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       flex: 1,
       minWidth: 4,
       maxWidth: 40,
-      backgroundColor: colors.borderLight,
+      backgroundColor: colors.primary,
       marginHorizontal: 8,
     },
     stepConnectorWide: {

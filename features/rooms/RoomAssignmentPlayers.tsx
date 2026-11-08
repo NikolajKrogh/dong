@@ -60,13 +60,12 @@ export function RoomAssignmentPlayers({
       style={[styles.assignmentSection, styles.compactAssignmentSection]}
     >
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, styles.compactAssignmentTitle]}>Players</Text>
+        <Text style={[styles.sectionTitle, styles.compactAssignmentTitle]}>{onToggleAllocation ? "Manual Assignment" : "Players"}</Text>
         {onToggleAllocation ? <AssignmentLayoutToggle grid={useGridLayout} onToggle={() => setUseGridLayout(value => !value)} /> : null}
       </View>
       {ownPicks}
       {participants.map((participant) => {
         const selected = selectedMatchIdsFor(participant.id);
-        const selectedIds = new Set(selected);
         const target = targetsByParticipantId?.[participant.id] ?? matchesPerPlayer;
         return (
           <AssignmentPlayerCard
@@ -74,7 +73,6 @@ export function RoomAssignmentPlayers({
             compact
             target={target}
             defaultCount={matchesPerPlayer}
-            selectedMatches={matches.filter(match => selectedIds.has(match.id))}
             disabled={isBusy}
             usesDefault={participant.additionalMatchCount == null}
             onSetCount={onSetPlayerMatchCount ? count => onSetPlayerMatchCount(participant.id, count) : undefined}

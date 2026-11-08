@@ -117,16 +117,15 @@ export function MatchSelectionCard({
             /> : null}
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text numberOfLines={2} style={styles.playerAssignmentName}>{title}</Text>
-              {statusLabel ? <Text accessibilityLiveRegion="polite" testID={badgeTestID} style={{ color: selectedCount > totalCount ? colors.dangerForeground : colors.textMuted, fontSize: 13, marginTop: 2 }}>{statusLabel}</Text> : null}
             </View>
           </View>
-          {statusLabel ? null : badgeLabel ? (
+          {badgeLabel ? (
             <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
               {badgeLabel}
             </Text>
           ) : (
             <View style={styles.playerBadge}>
-              <Text testID={badgeTestID} style={styles.playerBadgeText}>
+              <Text testID={badgeTestID} accessibilityLabel={statusLabel} accessibilityLiveRegion="polite" style={styles.playerBadgeText}>
                 {selectedCount}/{totalCount}
               </Text>
             </View>

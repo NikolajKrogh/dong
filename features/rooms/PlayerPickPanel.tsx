@@ -101,7 +101,6 @@ export function PlayerPickPanel({
   }
 
   const atCap = localPicks.length >= cap;
-  const selectedIds = new Set(localPicks);
 
   const disabledMatchIds = useMemo(
     () => {
@@ -153,7 +152,7 @@ export function PlayerPickPanel({
   return <YStack testID={testID} gap="$2">
     {onSetCount ? <AssignmentPlayerCard {...cardProps} target={cap} defaultCount={defaultCount}
       usesDefault={usesDefault} onSetCount={onSetCount} disabled={isBusy}
-      selectedMatches={matches.filter(match => selectedIds.has(match.id))}>{content}</AssignmentPlayerCard> :
+      >{content}</AssignmentPlayerCard> :
       <MatchSelectionCard {...cardProps} headerAction={clearAction}>{content}</MatchSelectionCard>}
   </YStack>;
 }

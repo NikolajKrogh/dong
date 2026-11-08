@@ -92,7 +92,7 @@ const ManualAssignmentSection = ({
   return (
     <View style={styles.assignmentSection}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Players</Text>
+        <Text style={styles.sectionTitle}>Manual Assignment</Text>
         <View style={styles.headerActionsRow}>
           <AssignmentLayoutToggle grid={useGridLayout} onToggle={onToggleLayout} />
 
@@ -107,7 +107,6 @@ const ManualAssignmentSection = ({
         ]}
       >
         {players.map((player) => {
-          const selectedIds = new Set(playerAssignments[player.id] ?? []);
           return (
           <AssignmentPlayerCard
             key={player.id}
@@ -117,7 +116,6 @@ const ManualAssignmentSection = ({
             ]}
             target={playerMatchCounts[player.id] ?? matchesPerPlayer}
             defaultCount={matchesPerPlayer}
-            selectedMatches={selectableMatches.filter(match => selectedIds.has(match.id))}
             onSetCount={setPlayerMatchCount ? count => setPlayerMatchCount(player.id, count) : undefined}
             usesDefault={playerMatchCounts[player.id] === undefined}
             disabled={isAssigning}
