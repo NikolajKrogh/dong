@@ -1962,6 +1962,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
 
     // Player header styles
     playerHeader: {
+      gap: 8,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
@@ -1975,11 +1976,15 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
 
     playerHeaderLeft: {
+      flex: 1,
+      minWidth: 0,
+      marginRight: 8,
       flexDirection: "row",
       alignItems: "center",
     },
 
     playerAssignmentName: {
+      flexShrink: 1,
       fontSize: 16,
       fontWeight: "500",
       color: colors.textPrimary,

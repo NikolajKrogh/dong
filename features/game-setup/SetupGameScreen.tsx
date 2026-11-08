@@ -102,7 +102,8 @@ const SetupGameScreen = () => {
     else router.setParams({ step: step === "players" ? undefined : step });
   };
   const canStartGame =
-    players.length > 0 && matches.length > 0 && commonMatchId !== null;
+    players.length > 0 && matches.length > 0 && commonMatchId !== null &&
+    players.every(p => (playerAssignments[p.id] ?? []).filter(id => id !== commonMatchId).length === (playerMatchCounts[p.id] ?? matchesPerPlayer));
 
   const handleAddPlayer = () => {
     if (newPlayerName.trim()) {

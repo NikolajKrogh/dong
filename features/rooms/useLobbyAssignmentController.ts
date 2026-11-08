@@ -48,17 +48,20 @@ export function useLobbyAssignmentController(
     () => snapshot ? roomSnapshotToActiveRoster(snapshot) : [],
     [snapshot],
   );
-  const assignments = useMemo(() => snapshot?.assignments ?? [], [snapshot?.assignments]);
+  const assignments = useMemo(
+    () => configure.supportsEditable ? configure.assignmentPreview.assignments : snapshot?.assignments ?? [],
+    [configure, snapshot],
+  );
   const commonMatchId = snapshot?.commonMatchId ?? null;
 
   const handleSelectMode = useCallback((mode: AssignmentMode) => {
     if (mode === assignmentMode) return;
-    if ((snapshot?.assignments.length ?? 0) > 0) {
+    if (assignments.length > 0) {
       setPendingModeSwitch(mode);
       return;
     }
     void configure.setAssignmentMode(mode);
-  }, [assignmentMode, configure, snapshot?.assignments.length]);
+  }, [assignmentMode, configure, assignments.length]);
 
   const handleConfirmModeSwitch = useCallback(() => {
     if (pendingModeSwitch) {
@@ -124,6 +127,7 @@ export function useLobbyAssignmentController(
     (participant) => additionalMatchIdsFor(participant.id).length < (plan.targetsByParticipantId?.[participant.id] ?? plan.matchesPerPlayer),
   );
   const toggleAllocation = useCallback((participantId: string, matchId: string) => {
+    if (configure.supportsEditable) { configure.assignmentPreview.toggleAssignment(participantId, matchId); return; }
     const activeAssignments = assignments.filter((assignment) =>
       participants.some((participant) => participant.id === assignment.participantId),
     );

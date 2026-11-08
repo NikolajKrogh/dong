@@ -74,7 +74,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
     [match.id, onToggleMatch],
   );
   const accessibilityState = React.useMemo(
-    () => ({ selected, disabled: disabled || readOnly }),
+    () => ({ selected, checked: selected, disabled: disabled || readOnly }),
     [disabled, selected, readOnly],
   );
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
@@ -107,6 +107,9 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
     return (
       <TouchableOpacity
         testID={testID}
+        accessibilityRole="checkbox"
+        aria-checked={selected}
+        accessibilityLabel={`${match.homeTeam} versus ${match.awayTeam}`}
         accessibilityState={accessibilityState}
         disabled={disabled || readOnly}
         style={buttonStyle}
@@ -115,6 +118,10 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
         <View style={styles.compactMatchNumberBadge}>
           <Text style={styles.compactMatchNumberText}>{index + 1}</Text>
         </View>
+        {!readOnly ? <View style={[styles.selectionCheckmark, { top: 2, right: 2 }]}>
+          <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={14}
+            color={selected ? colors.primary : colors.border} />
+        </View> : null}
         <View style={styles.compactTeamsContainer}>
           {homeTeamLogo ? (
             <Image source={homeTeamLogo} style={styles.compactTeamLogo} resizeMode="contain" />
@@ -139,6 +146,8 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
   return (
     <TouchableOpacity
       testID={testID}
+      accessibilityRole="checkbox"
+      aria-checked={selected}
       accessibilityState={accessibilityState}
       accessibilityLabel={`${match.homeTeam} versus ${match.awayTeam}`}
       disabled={disabled || readOnly}

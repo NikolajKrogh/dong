@@ -1,5 +1,5 @@
 import type { AssignmentQuality, AssignmentSets, SharingPolicy } from "../../shared/assignments/types";
-import type { AssignmentMode, RoomSnapshot, RunningGameConfiguration } from "../../types/room";
+import type { AssignmentMode, RoomAssignmentInput, RoomSnapshot, RunningGameConfiguration } from "../../types/room";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 
 export interface AssignmentContext {
@@ -31,6 +31,7 @@ interface CommitRequest extends AssignmentRequest {
   proposalId: string | null;
   idempotencyKey: string;
   acceptRelaxedSharing: boolean;
+  assignmentOverrides?: RoomAssignmentInput[];
 }
 export interface AssignmentTransport {
   prepare(request: AssignmentRequest): Promise<PreparedAssignmentPreview | PendingPreview>;
@@ -109,20 +110,32 @@ export function createRoomAssignments(
   }
 
   function commit(
-    reviewedPreview: AssignmentPreview | AssignmentIssue,
+    reviewedPreview: AssignmentPreview | AssignmentIssue | null,
     confirmation?: { acceptRelaxedSharing: boolean },
+    assignmentOverrides?: RoomAssignmentInput[],
   ): Promise<RoomSnapshot | AssignmentIssue> {
     if (inFlightCommit) return inFlightCommit;
     if (!pendingCommitRequest) {
-      if ("issue" in reviewedPreview) return Promise.resolve(reviewedPreview);
-      const previewHandle = previewHandles.get(reviewedPreview);
-      if (!previewHandle || previewHandle.contextKey !== serializeContext(readContext())) return Promise.resolve({ issue: "stale" });
-      if (reviewedPreview.expiresAt && Date.parse(reviewedPreview.expiresAt) <= now()) return Promise.resolve({ issue: "expired" });
-      if (reviewedPreview.requiresSharingConsent && !confirmation?.acceptRelaxedSharing) {
-        return Promise.resolve({ issue: "confirmation_required" });
+      if (assignmentOverrides !== undefined) {
+        const context = createFrozenCopy(readContext());
+        const targets = context.targetsByParticipantId ?? {};
+        if (Object.entries(targets).some(([id, count]) => assignmentOverrides.filter(a => a.participantId === id).length !== count)) {
+          return Promise.resolve({ issue: "invalid_configuration" });
+        }
+        pendingCommitRequest = createFrozenCopy({ sessionId, purpose, context, proposalId: null,
+          idempotencyKey: newKey(), acceptRelaxedSharing: false, assignmentOverrides });
+      } else {
+        if (!reviewedPreview) return Promise.resolve({ issue: "stale" });
+        if ("issue" in reviewedPreview) return Promise.resolve(reviewedPreview);
+        const previewHandle = previewHandles.get(reviewedPreview);
+        if (!previewHandle || previewHandle.contextKey !== serializeContext(readContext())) return Promise.resolve({ issue: "stale" });
+        if (reviewedPreview.expiresAt && Date.parse(reviewedPreview.expiresAt) <= now()) return Promise.resolve({ issue: "expired" });
+        if (reviewedPreview.requiresSharingConsent && !confirmation?.acceptRelaxedSharing) {
+          return Promise.resolve({ issue: "confirmation_required" });
+        }
+        pendingCommitRequest = createFrozenCopy({ ...previewHandle.request, proposalId: previewHandle.proposalId,
+          idempotencyKey: newKey(), acceptRelaxedSharing: reviewedPreview.requiresSharingConsent && confirmation?.acceptRelaxedSharing === true });
       }
-      pendingCommitRequest = createFrozenCopy({ ...previewHandle.request, proposalId: previewHandle.proposalId,
-        idempotencyKey: newKey(), acceptRelaxedSharing: reviewedPreview.requiresSharingConsent && confirmation?.acceptRelaxedSharing === true });
     }
     const request = pendingCommitRequest;
     inFlightCommit = (async (): Promise<RoomSnapshot | AssignmentIssue> => {

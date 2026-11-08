@@ -262,6 +262,14 @@ const completeSetupJourney = async (
   await expect(nextButton).toBeVisible();
   await nextButton.click();
 
+  const decreaseCount = page.getByRole("button", { name: "Decrease default matches per player", exact: true });
+  while (await decreaseCount.isEnabled()) await decreaseCount.click();
+  await page.getByRole("button", { name: "Increase default matches per player", exact: true }).click();
+  for (const card of await page.getByTestId("AssignmentPlayerCard").all()) {
+    await card.getByRole("button", { expanded: false }).first().click();
+    await card.getByRole("checkbox").first().click();
+  }
+
   const startGameButton = setupWizardNavigation.getByRole("button", {
     name: "Start Game",
     exact: true,

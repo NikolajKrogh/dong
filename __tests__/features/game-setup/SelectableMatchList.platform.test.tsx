@@ -123,10 +123,10 @@ describe("SelectableMatchList", () => {
 
     expect(
       findMatchButton(renderer, "m2").props.accessibilityState,
-    ).toEqual({ selected: true, disabled: false });
+    ).toEqual({ selected: true, checked: true, disabled: false });
     expect(
       findMatchButton(renderer, "m1").props.accessibilityState,
-    ).toEqual({ selected: false, disabled: false });
+    ).toEqual({ selected: false, checked: false, disabled: false });
   });
 
   // The cap case (FR-040): at the limit, unpicked matches go inert while the

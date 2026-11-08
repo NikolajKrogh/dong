@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 
 import {
@@ -20,6 +20,8 @@ import { useAssignmentPreview } from "./useAssignmentPreview";
 
 export interface UseRoomConfigureResult {
   supportsTargets: boolean;
+  supportsEditable: boolean;
+  randomizeAssignments: () => void;
   assignmentPreview: ReturnType<typeof useAssignmentPreview>;
   setPlayerMatchCount: (participantId: string, count: number | null) => Promise<void>;
   isBusy: boolean;
@@ -143,6 +145,7 @@ export const useRoomConfigure = (
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startGameIdempotencyKeyRef = useRef<string | null>(null);
+  const supportsEditable = snapshot?.assignmentPolicyVersion === 2 && snapshot.capabilities?.editableAutomaticAssignments === true && snapshot.assignmentMode !== "player_picked";
   const supportsTargets = snapshot?.capabilities?.perPlayerMatchCounts === true;
   const participants = snapshot ? roomSnapshotToActiveRoster(snapshot) : [];
   const overrides = Object.fromEntries(participants.filter(p => p.additionalMatchCount != null).map(p => [p.id, p.additionalMatchCount!]));
@@ -154,7 +157,7 @@ export const useRoomConfigure = (
       sharedMatchesPerPair: snapshot?.assignmentPlan.sharedMatchesPerPair ?? 0, playerMatchCounts: overrides,
       newMatches: [], assignments: (snapshot?.assignmentMode === "player_picked" ? snapshot.picks : snapshot?.assignments ?? [])
         .filter(a => a.matchId !== snapshot?.commonMatchId) },
-  });
+  }, { editable: supportsEditable, poolIds: (snapshot?.matches ?? []).filter(m => m.id !== snapshot?.commonMatchId).map(m => m.id) });
 
   const run = useCallback(
     async (action: (sessionId: string) => Promise<void>) => {
@@ -252,12 +255,26 @@ export const useRoomConfigure = (
       sharedMatchesPerPair: snapshot.assignmentPlan.sharedMatchesPerPair, playerMatchCounts: next });
   };
 
+  const randomizeRequested = useRef(false);
+  const randomizeAssignments = () => {
+    if (snapshot?.assignmentPlan.sharedMatchesPerPair === 1) { void assignmentPreview.review(); return; }
+    randomizeRequested.current = true;
+    if (snapshot) void setAssignmentSettings({ matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer, sharedMatchesPerPair: 1 });
+  };
+  useEffect(() => {
+    if (randomizeRequested.current && !isBusy && snapshot?.assignmentPlan.sharedMatchesPerPair === 1) {
+      randomizeRequested.current = false;
+      void assignmentPreview.review();
+    }
+  }, [isBusy, snapshot?.assignmentPlan.sharedMatchesPerPair, assignmentPreview]);
+
   const setAssignmentMode = useCallback(
     (mode: AssignmentMode) =>
       run(async (sessionId) => {
         await getRoomRpcClient().setRoomAssignmentMode(sessionId, mode);
+        if (supportsEditable) assignmentPreview.resetDraft();
       }),
-    [run],
+    [run, supportsEditable, assignmentPreview],
   );
 
   const setMyPicks = useCallback(
@@ -321,6 +338,8 @@ export const useRoomConfigure = (
 
   return {
     supportsTargets,
+    supportsEditable,
+    randomizeAssignments,
     assignmentPreview,
     setPlayerMatchCount,
     isBusy: isBusy || assignmentPreview.isBusy,

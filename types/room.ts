@@ -90,7 +90,7 @@ export interface RoomProviderGoal {
 
 export interface RoomSnapshot {
   assignmentPolicyVersion?: 1 | 2;
-  capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean };
+  capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean; editableAutomaticAssignments?: boolean };
   sessionId: string;
   joinCode: string;
   state: RoomState;

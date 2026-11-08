@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import {
@@ -19,6 +20,8 @@ interface AssignmentSettingsPanelProps {
   editing?: boolean;
   isBusy: boolean;
   onChange: (settings: RoomAssignmentSettingsRequest) => void;
+  onRandomize?: () => void;
+  hasRandomized?: boolean;
 }
 
 export function AssignmentSettingsPanel({
@@ -27,10 +30,21 @@ export function AssignmentSettingsPanel({
   editing = false,
   isBusy,
   onChange,
+  onRandomize,
+  hasRandomized,
 }: AssignmentSettingsPanelProps): React.JSX.Element {
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [showShared, setShowShared] = useState(false);
+  if (onRandomize) return <AssignmentPanel compact testID="lobby-assignment-settings">
+    <AssignmentCounter label="Additional matches each" value={plan.matchesPerPlayer} max={100} disabled={isBusy}
+      testID="lobby-matches-per-player" onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: 1 })} />
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={hasRandomized ? "Randomize Again" : "Randomize Matches"}
+      disabled={isBusy} onPress={onRandomize} style={styles.randomizeButton}>
+      <Ionicons name="shuffle" size={20} color={colors.textLight} />
+      <Text style={styles.randomizeButtonText}>{hasRandomized ? "Randomize Again" : "Randomize Matches"}</Text>
+    </TouchableOpacity>
+  </AssignmentPanel>;
   return (
     <AssignmentPanel compact testID="lobby-assignment-settings">
       <AssignmentCounter

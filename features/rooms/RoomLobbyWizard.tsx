@@ -6,6 +6,7 @@ import React, {
 } from "react";
 import { Platform } from "react-native";
 import { Text, YStack } from "tamagui";
+import { ShellActionButton } from "../../components/ui";
 import { LOBBY_STEPS, parseLobbyStep, resolveStep, sameViewParams, withViewParams, type LobbyStep, type RouteParams } from "../../platform/navigation/routeState";
 import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
 import { useColors } from "../../styles/theme";
@@ -75,7 +76,8 @@ export function RoomLobbyWizard({
   const [awayTeam, setAwayTeam] = useState("");
   const startGame = configure.startGame;
   const handleStartGame = () => {
-    if (snapshot.assignmentPolicyVersion === 2) { changeStep("assign"); void configure.assignmentPreview.review(); }
+    if (configure.supportsEditable) { void startGame(); }
+    else if (snapshot.assignmentPolicyVersion === 2) { changeStep("assign"); void configure.assignmentPreview.review(); }
     else void startGame();
   };
   const canEnterCommon = snapshot.assignmentPlan.poolSize > 0;
@@ -176,10 +178,10 @@ export function RoomLobbyWizard({
   };
   const finalAction = isHost
     ? {
-      label: snapshot.assignmentPolicyVersion === 2 ? "Review assignments" : "Start Game",
+      label: configure.supportsEditable ? "Start Game" : snapshot.assignmentPolicyVersion === 2 ? "Review assignments" : "Start Game",
       icon: "play" as const,
       testID: "lobby-start-game",
-      disabled: configure.isBusy || !assignment.plan.startable,
+      disabled: configure.isBusy || (configure.supportsEditable ? !configure.assignmentPreview.valid : !assignment.plan.startable),
       onPress: handleStartGame,
       backgroundColor: colors.success,
     }
@@ -350,17 +352,24 @@ function HostAssignmentContent({
   const handleStartAnyway = useCallback(() => void startGame(true), [startGame]);
   return (
     <>
-      <AssignmentModeSelector assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy} onSelectMode={onSelectMode} />
-      <AssignmentSettingsPanel plan={assignment.plan} mode={assignment.assignmentMode} isBusy={configure.isBusy} onChange={configure.setAssignmentSettings} />
+      <AssignmentModeSelector showHelp={!configure.supportsEditable} assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired} onSelectMode={onSelectMode} />
+      {!configure.supportsEditable || assignment.assignmentMode === "automatic" ?
+      <AssignmentSettingsPanel plan={assignment.plan} mode={assignment.assignmentMode} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired} onChange={configure.setAssignmentSettings}
+        onRandomize={configure.supportsEditable ? configure.randomizeAssignments : undefined} hasRandomized={configure.assignmentPreview.hasRandomized} /> : null}
       <LobbyAssignmentPlayers
         assignment={assignment}
         pickPanel={pickPanel}
-        isBusy={configure.isBusy}
-        onToggleAllocation={assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
+        isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
+        editable={configure.supportsEditable}
+        onToggleAllocation={configure.supportsEditable || assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
         onSetPlayerMatchCount={configure.supportsTargets ? configure.setPlayerMatchCount : undefined}
       />
-      {assignment.plan.targetsByParticipantId ? <>
-        <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy}
+      {configure.supportsEditable ? <>
+        {assignment.participants.filter(p => assignment.additionalMatchIdsFor(p.id).length !== (assignment.plan.targetsByParticipantId?.[p.id] ?? assignment.plan.matchesPerPlayer)).slice(0,1).map(p => <Text key={p.id} accessibilityRole="alert" color="$danger">{p.displayName} needs {assignment.plan.targetsByParticipantId?.[p.id] ?? assignment.plan.matchesPerPlayer} matches; {assignment.additionalMatchIdsFor(p.id).length} selected.</Text>)}
+        {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
+        {configure.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void configure.startGame(true); }} /> : null}
+      </> : assignment.plan.targetsByParticipantId ? <>
+        <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
           onReview={() => { void configure.assignmentPreview.review(); }} actionLabel="Start with these assignments"
           onCommit={accept => { void configure.assignmentPreview.commit(accept); }} />
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
@@ -369,7 +378,7 @@ function HostAssignmentContent({
         shortParticipants={assignment.shortParticipants}
         isHostAssigned={assignment.assignmentMode === "host_assigned"}
         error={configure.error}
-        isBusy={configure.isBusy}
+        isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
         onStartAnyway={handleStartAnyway}
       />}
     </>
@@ -401,12 +410,14 @@ function LobbyAssignmentPlayers({
   isBusy = false,
   onToggleAllocation,
   onSetPlayerMatchCount,
+  editable = false,
 }: {
   assignment: LobbyAssignmentController;
   pickPanel: React.ReactNode;
   isBusy?: boolean;
   onToggleAllocation?: (participantId: string, matchId: string) => void;
   onSetPlayerMatchCount?: (participantId: string, count: number | null) => void;
+  editable?: boolean;
 }): React.JSX.Element {
   const participants = pickPanel && !onSetPlayerMatchCount
     ? assignment.participants.filter(player => player.id !== assignment.participantId)
@@ -423,6 +434,7 @@ function LobbyAssignmentPlayers({
 
   return (
     <RoomAssignmentPlayers
+      editable={editable}
       participants={participants}
       matches={assignment.pickableMatches}
       matchesPerPlayer={assignment.plan.matchesPerPlayer}

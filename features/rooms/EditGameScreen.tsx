@@ -64,6 +64,7 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
   const [awayTeam, setAwayTeam] = useState("");
   const colors = useColors();
   const busy = draft.isSaving || !canEdit;
+  const controlsBusy = busy || draft.assignmentPreview.recoveryRequired;
   const selectable = draft.matches.filter(match => match.id !== baseline.commonMatchId);
   const commonMatch = draft.matches.filter(match => match.id === baseline.commonMatchId);
 
@@ -88,9 +89,10 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
     {!baseline.configurationToken ? <Text accessibilityRole="alert">This server must be updated before running games can be edited.</Text> : null}
     <SetupWizard activeStepKey={step} onStepChange={setStep} onStepBack={setStep}
       firstSlotAction={{ label: "Cancel", icon: "close", onPress: onCancel, disabled: draft.isSaving }}
-      finalAction={{ label: draft.isSaving ? "Saving…" : draft.supportsTargets ? "Review changes" : "Save changes", icon: "checkmark", testID: "EditGameSave",
+      finalAction={{ label: draft.isSaving ? "Saving…" : draft.supportsEditable ? "Save changes" : draft.supportsTargets ? "Review changes" : "Save changes", icon: "checkmark", testID: "EditGameSave",
         disabled: busy || !draft.canSave, backgroundColor: colors.success, onPress: () => {
-          if (draft.supportsTargets) { setStep("assign"); void draft.assignmentPreview.review(); } else void save();
+          if (draft.supportsEditable) void save();
+          else if (draft.supportsTargets) { setStep("assign"); void draft.assignmentPreview.review(); } else void save();
         } }}
       steps={[
         { key: "room", name: "Room", icon: "people", canEnter: true,
@@ -106,17 +108,19 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
           </YStack> },
         { key: "assign", name: "Assign", icon: "git-network", canEnter: true,
           content: <YStack padding="$4" gap="$4">
-            <AssignmentModeSelector allowPlayerPicked={false} assignmentMode={draft.mode} isBusy={busy} onSelectMode={mode => { if (mode !== "player_picked") draft.setMode(mode); }} />
-            <AssignmentSettingsPanel editing plan={draft.plan} mode={draft.mode} isBusy={busy} onChange={draft.setSettings} />
-            <RoomAssignmentPlayers participants={draft.participants} matches={selectable}
+            <AssignmentModeSelector showHelp={!draft.supportsEditable} allowPlayerPicked={false} assignmentMode={draft.mode} isBusy={controlsBusy} onSelectMode={mode => { if (mode !== "player_picked") draft.setMode(mode); }} />
+            {!draft.supportsEditable || draft.mode === "automatic" ? <AssignmentSettingsPanel editing plan={draft.plan} mode={draft.mode} isBusy={controlsBusy} onChange={draft.setSettings}
+              onRandomize={draft.supportsEditable ? draft.randomizeAssignments : undefined} hasRandomized={draft.assignmentPreview.hasRandomized} /> : null}
+            <RoomAssignmentPlayers editable={draft.supportsEditable} participants={draft.participants} matches={selectable}
               targetsByParticipantId={draft.plan.targetsByParticipantId}
               onSetPlayerMatchCount={draft.supportsTargets ? draft.setPlayerMatchCount : undefined}
-              matchesPerPlayer={draft.plan.effectivePerPlayer} isBusy={busy} pending={draft.mode === "automatic"} pendingLabel="On save"
+              matchesPerPlayer={draft.plan.effectivePerPlayer} isBusy={controlsBusy} pending={draft.mode === "automatic"} pendingLabel="On save"
               selectedMatchIdsFor={id => draft.assignments.filter(a => a.participantId === id).map(a => a.matchId)}
-              onToggleAllocation={draft.mode === "host_assigned" ? draft.toggleAssignment : undefined} />
+              onToggleAllocation={draft.supportsEditable || draft.mode === "host_assigned" ? draft.toggleAssignment : undefined} />
+            {draft.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void save(true); }} /> : null}
             {!draft.plan.feasible ? <Text color="$danger">Add more matches or lower the assignment count before saving.</Text> : null}
-            {draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}
-              isBusy={busy} onReview={() => { void draft.assignmentPreview.review(); }} actionLabel="Save these assignments"
+            {draft.supportsEditable ? draft.participants.filter(p => draft.assignments.filter(a => a.participantId === p.id).length !== draft.plan.targetsByParticipantId?.[p.id]).slice(0,1).map(p => <Text key={p.id} accessibilityRole="alert" color="$danger">{p.displayName} needs {draft.plan.targetsByParticipantId?.[p.id]} matches; {draft.assignments.filter(a => a.participantId === p.id).length} selected.</Text>) : draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}
+              isBusy={controlsBusy} onReview={() => { void draft.assignmentPreview.review(); }} actionLabel="Save these assignments"
               onCommit={accept => { void save(accept); }} /> : null}
           </YStack> },
       ]} />

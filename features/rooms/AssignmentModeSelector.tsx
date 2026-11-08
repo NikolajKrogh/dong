@@ -3,7 +3,6 @@ import { Text, TouchableOpacity, View } from "react-native";
 import type { AssignmentMode } from "../../types/room";
 import { AssignmentInfoModal } from "../game-setup/AssignmentControls";
 import AppIcon from "../../components/ui/AppIcon";
-import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
 
@@ -26,6 +25,7 @@ interface AssignmentModeSelectorProps {
   assignmentMode: AssignmentMode;
   allowPlayerPicked?: boolean;
   isBusy: boolean;
+  showHelp?: boolean;
   onSelectMode: (mode: AssignmentMode) => void;
 }
 
@@ -34,6 +34,7 @@ export function AssignmentModeSelector({
   allowPlayerPicked = true,
   isBusy,
   onSelectMode,
+  showHelp: allowHelp = true,
 }: AssignmentModeSelectorProps): React.JSX.Element {
   const [showHelp, setShowHelp] = useState(false);
   const colors = useColors();
@@ -42,7 +43,7 @@ export function AssignmentModeSelector({
     <View testID="lobby-assignment-mode">
       <View style={styles.sectionHeader}>
         <Text style={styles.filterSectionTitle}>Assignment mode</Text>
-        <TouchableOpacity
+        {allowHelp ? <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="About assignment modes"
           hitSlop={10}
@@ -53,7 +54,7 @@ export function AssignmentModeSelector({
             size={24}
             color={colors.primary}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> : null}
       </View>
       <AssignmentInfoModal
         visible={showHelp}
@@ -66,7 +67,7 @@ export function AssignmentModeSelector({
           <TouchableOpacity
             key={mode}
             accessibilityRole="button"
-            accessibilityLabel={ASSIGNMENT_MODE_LABELS[mode]}
+            accessibilityLabel={SHORT_LABELS[mode]}
             accessibilityState={{
               selected: mode === assignmentMode,
               disabled: isBusy,

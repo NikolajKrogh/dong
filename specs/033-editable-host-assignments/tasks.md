@@ -1,0 +1,12 @@
+# Delivery checklist
+
+- [x] Share inline counter/player-card composition and page-level list/grid controls.
+- [x] Integrate local setup, capable host setup and running editor.
+- [x] Keep complete non-common pools selectable with checked assignments.
+- [x] Extend the existing workflow with editable drafts and exact-count commits.
+- [x] Preserve uncertain retries and reject stale generation responses.
+- [x] Add compatible explicit-override RPC migration and generated types.
+- [x] Add workflow, pgTAP and Playwright BDD coverage.
+- [x] Exercise phone/desktop journeys and axe on assignment screens.
+- [ ] Deploy compatible migration before enabling the hosted client.
+- [ ] Complete live-server end-to-end rollout verification.

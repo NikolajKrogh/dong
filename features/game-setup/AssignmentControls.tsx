@@ -118,6 +118,7 @@ export function AssignmentCounter({
   disabled = false,
   onChange,
   testID,
+  compact = false,
 }: {
   label: string;
   description?: string;
@@ -127,17 +128,18 @@ export function AssignmentCounter({
   disabled?: boolean;
   onChange: (value: number) => void;
   testID?: string;
+  compact?: boolean;
 }): React.JSX.Element {
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   return (
-    <View style={styles.matchCounterContainer}>
-      <View style={styles.assignmentCounterLabel}>
+    <View style={compact ? { flexDirection: "row", alignItems: "center" } : styles.matchCounterContainer}>
+      {!compact ? <View style={styles.assignmentCounterLabel}>
         <Text style={styles.matchCountLabel}>{label}</Text>
         {description ? (
           <Text style={styles.assignmentDescription}>{description}</Text>
         ) : null}
-      </View>
+      </View> : null}
       <View style={styles.counter}>
         <TouchableOpacity
           accessibilityRole="button"

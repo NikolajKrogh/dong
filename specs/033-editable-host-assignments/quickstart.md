@@ -1,0 +1,26 @@
+# Verification and rollout
+
+```powershell
+npm run typecheck
+npm run lint
+node --no-experimental-webstorage -r ./scripts/jest-ci-env.cjs node_modules/jest/bin/jest.js --runInBand --watchAll=false __tests__/features/rooms __tests__/features/game-setup
+npx bddgen
+npx playwright test editable-automatic-assignments --workers=1
+npx react-doctor@latest . --scope changed --base HEAD
+```
+
+Run supabase/tests/database/editable_automatic_assignments.test.sql against an isolated migrated Supabase database. It covers explicit overrides, authorization, malformed picks, configuration conflicts, common insertion, persisted mode, idempotency and running saves. Retain the existing proposal tests for old-client compatibility.
+
+Apply 20261107162059_editable_automatic_assignments.sql before deploying the client. Verify editableAutomaticAssignments in room snapshots. Check a real host's Automatic → adjust → Start and running Edit → Save with exact selections preserved before rollout is considered complete.
+
+Development evidence is under artifacts/assignment-*. Phone browser checks use isolated mocked room services; they do not replace live-server rollout verification.
+
+## Verified locally
+
+- 361 room/setup unit and component checks passed; focused hook/card checks were repeated after the last changes.
+- Four new host Playwright journeys passed across phone and desktop viewports. Existing local setup and two-device player-picking journeys passed after updating setup to make explicit picks and accepting the current creation RPC in the shared mock.
+- Connected Android Chrome passed full-page axe in light and dark themes, including a long name and 34 non-common fixtures. Screenshots include assignment-phone-grid.png and assignment-phone-stress-grid.png.
+- Isolated SQL checks cover editable overrides, existing proposals, targets and modes. The clone required restoring source-equivalent test-role permissions after its schema-only import.
+- Type checking and scoped lint passed. Full lint still reports errors in pre-existing artifacts/host-ux-phone scripts. React Doctor scored 93/100 with five complexity warnings.
+
+The hosted migration and real-service end-to-end rollout remain unverified.

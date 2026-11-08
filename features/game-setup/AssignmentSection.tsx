@@ -11,7 +11,7 @@ import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { Match, Player } from "../../store/gameStore";
 import { AssignmentCounter, AssignmentInfoModal, AssignmentPanel } from "./AssignmentControls";
-import { MatchSelectionCard } from "./MatchSelectionCard";
+import { AssignmentPlayerCard, AssignmentLayoutToggle } from "./AssignmentPlayerCard";
 import {
   SelectableMatchList,
   type SelectableMatch,
@@ -54,6 +54,7 @@ interface RandomAssignmentSectionProps {
   matchesPerPlayer: number;
   setMatchesPerPlayer: (count: number) => void;
   onRandomAssignment: (count: number) => void;
+  hasAssignments?: boolean;
   styles: ReturnType<typeof createSetupGameStyles>;
   colors: ReturnType<typeof useColors>;
 }
@@ -66,6 +67,7 @@ function RandomAssignmentSection({
   matchesPerPlayer,
   setMatchesPerPlayer,
   onRandomAssignment,
+  hasAssignments,
   styles,
   colors,
 }: RandomAssignmentSectionProps): React.JSX.Element | null {
@@ -86,13 +88,13 @@ function RandomAssignmentSection({
       />
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityLabel="Randomize matches"
+        accessibilityLabel={hasAssignments ? "Randomize Again" : "Randomize Matches"}
         disabled={isAssigning}
         style={styles.randomizeButton}
         onPress={() => onRandomAssignment(matchesPerPlayer)}
       >
         <Ionicons name="shuffle" size={20} color={colors.primaryLight} />
-        <Text style={styles.randomizeButtonText}>Randomize Matches</Text>
+        <Text style={styles.randomizeButtonText}>{hasAssignments ? "Randomize Again" : "Randomize Matches"}</Text>
       </TouchableOpacity>
     </AssignmentPanel>
   );
@@ -155,13 +157,7 @@ const ManualAssignmentSection = ({
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Manual Assignment</Text>
         <View style={styles.headerActionsRow}>
-          <TouchableOpacity onPress={onToggleLayout} style={styles.layoutToggleButton}>
-            <Ionicons
-              name={useGridLayout ? "list" : "grid"}
-              size={22}
-              color={colors.primary}
-            />
-          </TouchableOpacity>
+          <AssignmentLayoutToggle grid={useGridLayout} onToggle={onToggleLayout} />
           <TouchableOpacity onPress={onToggleModal}>
             <Ionicons
               name="information-circle-outline"
@@ -187,7 +183,7 @@ const ManualAssignmentSection = ({
         ]}
       >
         {players.map((player) => (
-          <MatchSelectionCard
+          <AssignmentPlayerCard
             key={player.id}
             testID="AssignmentPlayerCard"
             style={[
@@ -195,29 +191,16 @@ const ManualAssignmentSection = ({
               styles.playerContainer,
               isWideLayout && styles.assignmentPlayerCardWide,
             ]}
+            target={playerMatchCounts[player.id] ?? matchesPerPlayer}
+            onSetCount={setPlayerMatchCount ? count => setPlayerMatchCount(player.id, count) : undefined}
+            usesDefault={playerMatchCounts[player.id] === undefined}
+            disabled={isAssigning}
             title={player.name}
             selectedCount={getAssignmentCount(player.id)}
             totalCount={setPlayerMatchCount ? playerMatchCounts[player.id] ?? matchesPerPlayer : nonCommonMatchCount}
             collapsed={collapsedPlayers[player.id] ?? true}
             onToggleCollapsed={() => onToggleCollapse(player.id)}
           >
-            {setPlayerMatchCount ? <>
-              <AssignmentCounter
-                label={`Additional matches for ${player.name}`}
-                value={playerMatchCounts[player.id] ?? matchesPerPlayer}
-                min={0}
-                max={100}
-                disabled={isAssigning}
-                onChange={count => setPlayerMatchCount(player.id, count)}
-              />
-              <Text>{(playerMatchCounts[player.id] ?? matchesPerPlayer) === 0 ? "Common match only" : "Plus the common match"}</Text>
-              {playerMatchCounts[player.id] !== undefined ? <TouchableOpacity
-                accessibilityRole="button"
-                accessibilityLabel={`Use default for ${player.name}`}
-                disabled={isAssigning}
-                onPress={() => setPlayerMatchCount(player.id, null)}
-              ><Text style={{ color: colors.primary }}>Use default</Text></TouchableOpacity> : null}
-            </> : null}
             <SelectableMatchList
               key={`${useGridLayout ? "grid" : "list"}-${player.id}`}
               matches={selectableMatches}
@@ -225,7 +208,7 @@ const ManualAssignmentSection = ({
               onToggleMatch={(matchId) => onToggleAssignment(player.id, matchId)}
               useGridLayout={useGridLayout}
             />
-          </MatchSelectionCard>
+          </AssignmentPlayerCard>
         ))}
       </View>
     </View>
@@ -350,6 +333,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
         matchesPerPlayer={matchesPerPlayer}
         setMatchesPerPlayer={setMatchesPerPlayer}
         onRandomAssignment={handleRandomAssignment}
+        hasAssignments={Object.values(playerAssignments).some(ids => ids.some(id => id !== commonMatchId))}
         styles={baseStyles}
         colors={colors}
       />

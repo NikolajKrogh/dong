@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Match } from "../../store/gameStore";
 import type { RoomSnapshot, RunningGameConfiguration } from "../../types/room";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
@@ -20,6 +20,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   const [playerMatchCounts, setPlayerMatchCounts] = useState<Record<string, number>>(() => Object.fromEntries(
     roomSnapshotToActiveRoster(snapshot).filter(participant => participant.additionalMatchCount != null).map(participant => [participant.id, participant.additionalMatchCount!]),
   ));
+  const supportsEditable = snapshot.assignmentPolicyVersion === 2 && snapshot.capabilities?.editableAutomaticAssignments === true;
   const supportsTargets = snapshot.capabilities?.perPlayerMatchCounts === true;
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   const assignmentPreview = useAssignmentPreview(snapshot.sessionId, "running_save", {
     revision: currentSnapshot.configurationToken ?? "", expectedToken: snapshot.configurationToken ?? "",
     targetsByParticipantId, configuration,
-  });
+  }, { editable: supportsEditable, poolIds: matches.filter(m => m.id !== snapshot.commonMatchId).map(m => m.id) });
 
   function updateMatches(next: Match[]): void {
     if (isLegacySaveInFlightRef.current) return;
@@ -60,6 +61,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   }
 
   function toggleAssignment(participantId: string, matchId: string): void {
+    if (supportsEditable) { assignmentPreview.toggleAssignment(participantId, matchId); return; }
     if (isSaving || !activeParticipantIds.has(participantId) || matchId === snapshot.commonMatchId) return;
     setAssignments(previous => {
       const exists = previous.some(assignment => assignment.participantId === participantId && assignment.matchId === matchId);
@@ -99,6 +101,19 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
     }
   }
 
+  const randomizeRequested = useRef(false);
+  function randomizeAssignments() {
+    if (settings.sharedMatchesPerPair === 1) { void assignmentPreview.review(); return; }
+    randomizeRequested.current = true;
+    setSettings(previous => ({ ...previous, sharedMatchesPerPair: 1 }));
+  }
+  useEffect(() => {
+    if (randomizeRequested.current && settings.sharedMatchesPerPair === 1) {
+      randomizeRequested.current = false;
+      void assignmentPreview.review();
+    }
+  }, [settings.sharedMatchesPerPair, assignmentPreview]);
+
   function setPlayerMatchCount(id: string, count: number | null): void {
     setPlayerMatchCounts(previous => {
       const next = { ...previous };
@@ -109,13 +124,13 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   }
 
   return {
-    supportsTargets, assignmentPreview, setPlayerMatchCount,
+    supportsEditable, randomizeAssignments, supportsTargets, assignmentPreview, setPlayerMatchCount,
     matches, updateMatches, mode, setMode, settings, setSettings, plan,
     participants: supportsTargets ? participants.map(participant => ({ ...participant, additionalMatchCount: playerMatchCounts[participant.id] ?? null })) : participants,
     fixedMatchIds,
-    assignments, toggleAssignment, isSaving: isSaving || assignmentPreview.isBusy,
+    assignments: supportsEditable ? assignmentPreview.assignments : assignments, toggleAssignment, isSaving: isSaving || assignmentPreview.isBusy,
     error: error ?? assignmentPreview.error, hasConflict: hasConflict || assignmentPreview.issue === "stale", save,
-    canSave: Boolean(snapshot.configurationToken) && plan.feasible && isAssignmentDraftValid && !hasConflict && assignmentPreview.issue !== "stale",
+    canSave: Boolean(snapshot.configurationToken) && plan.feasible && (supportsEditable ? assignmentPreview.valid : isAssignmentDraftValid) && !hasConflict && assignmentPreview.issue !== "stale",
   };
 }
 

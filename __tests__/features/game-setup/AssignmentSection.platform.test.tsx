@@ -141,11 +141,12 @@ it("edits an individual count and clears its explicit zero override", () => {
   const renderer = renderAssignmentSection({ playerMatchCounts: { p1: 0 }, setPlayerMatchCount });
   const collapse = renderer.root.findAllByProps({ testID: "AssignmentPlayerCard" })
     .find(node => typeof node.props.onToggleCollapsed === "function");
-  TestRenderer.act(() => collapse!.props.onToggleCollapsed());
-  const increase = renderer.root.findAllByProps({ accessibilityLabel: "Increase additional matches for alice" })[0];
+  expect(collapse!.props.collapsed).toBe(true);
+  const increase = renderer.root.findAllByProps({ accessibilityLabel: "Increase alice's additional matches" })[0];
   TestRenderer.act(() => increase.props.onPress());
   expect(setPlayerMatchCount).toHaveBeenCalledWith("p1", 1);
-  const reset = renderer.root.findAllByProps({ accessibilityLabel: "Use default for Alice" })[0];
+  expect(collapse!.props.collapsed).toBe(true);
+  const reset = renderer.root.findAllByProps({ accessibilityLabel: "Use default count for Alice" })[0];
   TestRenderer.act(() => reset.props.onPress());
   expect(setPlayerMatchCount).toHaveBeenCalledWith("p1", null);
 });

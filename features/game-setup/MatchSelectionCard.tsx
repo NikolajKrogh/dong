@@ -96,6 +96,8 @@ export function MatchSelectionCard({
     >
       <View style={[styles.playerHeader, flat && flatHeaderStyle]}>
         <TouchableOpacity
+          aria-expanded={onToggleCollapsed ? !collapsed : undefined}
+          accessibilityLabel={`${title}, ${selectedCount} of ${totalCount} matches`}
           accessibilityRole={onToggleCollapsed ? "button" : undefined}
           accessibilityState={
             onToggleCollapsed ? { expanded: !collapsed } : undefined
@@ -112,7 +114,7 @@ export function MatchSelectionCard({
               color={colors.primary}
               style={styles.chevronIcon}
             /> : null}
-            <Text style={styles.playerAssignmentName}>{title}</Text>
+            <Text numberOfLines={2} style={styles.playerAssignmentName}>{title}</Text>
           </View>
           {badgeLabel ? (
             <Text testID={badgeTestID} style={styles.assignmentPendingLabel}>
