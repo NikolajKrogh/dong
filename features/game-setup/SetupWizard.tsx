@@ -313,6 +313,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
       testID={action.testID}
       style={[
         styles.navButton,
+        { flexShrink: 1, minWidth: 0 },
         wideLayout && styles.navButtonWide,
         action.label === "Back" && { backgroundColor: "transparent" },
         action.backgroundColor
@@ -323,7 +324,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
       onPress={action.onPress}
       disabled={action.disabled}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", minWidth: 0 }}>
         {action.iconPosition === "leading" ? (
           <AppIcon
             name={action.icon}
@@ -332,7 +333,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
             style={{ marginRight: 8 }}
           />
         ) : null}
-        <Text style={[styles.navButtonText, action.label === "Back" && { color: colors.primaryDark }]}>{action.label}</Text>
+        <Text style={[styles.navButtonText, { flexShrink: 1 }, action.label === "Back" && { color: colors.primaryDark }]}>{action.label}</Text>
         {action.iconPosition === "leading" ? null : (
           <AppIcon
             name={action.icon}

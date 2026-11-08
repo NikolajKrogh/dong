@@ -34,6 +34,17 @@ export async function mockEditableAssignments(page: Page) {
     sessionId: HOST_ROOM_SESSION_ID, participantId: HOST_ROOM_PARTICIPANT_ID, role: "owner", joinCode: snapshot.joinCode,
   } : null));
   await page.route("**/rest/v1/rpc/get_room_snapshot", route => reply(route, snapshot));
+  await page.route("**/rest/v1/rpc/set_room_assignment_mode", async route => {
+    snapshot.assignmentMode = route.request().postDataJSON().mode;
+    snapshot.configurationToken += "-mode";
+    await reply(route, null);
+  });
+  await page.route("**/rest/v1/rpc/set_my_room_picks", async route => {
+    const ids: string[] = route.request().postDataJSON().match_ids ?? [];
+    snapshot.picks = ids.map(matchId => ({ participantId: HOST_ROOM_PARTICIPANT_ID, matchId }));
+    snapshot.configurationToken += "-picks";
+    await reply(route, null);
+  });
   await page.route("**/rest/v1/rpc/set_room_assignment_configuration_v2", async route => {
     const body = route.request().postDataJSON().configuration;
     snapshot.assignmentPlan.matchesPerPlayer = body.matchesPerPlayer;
@@ -53,7 +64,8 @@ export async function mockEditableAssignments(page: Page) {
     await page.route(`**/rest/v1/rpc/${name}`, async route => {
       const args = route.request().postDataJSON();
       expect(args.proposal_id).toBeNull();
-      committed = args.assignment_overrides;
+      committed = snapshot.assignmentMode === "player_picked" ? snapshot.picks : args.assignment_overrides;
+      if (snapshot.assignmentMode === "player_picked") expect(args.assignment_overrides ?? null).toBeNull();
       expect(committed).toBeInstanceOf(Array);
       snapshot.assignments = [...committed, ...snapshot.participants.map(p => ({ participantId: p.id, matchId: "common" }))];
       snapshot.state = "in_progress";

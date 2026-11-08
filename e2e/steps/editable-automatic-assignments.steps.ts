@@ -8,6 +8,40 @@ import { mockEditableAssignments, editableAssignmentState } from "./editable-ass
 
 const { Given, When, Then } = createBdd();
 
+When("the host selects and reviews their own picks", async ({ page }) => {
+  await page.getByRole("button", { name: "Players pick", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Players pick", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId(`lobby-assignment-player-${HOST_ROOM_PARTICIPANT_ID}`)).toHaveCount(0);
+  const picks = page.getByTestId("lobby-player-pick-panel");
+  await expect(picks.getByRole("button", { name: "Increase alice host's additional matches", exact: true })).toBeVisible();
+  await picks.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true }).click();
+  await picks.getByRole("checkbox", { name: "Cagliari versus Lecce", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Preview assignments", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Review picks", exact: true }).click();
+  await expect(page.getByTestId("assignment-preview-panel")).toBeVisible();
+  await expect(page.getByTestId("lobby-start-game")).toHaveText(/Start Game/);
+});
+
+Then("changing picks requires another review before starting", async ({ page }) => {
+  const picks = page.getByTestId("lobby-player-pick-panel");
+  await picks.getByRole("button", { name: "Increase alice host's additional matches", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Review picks", exact: true })).toBeVisible();
+  await picks.getByRole("button", { name: "Use default count for Alice Host", exact: true }).click();
+  await page.getByRole("button", { name: "Review picks", exact: true }).click();
+  await picks.getByRole("checkbox", { name: "Cardiff City versus Burnley", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Review picks", exact: true })).toBeVisible();
+  await expect(page.getByTestId("assignment-preview-panel")).toHaveCount(0);
+  await picks.getByRole("checkbox", { name: "Fulham versus Newcastle United", exact: true }).click();
+  await page.getByRole("button", { name: "Review picks", exact: true }).click();
+  await page.getByTestId("lobby-start-game").click();
+  await enterStartedGame(page);
+  expect(editableAssignmentState().committed).toEqual([
+    { participantId: HOST_ROOM_PARTICIPANT_ID, matchId: "three" },
+    { participantId: HOST_ROOM_PARTICIPANT_ID, matchId: "four" },
+  ]);
+  expect(editableAssignmentState().generationCount).toBe(0);
+});
+
 async function enterStartedGame(page: Page) {
   try { await page.waitForURL(/\/gameProgress/, { timeout: 6000 }); }
   catch (error) {

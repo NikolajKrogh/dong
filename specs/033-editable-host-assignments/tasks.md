@@ -11,3 +11,4 @@
 - [x] Deploy compatible migration before enabling the hosted client.
 - [x] Refine shared local/host presentation with compact original match cards, neutral counters and collapsed summaries.
 - [ ] Complete live-server end-to-end rollout verification.
+- [x] Combine host Players pick controls, centralize review/start in the footer and invalidate reviews after configuration changes.

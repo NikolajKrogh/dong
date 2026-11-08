@@ -68,6 +68,7 @@ export function AssignmentModeSelector({
             key={mode}
             accessibilityRole="button"
             accessibilityLabel={SHORT_LABELS[mode]}
+            aria-pressed={mode === assignmentMode}
             accessibilityState={{
               selected: mode === assignmentMode,
               disabled: isBusy,

@@ -34,6 +34,7 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
   useLayoutEffect(() => { latestContextRef.current = context; }, [context]);
   const workflowOwnerRef = useRef<{ sessionId: string; purpose: string; assignmentWorkflow: ReturnType<typeof createRoomAssignments> } | null>(null);
   const [preview, setPreview] = useState<AssignmentPreview | null>(null);
+  const [reviewedContextKey, setReviewedContextKey] = useState<string | null>(null);
   const [recoveryRequired, setRecoveryRequired] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
       if ("issue" in result) { setIssue(result.issue); setError(ASSIGNMENT_ISSUE_MESSAGES[result.issue]); setPreview(null); }
       else {
         setPreview(result);
+        setReviewedContextKey(contextKey);
         if (options?.editable) setDraft({ sessionId, mode: context.configuration.assignmentMode, key: contextKey, status: "generated", assignments: Object.entries(result.assignments).flatMap(([participantId, ids]) => ids.map(matchId => ({ participantId, matchId }))) });
       }
     } finally { setIsBusy(false); }
@@ -79,5 +81,5 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
   return { assignments, valid, toggleAssignment, resetDraft,
     status: activeDraft.key !== contextKey ? "stale" as const : activeDraft.status,
     hasRandomized: activeDraft.status !== "ungenerated",
-    preview, recoveryRequired, isBusy, error, issue, review, commit };
+    preview, isPreviewCurrent: preview !== null && reviewedContextKey === contextKey, recoveryRequired, isBusy, error, issue, review, commit };
 }

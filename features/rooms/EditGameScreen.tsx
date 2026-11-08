@@ -119,7 +119,7 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
               onToggleAllocation={draft.supportsEditable || draft.mode === "host_assigned" ? draft.toggleAssignment : undefined} />
             {draft.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void save(true); }} /> : null}
             {!draft.plan.feasible ? <Text color="$danger">Add more matches or lower the assignment count before saving.</Text> : null}
-            {draft.supportsEditable ? draft.participants.filter(p => draft.assignments.filter(a => a.participantId === p.id).length !== draft.plan.targetsByParticipantId?.[p.id]).slice(0,1).map(p => <Text key={p.id} accessibilityRole="alert" color="$danger">{p.displayName} needs {draft.plan.targetsByParticipantId?.[p.id]} matches; {draft.assignments.filter(a => a.participantId === p.id).length} selected.</Text>) : draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}
+            {!draft.supportsEditable && draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}
               isBusy={controlsBusy} onReview={() => { void draft.assignmentPreview.review(); }} actionLabel="Save these assignments"
               onCommit={accept => { void save(accept); }} /> : null}
           </YStack> },

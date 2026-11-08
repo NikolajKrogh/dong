@@ -184,13 +184,20 @@ export function AssignmentRandomizer({ value, max = 100, disabled, hasAssignment
   { value: number; max?: number; disabled?: boolean; hasAssignments?: boolean; onChange: (count: number) => void; onRandomize: () => void; testID?: string }) {
   const colors = useColors();
   return <YStack gap="$2" testID={testID}>
-    <XStack alignItems="center" justifyContent="space-between" gap="$2">
-      <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500", flexShrink: 1 }}>Matches each</Text>
-      <AssignmentCounter compact label="Default matches per player" value={value} max={max} disabled={disabled}
-        testID={testID ? "lobby-matches-per-player" : undefined} onChange={onChange} />
-    </XStack>
+    <AssignmentDefaultCount value={value} max={max} disabled={disabled} onChange={onChange}
+      testID={testID ? "lobby-matches-per-player" : undefined} />
     <ShellActionButton variant="surface" size="small" disabled={disabled} onPress={onRandomize}
       label={hasAssignments ? "Randomize Again" : "Randomize Matches"}
       icon={<Ionicons name="shuffle" size={20} color={colors.primary} />} />
   </YStack>;
+}
+
+export function AssignmentDefaultCount({ value, max = 100, disabled, onChange, testID }:
+  { value: number; max?: number; disabled?: boolean; onChange: (count: number) => void; testID?: string }) {
+  const colors = useColors();
+  return <XStack alignItems="center" justifyContent="space-between" gap="$2">
+    <Text style={{ color: colors.textSecondary, fontSize: 16, fontWeight: "500", flexShrink: 1 }}>Matches each</Text>
+    <AssignmentCounter compact label="Default matches per player" value={value} max={max} disabled={disabled}
+      testID={testID} onChange={onChange} />
+  </XStack>;
 }

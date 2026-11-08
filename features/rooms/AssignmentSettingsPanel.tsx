@@ -4,6 +4,7 @@ import {
   AssignmentCounter,
   AssignmentPanel,
   AssignmentRandomizer,
+  AssignmentDefaultCount,
 } from "../game-setup/AssignmentControls";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -36,6 +37,8 @@ export function AssignmentSettingsPanel({
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [showShared, setShowShared] = useState(false);
+  if (mode === "player_picked") return <AssignmentDefaultCount value={plan.matchesPerPlayer} disabled={isBusy}
+    testID="lobby-matches-per-player" onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: plan.sharedMatchesPerPair })} />;
   if (onRandomize) return <AssignmentRandomizer testID="lobby-assignment-settings" value={plan.matchesPerPlayer}
     disabled={isBusy} hasAssignments={hasRandomized} onRandomize={onRandomize}
     onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: 1 })} />;
