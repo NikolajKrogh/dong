@@ -19,11 +19,14 @@ function deferred(value: SqlResult): DeferredWork {
 
 /** Use a dedicated server-only login granted match_catalog_backend, never a client/JWT key. */
 export function createPostgresFootballMatchRepository(connectionString: string): FootballMatchRepository {
-  const address = new URL(connectionString);
-  if (!['postgres:', 'postgresql:'].includes(address.protocol)) throw new Error('configuration_required');
-  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(address.hostname.toLowerCase());
-  const sslMode = address.searchParams.get('sslmode');
-  if (!loopback && sslMode !== null && sslMode !== 'verify-full') throw new Error('configuration_required');
+  const databaseUrl = new URL(connectionString);
+  if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) throw new Error('configuration_required');
+  // The disposable E2E Edge container reaches its sibling database over Docker's private network.
+  const isLocalFixtureDatabase = Deno.env.get('MATCH_CATALOG_FIXTURES_ONLY') === 'true'
+    && databaseUrl.hostname === 'db.supabase.internal' && databaseUrl.port === '5432';
+  const isLocalDatabase = isLocalFixtureDatabase || ['localhost', '127.0.0.1', '[::1]'].includes(databaseUrl.hostname.toLowerCase());
+  const sslMode = databaseUrl.searchParams.get('sslmode');
+  if (!isLocalDatabase && sslMode !== null && sslMode !== 'verify-full') throw new Error('configuration_required');
   // The pinned driver implements max_pipeline but omits it from its public types.
   const options = {
     prepare: false, max: 4, idle_timeout: 20, connect_timeout: 5,
@@ -32,8 +35,8 @@ export function createPostgresFootballMatchRepository(connectionString: string):
     // Zero prevents that Supavisor transaction-mode hazard; upstream zero/begin is broken.
     max_pipeline: 0,
     // PostgresJS ssl:'require' disables certificate verification. true keeps TLS
-    // certificate/hostname verification; only explicit local loopback may use plaintext.
-    ssl: !loopback,
+    // certificate/hostname verification; only loopback or the E2E fixture alias may use plaintext.
+    ssl: !isLocalDatabase,
     connection: { application_name: 'dong-match-catalog' },
   };
   const sql = postgres(connectionString, options);
