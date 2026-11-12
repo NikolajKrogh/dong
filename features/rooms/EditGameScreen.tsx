@@ -4,6 +4,7 @@ import { useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Text, XStack, YStack } from "tamagui";
 import { ShellActionButton, ShellScreen } from "../../components/ui";
+import { ASSIGNMENT_MODE } from "../../types/room";
 import SetupWizard from "../game-setup/SetupWizard";
 import MatchList from "../game-setup/MatchList";
 import CommonMatchSelector from "../game-setup/CommonMatchSelector";
@@ -108,15 +109,15 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
           </YStack> },
         { key: "assign", name: "Assign", icon: "git-network", canEnter: true,
           content: <YStack padding="$4" gap="$4">
-            <AssignmentModeSelector showHelp={!draft.supportsEditable} allowPlayerPicked={false} assignmentMode={draft.mode} isBusy={controlsBusy} onSelectMode={mode => { if (mode !== "player_picked") draft.setMode(mode); }} />
-            {!draft.supportsEditable || draft.mode === "automatic" ? <AssignmentSettingsPanel editing plan={draft.plan} mode={draft.mode} isBusy={controlsBusy} onChange={draft.setSettings}
+            <AssignmentModeSelector showHelp={!draft.supportsEditable} allowPlayerPicked={false} assignmentMode={draft.mode} isBusy={controlsBusy} onSelectMode={mode => { if (mode !== ASSIGNMENT_MODE.playerPicked) draft.setMode(mode); }} />
+            {!draft.supportsEditable || draft.mode === ASSIGNMENT_MODE.automatic ? <AssignmentSettingsPanel editing plan={draft.plan} mode={draft.mode} isBusy={controlsBusy} onChange={draft.setSettings}
               onRandomize={draft.supportsEditable ? draft.randomizeAssignments : undefined} hasRandomized={draft.assignmentPreview.hasRandomized} /> : null}
             <RoomAssignmentPlayers editable={draft.supportsEditable} participants={draft.participants} matches={selectable}
               targetsByParticipantId={draft.plan.targetsByParticipantId}
               onSetPlayerMatchCount={draft.supportsTargets ? draft.setPlayerMatchCount : undefined}
-              matchesPerPlayer={draft.supportsEditable ? draft.plan.matchesPerPlayer : draft.plan.effectivePerPlayer} isBusy={controlsBusy} pending={draft.mode === "automatic"} pendingLabel="On save"
+              matchesPerPlayer={draft.supportsEditable ? draft.plan.matchesPerPlayer : draft.plan.effectivePerPlayer} isBusy={controlsBusy} pending={draft.mode === ASSIGNMENT_MODE.automatic} pendingLabel="On save"
               selectedMatchIdsFor={id => draft.assignments.filter(a => a.participantId === id).map(a => a.matchId)}
-              onToggleAllocation={draft.supportsEditable || draft.mode === "host_assigned" ? draft.toggleAssignment : undefined} />
+              onToggleAllocation={draft.supportsEditable || draft.mode === ASSIGNMENT_MODE.hostAssigned ? draft.toggleAssignment : undefined} />
             {draft.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void save(true); }} /> : null}
             {!draft.plan.feasible ? <Text color="$danger">Add more matches or lower the assignment count before saving.</Text> : null}
             {!draft.supportsEditable && draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}

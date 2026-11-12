@@ -1,7 +1,14 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { RoomAssignmentInput } from "../../types/room";
-import type { AssignmentContext, AssignmentIssue, AssignmentPreview } from "./roomAssignments";
-import { createRoomAssignments } from "./roomAssignments";
+import {
+  ASSIGNMENT_PURPOSE,
+  createRoomAssignments,
+  type AssignmentContext,
+  type AssignmentIssue,
+  type AssignmentPreview,
+  type AssignmentPurpose,
+} from "./roomAssignments";
+import { ASSIGNMENT_MODE } from "../../types/room";
 import { createRoomAssignmentTransport } from "./roomAssignmentTransport";
 
 const ASSIGNMENT_ISSUE_MESSAGES: Record<AssignmentIssue["issue"], string> = {
@@ -14,10 +21,10 @@ const ASSIGNMENT_ISSUE_MESSAGES: Record<AssignmentIssue["issue"], string> = {
   invalid_configuration: "Check the match counts and selections, then review a new preview. Your draft has been kept.",
 };
 
-export function useAssignmentPreview(sessionId: string, purpose: "start" | "running_save", context: AssignmentContext, options?: { editable: boolean; poolIds: string[] }) {
+export function useAssignmentPreview(sessionId: string, purpose: AssignmentPurpose, context: AssignmentContext, options?: { editable: boolean; poolIds: string[] }) {
   const contextKey = JSON.stringify([sessionId, context.revision, context.configuration, options?.poolIds]);
   const [draft, setDraft] = useState<{ sessionId: string; mode: AssignmentContext["configuration"]["assignmentMode"]; key: string; assignments: RoomAssignmentInput[]; status: "ungenerated" | "generated" | "edited" | "stale" }>(() => ({
-    sessionId, mode: context.configuration.assignmentMode, key: contextKey, assignments: context.configuration.assignments, status: purpose === "running_save" ? "edited" : "ungenerated",
+    sessionId, mode: context.configuration.assignmentMode, key: contextKey, assignments: context.configuration.assignments, status: purpose === ASSIGNMENT_PURPOSE.runningSave ? "edited" : "ungenerated",
   }));
   const activeDraft = draft.sessionId === sessionId && draft.mode === context.configuration.assignmentMode ? draft : { sessionId, mode: context.configuration.assignmentMode, key: contextKey, assignments: context.configuration.assignments, status: "ungenerated" as const };
   const poolIds = options ? new Set(options.poolIds) : null;
@@ -61,7 +68,7 @@ export function useAssignmentPreview(sessionId: string, purpose: "start" | "runn
     if (options?.editable && activeDraft.status === "generated" && preview?.requiresSharingConsent && !acceptRelaxedSharing) {
       setIssue("confirmation_required"); setError("Confirm relaxed sharing before starting."); return null;
     }
-    if (!options?.editable && !preview && !(purpose === "start" && context.configuration.assignmentMode === "player_picked")) { setError("Review assignments before continuing."); return null; }
+    if (!options?.editable && !preview && !(purpose === ASSIGNMENT_PURPOSE.start && context.configuration.assignmentMode === ASSIGNMENT_MODE.playerPicked)) { setError("Review assignments before continuing."); return null; }
     setIsBusy(true);
     setError(null);
     setIssue(null);

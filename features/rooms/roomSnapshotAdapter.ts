@@ -1,16 +1,17 @@
 import type { Match, Player } from "../../store/gameStore";
 import type { GuestRoomSnapshot } from "../../types/guestRoom";
-import type { RoomSnapshot } from "../../types/room";
+import { ASSIGNMENT_POLICY_VERSION, type RoomSnapshot } from "../../types/room";
+import { MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 import { selectGameplayMatches } from "../game-setup/selectGameplayMatches";
 
 export type CompatibleRoomSnapshot = RoomSnapshot | GuestRoomSnapshot;
 
 /** Version two counts must come from the authoritative projection, never a scalar guess. */
 export function roomSnapshotHasAssignmentTargets(snapshot: CompatibleRoomSnapshot): boolean {
-  if (snapshot.assignmentPolicyVersion !== 2) return true;
+  if (snapshot.assignmentPolicyVersion !== ASSIGNMENT_POLICY_VERSION.editable) return true;
   const targets = snapshot.assignmentPlan?.targetsByParticipantId;
   return Boolean(targets && roomSnapshotToActiveRoster(snapshot).every(p =>
-    Number.isInteger(targets[p.id]) && targets[p.id] >= 0 && targets[p.id] <= 100));
+    Number.isInteger(targets[p.id]) && targets[p.id] >= 0 && targets[p.id] <= MAX_ASSIGNMENT_COUNT));
 }
 
 /**

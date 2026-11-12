@@ -8,11 +8,13 @@ import {
 } from "../game-setup/AssignmentControls";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
-import type {
-  AssignmentMode,
-  AssignmentPlan,
-  RoomAssignmentSettingsRequest,
+import {
+  ASSIGNMENT_MODE,
+  type AssignmentMode,
+  type AssignmentPlan,
+  type RoomAssignmentSettingsRequest,
 } from "../../types/room";
+import { DEFAULT_SHARED_MATCHES_PER_PAIR, MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 import AppIcon from "../../components/ui/AppIcon";
 
 interface AssignmentSettingsPanelProps {
@@ -37,18 +39,18 @@ export function AssignmentSettingsPanel({
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
   const [showShared, setShowShared] = useState(false);
-  if (mode === "player_picked") return <AssignmentDefaultCount value={plan.matchesPerPlayer} disabled={isBusy}
+  if (mode === ASSIGNMENT_MODE.playerPicked) return <AssignmentDefaultCount value={plan.matchesPerPlayer} disabled={isBusy}
     testID="lobby-matches-per-player" onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: plan.sharedMatchesPerPair })} />;
   if (onRandomize) return <AssignmentRandomizer testID="lobby-assignment-settings" value={plan.matchesPerPlayer}
     disabled={isBusy} hasAssignments={hasRandomized} onRandomize={onRandomize}
-    onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: 1 })} />;
+    onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: DEFAULT_SHARED_MATCHES_PER_PAIR })} />;
   return (
     <AssignmentPanel compact testID="lobby-assignment-settings">
       <AssignmentCounter
         label={plan.targetsByParticipantId ? "Default matches per player" : "Matches per player"}
         description="Plus the common match"
         value={plan.matchesPerPlayer}
-        max={100}
+        max={MAX_ASSIGNMENT_COUNT}
         disabled={isBusy}
         testID="lobby-matches-per-player"
         onChange={(matchesPerPlayer) =>
@@ -58,12 +60,12 @@ export function AssignmentSettingsPanel({
           })
         }
       />
-      {mode === "automatic" && plan.sharingPolicy === "exact" && plan.effectivePerPlayer > 0 &&
+      {mode === ASSIGNMENT_MODE.automatic && plan.sharingPolicy === "exact" && plan.effectivePerPlayer > 0 &&
         plan.effectivePerPlayer < plan.sharedMatchesPerPair * Math.max(0, plan.participantCount - 1) ?
         <Text accessibilityRole="alert" style={styles.assignmentDescription}>
           Equal counts need at least {plan.sharedMatchesPerPair * Math.max(0, plan.participantCount - 1)} additional matches per player for this sharing setting. Increase the counts or choose individual counts.
         </Text> : null}
-      {mode === "automatic" ? (
+      {mode === ASSIGNMENT_MODE.automatic ? (
         <>
           <TouchableOpacity
             accessibilityRole="button"
@@ -88,7 +90,7 @@ export function AssignmentSettingsPanel({
               label="Shared by each pair"
               description={plan.sharingPolicy === "preference" ? "Preferred shared matches per pair; individual counts stay fixed." : "Matches each pair of players shares, excluding the common match."}
               value={plan.sharedMatchesPerPair}
-              max={100}
+              max={MAX_ASSIGNMENT_COUNT}
               disabled={isBusy}
               testID="lobby-shared-matches-per-pair"
               onChange={(sharedMatchesPerPair) =>
@@ -104,7 +106,7 @@ export function AssignmentSettingsPanel({
           </Text>
         </>
       ) : null}
-      {mode === "host_assigned" ? (
+      {mode === ASSIGNMENT_MODE.hostAssigned ? (
         <Text style={styles.assignmentDescription}>
           Open a player to assign their matches.
         </Text>

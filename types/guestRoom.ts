@@ -1,4 +1,4 @@
-import type { AssignmentMode, AssignmentPlan, RoomProviderGoal, RoomState } from "./room";
+import type { AssignmentMode, AssignmentPlan, AssignmentPolicyVersion, RoomProviderGoal, RoomState } from "./room";
 
 export type GuestRoomSessionStatus =
   "idle" | "joining" | "joined" | "refreshing" | "failed" | "expired" | "pending_leave" | "renewing" | "left" | "ended";
@@ -78,7 +78,7 @@ interface GuestRoomPickSummary {
  * variation.
  */
 export interface GuestRoomSnapshot {
-  assignmentPolicyVersion?: 1 | 2;
+  assignmentPolicyVersion?: AssignmentPolicyVersion;
   capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean };
   sessionId: string;
   joinCode: string;

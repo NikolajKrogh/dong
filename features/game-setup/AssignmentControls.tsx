@@ -4,6 +4,7 @@ import { Modal } from "react-native";
 import { Text, XStack, YStack, useTheme } from "tamagui";
 import { ShellActionButton } from "../../components/ui/ShellActionButton";
 import { ShellCard } from "../../components/ui/ShellCard";
+import { MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 import { hexWithAlpha } from "../../styles/shadows";
 
 export function AssignmentInfoModal({ visible, message, onClose }:
@@ -66,7 +67,7 @@ export function AssignmentCounter({ label, description, value, min = 0, max = In
   </XStack>;
 }
 
-export function AssignmentRandomizer({ value, max = 100, disabled, hasAssignments, onChange, onRandomize, testID }:
+export function AssignmentRandomizer({ value, max = MAX_ASSIGNMENT_COUNT, disabled, hasAssignments, onChange, onRandomize, testID }:
   { value: number; max?: number; disabled?: boolean; hasAssignments?: boolean; onChange: (count: number) => void; onRandomize: () => void; testID?: string }) {
   const theme = useTheme();
   return <AssignmentPanel title="Random Assignment" testID={testID}><YStack gap="$3">
@@ -78,7 +79,7 @@ export function AssignmentRandomizer({ value, max = 100, disabled, hasAssignment
   </YStack></AssignmentPanel>;
 }
 
-export function AssignmentDefaultCount({ value, max = 100, disabled, onChange, testID }:
+export function AssignmentDefaultCount({ value, max = MAX_ASSIGNMENT_COUNT, disabled, onChange, testID }:
   { value: number; max?: number; disabled?: boolean; onChange: (count: number) => void; testID?: string }) {
   return <XStack alignItems="center" justifyContent="space-between" gap="$2">
     <Text color="$colorSecondary" fontSize={16} fontWeight="500" flexShrink={1}>Matches per player:</Text>

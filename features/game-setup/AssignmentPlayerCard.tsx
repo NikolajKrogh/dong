@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { Button, Text, YStack, useTheme } from "tamagui";
 import { Ionicons } from "@expo/vector-icons";
 import { ShellActionButton } from "../../components/ui/ShellActionButton";
+import { MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 import { AssignmentCounter } from "./AssignmentControls";
 import { MatchSelectionCard } from "./MatchSelectionCard";
 
@@ -16,7 +17,7 @@ export function AssignmentPlayerCard({ target, defaultCount, onSetCount, usesDef
   const status = remaining === 0 ? `${props.selectedCount} selected` : remaining > 0 ? `${remaining} left` : `${-remaining} too many`;
   return <MatchSelectionCard {...props} appearance="player" statusLabel={props.badgeLabel ? undefined : status}
     renderBadge={onSetCount ? badge => <YStack>
-    <AssignmentCounter compact subtle valueContent={badge} label={`${props.title}'s additional matches`} value={target} max={100}
+    <AssignmentCounter compact subtle valueContent={badge} label={`${props.title}'s additional matches`} value={target} max={MAX_ASSIGNMENT_COUNT}
       disabled={disabled} onChange={onSetCount} />
     {!usesDefault ? <Button unstyled alignSelf="center" disabled={disabled} paddingVertical="$1.5" paddingHorizontal={0}
       {...(Platform.OS === "web" ? { "aria-label": `Use default count for ${props.title}` } : { accessibilityLabel: `Use default count for ${props.title}` })} onPress={() => onSetCount(null)}

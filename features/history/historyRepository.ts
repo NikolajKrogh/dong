@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import * as z from "zod/mini";
 import { throwIfAborted } from "../../platform/abort";
 import type { Database } from "../../types/database";
+import { ASSIGNMENT_POLICY_VERSION } from "../../types/room";
+import { MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 import { parseSavedMatch } from "../football-matches/footballMatchSchemas";
 
 import type { GameSession, Match, Player } from "./historyTypes";
@@ -106,7 +108,7 @@ const mapAssignments = (value: unknown): Record<string, string[]> => {
 
 const mapMatchCounts = (value: unknown): Record<string, number> => Object.fromEntries(
   Object.entries(recordOrEmptySchema.parse(value)).filter((entry): entry is [string, number] =>
-    typeof entry[1] === "number" && Number.isInteger(entry[1]) && entry[1] >= 0 && entry[1] <= 100),
+    typeof entry[1] === "number" && Number.isInteger(entry[1]) && entry[1] >= 0 && entry[1] <= MAX_ASSIGNMENT_COUNT),
 );
 
 export const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSession => ({
@@ -116,8 +118,8 @@ export const mapCompletedSession = (row: CompletedSessionSummaryRow): GameSessio
   matches: arrayOrEmptySchema.parse(row.matches).map(mapMatch),
   commonMatchId: row.common_match_id,
   playerAssignments: mapAssignments(row.player_assignments),
-  matchesPerPlayer: row.assignment_policy_version === 2 ? row.configured_default_match_count ?? 0 : numberOrZeroSchema.parse(row.matches_per_player),
-  ...(row.assignment_policy_version === 2 ? { assignmentPolicyVersion: 2, playerMatchCounts: mapMatchCounts(row.player_match_counts) } : {}),
+  matchesPerPlayer: row.assignment_policy_version === ASSIGNMENT_POLICY_VERSION.editable ? row.configured_default_match_count ?? 0 : numberOrZeroSchema.parse(row.matches_per_player),
+  ...(row.assignment_policy_version === ASSIGNMENT_POLICY_VERSION.editable ? { assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable, playerMatchCounts: mapMatchCounts(row.player_match_counts) } : {}),
 });
 
 /** Maps the server's immutable departure capture into the existing history shape. */
@@ -187,7 +189,7 @@ export const mapDepartureResult = (
     commonMatchId,
     playerAssignments,
     matchesPerPlayer: numberOrZeroSchema.parse(departure.assignmentPlan.matchesPerPlayer),
-    ...(departure.assignmentPolicyVersion === 2 ? { assignmentPolicyVersion: 2 as const,
+    ...(departure.assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable ? { assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable,
       playerMatchCounts: Object.fromEntries(departure.participants.flatMap(item => {
         const p = recordOrEmptySchema.parse(item);
         return typeof p.id === "string" && typeof p.additionalMatchCount === "number" ? [[p.id, p.additionalMatchCount]] : [];

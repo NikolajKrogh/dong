@@ -2,14 +2,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../../lib/supabase";
 import type { Database } from "../../types/database";
 import type { Json } from "../../types/database.types";
+import { ASSIGNMENT_MODE } from "../../types/room";
 import type { RoomSnapshot } from "../../types/room";
 import type { AssignmentTransport, PreparedAssignmentPreview } from "./roomAssignments";
+import { ASSIGNMENT_PURPOSE } from "./roomAssignments";
 
 /** The lifecycle module owns retries; this adapter makes exactly one remote call. */
 export function createRoomAssignmentTransport(supabase?: SupabaseClient<Database>): AssignmentTransport {
   return {
     async prepare({ sessionId, purpose, context }) {
-      if (context.configuration.assignmentMode !== "automatic") {
+      if (context.configuration.assignmentMode !== ASSIGNMENT_MODE.automatic) {
         const targetsByParticipantId = context.targetsByParticipantId ?? {};
         return {
           proposalId: null, expiresAt: null, targetsByParticipantId,
@@ -36,7 +38,7 @@ export function createRoomAssignmentTransport(supabase?: SupabaseClient<Database
       const commitArguments = { session_id: sessionId, proposal_id: proposalId, expected_token: context.expectedToken,
         idempotency_key: idempotencyKey, accept_relaxed_sharing: acceptRelaxedSharing,
         ...(assignmentOverrides !== undefined ? { assignment_overrides: assignmentOverrides as unknown as Json } : {}) };
-      const response = purpose === "start"
+      const response = purpose === ASSIGNMENT_PURPOSE.start
         ? await client.rpc("start_game_session_v2", commitArguments)
         : await client.rpc("save_running_game_configuration_v2", {
           ...commitArguments, configuration: context.configuration as unknown as Json,

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 
 import {
+  ASSIGNMENT_MODE,
+  ASSIGNMENT_POLICY_VERSION,
   ROOM_ERROR,
   type AddRoomMatchRequest,
   type AssignmentMode,
@@ -10,6 +12,7 @@ import {
   type RoomAssignmentSettingsRequest,
   type RoomSnapshot,
 } from "../../types/room";
+import { DEFAULT_SHARED_MATCHES_PER_PAIR } from "../../shared/assignments/types";
 import {
   getStartGameApiClient,
 } from "./startGameClient";
@@ -17,6 +20,7 @@ import { getSupabaseClient } from "../../lib/supabase";
 import { getRoomRpcClient } from "./roomRpcClient";
 import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
 import { useAssignmentPreview } from "./useAssignmentPreview";
+import { ASSIGNMENT_PURPOSE } from "./roomAssignments";
 
 export interface UseRoomConfigureResult {
   supportsTargets: boolean;
@@ -145,17 +149,17 @@ export const useRoomConfigure = (
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startGameIdempotencyKeyRef = useRef<string | null>(null);
-  const supportsEditable = snapshot?.assignmentPolicyVersion === 2 && snapshot.capabilities?.editableAutomaticAssignments === true && snapshot.assignmentMode !== "player_picked";
+  const supportsEditable = snapshot?.assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable && snapshot.capabilities?.editableAutomaticAssignments === true && snapshot.assignmentMode !== ASSIGNMENT_MODE.playerPicked;
   const supportsTargets = snapshot?.capabilities?.perPlayerMatchCounts === true;
   const participants = snapshot ? roomSnapshotToActiveRoster(snapshot) : [];
   const overrides = Object.fromEntries(participants.filter(p => p.additionalMatchCount != null).map(p => [p.id, p.additionalMatchCount!]));
-  const assignmentPreview = useAssignmentPreview(snapshot?.sessionId ?? "", "start", {
+  const assignmentPreview = useAssignmentPreview(snapshot?.sessionId ?? "", ASSIGNMENT_PURPOSE.start, {
     revision: snapshot?.configurationToken ?? "", expectedToken: snapshot?.configurationToken ?? "",
     targetsByParticipantId: snapshot?.assignmentPlan.targetsByParticipantId,
-    configuration: { assignmentPolicyVersion: 2, assignmentMode: snapshot?.assignmentMode ?? "automatic",
+    configuration: { assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable, assignmentMode: snapshot?.assignmentMode ?? ASSIGNMENT_MODE.automatic,
       matchesPerPlayer: snapshot?.assignmentPlan.matchesPerPlayer ?? 0,
       sharedMatchesPerPair: snapshot?.assignmentPlan.sharedMatchesPerPair ?? 0, playerMatchCounts: overrides,
-      newMatches: [], assignments: (snapshot?.assignmentMode === "player_picked" ? snapshot.picks : snapshot?.assignments ?? [])
+      newMatches: [], assignments: (snapshot?.assignmentMode === ASSIGNMENT_MODE.playerPicked ? snapshot.picks : snapshot?.assignments ?? [])
         .filter(a => a.matchId !== snapshot?.commonMatchId) },
   }, { editable: supportsEditable, poolIds: (snapshot?.matches ?? []).filter(m => m.id !== snapshot?.commonMatchId).map(m => m.id) });
 
@@ -257,12 +261,12 @@ export const useRoomConfigure = (
 
   const randomizeRequested = useRef(false);
   const randomizeAssignments = () => {
-    if (snapshot?.assignmentPlan.sharedMatchesPerPair === 1) { void assignmentPreview.review(); return; }
+    if (snapshot?.assignmentPlan.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) { void assignmentPreview.review(); return; }
     randomizeRequested.current = true;
-    if (snapshot) void setAssignmentSettings({ matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer, sharedMatchesPerPair: 1 });
+    if (snapshot) void setAssignmentSettings({ matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer, sharedMatchesPerPair: DEFAULT_SHARED_MATCHES_PER_PAIR });
   };
   useEffect(() => {
-    if (randomizeRequested.current && !isBusy && snapshot?.assignmentPlan.sharedMatchesPerPair === 1) {
+    if (randomizeRequested.current && !isBusy && snapshot?.assignmentPlan.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) {
       randomizeRequested.current = false;
       void assignmentPreview.review();
     }
@@ -290,7 +294,7 @@ export const useRoomConfigure = (
       if (!snapshot) {
         return false;
       }
-      if (snapshot.assignmentPolicyVersion === 2) return Boolean(await assignmentPreview.commit(relaxConstraints));
+      if (snapshot.assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable) return Boolean(await assignmentPreview.commit(relaxConstraints));
       setIsBusy(true);
       setError(null);
       try {

@@ -3,14 +3,27 @@ import type { SharingPolicy } from "../shared/assignments/types";
 /** Values from public.session_state, shared by the host and guest projections. */
 export type RoomState = "joinable" | "in_progress" | "completed" | "closed";
 
-/** How a room's assignments get decided (FR-026). `player_picked` exists as a
- * value but is not yet actionable — #185 implements it. */
-export type AssignmentMode = "automatic" | "host_assigned" | "player_picked";
+/** How a room's assignments get decided. */
+export const ASSIGNMENT_MODE = {
+  automatic: "automatic",
+  hostAssigned: "host_assigned",
+  playerPicked: "player_picked",
+} as const;
+
+export type AssignmentMode = (typeof ASSIGNMENT_MODE)[keyof typeof ASSIGNMENT_MODE];
+
+export const ASSIGNMENT_POLICY_VERSION = {
+  legacy: 1,
+  editable: 2,
+} as const;
+
+export type AssignmentPolicyVersion =
+  (typeof ASSIGNMENT_POLICY_VERSION)[keyof typeof ASSIGNMENT_POLICY_VERSION];
 
 export const ASSIGNMENT_MODE_LABELS: Record<AssignmentMode, string> = {
-  automatic: "Automatic",
-  host_assigned: "Host-assigned",
-  player_picked: "Player-picked",
+  [ASSIGNMENT_MODE.automatic]: "Automatic",
+  [ASSIGNMENT_MODE.hostAssigned]: "Host-assigned",
+  [ASSIGNMENT_MODE.playerPicked]: "Player-picked",
 };
 
 type RoomMembershipType = "registered" | "guest";
@@ -89,7 +102,7 @@ export interface RoomProviderGoal {
 }
 
 export interface RoomSnapshot {
-  assignmentPolicyVersion?: 1 | 2;
+  assignmentPolicyVersion?: AssignmentPolicyVersion;
   capabilities?: { perPlayerMatchCounts: boolean; assignmentPreview: boolean; editableAutomaticAssignments?: boolean };
   sessionId: string;
   joinCode: string;
@@ -343,9 +356,9 @@ export const ROOM_ERROR = {
 
 /** Local draft committed atomically; existing matches and historical scores cannot be removed. */
 export interface RunningGameConfiguration {
-  assignmentPolicyVersion?: 1 | 2;
+  assignmentPolicyVersion?: AssignmentPolicyVersion;
   playerMatchCounts?: Record<string, number>;
-  assignmentMode: "automatic" | "host_assigned";
+  assignmentMode: Exclude<AssignmentMode, typeof ASSIGNMENT_MODE.playerPicked>;
   matchesPerPlayer: number;
   sharedMatchesPerPair: number;
   newMatches: (AddRoomMatchRequest & { clientId: string })[];

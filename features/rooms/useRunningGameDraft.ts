@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { Match } from "../../store/gameStore";
-import type { RoomSnapshot, RunningGameConfiguration } from "../../types/room";
+import { ASSIGNMENT_MODE, ASSIGNMENT_POLICY_VERSION, type RoomSnapshot, type RunningGameConfiguration } from "../../types/room";
+import { COMMON_MATCH_COUNT, DEFAULT_SHARED_MATCHES_PER_PAIR } from "../../shared/assignments/types";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 import { getRoomRpcClient } from "./roomRpcClient";
 import { roomSnapshotToActiveRoster } from "./roomSnapshotAdapter";
 import { useAssignmentPreview } from "./useAssignmentPreview";
+import { ASSIGNMENT_PURPOSE } from "./roomAssignments";
 import { toAddRequest, toDisplayMatch } from "./useRoomMatchPool";
 
 export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = snapshot) {
   const [matches, setMatches] = useState(() => snapshot.matches.map(toDisplayMatch));
   const [mode, setMode] = useState<RunningGameConfiguration["assignmentMode"]>(
-    snapshot.assignmentMode === "automatic" ? "automatic" : "host_assigned",
+    snapshot.assignmentMode === ASSIGNMENT_MODE.automatic ? ASSIGNMENT_MODE.automatic : ASSIGNMENT_MODE.hostAssigned,
   );
   const [settings, setSettings] = useState({
     matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer,
@@ -20,7 +22,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   const [playerMatchCounts, setPlayerMatchCounts] = useState<Record<string, number>>(() => Object.fromEntries(
     roomSnapshotToActiveRoster(snapshot).filter(participant => participant.additionalMatchCount != null).map(participant => [participant.id, participant.additionalMatchCount!]),
   ));
-  const supportsEditable = snapshot.assignmentPolicyVersion === 2 && snapshot.capabilities?.editableAutomaticAssignments === true;
+  const supportsEditable = snapshot.assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable && snapshot.capabilities?.editableAutomaticAssignments === true;
   const supportsTargets = snapshot.capabilities?.perPlayerMatchCounts === true;
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   const targetsByParticipantId = Object.fromEntries(participants.map(participant => [participant.id, playerMatchCounts[participant.id] ?? settings.matchesPerPlayer]));
   const plan = buildDraftAssignmentPlan(snapshot.assignmentPlan, settings, mode, targetsByParticipantId, participants.length, matches.length, supportsTargets);
   const matchIds = new Set(matches.map(match => match.id));
-  const isAssignmentDraftValid = mode === "automatic" || participants.every(participant => {
+  const isAssignmentDraftValid = mode === ASSIGNMENT_MODE.automatic || participants.every(participant => {
     const selectedCount = assignments.filter(assignment =>
       assignment.participantId === participant.id && matchIds.has(assignment.matchId),
     ).length;
@@ -43,11 +45,11 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   });
   const configuration: RunningGameConfiguration = {
     assignmentMode: mode, ...settings,
-    ...(supportsTargets ? { assignmentPolicyVersion: 2 as const, playerMatchCounts } : {}),
+    ...(supportsTargets ? { assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable, playerMatchCounts } : {}),
     newMatches: matches.filter(match => !fixedMatchIdSet.has(match.id)).map(match => ({ ...toAddRequest(match), clientId: match.id })),
     assignments: assignments.filter(assignment => activeParticipantIds.has(assignment.participantId)),
   };
-  const assignmentPreview = useAssignmentPreview(snapshot.sessionId, "running_save", {
+  const assignmentPreview = useAssignmentPreview(snapshot.sessionId, ASSIGNMENT_PURPOSE.runningSave, {
     revision: currentSnapshot.configurationToken ?? "", expectedToken: snapshot.configurationToken ?? "",
     targetsByParticipantId, configuration,
   }, { editable: supportsEditable, poolIds: matches.filter(m => m.id !== snapshot.commonMatchId).map(m => m.id) });
@@ -103,12 +105,12 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
 
   const randomizeRequested = useRef(false);
   function randomizeAssignments() {
-    if (settings.sharedMatchesPerPair === 1) { void assignmentPreview.review(); return; }
+    if (settings.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) { void assignmentPreview.review(); return; }
     randomizeRequested.current = true;
-    setSettings(previous => ({ ...previous, sharedMatchesPerPair: 1 }));
+    setSettings(previous => ({ ...previous, sharedMatchesPerPair: DEFAULT_SHARED_MATCHES_PER_PAIR }));
   }
   useEffect(() => {
-    if (randomizeRequested.current && settings.sharedMatchesPerPair === 1) {
+    if (randomizeRequested.current && settings.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) {
       randomizeRequested.current = false;
       void assignmentPreview.review();
     }
@@ -144,13 +146,13 @@ function buildDraftAssignmentPlan(
   supportsTargets: boolean,
 ): RoomSnapshot["assignmentPlan"] {
   let effectivePerPlayer = settings.matchesPerPlayer;
-  let requiredPoolSize = effectivePerPlayer + 1;
+  let requiredPoolSize = effectivePerPlayer + COMMON_MATCH_COUNT;
   if (supportsTargets) {
     effectivePerPlayer = Math.max(0, ...Object.values(targetsByParticipantId));
-    requiredPoolSize = effectivePerPlayer + 1;
-  } else if (mode === "automatic") {
+    requiredPoolSize = effectivePerPlayer + COMMON_MATCH_COUNT;
+  } else if (mode === ASSIGNMENT_MODE.automatic) {
     effectivePerPlayer = Math.max(settings.matchesPerPlayer, settings.sharedMatchesPerPair * Math.max(0, participantCount - 1));
-    requiredPoolSize = participantCount * effectivePerPlayer - participantCount * (participantCount - 1) / 2 * settings.sharedMatchesPerPair + 1;
+    requiredPoolSize = participantCount * effectivePerPlayer - participantCount * (participantCount - 1) / 2 * settings.sharedMatchesPerPair + COMMON_MATCH_COUNT;
   }
   const feasible = supportsTargets ? poolSize > effectivePerPlayer : poolSize >= requiredPoolSize;
   return {

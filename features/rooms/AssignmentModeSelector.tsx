@@ -1,23 +1,22 @@
 import React, { useMemo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import type { AssignmentMode } from "../../types/room";
+import { ASSIGNMENT_MODE, type AssignmentMode } from "../../types/room";
 import { AssignmentInfoModal } from "../game-setup/AssignmentControls";
 import AppIcon from "../../components/ui/AppIcon";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
 
-const MODES = ["automatic", "host_assigned", "player_picked"] as const;
 const SHORT_LABELS = {
-  automatic: "Automatic",
-  host_assigned: "Host assigns",
-  player_picked: "Players pick",
+  [ASSIGNMENT_MODE.automatic]: "Automatic",
+  [ASSIGNMENT_MODE.hostAssigned]: "Host assigns",
+  [ASSIGNMENT_MODE.playerPicked]: "Players pick",
 };
 const MODE_HELP: Record<AssignmentMode, string> = {
-  automatic:
+  [ASSIGNMENT_MODE.automatic]:
     "Matches are distributed automatically when you confirm the assignments. Everyone gets the common match. Use Shared matches to control how many additional matches each pair shares.",
-  host_assigned:
+  [ASSIGNMENT_MODE.hostAssigned]:
     "Open a player to assign their matches. Everyone gets the common match.",
-  player_picked:
+  [ASSIGNMENT_MODE.playerPicked]:
     "Each player chooses their own matches. You can follow their progress below. Everyone gets the common match.",
 };
 
@@ -62,7 +61,7 @@ export function AssignmentModeSelector({
         onClose={() => setShowHelp(false)}
       />
       <View style={styles.assignmentModeTabs}>
-        {MODES.filter(mode => allowPlayerPicked || mode !== "player_picked").map((mode) => (
+        {Object.values(ASSIGNMENT_MODE).filter(mode => allowPlayerPicked || mode !== ASSIGNMENT_MODE.playerPicked).map((mode) => (
           <TouchableOpacity
             key={mode}
             accessibilityRole="button"

@@ -8,6 +8,7 @@ import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { Match, Player } from "../../store/gameStore";
+import { COMMON_MATCH_COUNT, MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 import { AssignmentRandomizer } from "./AssignmentControls";
 import { AssignmentPlayerCard, AssignmentLayoutToggle } from "./AssignmentPlayerCard";
 import {
@@ -241,7 +242,7 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
     <View style={baseStyles.tabContent}>
       {players.length > 0 && matches.length > 0 && commonMatchId ? <AssignmentRandomizer
         value={matchesPerPlayer}
-        max={Math.min(100, matches.length - 1)}
+        max={Math.min(MAX_ASSIGNMENT_COUNT, matches.length - COMMON_MATCH_COUNT)}
         disabled={isAssigning}
         onChange={setMatchesPerPlayer}
         onRandomize={() => handleRandomAssignment(matchesPerPlayer)}

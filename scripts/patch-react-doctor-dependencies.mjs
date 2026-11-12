@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dependencies = [
   ["@supabase/auth-js", "2.114.0"],
-  ["expo-linking", "57.0.9"],
+  ["expo-linking", "57.0.13"],
 ];
 
 for (const [name, version] of dependencies) {

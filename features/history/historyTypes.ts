@@ -1,3 +1,5 @@
+import type { AssignmentPolicyVersion } from "../../types/room";
+
 /**
  * PlayerStat
  * @description Represents a player's aggregated statistics across all recorded game sessions.
@@ -76,7 +78,7 @@ type PlayerAssignments = { [playerId: string]: string[] };
  * @property {number} matchesPerPlayer Derived matches per player metric.
  */
 export interface GameSession {
-  assignmentPolicyVersion?: 1 | 2;
+  assignmentPolicyVersion?: AssignmentPolicyVersion;
   playerMatchCounts?: Record<string, number>;
   id: string;
   /** Completion timestamp; empty when an older cloud record has no evidence. */

@@ -6,6 +6,7 @@ import type {
   AssignmentResult,
   AssignmentSets,
 } from "./types.ts";
+import { MAX_ASSIGNMENT_COUNT } from "./types.ts";
 
 const GENERATION_TIME_LIMIT_MS = 1500;
 const ASSESSMENT_TIME_LIMIT_MS = 50;
@@ -67,10 +68,10 @@ export async function generateAssignments(
   if (!commonMatchId || pool.includes(commonMatchId) || pool.some((id) => !id) || new Set(pool).size !== pool.length) {
     throwAssignmentError("invalid_pool");
   }
-  if (participants.some(({ target }) => !Number.isInteger(target) || target < 0 || target > 100)) {
+  if (participants.some(({ target }) => !Number.isInteger(target) || target < 0 || target > MAX_ASSIGNMENT_COUNT)) {
     throwAssignmentError("invalid_target");
   }
-  if (!Number.isInteger(sharing) || sharing < 0 || sharing > 100) {
+  if (!Number.isInteger(sharing) || sharing < 0 || sharing > MAX_ASSIGNMENT_COUNT) {
     throwAssignmentError("invalid_sharing");
   }
   const totalAssignments = participants.reduce((sum, player) => sum + player.target, 0);

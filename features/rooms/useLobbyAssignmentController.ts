@@ -3,7 +3,7 @@ import {
   useMemo,
   useState
 } from "react";
-import type { AssignmentMode } from "../../types/room";
+import { ASSIGNMENT_MODE, type AssignmentMode } from "../../types/room";
 import {
   type SelectableMatch
 } from "../game-setup/SelectableMatchList";
@@ -43,7 +43,7 @@ export function useLobbyAssignmentController(
   const snapshot = lobby.snapshot;
   const [pendingModeSwitch, setPendingModeSwitch] = useState<AssignmentMode | null>(null);
   const plan = snapshot?.assignmentPlan ?? EMPTY_ASSIGNMENT_PLAN;
-  const assignmentMode = snapshot?.assignmentMode ?? "automatic";
+  const assignmentMode = snapshot?.assignmentMode ?? ASSIGNMENT_MODE.automatic;
   const participants = useMemo(
     () => snapshot ? roomSnapshotToActiveRoster(snapshot) : [],
     [snapshot],
@@ -72,12 +72,12 @@ export function useLobbyAssignmentController(
   const handleCancelModeSwitch = useCallback(() => setPendingModeSwitch(null), []);
 
   const automaticMinimum = plan.sharedMatchesPerPair * Math.max(participants.length - 1, 0);
-  const modeSwitchRaisesMinimum = pendingModeSwitch === "automatic" &&
+  const modeSwitchRaisesMinimum = pendingModeSwitch === ASSIGNMENT_MODE.automatic &&
     !plan.targetsByParticipantId &&
     automaticMinimum > plan.matchesPerPlayer;
 
   const picks = useMemo(() => snapshot?.picks ?? [], [snapshot?.picks]);
-  const isPlayerPicked = assignmentMode === "player_picked";
+  const isPlayerPicked = assignmentMode === ASSIGNMENT_MODE.playerPicked;
   const canPick = isPlayerPicked && lobby.state === "joinable";
   const pickableMatches = useMemo<SelectableMatch[]>(
     () => (snapshot?.matches ?? [])

@@ -10,8 +10,12 @@ import { ShellActionButton } from "../../components/ui";
 import { LOBBY_STEPS, parseLobbyStep, resolveStep, sameViewParams, withViewParams, type LobbyStep, type RouteParams } from "../../platform/navigation/routeState";
 import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
 import { useColors } from "../../styles/theme";
-import type { AssignmentMode } from "../../types/room";
-import { ASSIGNMENT_MODE_LABELS } from "../../types/room";
+import {
+  ASSIGNMENT_MODE,
+  ASSIGNMENT_MODE_LABELS,
+  ASSIGNMENT_POLICY_VERSION,
+  type AssignmentMode,
+} from "../../types/room";
 import { CommonMatchSelector, MatchList, SetupWizard } from "../game-setup";
 import {
   SelectableMatchList
@@ -76,8 +80,8 @@ export function RoomLobbyWizard({
   const [awayTeam, setAwayTeam] = useState("");
   const startGame = configure.startGame;
   const handleStartGame = () => {
-    if (configure.supportsEditable || assignment.assignmentMode === "player_picked") { void startGame(); }
-    else if (snapshot.assignmentPolicyVersion === 2) { changeStep("assign"); void configure.assignmentPreview.review(); }
+    if (configure.supportsEditable || assignment.assignmentMode === ASSIGNMENT_MODE.playerPicked) { void startGame(); }
+    else if (snapshot.assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable) { changeStep("assign"); void configure.assignmentPreview.review(); }
     else void startGame();
   };
   const canEnterCommon = snapshot.assignmentPlan.poolSize > 0;
@@ -178,7 +182,7 @@ export function RoomLobbyWizard({
   };
   const finalAction = isHost
     ? {
-      label: configure.supportsEditable || assignment.assignmentMode === "player_picked" || snapshot.assignmentPolicyVersion !== 2 ? "Start Game" : "Review assignments",
+      label: configure.supportsEditable || assignment.assignmentMode === ASSIGNMENT_MODE.playerPicked || snapshot.assignmentPolicyVersion !== ASSIGNMENT_POLICY_VERSION.editable ? "Start Game" : "Review assignments",
       icon: "play" as const,
       testID: "lobby-start-game",
       disabled: configure.isBusy || (configure.supportsEditable ? !configure.assignmentPreview.valid : !assignment.plan.startable),
@@ -356,7 +360,7 @@ function HostAssignmentContent({
   return (
     <>
       <AssignmentModeSelector showHelp={false} assignmentMode={assignment.assignmentMode} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired} onSelectMode={onSelectMode} />
-      {!configure.supportsEditable || assignment.assignmentMode === "automatic" ?
+      {!configure.supportsEditable || assignment.assignmentMode === ASSIGNMENT_MODE.automatic ?
       <AssignmentSettingsPanel plan={assignment.plan} mode={assignment.assignmentMode} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired} onChange={configure.setAssignmentSettings}
         onRandomize={configure.supportsEditable ? configure.randomizeAssignments : undefined} hasRandomized={configure.assignmentPreview.hasRandomized} /> : null}
       <LobbyAssignmentPlayers
@@ -364,21 +368,21 @@ function HostAssignmentContent({
         pickPanel={pickPanel}
         isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
         editable={configure.supportsEditable}
-        onToggleAllocation={configure.supportsEditable || assignment.assignmentMode === "host_assigned" ? assignment.toggleAllocation : undefined}
+        onToggleAllocation={configure.supportsEditable || assignment.assignmentMode === ASSIGNMENT_MODE.hostAssigned ? assignment.toggleAllocation : undefined}
         onSetPlayerMatchCount={configure.supportsTargets ? configure.setPlayerMatchCount : undefined}
       />
       {configure.supportsEditable ? <>
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
         {configure.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void configure.startGame(true); }} /> : null}
       </> : assignment.plan.targetsByParticipantId ? <>
-        {assignment.assignmentMode !== "player_picked" ? <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
+        {assignment.assignmentMode !== ASSIGNMENT_MODE.playerPicked ? <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
           onReview={() => { void configure.assignmentPreview.review(); }} actionLabel="Start with these assignments"
           onCommit={accept => { void configure.assignmentPreview.commit(accept); }} /> : null}
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
       </> : <StartGameWarnings
         plan={assignment.plan}
         shortParticipants={assignment.shortParticipants}
-        isHostAssigned={assignment.assignmentMode === "host_assigned"}
+        isHostAssigned={assignment.assignmentMode === ASSIGNMENT_MODE.hostAssigned}
         error={configure.error}
         isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
         onStartAnyway={handleStartAnyway}
@@ -426,7 +430,7 @@ function LobbyAssignmentPlayers({
     : assignment.participants;
 
   function selectedMatchIdsFor(participantId: string): string[] {
-    if (assignment.assignmentMode === "player_picked") {
+    if (assignment.assignmentMode === ASSIGNMENT_MODE.playerPicked) {
       return assignment.picks
         .filter(pick => pick.participantId === participantId)
         .map(pick => pick.matchId);
@@ -444,7 +448,7 @@ function LobbyAssignmentPlayers({
       onSetPlayerMatchCount={onSetPlayerMatchCount}
       isBusy={isBusy}
       ownPicks={pickPanel}
-      pending={assignment.assignmentMode === "automatic"}
+      pending={assignment.assignmentMode === ASSIGNMENT_MODE.automatic}
       selectedMatchIdsFor={selectedMatchIdsFor}
       onToggleAllocation={onToggleAllocation}
     />

@@ -19,6 +19,7 @@ import { isWideLayout } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { useGameStoreHydration } from "../../store/useGameStoreHydration";
+import { ASSIGNMENT_POLICY_VERSION } from "../../types/room";
 import { useNavigationReady } from "../../platform/navigation/useNavigationReady";
 import { parseSoloStep, resolveStep, sameViewParams, SOLO_STEPS, withViewParams, type SoloStep, type RouteParams } from "../../platform/navigation/routeState";
 
@@ -351,7 +352,7 @@ function useStartGame(): () => void {
       return;
     }
 
-    if (assignmentPolicyVersion === 2) {
+    if (assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable) {
       try {
         validateLocalAssignments(players, matches, commonMatchId, playerAssignments, matchesPerPlayer, playerMatchCounts);
       } catch (error) {
@@ -378,7 +379,7 @@ function useRandomAssignment(): { handleRandomAssignment: (count: number) => Pro
     inFlight.current = true;
     setIsAssigning(true);
     try {
-      const newAssignments = assignmentPolicyVersion === 2 ? await createTargetedAssignments(
+      const newAssignments = assignmentPolicyVersion === ASSIGNMENT_POLICY_VERSION.editable ? await createTargetedAssignments(
         players, matches, commonMatchId, numMatches, playerMatchCounts,
       ) : createRandomAssignments(
         players,

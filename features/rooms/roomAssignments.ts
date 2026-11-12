@@ -1,4 +1,5 @@
 import type { AssignmentQuality, AssignmentSets, SharingPolicy } from "../../shared/assignments/types";
+import { ASSIGNMENT_MODE } from "../../types/room";
 import type { AssignmentMode, RoomAssignmentInput, RoomSnapshot, RunningGameConfiguration } from "../../types/room";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 
@@ -8,6 +9,12 @@ export interface AssignmentContext {
   targetsByParticipantId?: Record<string, number>;
   configuration: Omit<RunningGameConfiguration, "assignmentMode"> & { assignmentMode: AssignmentMode };
 }
+export const ASSIGNMENT_PURPOSE = {
+  start: "start",
+  runningSave: "running_save",
+} as const;
+export type AssignmentPurpose = (typeof ASSIGNMENT_PURPOSE)[keyof typeof ASSIGNMENT_PURPOSE];
+
 export interface PreparedAssignmentPreview {
   proposalId: string | null;
   expiresAt: string | null;
@@ -24,7 +31,7 @@ export interface AssignmentIssue {
 interface PendingPreview { issue: "preview_pending" | "preview_busy"; retryAfterSeconds: number }
 interface AssignmentRequest {
   sessionId: string;
-  purpose: "start" | "running_save";
+  purpose: AssignmentPurpose;
   context: AssignmentContext;
 }
 interface CommitRequest extends AssignmentRequest {
@@ -52,7 +59,7 @@ function createFrozenCopy<T>(value: T): T {
 /** One room/purpose owns preview ordering and uncertain commit recovery. */
 export function createRoomAssignments(
   sessionId: string,
-  purpose: "start" | "running_save",
+  purpose: AssignmentPurpose,
   readContext: () => AssignmentContext,
   transport: AssignmentTransport,
   dependencies: { newKey?: () => string; now?: () => number; wait?: (milliseconds: number) => Promise<void> } = {},
@@ -124,7 +131,7 @@ export function createRoomAssignments(
         }
         pendingCommitRequest = createFrozenCopy({ sessionId, purpose, context, proposalId: null,
           idempotencyKey: newKey(), acceptRelaxedSharing: false, assignmentOverrides });
-      } else if (purpose === "start" && readContext().configuration.assignmentMode === "player_picked") {
+      } else if (purpose === ASSIGNMENT_PURPOSE.start && readContext().configuration.assignmentMode === ASSIGNMENT_MODE.playerPicked) {
         pendingCommitRequest = createFrozenCopy({ sessionId, purpose, context: readContext(), proposalId: null,
           idempotencyKey: newKey(), acceptRelaxedSharing: false });
       } else {
