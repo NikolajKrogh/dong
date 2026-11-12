@@ -1,177 +1,95 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
-import { Modal, Text, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { Modal } from "react-native";
+import { Text, XStack, YStack, useTheme } from "tamagui";
+import { ShellActionButton } from "../../components/ui/ShellActionButton";
+import { ShellCard } from "../../components/ui/ShellCard";
+import { MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
+import { hexWithAlpha } from "../../styles/shadows";
 
-import createSetupGameStyles from "./setupGameStyles";
-import { useColors } from "../../styles/theme";
-
-export function AssignmentInfoModal({
-  visible,
-  message,
-  onClose,
-  styles,
-}: {
-  visible: boolean;
-  message: string;
-  onClose: () => void;
-  styles: ReturnType<typeof createSetupGameStyles>;
-}): React.JSX.Element {
-  return (
-    <Modal
-      animationType="slide"
-      transparent
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalText}>{message}</Text>
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={[styles.button, styles.buttonCancel]}
-            onPress={onClose}
-          >
-            <Text style={styles.textStyle}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
+export function AssignmentInfoModal({ visible, message, onClose }:
+  { visible: boolean; message: string; onClose: () => void }): React.JSX.Element {
+  return <Modal animationType="slide" transparent visible={visible} onRequestClose={onClose}>
+    <YStack flex={1} justifyContent="center" alignItems="center" backgroundColor="$backgroundModalOverlay">
+      <ShellCard margin="$5" width="85%" maxWidth={400} padding={25} borderRadius="$8" alignItems="center">
+        <Text color="$colorSecondary" fontSize={14} marginBottom={15} textAlign="center">{message}</Text>
+        <ShellActionButton label="Close" variant="secondary" widthMode="fit" borderRadius="$8" paddingVertical="$2.5" paddingHorizontal="$5" onPress={onClose} />
+      </ShellCard>
+    </YStack>
+  </Modal>;
 }
 
-export function AssignmentPanel({
-  title,
-  help,
-  children,
-  testID,
-  compact = false,
-}: {
-  title?: string;
-  help?: string;
-  children: React.ReactNode;
-  testID?: string;
-  compact?: boolean;
-}): React.JSX.Element {
-  const colors = useColors();
-  const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
+export function AssignmentPanel({ title, help, children, testID, compact = false }:
+  { title?: string; help?: string; children: React.ReactNode; testID?: string; compact?: boolean }): React.JSX.Element {
+  const theme = useTheme();
   const [showHelp, setShowHelp] = useState(false);
-  return (
-    <View
-      testID={testID}
-      style={[
-        styles.assignmentSection,
-        compact && styles.compactAssignmentSection,
-      ]}
-    >
-      {title ? (
-        <View style={styles.sectionHeader}>
-          <Text
-            style={[
-              styles.sectionTitle,
-              compact && styles.compactAssignmentTitle,
-            ]}
-          >
-            {title}
-          </Text>
-          {help ? (
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel={`About ${title.toLowerCase()}`}
-              hitSlop={10}
-              onPress={() => setShowHelp(true)}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={24}
-                color={colors.primary}
-              />
-            </TouchableOpacity>
-          ) : null}
-        </View>
-      ) : null}
-      {help ? (
-        <AssignmentInfoModal
-          visible={showHelp}
-          message={help}
-          onClose={() => setShowHelp(false)}
-          styles={styles}
-        />
-      ) : null}
-      <View
-        style={[
-          styles.randomizeContainer,
-          compact && styles.compactAssignmentSection,
-        ]}
-      >
-        {children}
-      </View>
-    </View>
-  );
+  return <YStack testID={testID} marginBottom={compact ? 0 : "$6"}>
+    {title ? <XStack alignItems="center" justifyContent="space-between" marginBottom="$2">
+      <Text color="$color" fontSize={16} fontWeight="bold" marginTop={compact ? 0 : "$3"} marginBottom={compact ? 0 : "$2"}>{title}</Text>
+      {help ? <ShellActionButton variant="text" widthMode="fit" padding={0}
+        accessibilityLabel={`About ${title.toLowerCase()}`} onPress={() => setShowHelp(true)}
+        icon={<Ionicons name="information-circle-outline" size={24} color={theme.primary.get()} />} /> : null}
+    </XStack> : null}
+    {help ? <AssignmentInfoModal visible={showHelp} message={help} onClose={() => setShowHelp(false)} /> : null}
+    <ShellCard borderColor="$borderColorSubtle" marginHorizontal="$2" marginBottom={compact ? 0 : "$4"}
+      width="auto" boxShadow={`0px 2px 3px ${hexWithAlpha(theme.color.val, 0.15)}`} elevation={3}>
+      {children}
+    </ShellCard>
+  </YStack>;
 }
 
-export function AssignmentCounter({
-  label,
-  description,
-  value,
-  min = 0,
-  max = Infinity,
-  disabled = false,
-  onChange,
-  testID,
-}: {
-  label: string;
-  description?: string;
-  value: number;
-  min?: number;
-  max?: number;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-  testID?: string;
-}): React.JSX.Element {
-  const colors = useColors();
-  const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
-  return (
-    <View style={styles.matchCounterContainer}>
-      <View style={styles.assignmentCounterLabel}>
-        <Text style={styles.matchCountLabel}>{label}</Text>
-        {description ? (
-          <Text style={styles.assignmentDescription}>{description}</Text>
-        ) : null}
-      </View>
-      <View style={styles.counter}>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={`Decrease ${label.toLowerCase()}`}
-          hitSlop={4}
-          testID={testID ? `${testID}-decrement` : undefined}
-          style={styles.counterButton}
-          disabled={disabled || value <= min}
-          onPress={() => onChange(Math.max(min, value - 1))}
-        >
-          <Ionicons
-            name="remove-outline"
-            size={20}
-            color={colors.primaryLight}
-          />
-        </TouchableOpacity>
-        <Text
-          testID={testID ? `${testID}-value` : undefined}
-          style={styles.counterValue}
-        >
-          {value}
-        </Text>
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel={`Increase ${label.toLowerCase()}`}
-          hitSlop={4}
-          testID={testID ? `${testID}-increment` : undefined}
-          style={styles.counterButton}
-          disabled={disabled || value >= max}
-          onPress={() => onChange(Math.min(max, value + 1))}
-        >
-          <Ionicons name="add-outline" size={20} color={colors.primaryLight} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+export function AssignmentCounter({ label, description, value, min = 0, max = Infinity, disabled = false,
+  onChange, testID, compact = false, subtle = false, valueContent }:
+  { label: string; description?: string; value: number; min?: number; max?: number; disabled?: boolean;
+    onChange: (value: number) => void; testID?: string; compact?: boolean; subtle?: boolean; valueContent?: React.ReactNode }): React.JSX.Element {
+  const theme = useTheme();
+  const iconColor = subtle ? theme.colorMuted.get() : theme.colorLight.get();
+  const iconSize = subtle ? 16 : 20;
+  return <XStack alignItems="center" justifyContent="space-between" marginBottom={compact ? 0 : "$4"}>
+    {!compact ? <YStack flex={1} marginRight="$2">
+      <Text color="$colorSecondary" fontSize={16} fontWeight="500">{label}</Text>
+      {description ? <Text color="$colorMuted" fontSize={13} marginTop="$1">{description}</Text> : null}
+    </YStack> : null}
+    <XStack alignItems="center">
+      <AssignmentCounterAction direction="decrement" label={label} value={value} min={min} max={max}
+        disabled={disabled} subtle={subtle} testID={testID} iconColor={iconColor} iconSize={iconSize} onChange={onChange} />
+      {valueContent ?? <Text testID={testID ? `${testID}-value` : undefined}
+        color="$color" fontSize={16} fontWeight="bold" marginHorizontal="$2.5">{value}</Text>}
+      <AssignmentCounterAction direction="increment" label={label} value={value} min={min} max={max}
+        disabled={disabled} subtle={subtle} testID={testID} iconColor={iconColor} iconSize={iconSize} onChange={onChange} />
+    </XStack>
+  </XStack>;
+}
+
+function AssignmentCounterAction({ direction, label, value, min, max, disabled, subtle, testID, iconColor, iconSize, onChange }:
+  { direction: "decrement" | "increment"; label: string; value: number; min: number; max: number; disabled: boolean;
+    subtle: boolean; testID?: string; iconColor: string; iconSize: number; onChange: (value: number) => void }): React.JSX.Element {
+  const decrement = direction === "decrement";
+  return <ShellActionButton variant={subtle ? "text" : "primary"} widthMode="fit" width={44} height={44} padding={0}
+    borderRadius={subtle ? "$3" : 22} accessibilityLabel={`${decrement ? "Decrease" : "Increase"} ${label.toLowerCase()}`}
+    testID={testID ? `${testID}-${direction}` : undefined}
+    disabled={disabled || (decrement ? value <= min : value >= max)}
+    onPress={() => onChange(decrement ? Math.max(min, value - 1) : Math.min(max, value + 1))}
+    icon={<Ionicons name={decrement ? "remove-outline" : "add-outline"} size={iconSize} color={iconColor} />} />;
+}
+
+export function AssignmentRandomizer({ value, max = MAX_ASSIGNMENT_COUNT, disabled, hasAssignments, onChange, onRandomize, testID }:
+  { value: number; max?: number; disabled?: boolean; hasAssignments?: boolean; onChange: (count: number) => void; onRandomize: () => void; testID?: string }) {
+  const theme = useTheme();
+  return <AssignmentPanel title="Random Assignment" testID={testID}><YStack gap="$3">
+    <AssignmentDefaultCount value={value} max={max} disabled={disabled} onChange={onChange}
+      testID={testID ? "lobby-matches-per-player" : undefined} />
+    <ShellActionButton disabled={disabled} onPress={onRandomize}
+      label={hasAssignments ? "Randomize Again" : "Randomize Matches"}
+      icon={<Ionicons name="shuffle" size={20} color={theme.colorLight.get()} />} />
+  </YStack></AssignmentPanel>;
+}
+
+export function AssignmentDefaultCount({ value, max = MAX_ASSIGNMENT_COUNT, disabled, onChange, testID }:
+  { value: number; max?: number; disabled?: boolean; onChange: (count: number) => void; testID?: string }) {
+  return <XStack alignItems="center" justifyContent="space-between" gap="$2">
+    <Text color="$colorSecondary" fontSize={16} fontWeight="500" flexShrink={1}>Matches per player:</Text>
+    <AssignmentCounter compact label="Default matches per player" value={value} max={max} disabled={disabled}
+      testID={testID} onChange={onChange} />
+  </XStack>;
 }

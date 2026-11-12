@@ -13,6 +13,7 @@ import { act } from "react-test-renderer";
 import { actCreate } from "../../../test-utils/render";
 import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 import { RoomAssignmentPlayers } from "../../../features/rooms/RoomAssignmentPlayers";
+import { PlayerPickPanel } from "../../../features/rooms/PlayerPickPanel";
 import type { RoomSnapshot } from "../../../types/room";
 
 const mockReplace = jest.fn();
@@ -252,8 +253,9 @@ describe("pre-start lobby, as the setup wizard", () => {
     const lobby = renderLobby();
     const step = renderStep(wizardProps(lobby).steps[3].content);
     const players = step.root.findByType(RoomAssignmentPlayers);
-    expect(players.props.participants.map((p: { id: string }) => p.id)).toContain("p1");
-    act(() => players.props.onSetPlayerMatchCount("p1", 0));
+    expect(players.props.participants.map((p: { id: string }) => p.id)).not.toContain("p1");
+    const ownPicks = step.root.findByType(PlayerPickPanel);
+    act(() => ownPicks.props.onSetCount(0));
     expect(mockSetPlayerMatchCount).toHaveBeenCalledWith("p1", 0);
     act(() => { step.unmount(); lobby.unmount(); });
   });

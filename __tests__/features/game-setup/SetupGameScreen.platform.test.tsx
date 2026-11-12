@@ -29,6 +29,7 @@ const mockStoreState = {
   ],
   commonMatchId: "m1",
   playerAssignments: { p1: ["m1"] },
+  playerMatchCounts: {},
   matchesPerPlayer: 2,
   setPlayers: jest.fn(),
   setMatches: jest.fn(),
@@ -145,7 +146,7 @@ describe("SetupGameScreen responsive layout", () => {
     expect(byKey.matches.canEnter).toBe(true);
     expect(byKey.common.canEnter).toBe(true);
     expect(byKey.assign.canEnter).toBe(true);
-    expect(wizard.props.finalAction.disabled).toBe(false);
+    expect(wizard.props.finalAction.disabled).toBe(true);
 
     expect(byKey.players.content.props.players).toEqual(mockStoreState.players);
     expect(byKey.matches.content.props.matches).toEqual(mockStoreState.matches);

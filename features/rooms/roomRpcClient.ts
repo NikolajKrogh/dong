@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseClient } from "../../lib/supabase";
 import type { Database } from "../../types/database";
 import type { Json } from "../../types/database.types";
+import { ASSIGNMENT_POLICY_VERSION } from "../../types/room";
 import { createRoomGameplayOperations } from "./roomGameplayOperations";
 import { withRoomProcessingRetry } from "./roomRpcErrors";
 
@@ -109,7 +110,7 @@ export const createRoomRpcClient = (
   return {
     async setAssignmentConfiguration(sessionId, settings, expectedToken, key) {
       const { error } = await client.rpc("set_room_assignment_configuration_v2", {
-        session_id: sessionId, configuration: { ...settings, assignmentPolicyVersion: 2 } as unknown as Json,
+        session_id: sessionId, configuration: { ...settings, assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable } as unknown as Json,
         expected_token: expectedToken, idempotency_key: key,
       });
       if (error) throw error;

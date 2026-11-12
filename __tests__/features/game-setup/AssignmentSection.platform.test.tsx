@@ -1,7 +1,13 @@
 import React from "react";
 import TestRenderer from "react-test-renderer";
+import { StyleSheet } from "react-native";
 
 import { actCreate } from "../../../test-utils/render";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
+jest.mock("../../../components/ui/ShellActionButton", () => ({
+  ShellActionButton: ({ label, ...props }: { label?: string; accessibilityLabel?: string }) => require("react").createElement("TouchableOpacity",
+    { ...props, accessibilityRole: "button", accessibilityLabel: props.accessibilityLabel ?? label }, require("react").createElement("Text", null, label)),
+}));
 
 const mockUseWindowDimensions = jest.fn(() => ({
   width: 390,
@@ -50,16 +56,11 @@ const mockStyles = {
   randomizeButtonText: { testStyle: "randomizeButtonText" },
 };
 
-jest.mock("react-native", () => ({
-  Platform: { OS: "web", select: (o: Record<string, unknown>) => o.web ?? o.default },
-  View: "View",
-  Text: "Text",
-  FlatList: "FlatList",
-  TouchableOpacity: "TouchableOpacity",
-  Modal: "Modal",
-  Image: "Image",
-  useWindowDimensions: () => mockUseWindowDimensions(),
-}));
+jest.mock("react-native", () => {
+  const actual = jest.requireActual("react-native");
+  Object.defineProperty(actual, "useWindowDimensions", { configurable: true, value: () => mockUseWindowDimensions() });
+  return actual;
+});
 
 jest.mock("@expo/vector-icons", () => ({
   Ionicons: () => null,
@@ -83,6 +84,7 @@ jest.mock("../../../features/football-matches/teamLogos", () => ({
 }));
 
 jest.mock("../../../styles/theme", () => ({
+  ...jest.requireActual("../../../styles/theme"),
   useColors: () => ({
     primary: "#123456",
     primaryLight: "#345678",
@@ -104,7 +106,7 @@ const renderAssignmentSection = (
     require("../../../features/game-setup/AssignmentSection").default;
 
   return actCreate(
-    React.createElement(AssignmentSection, {
+    React.createElement(TamaguiTestProvider, null, React.createElement(AssignmentSection, {
       players: [
         { id: "p1", name: "Alice" },
         { id: "p2", name: "Bob" },
@@ -132,7 +134,7 @@ const renderAssignmentSection = (
       setMatchesPerPlayer: jest.fn(),
       handleRandomAssignment: jest.fn(),
       ...overrides,
-    }),
+    })),
   );
 };
 
@@ -141,11 +143,12 @@ it("edits an individual count and clears its explicit zero override", () => {
   const renderer = renderAssignmentSection({ playerMatchCounts: { p1: 0 }, setPlayerMatchCount });
   const collapse = renderer.root.findAllByProps({ testID: "AssignmentPlayerCard" })
     .find(node => typeof node.props.onToggleCollapsed === "function");
-  TestRenderer.act(() => collapse!.props.onToggleCollapsed());
-  const increase = renderer.root.findAllByProps({ accessibilityLabel: "Increase additional matches for alice" })[0];
+  expect(collapse!.props.collapsed).toBe(true);
+  const increase = renderer.root.findAllByProps({ accessibilityLabel: "Increase alice's additional matches" })[0];
   TestRenderer.act(() => increase.props.onPress());
   expect(setPlayerMatchCount).toHaveBeenCalledWith("p1", 1);
-  const reset = renderer.root.findAllByProps({ accessibilityLabel: "Use default for Alice" })[0];
+  expect(collapse!.props.collapsed).toBe(true);
+  const reset = renderer.root.findAllByProps({ accessibilityLabel: "Use default count for Alice" })[0];
   TestRenderer.act(() => reset.props.onPress());
   expect(setPlayerMatchCount).toHaveBeenCalledWith("p1", null);
 });
@@ -202,13 +205,7 @@ describe("AssignmentSection responsive layout", () => {
       ]),
     );
     cards.forEach((card) => {
-      expect(card.props.style).toEqual(
-        expect.arrayContaining([
-          mockStyles.assignmentContainer,
-          mockStyles.playerContainer,
-          mockStyles.assignmentPlayerCardWide,
-        ]),
-      );
+      expect(StyleSheet.flatten(card.props.style)).toMatchObject({ width: "48%" });
     });
   });
 });
@@ -224,13 +221,7 @@ describe("AssignmentSection progress badge", () => {
     });
   });
 
-  // The badge shell moved into components/matchSelection/MatchSelectionCard,
-  // which is shared with the player-picked surfaces. Those count against the
-  // per-player CAP while this flow counts against the POOL, so the denominator
-  // is a prop -- and nothing else in this suite pins it. The fixture below
-  // deliberately makes pool size (3) differ from matchesPerPlayer (1) so a
-  // swapped denominator cannot pass (specs/022-player-picked-mode research.md R15).
-  it("counts each player's assignments against the non-common pool size, not matchesPerPlayer", () => {
+  it("shows how many picks are missing or excessive against each target", () => {
     const renderer = renderAssignmentSection({
       matches: [
         { id: "m1", homeTeam: "Arsenal", awayTeam: "Chelsea", homeGoals: 0, awayGoals: 0 },
@@ -243,11 +234,8 @@ describe("AssignmentSection progress badge", () => {
       matchesPerPlayer: 1,
     });
 
-    const badges = renderer.root
-      .findAllByProps({ style: mockStyles.playerBadgeText })
-      .map((node) => node.props.children.join(""));
-
-    expect(badges).toEqual(expect.arrayContaining(["2/3", "0/3"]));
+    const statuses = renderer.root.findAllByType("Text" as never).map(node => node.props.accessibilityLabel);
+    expect(statuses).toEqual(expect.arrayContaining(["1 too many", "1 left"]));
   });
 });
 
@@ -256,9 +244,9 @@ describe("shared solo and room assignment controls", () => {
   it("preserves both server settings when either shared counter changes", () => {
     const { AssignmentSettingsPanel } = require("../../../features/rooms/AssignmentSettingsPanel");
     const onChange = jest.fn();
-    const tree = actCreate(React.createElement(AssignmentSettingsPanel, {
+    const tree = actCreate(React.createElement(TamaguiTestProvider, null, React.createElement(AssignmentSettingsPanel, {
       plan: { matchesPerPlayer: 2, sharedMatchesPerPair: 1 }, mode: "automatic", isBusy: false, onChange,
-    }));
+    })));
     TestRenderer.act(() => tree.root.findByProps({ testID: "lobby-matches-per-player-increment" }).props.onPress());
     expect(onChange).toHaveBeenLastCalledWith({ matchesPerPlayer: 3, sharedMatchesPerPair: 1 });
     expect(tree.root.findAllByProps({ testID: "lobby-shared-matches-per-pair-decrement" })).toHaveLength(0);
@@ -272,11 +260,11 @@ describe("shared solo and room assignment controls", () => {
     const { MatchSelectionCard } = require("../../../features/game-setup/MatchSelectionCard");
     const { SelectableMatchList } = require("../../../features/game-setup/SelectableMatchList");
     const onToggleAllocation = jest.fn();
-    const tree = actCreate(React.createElement(RoomAssignmentPlayers, {
+    const tree = actCreate(React.createElement(TamaguiTestProvider, null, React.createElement(RoomAssignmentPlayers, {
       participants: [{ id: "p1", displayName: "Alice" }],
       matches: [{ id: "m2", homeTeam: "Liverpool", awayTeam: "Spurs" }],
       matchesPerPlayer: 2, selectedMatchIdsFor: () => ["m2"], isBusy: true, onToggleAllocation,
-    }));
+    })));
     const card = tree.root.findByType(MatchSelectionCard);
     expect(card.props.selectedCount).toBe(1);
     expect(card.props.totalCount).toBe(2);

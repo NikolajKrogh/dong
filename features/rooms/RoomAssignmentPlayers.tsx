@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
-import { AssignmentCounter } from "../game-setup/AssignmentControls";
+import { Text, View } from "react-native";
+import { AssignmentPlayerCard, AssignmentLayoutToggle } from "../game-setup/AssignmentPlayerCard";
 
 import type { RoomParticipantSummary } from "../../types/room";
 import createSetupGameStyles from "../game-setup/setupGameStyles";
 import { useColors } from "../../styles/theme";
-import { MatchSelectionCard } from "../game-setup/MatchSelectionCard";
+
 import {
   SelectableMatchList,
   type SelectableMatch,
@@ -23,6 +23,7 @@ interface RoomAssignmentPlayersProps {
   pending?: boolean;
   pendingLabel?: string;
   ownPicks?: React.ReactNode;
+  editable?: boolean;
 }
 
 export function RoomAssignmentPlayers({
@@ -37,9 +38,11 @@ export function RoomAssignmentPlayers({
   pending = false,
   pendingLabel = "On start",
   ownPicks,
+  editable = false,
 }: RoomAssignmentPlayersProps): React.JSX.Element {
   const colors = useColors();
   const styles = useMemo(() => createSetupGameStyles(colors), [colors]);
+  const [useGridLayout, setUseGridLayout] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const busyMatchIds = isBusy
     ? matches.map((match) => match.id)
@@ -57,27 +60,28 @@ export function RoomAssignmentPlayers({
       style={[styles.assignmentSection, styles.compactAssignmentSection]}
     >
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, styles.compactAssignmentTitle]}>Players</Text>
+        <Text style={[styles.sectionTitle, styles.compactAssignmentTitle]}>{onToggleAllocation ? "Manual Assignment" : "Players"}</Text>
+        {onToggleAllocation ? <AssignmentLayoutToggle grid={useGridLayout} onToggle={() => setUseGridLayout(value => !value)} /> : null}
       </View>
       {ownPicks}
       {participants.map((participant) => {
         const selected = selectedMatchIdsFor(participant.id);
-        const selectedIds = new Set(selected);
         const target = targetsByParticipantId?.[participant.id] ?? matchesPerPlayer;
-        let disabledMatchIds = busyMatchIds;
-        if (onToggleAllocation && !isBusy && selected.length >= target) {
-          disabledMatchIds = matches.filter(match => !selectedIds.has(match.id)).map(match => match.id);
-        }
         return (
-          <MatchSelectionCard
+          <AssignmentPlayerCard
             key={participant.id}
             compact
+            target={target}
+            defaultCount={matchesPerPlayer}
+            disabled={isBusy}
+            usesDefault={participant.additionalMatchCount == null}
+            onSetCount={onSetPlayerMatchCount ? count => onSetPlayerMatchCount(participant.id, count) : undefined}
             title={participant.displayName}
             testID={`lobby-assignment-player-${participant.id}`}
             badgeTestID={`lobby-allocation-status-${participant.id}`}
             selectedCount={selected.length}
             totalCount={target}
-            badgeLabel={pending ? `${target} · ${pendingLabel}` : undefined}
+            badgeLabel={pending && !editable ? `${target} · ${pendingLabel}` : undefined}
             collapsed={!expanded[participant.id]}
             onToggleCollapsed={
               onToggleAllocation || onSetPlayerMatchCount
@@ -85,23 +89,17 @@ export function RoomAssignmentPlayers({
                 : undefined
             }
           >
-            {onSetPlayerMatchCount ? <>
-              <AssignmentCounter label={`${participant.displayName}'s additional matches`} value={target} max={100}
-                disabled={isBusy} onChange={count => onSetPlayerMatchCount(participant.id, count)} />
-              <Text>{target === 0 ? "Common match only" : "Plus the common match"} · {participant.additionalMatchCount == null ? "Using default" : "Custom count"}</Text>
-              {participant.additionalMatchCount != null ? <TouchableOpacity accessibilityRole="button"
-                accessibilityLabel={`Use default count for ${participant.displayName}`} disabled={isBusy}
-                onPress={() => onSetPlayerMatchCount(participant.id, null)}><Text>Use default</Text></TouchableOpacity> : null}
-            </> : null}
             {onToggleAllocation ?
             <SelectableMatchList
+              density="compact"
               matches={matches}
               selectedMatchIds={selected}
-              disabledMatchIds={disabledMatchIds}
+              disabledMatchIds={busyMatchIds}
+              useGridLayout={useGridLayout}
               testIDPrefix={`lobby-allocate-${participant.id}`}
               onToggleMatch={(id) => onToggleAllocation?.(participant.id, id)}
             /> : null}
-          </MatchSelectionCard>
+          </AssignmentPlayerCard>
         );
       })}
     </View>

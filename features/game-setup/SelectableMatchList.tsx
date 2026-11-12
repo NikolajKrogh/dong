@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
-import { FlatList, Image, Platform, Text, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
@@ -26,6 +26,8 @@ export interface SelectableMatch {
 }
 
 interface SelectableMatchListProps {
+  /** Assignment density changes spacing, never the original card composition. */
+  density?: "default" | "compact";
   matches: SelectableMatch[];
   selectedMatchIds: string[];
   onToggleMatch: (matchId: string) => void;
@@ -43,6 +45,7 @@ interface SelectableMatchListProps {
 }
 
 interface SelectableMatchRowProps {
+  density?: "default" | "compact";
   match: SelectableMatch;
   index: number;
   selected: boolean;
@@ -51,6 +54,19 @@ interface SelectableMatchRowProps {
   compact: boolean;
   readOnly?: boolean;
   onToggleMatch: (matchId: string) => void;
+}
+
+interface SelectableMatchRowVisualProps extends Omit<SelectableMatchRowProps, "compact"> {
+  density: "default" | "compact";
+  colors: ReturnType<typeof useColors>;
+  styles: ReturnType<typeof createSetupGameStyles>;
+  homeTeamLogo: ReturnType<typeof getTeamLogoWithFallback>;
+  awayTeamLogo: ReturnType<typeof getTeamLogoWithFallback>;
+  buttonStyle: React.ComponentProps<typeof TouchableOpacity>["style"];
+  accessibilityState: { selected: boolean; checked: boolean; disabled: boolean };
+  handlePress: () => void;
+  gradientColors: React.ComponentProps<typeof LinearGradient>["colors"];
+  kickoff: string | null;
 }
 
 const disabledMatchStyle = { opacity: 0.4 };
@@ -64,6 +80,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
   disabled,
   testID,
   compact,
+  density = "default",
   readOnly = false,
   onToggleMatch,
 }: SelectableMatchRowProps) {
@@ -74,7 +91,7 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
     [match.id, onToggleMatch],
   );
   const accessibilityState = React.useMemo(
-    () => ({ selected, disabled: disabled || readOnly }),
+    () => ({ selected, checked: selected, disabled: disabled || readOnly }),
     [disabled, selected, readOnly],
   );
   const homeTeamLogo = getTeamLogoWithFallback(match.homeTeam);
@@ -103,107 +120,84 @@ const SelectableMatchRow = React.memo(function SelectableMatchRow({
     [compact, match.startTime],
   );
 
-  if (compact) {
-    return (
-      <TouchableOpacity
-        testID={testID}
-        accessibilityState={accessibilityState}
-        disabled={disabled || readOnly}
-        style={buttonStyle}
-        onPress={handlePress}
-      >
-        <View style={styles.compactMatchNumberBadge}>
-          <Text style={styles.compactMatchNumberText}>{index + 1}</Text>
-        </View>
-        <View style={styles.compactTeamsContainer}>
-          {homeTeamLogo ? (
-            <Image source={homeTeamLogo} style={styles.compactTeamLogo} resizeMode="contain" />
-          ) : (
-            <View style={styles.compactTeamPlaceholder}>
-              <Text style={styles.compactTeamPlaceholderText}>{match.homeTeam.charAt(0)}</Text>
-            </View>
-          )}
-          <Text style={styles.compactVsText}>vs</Text>
-          {awayTeamLogo ? (
-            <Image source={awayTeamLogo} style={styles.compactTeamLogo} resizeMode="contain" />
-          ) : (
-            <View style={styles.compactTeamPlaceholder}>
-              <Text style={styles.compactTeamPlaceholderText}>{match.awayTeam.charAt(0)}</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  }
-
-  return (
-    <TouchableOpacity
-      testID={testID}
-      accessibilityState={accessibilityState}
-      accessibilityLabel={`${match.homeTeam} versus ${match.awayTeam}`}
-      disabled={disabled || readOnly}
-      style={buttonStyle}
-      onPress={handlePress}
-    >
-      <View style={styles.matchNumberBadge}>
-        <Text style={styles.matchNumberText}>{index + 1}</Text>
-      </View>
-      <LinearGradient
-        colors={gradientColors}
-        start={gradientStart}
-        end={gradientEnd}
-        style={styles.matchCardGradient}
-      >
-        <View style={styles.matchTeamsContainer}>
-          <View style={styles.matchTeamColumn}>
-            <View style={styles.logoContainer}>
-              {homeTeamLogo ? (
-                <Image source={homeTeamLogo} style={styles.teamLogo} />
-              ) : (
-                <View style={styles.teamLogoPlaceholder}>
-                  <Text style={styles.teamLogoPlaceholderText}>{match.homeTeam.charAt(0)}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.teamName}>
-              {match.homeTeam}
-            </Text>
-          </View>
-          <View style={styles.vsDividerHorizontal}>
-            <Text style={styles.vsText}>VS</Text>
-          </View>
-          <View style={styles.matchTeamColumn}>
-            <View style={styles.logoContainer}>
-              {awayTeamLogo ? (
-                <Image source={awayTeamLogo} style={styles.teamLogo} />
-              ) : (
-                <View style={styles.teamLogoPlaceholder}>
-                  <Text style={styles.teamLogoPlaceholderText}>{match.awayTeam.charAt(0)}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.teamName}>
-              {match.awayTeam}
-            </Text>
-          </View>
-        </View>
-        {kickoff ? (
-          <View style={styles.matchTimeHeader}>
-            <AppIcon name="time-outline" size={16} color={colors.primary} />
-            <Text style={styles.matchTimeText}>{kickoff}</Text>
-          </View>
-        ) : null}
-        {!readOnly ? <View style={styles.selectionCheckmark}>
-          <Ionicons
-            name={selected ? "checkmark-circle" : "ellipse-outline"}
-            size={24}
-            color={selected ? colors.primary : colors.border}
-          />
-        </View> : null}
-      </LinearGradient>
-    </TouchableOpacity>
-  );
+  const visualProps = {
+    match, index, selected, disabled, testID, density, readOnly, onToggleMatch,
+    colors, styles, homeTeamLogo, awayTeamLogo, buttonStyle, accessibilityState,
+    handlePress, gradientColors, kickoff,
+  };
+  return compact
+    ? <CompactSelectableMatchRow {...visualProps} />
+    : <DetailedSelectableMatchRow {...visualProps} />;
 });
+
+function CompactSelectableMatchRow({ match, index, selected, disabled, testID, density, readOnly,
+  colors, styles, homeTeamLogo, awayTeamLogo, buttonStyle, accessibilityState, handlePress,
+  gradientColors }: SelectableMatchRowVisualProps): React.JSX.Element {
+  return <TouchableOpacity testID={testID} accessibilityRole="checkbox" aria-checked={selected}
+    accessibilityLabel={`${match.homeTeam} versus ${match.awayTeam}`} accessibilityState={accessibilityState}
+    disabled={disabled || readOnly} style={buttonStyle} onPress={handlePress}>
+    {density === "compact" && !selected ? <LinearGradient colors={gradientColors} start={gradientStart} end={gradientEnd} style={StyleSheet.absoluteFill} /> : null}
+    <View style={styles.compactMatchNumberBadge}><Text style={styles.compactMatchNumberText}>{index + 1}</Text></View>
+    {!readOnly ? <View style={[styles.selectionCheckmark, { top: 2, right: 2 }]}>
+      <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={14} color={selected ? colors.primary : colors.border} />
+    </View> : null}
+    <View style={styles.compactTeamsContainer}>
+      <CompactTeamLogo matchName={match.homeTeam} logo={homeTeamLogo} styles={styles} />
+      <Text style={styles.compactVsText}>vs</Text>
+      <CompactTeamLogo matchName={match.awayTeam} logo={awayTeamLogo} styles={styles} />
+    </View>
+  </TouchableOpacity>;
+}
+
+function CompactTeamLogo({ matchName, logo, styles }: {
+  matchName: string;
+  logo: ReturnType<typeof getTeamLogoWithFallback>;
+  styles: ReturnType<typeof createSetupGameStyles>;
+}): React.JSX.Element {
+  return logo ? <Image source={logo} style={styles.compactTeamLogo} resizeMode="contain" /> :
+    <View style={styles.compactTeamPlaceholder}><Text style={styles.compactTeamPlaceholderText}>{matchName.charAt(0)}</Text></View>;
+}
+
+function DetailedSelectableMatchRow({ match, index, selected, disabled, testID, density, readOnly,
+  colors, styles, homeTeamLogo, awayTeamLogo, buttonStyle, accessibilityState, handlePress, gradientColors,
+  kickoff }: SelectableMatchRowVisualProps): React.JSX.Element {
+  return <TouchableOpacity testID={testID} accessibilityRole="checkbox" aria-checked={selected}
+    accessibilityState={accessibilityState} accessibilityLabel={`${match.homeTeam} versus ${match.awayTeam}`}
+    disabled={disabled || readOnly} style={buttonStyle} onPress={handlePress}>
+    <View style={styles.matchNumberBadge}><Text style={styles.matchNumberText}>{index + 1}</Text></View>
+    <LinearGradient colors={gradientColors} start={gradientStart} end={gradientEnd}
+      style={[styles.matchCardGradient, density === "compact" && styles.assignmentCardGradient]}>
+      <View style={styles.matchTeamsContainer}>
+        <DetailedTeamColumn matchName={match.homeTeam} logo={homeTeamLogo} density={density} styles={styles} />
+        <View style={styles.vsDividerHorizontal}><Text style={styles.vsText}>VS</Text></View>
+        <DetailedTeamColumn matchName={match.awayTeam} logo={awayTeamLogo} density={density} styles={styles} />
+      </View>
+      {kickoff ? <View style={[styles.matchTimeHeader, density === "compact" && styles.assignmentCardKickoff]}>
+        <AppIcon name="time-outline" size={16} color={density === "compact" ? colors.primaryDark : colors.primary} />
+        <Text style={[styles.matchTimeText, density === "compact" && styles.assignmentCardKickoffText]}>{kickoff}</Text>
+      </View> : null}
+      {!readOnly ? <View style={styles.selectionCheckmark}>
+        <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={24}
+          color={selected ? colors.primary : colors.border} />
+      </View> : null}
+    </LinearGradient>
+  </TouchableOpacity>;
+}
+
+function DetailedTeamColumn({ matchName, logo, density, styles }: {
+  matchName: string;
+  logo: ReturnType<typeof getTeamLogoWithFallback>;
+  density: "default" | "compact";
+  styles: ReturnType<typeof createSetupGameStyles>;
+}): React.JSX.Element {
+  return <View style={styles.matchTeamColumn}>
+    <View style={[styles.logoContainer, density === "compact" && styles.assignmentCardLogo]}>
+      {logo ? <Image source={logo} style={[styles.teamLogo, density === "compact" && styles.assignmentCardTeamLogo]} /> :
+        <View style={styles.teamLogoPlaceholder}><Text style={styles.teamLogoPlaceholderText}>{matchName.charAt(0)}</Text></View>}
+    </View>
+    <Text style={[styles.teamName, density === "compact" && styles.assignmentCardTeamName]}>{matchName}</Text>
+  </View>;
+}
 
 const matchKeyExtractor = (match: SelectableMatch) => match.id;
 
@@ -221,6 +215,7 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
   onToggleMatch,
   disabledMatchIds,
   useGridLayout = false,
+  density = "default",
   testIDPrefix,
   readOnly = false,
 }) => {
@@ -235,33 +230,27 @@ export const SelectableMatchList: React.FC<SelectableMatchListProps> = ({
     (matchId: string) => testIDPrefix ? `${testIDPrefix}-${matchId}` : undefined,
     [testIDPrefix],
   );
-  const renderCompactMatchItem = React.useCallback((match: SelectableMatch, index: number) => (
-    <View key={match.id} style={styles.gridItem}>
-      <SelectableMatchRow
-        match={match}
-        index={index}
-        selected={selectedMatchSet.has(match.id)}
-        disabled={disabledMatchSet.has(match.id)}
-        testID={getTestID(match.id)}
-        compact
-        readOnly={readOnly}
-        onToggleMatch={onToggleMatch}
-      />
-    </View>
-  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, styles.gridItem, readOnly]);
-  const renderMatch = React.useCallback(({ item, index }: { item: SelectableMatch; index: number }) => (
+  const renderMatchRow = React.useCallback((match: SelectableMatch, index: number, compact: boolean) => (
     <SelectableMatchRow
-      key={item.id}
-      match={item}
+      key={match.id}
+      match={match}
       index={index}
-      selected={selectedMatchSet.has(item.id)}
-      disabled={disabledMatchSet.has(item.id)}
-      testID={getTestID(item.id)}
-      compact={false}
+      selected={selectedMatchSet.has(match.id)}
+      disabled={disabledMatchSet.has(match.id)}
+      testID={getTestID(match.id)}
+      compact={compact}
+      density={density}
       readOnly={readOnly}
       onToggleMatch={onToggleMatch}
     />
-  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, readOnly]);
+  ), [disabledMatchSet, getTestID, onToggleMatch, selectedMatchSet, readOnly, density]);
+  const renderCompactMatchItem = React.useCallback((match: SelectableMatch, index: number) => (
+    <View key={match.id} style={styles.gridItem}>
+      {renderMatchRow(match, index, true)}
+    </View>
+  ), [renderMatchRow, styles.gridItem]);
+  const renderMatch = React.useCallback(({ item, index }: { item: SelectableMatch; index: number }) =>
+    renderMatchRow(item, index, false), [renderMatchRow]);
 
   if (useGridLayout) {
     return (

@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Text, YStack } from "tamagui";
 
 import { MatchSelectionCard } from "../game-setup/MatchSelectionCard";
+import { AssignmentPlayerCard } from "../game-setup/AssignmentPlayerCard";
 import {
   SelectableMatchList,
   type SelectableMatch,
@@ -31,6 +32,9 @@ interface PlayerPickPanelProps {
   title?: string;
   compact?: boolean;
   flat?: boolean;
+  onSetCount?: (count: number | null) => void;
+  defaultCount?: number;
+  usesDefault?: boolean;
 }
 
 function getPickInstruction(cap: number, pickedCount: number): string {
@@ -73,6 +77,9 @@ export function PlayerPickPanel({
   title = "Your matches",
   compact = false,
   flat = false,
+  onSetCount,
+  defaultCount,
+  usesDefault,
 }: PlayerPickPanelProps): React.JSX.Element {
   const [collapsed, setCollapsed] = useState(false);
   const [localPicks, setLocalPicks] = useState<string[]>(myPicks);
@@ -128,43 +135,24 @@ export function PlayerPickPanel({
     void onSetPicks([]);
   }, [onSetPicks]);
 
-  return (
-    <YStack testID={testID} gap="$2">
-      <MatchSelectionCard
-        compact={compact}
-        flat={flat}
-        title={title}
-        selectedCount={localPicks.length}
-        totalCount={cap}
-        collapsed={collapsed}
-        onToggleCollapsed={flat ? undefined : () => setCollapsed((value) => !value)}
-        testID={`${testID}-card`}
-        badgeTestID={`${testID}-count`}
-        headerAction={localPicks.length > 0 ? (
-          <ShellActionButton
-            variant="text"
-            widthMode="fit"
-            label="Clear picks"
-            testID={`${testID}-release-all`}
-            disabled={isBusy}
-            onPress={handleClearPicks}
-          />
-        ) : null}
-      >
-        <YStack gap="$2">
-          <Text color="$colorMuted" fontSize={13}>
-            {getPickInstruction(cap, localPicks.length)}
-          </Text>
-
-          <SelectableMatchList
-            matches={matches}
-            selectedMatchIds={localPicks}
-            onToggleMatch={handleToggle}
-            testIDPrefix={`${testID}-option`}
-            disabledMatchIds={disabledMatchIds}
-          />
-        </YStack>
-      </MatchSelectionCard>
-    </YStack>
-  );
+  const clearAction = localPicks.length > 0 ? (
+    <ShellActionButton variant="text" widthMode="fit" label="Clear picks"
+      testID={`${testID}-release-all`} disabled={isBusy} onPress={handleClearPicks} />
+  ) : null;
+  const content = <YStack gap="$2">
+    {!onSetCount ? <Text color="$colorMuted" fontSize={13}>{getPickInstruction(cap, localPicks.length)}</Text> : clearAction}
+    <SelectableMatchList density="compact" matches={matches} selectedMatchIds={localPicks}
+      onToggleMatch={handleToggle} testIDPrefix={`${testID}-option`} disabledMatchIds={disabledMatchIds} />
+  </YStack>;
+  const cardProps = {
+    compact, flat, title, selectedCount: localPicks.length, totalCount: cap, collapsed,
+    onToggleCollapsed: flat ? undefined : () => setCollapsed(value => !value),
+    testID: `${testID}-card`, badgeTestID: `${testID}-count`,
+  };
+  return <YStack testID={testID} gap="$2">
+    {onSetCount ? <AssignmentPlayerCard {...cardProps} target={cap} defaultCount={defaultCount}
+      usesDefault={usesDefault} onSetCount={onSetCount} disabled={isBusy}
+      >{content}</AssignmentPlayerCard> :
+      <MatchSelectionCard {...cardProps} headerAction={clearAction}>{content}</MatchSelectionCard>}
+  </YStack>;
 }

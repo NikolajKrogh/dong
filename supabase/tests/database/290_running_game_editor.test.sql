@@ -115,7 +115,7 @@ SET LOCAL ROLE authenticated;
 SELECT lives_ok($$SELECT public.save_running_game_configuration('00000000-0000-4800-8000-000000000201','{"assignmentMode":"automatic","matchesPerPlayer":1,"sharedMatchesPerPair":0,"newMatches":[],"assignments":[]}',(SELECT token FROM edit_context),gen_random_uuid())$$,'automatic redistribution uses the existing room pool');
 SELECT is((SELECT count(*)::int FROM public.assignments WHERE session_id='00000000-0000-4800-8000-000000000201'),6,'redistribution assigns one individual and one common match per player');
 RESET ROLE;
-GRANT EXECUTE ON FUNCTION public.save_running_game_configuration_v2(uuid,jsonb,uuid,text,uuid,boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.save_running_game_configuration_v2(uuid,jsonb,uuid,text,uuid,boolean,jsonb) TO authenticated;
 CREATE TEMP TABLE v2_edit AS SELECT private.running_configuration_token(gs.id) AS token,
  jsonb_build_object('assignmentPolicyVersion',2,'assignmentMode','host_assigned','matchesPerPlayer',1,'sharedMatchesPerPair',0,
  'playerMatchCounts',jsonb_build_object('00000000-0000-4800-8000-000000000301',0),'newMatches','[]'::jsonb,

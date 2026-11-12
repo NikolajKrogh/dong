@@ -15,7 +15,7 @@ const preview: AssignmentPreview = { assignments: { Alice: ["one"], Bob: ["one"]
 function render() {
   const onCommit = jest.fn();
   const tree = actCreate(<TamaguiTestProvider><AssignmentPreviewPanel preview={preview} participants={participants}
-    matches={[{ id: "one", homeTeam: "Home", awayTeam: "Away" }]} isBusy={false} onReview={() => {}} onCommit={onCommit} actionLabel="Start" /></TamaguiTestProvider>);
+    matches={[{ id: "one", homeTeam: "Home", awayTeam: "Away" }]} isBusy={false} commitBusy={false} onReview={() => {}} onCommit={onCommit} actionLabel="Start" /></TamaguiTestProvider>);
   return { tree, onCommit };
 }
 it("requires consent and resets it when the reviewed preview changes", () => {
@@ -26,7 +26,7 @@ it("requires consent and resets it when the reviewed preview changes", () => {
   TestRenderer.act(() => tree.root.findByProps({ label: "Start" }).props.onPress());
   expect(onCommit).toHaveBeenCalledWith(true);
   TestRenderer.act(() => tree.update(<TamaguiTestProvider><AssignmentPreviewPanel preview={{ ...preview, expiresAt: "2099-02-01" }} participants={participants}
-    matches={[]} isBusy={false} onReview={() => {}} onCommit={onCommit} actionLabel="Start" /></TamaguiTestProvider>));
+    matches={[]} isBusy={false} commitBusy={false} onReview={() => {}} onCommit={onCommit} actionLabel="Start" /></TamaguiTestProvider>));
   expect(tree.root.findByProps({ label: "Start" }).props.disabled).toBe(true);
 });
 it("shows proposed matches, incomplete quality, and on-demand pair overlap", () => {

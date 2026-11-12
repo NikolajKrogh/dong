@@ -1181,6 +1181,7 @@ export type Database = {
             "save_running_game_configuration_v2": {
                 Args: {
                     "accept_relaxed_sharing"?: boolean;
+                    "assignment_overrides"?: Json;
                     "configuration": Json;
                     "expected_token": string;
                     "idempotency_key": string;
@@ -1282,6 +1283,7 @@ export type Database = {
             "start_game_session_v2": {
                 Args: {
                     "accept_relaxed_sharing"?: boolean;
+                    "assignment_overrides"?: Json;
                     "expected_token": string;
                     "idempotency_key": string;
                     "proposal_id": string;

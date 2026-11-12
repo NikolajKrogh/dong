@@ -258,7 +258,7 @@ function WizardStepIndicator({ steps, currentStep, setCurrentStep, styles, color
               style={[
                 styles.stepButton,
                 wideLayout && styles.stepButtonWide,
-                currentStep >= index && styles.activeStepButton,
+                currentStep === index && styles.activeStepButton,
               ]}
               onPress={() => setCurrentStep(index)}
               disabled={!step.canEnter}
@@ -267,14 +267,14 @@ function WizardStepIndicator({ steps, currentStep, setCurrentStep, styles, color
                 name={step.icon}
                 size={24}
                 color={
-                  currentStep >= index ? colors.textLight : colors.textMuted
+                  colors.textLight
                 }
               />
               {wideLayout ? (
                 <Text
                   style={[
                     styles.stepButtonLabel,
-                    currentStep >= index && styles.stepButtonLabelActive,
+                    currentStep === index && styles.stepButtonLabelActive,
                   ]}
                 >
                   {step.name}
@@ -313,6 +313,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
       testID={action.testID}
       style={[
         styles.navButton,
+        { flexShrink: 1, minWidth: 0 },
         wideLayout && styles.navButtonWide,
         action.backgroundColor
           ? { backgroundColor: action.backgroundColor }
@@ -322,7 +323,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
       onPress={action.onPress}
       disabled={action.disabled}
     >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", minWidth: 0 }}>
         {action.iconPosition === "leading" ? (
           <AppIcon
             name={action.icon}
@@ -331,7 +332,7 @@ function WizardActionButton({ action, styles, colors, wideLayout }: {
             style={{ marginRight: 8 }}
           />
         ) : null}
-        <Text style={styles.navButtonText}>{action.label}</Text>
+        <Text style={[styles.navButtonText, { flexShrink: 1 }]}>{action.label}</Text>
         {action.iconPosition === "leading" ? null : (
           <AppIcon
             name={action.icon}

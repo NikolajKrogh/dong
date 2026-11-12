@@ -4,7 +4,7 @@ SELECT no_plan();
 SELECT ok(NOT has_table_privilege('authenticated','private.assignment_proposals','INSERT'),'clients cannot forge proposal storage');
 SELECT ok(NOT has_function_privilege('authenticated','public.store_room_assignment_proposal(uuid,jsonb,jsonb)','EXECUTE'),'clients cannot publish solver results');
 GRANT EXECUTE ON FUNCTION public.prepare_room_assignment_preview(uuid,text,jsonb,text) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.start_game_session_v2(uuid,uuid,text,uuid,boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.start_game_session_v2(uuid,uuid,text,uuid,boolean,jsonb) TO authenticated;
 INSERT INTO public.game_sessions(id,owner_account_id,join_code,assignment_policy_version,matches_per_player,shared_matches_per_pair)
 VALUES('00000000-0000-4031-9000-000000000001','00000000-0000-4000-8000-000000000001','PROP031',2,1,0);
 INSERT INTO public.matches(id,session_id,source_provider,home_team_name,away_team_name)

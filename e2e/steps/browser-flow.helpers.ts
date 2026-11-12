@@ -903,7 +903,7 @@ export const mockHostRoomServices = async (
     });
   });
 
-  await page.route(HOST_ROOM_CREATE_RPC_PATH, async (route) => {
+  await page.route(/\/rest\/v1\/rpc\/create_room_as_host(?:_v2)?$/, async (route) => {
     const created = buildHostRoomCreateResponse();
     activeRoom = { sessionId: created.sessionId, participantId: created.hostParticipantId, role: "owner", joinCode: HOST_ROOM_JOIN_CODE };
     await route.fulfill({

@@ -198,32 +198,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       right: 8,
       zIndex: 1,
     },
-    randomizeContainer: {
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.borderSubtle,
-      borderRadius: 8,
-      padding: 16,
-      marginHorizontal: 8,
-      marginBottom: 16,
-      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.textPrimary, 0.15)}`,
-      ...androidElevationFallback(3),
-    },
-    matchCounterContainer: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16,
-    },
-    matchCountLabel: {
-      fontSize: 16,
-      fontWeight: "500",
-      color: colors.textSecondary,
-    },
-    assignmentCounterLabel: {
-      flex: 1,
-      marginRight: 8,
-    },
     assignmentDescription: {
       fontSize: 13,
       color: colors.textMuted,
@@ -252,10 +226,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       color: colors.textSecondary,
       textAlign: "center",
     },
-    assignmentPendingLabel: {
-      fontSize: 13,
-      color: colors.textMuted,
-    },
     matchItemWrapper: {
       // Used for layout, no specific visual style from palette
       marginBottom: 8,
@@ -274,37 +244,12 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       width: "48%",
       marginBottom: 0,
     },
-    counter: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    counterButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.primary,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    counterButtonText: {
-      color: colors.textLight,
-      fontSize: 20,
-      fontWeight: "bold",
-    },
-    counterValue: {
-      fontSize: 20,
-      fontWeight: "bold",
-      marginHorizontal: 16,
-      color: colors.textPrimary,
-    },
-    randomizeButton: {
-      ...makeBaseButton(),
-      backgroundColor: colors.primary,
-    },
-    randomizeButtonText: {
-      ...makeBaseButtonText(colors),
-      // fontSize: 16, // Already in baseButtonText
-    },
+    assignmentCardGradient: { padding: 10 },
+    assignmentCardLogo: { width: 40, height: 40, borderRadius: 20 },
+    assignmentCardTeamLogo: { width: 30, height: 30 },
+    assignmentCardTeamName: { marginTop: 4 },
+    assignmentCardKickoff: { marginTop: 6, paddingTop: 6 },
+    assignmentCardKickoffText: { color: colors.primaryDark },
     disabledTabText: {
       color: colors.textDisabled,
     },
@@ -318,10 +263,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     compactAssignmentSection: {
       marginBottom: 0,
-    },
-    compactAssignmentPlayer: {
-      marginTop: 0,
-      marginBottom: 8,
     },
     assignmentSection: {
       // Layout
@@ -509,7 +450,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       flexDirection: "row",
       justifyContent: "center",
       alignItems: "center",
-      paddingVertical: 16,
+      paddingVertical: 8,
       backgroundColor: colors.surface,
       borderBottomWidth: 1,
       borderBottomColor: colors.borderLight,
@@ -529,9 +470,9 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     wizardMainPanel: {
       flex: 1,
       minWidth: 0,
-      backgroundColor: colors.surface,
-      borderRadius: 16,
-      borderWidth: 1,
+      backgroundColor: colors.background,
+      borderRadius: 0,
+      borderWidth: 0,
       borderColor: colors.borderLight,
       overflow: "hidden",
     },
@@ -544,7 +485,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       paddingVertical: 8,
       paddingHorizontal: 0,
       borderRadius: 20,
-      backgroundColor: colors.backgroundSubtle,
+      backgroundColor: colors.primaryLighter,
     },
     stepButtonWide: {
       width: "100%",
@@ -559,7 +500,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.primary,
     },
     stepButtonLabel: {
-      color: colors.textMuted,
+      color: colors.primary,
       fontSize: 15,
       fontWeight: "600",
     },
@@ -601,11 +542,11 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     },
     wizardNavigation: {
       flexDirection: "row",
-      flexWrap: "wrap",
+      flexWrap: "nowrap",
       gap: 12,
       justifyContent: "space-between",
       paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingVertical: 10,
       backgroundColor: colors.surface,
       borderTopWidth: 1,
       borderTopColor: colors.borderLight,
@@ -1183,13 +1124,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
     layoutToggleButton: {
       // For toggling list/grid view
       marginRight: 12,
-    },
-    playerContainer: {
-      // Container for a single player's info/actions
-      marginBottom: 16,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLighter,
-      paddingBottom: 8,
     },
     inputContainer: {
       // More specific than baseInput, often for styled inputs
@@ -1958,48 +1892,6 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       position: "absolute",
       bottom: 2,
       right: 2,
-    },
-
-    // Player header styles
-    playerHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      backgroundColor: colors.backgroundLight,
-      borderRadius: 8,
-      marginBottom: 8,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-    },
-
-    playerHeaderLeft: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-
-    playerAssignmentName: {
-      fontSize: 16,
-      fontWeight: "500",
-      color: colors.textPrimary,
-    },
-
-    playerBadge: {
-      backgroundColor: colors.primary,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 12,
-    },
-
-    playerBadgeText: {
-      color: colors.textLight,
-      fontSize: 12,
-      fontWeight: "bold",
-    },
-
-    chevronIcon: {
-      marginRight: 8,
     },
 
     assignmentPlayersGrid: {

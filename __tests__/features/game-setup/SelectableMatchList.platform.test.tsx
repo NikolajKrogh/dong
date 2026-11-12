@@ -1,8 +1,10 @@
 import React from "react";
 import { Platform } from "react-native";
 import { actCreate } from "../../../test-utils/render";
+jest.mock("tamagui", () => ({ XStack: "XStack", YStack: "YStack" }));
 
 const mockStyles = {
+  assignmentCardGradient: { testStyle: "assignmentCardGradient" },
   gridContainer: { testStyle: "gridContainer" },
   gridItem: { testStyle: "gridItem" },
   compactMatchItem: { testStyle: "compactMatchItem" },
@@ -36,6 +38,7 @@ const mockStyles = {
 };
 
 jest.mock("react-native", () => ({
+  StyleSheet: { create: (styles: unknown) => styles },
   Platform: {
     OS: "web",
     select: (o: Record<string, unknown>) => o.web ?? o.default,
@@ -123,10 +126,10 @@ describe("SelectableMatchList", () => {
 
     expect(
       findMatchButton(renderer, "m2").props.accessibilityState,
-    ).toEqual({ selected: true, disabled: false });
+    ).toEqual({ selected: true, checked: true, disabled: false });
     expect(
       findMatchButton(renderer, "m1").props.accessibilityState,
-    ).toEqual({ selected: false, disabled: false });
+    ).toEqual({ selected: false, checked: false, disabled: false });
   });
 
   // The cap case (FR-040): at the limit, unpicked matches go inert while the
@@ -195,7 +198,7 @@ describe("SelectableMatchList", () => {
     };
 
     const footers = (row: ReturnType<typeof actCreate>) =>
-      row.root.findAllByProps({ style: mockStyles.matchTimeHeader });
+      row.root.findAll(node => Array.isArray(node.props.style) && node.props.style.includes(mockStyles.matchTimeHeader));
 
     it("renders for a match with a bare clock time", () => {
       const row = renderRow({
@@ -207,7 +210,7 @@ describe("SelectableMatchList", () => {
 
       expect(footers(row)).toHaveLength(1);
       expect(
-        row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
+        row.root.findAll(node => Array.isArray(node.props.style) && node.props.style.includes(mockStyles.matchTimeText))[0].props.children,
       ).toBe("15:00");
     });
 
@@ -221,13 +224,13 @@ describe("SelectableMatchList", () => {
 
       expect(footers(row)).toHaveLength(1);
       expect(
-        row.root.findByProps({ style: mockStyles.matchTimeText }).props.children,
+        row.root.findAll(node => Array.isArray(node.props.style) && node.props.style.includes(mockStyles.matchTimeText))[0].props.children,
       ).toBe("23:59");
     });
 
     it.each(["00:00", "09:05", "12:00", "23:59"])("renders clock %s verbatim", (startTime) => {
       const row = renderRow({ ...MATCHES[0], startTime });
-      expect(row.root.findByProps({ style: mockStyles.matchTimeText }).props.children).toBe(startTime);
+      expect(row.root.findAll(node => Array.isArray(node.props.style) && node.props.style.includes(mockStyles.matchTimeText))[0].props.children).toBe(startTime);
     });
 
     // A hand-typed fixture has no kickoff; it must not leave an empty row.
@@ -247,8 +250,23 @@ describe("SelectableMatchList", () => {
       });
 
       expect(
-        grid.root.findAllByProps({ style: mockStyles.matchTimeHeader }),
+        footers(grid),
       ).toHaveLength(0);
     });
+  });
+  it("keeps the original gradient and team layout when only assignment density changes", () => {
+    const original = render({ matches: [MATCHES[0]] });
+    const assignment = render({ matches: [MATCHES[0]], density: "compact" });
+    const originalGradient = original.root.findByType("LinearGradient" as never);
+    const assignmentGradient = assignment.root.findByType("LinearGradient" as never);
+    expect(assignmentGradient.props.colors).toEqual(originalGradient.props.colors);
+    expect(originalGradient.props.style).not.toContain(mockStyles.assignmentCardGradient);
+    expect(assignmentGradient.props.style).toContain(mockStyles.assignmentCardGradient);
+    expect(assignment.root.findAllByType("Text" as never).map(node => node.props.children)).toEqual(expect.arrayContaining(["Arsenal", "Chelsea", "VS"]));
+  });
+  it("retains an unselected gradient in the compact assignment grid", () => {
+    const grid = render({ matches: [MATCHES[0], MATCHES[1]], selectedMatchIds: ["m2"], useGridLayout: true, density: "compact" });
+    expect(grid.root.findAllByType("LinearGradient" as never)).toHaveLength(1);
+    expect(findMatchButton(grid, "m2").props.accessibilityState.checked).toBe(true);
   });
 });

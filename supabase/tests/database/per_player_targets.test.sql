@@ -47,6 +47,7 @@ SELECT throws_ok($$SELECT public.set_room_assignment_settings('00000000-0000-403
 RESET ROLE;
 INSERT INTO public.assignments(session_id,participant_id,match_id) VALUES
  ('00000000-0000-4031-8000-000000000010','00000000-0000-4031-8000-000000000011','00000000-0000-4031-8000-000000000021');
+UPDATE public.game_sessions SET assignment_mode='player_picked' WHERE id='00000000-0000-4031-8000-000000000010';
 UPDATE counts_context SET token=private.running_configuration_token('00000000-0000-4031-8000-000000000010');
 SET LOCAL ROLE authenticated;
 SELECT throws_ok($$SELECT public.set_room_assignment_configuration_v2('00000000-0000-4031-8000-000000000010',jsonb_set(config,'{matchesPerPlayer}','0'),token,gen_random_uuid()) FROM counts_context$$,'P0001','target_below_existing_selections','reducing a default validates inherited selections atomically');
@@ -60,6 +61,7 @@ SELECT throws_ok($$SELECT public.set_room_assignment_configuration_v2('00000000-
 RESET ROLE;
 UPDATE public.game_sessions SET common_match_id='00000000-0000-4031-8000-000000000020' WHERE id='00000000-0000-4031-8000-000000000010';
 DELETE FROM public.assignments WHERE session_id='00000000-0000-4031-8000-000000000010';
+UPDATE public.game_sessions SET assignment_mode='automatic' WHERE id='00000000-0000-4031-8000-000000000010';
 UPDATE counts_context SET token=private.running_configuration_token('00000000-0000-4031-8000-000000000010'),config='{"assignmentPolicyVersion":2,"matchesPerPlayer":0,"sharedMatchesPerPair":1,"playerMatchCounts":{}}';
 SET LOCAL ROLE authenticated;
 UPDATE counts_context SET response=public.set_room_assignment_configuration_v2('00000000-0000-4031-8000-000000000010',config,token,gen_random_uuid());

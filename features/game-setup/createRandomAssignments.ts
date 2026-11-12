@@ -1,6 +1,7 @@
 import { Match, Player } from "../../store/gameStore";
 import { shuffle } from "./shuffle";
 import { generateAssignments } from "../../shared/assignments/generateAssignments";
+import { DEFAULT_SHARED_MATCHES_PER_PAIR, MAX_ASSIGNMENT_COUNT } from "../../shared/assignments/types";
 
 type PlayerAssignments = Record<string, string[]>;
 type PairSharedMatches = Record<string, string[]>;
@@ -16,7 +17,7 @@ export async function createTargetedAssignments(
   const hasEqualTargets = participants.every(({ target }) => target === participants[0]?.target);
   const result = await generateAssignments({
     participants, pool: matches.filter(({ id }) => id !== commonMatchId).map(({ id }) => id),
-    commonMatchId, sharing: 1, policy: hasEqualTargets ? "exact" : "preference",
+    commonMatchId, sharing: DEFAULT_SHARED_MATCHES_PER_PAIR, policy: hasEqualTargets ? "exact" : "preference",
   }, { random });
   return Object.fromEntries(players.map(({ id }) => [id, [commonMatchId, ...result.assignments[id]]]));
 }
@@ -31,7 +32,7 @@ export function validateLocalAssignments(
     const target = overrides[player.id] ?? defaultCount;
     const selected = assignments[player.id] ?? [];
     const additional = selected.filter(id => id !== commonMatchId);
-    if (!Number.isInteger(target) || target < 0 || target > 100 ||
+    if (!Number.isInteger(target) || target < 0 || target > MAX_ASSIGNMENT_COUNT ||
       new Set(selected).size !== selected.length || additional.length !== target ||
       selected.some(id => !pool.has(id))) {
       throw new Error(`${player.name} needs exactly ${target} additional matches plus the common match.`);

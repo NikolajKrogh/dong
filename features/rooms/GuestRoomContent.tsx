@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Platform } from "react-native";
 import { Text, XStack, YStack } from "tamagui";
 
+import { ASSIGNMENT_MODE } from "../../types/room";
 import type { GuestRoomSession } from "../../types/guestRoom";
 import { SelectableMatchList } from "../game-setup/SelectableMatchList";
 import { PlayerPickPanel } from "./PlayerPickPanel";
@@ -54,7 +55,7 @@ function GuestMatches({ session, onSetPicks, isBusy, showPickProgress }: GuestMa
 
   const assignsOnStart = snapshot.state === "joinable"
     && !snapshot.finalOnly
-    && snapshot.assignmentMode === "automatic";
+    && snapshot.assignmentMode === ASSIGNMENT_MODE.automatic;
   const assignedIds = new Set(
     snapshot.assignments
       .filter((assignment) => assignment.participantId === grant.participantId)
@@ -98,7 +99,7 @@ export function GuestRoomContent({
   const common = snapshot.matches.find((match) => match.id === snapshot.commonMatchId);
   const showPickProgress = snapshot.state === "joinable"
     && !snapshot.finalOnly
-    && snapshot.assignmentMode === "player_picked"
+    && snapshot.assignmentMode === ASSIGNMENT_MODE.playerPicked
     && Boolean(snapshot.assignmentPlan);
   if (!roomSnapshotHasAssignmentTargets(snapshot)) return <Text accessibilityRole="alert">Player counts are unavailable. Refresh the room before picking.</Text>;
 
