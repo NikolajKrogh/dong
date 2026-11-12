@@ -375,7 +375,7 @@ function HostAssignmentContent({
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
         {configure.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void configure.startGame(true); }} /> : null}
       </> : assignment.plan.targetsByParticipantId ? <>
-        {assignment.assignmentMode !== ASSIGNMENT_MODE.playerPicked ? <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
+        {assignment.assignmentMode !== ASSIGNMENT_MODE.playerPicked ? <AssignmentPreviewPanel preview={configure.assignmentPreview.preview} participants={assignment.participants} matches={assignment.pickableMatches} isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired} commitBusy={configure.isBusy}
           onReview={() => { void configure.assignmentPreview.review(); }} actionLabel="Start with these assignments"
           onCommit={accept => { void configure.assignmentPreview.commit(accept); }} /> : null}
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}

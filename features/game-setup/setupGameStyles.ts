@@ -485,7 +485,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       paddingVertical: 8,
       paddingHorizontal: 0,
       borderRadius: 20,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.primaryLighter,
     },
     stepButtonWide: {
       width: "100%",
@@ -500,7 +500,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       backgroundColor: colors.primary,
     },
     stepButtonLabel: {
-      color: colors.textLight,
+      color: colors.primary,
       fontSize: 15,
       fontWeight: "600",
     },
@@ -520,7 +520,7 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       flex: 1,
       minWidth: 4,
       maxWidth: 40,
-      backgroundColor: colors.primary,
+      backgroundColor: colors.borderLight,
       marginHorizontal: 8,
     },
     stepConnectorWide: {

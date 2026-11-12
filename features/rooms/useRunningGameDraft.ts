@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import type { Match } from "../../store/gameStore";
-import { ASSIGNMENT_MODE, ASSIGNMENT_POLICY_VERSION, type RoomSnapshot, type RunningGameConfiguration } from "../../types/room";
+import { ASSIGNMENT_MODE, ASSIGNMENT_POLICY_VERSION, type RoomAssignmentInput, type RoomSnapshot, type RunningGameConfiguration } from "../../types/room";
 import { COMMON_MATCH_COUNT, DEFAULT_SHARED_MATCHES_PER_PAIR } from "../../shared/assignments/types";
 import { generateIdempotencyKey } from "../../utils/idempotencyKey";
 import { getRoomRpcClient } from "./roomRpcClient";
@@ -18,7 +18,7 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
     matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer,
     sharedMatchesPerPair: snapshot.assignmentPlan.sharedMatchesPerPair,
   });
-  const [assignments, setAssignments] = useState(() => snapshot.assignments.filter(assignment => assignment.matchId !== snapshot.commonMatchId));
+  const [assignments, setAssignments] = useState<RoomAssignmentInput[]>(() => snapshot.assignments.filter(assignment => assignment.matchId !== snapshot.commonMatchId));
   const [playerMatchCounts, setPlayerMatchCounts] = useState<Record<string, number>>(() => Object.fromEntries(
     roomSnapshotToActiveRoster(snapshot).filter(participant => participant.additionalMatchCount != null).map(participant => [participant.id, participant.additionalMatchCount!]),
   ));
@@ -55,52 +55,21 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   }, { editable: supportsEditable, poolIds: matches.filter(m => m.id !== snapshot.commonMatchId).map(m => m.id) });
 
   function updateMatches(next: Match[]): void {
-    if (isLegacySaveInFlightRef.current) return;
-    const matchesById = new Map(next.map(match => [match.id, match]));
-    for (const match of snapshot.matches) matchesById.set(match.id, toDisplayMatch(match));
-    setMatches([...matchesById.values()]);
-    setAssignments(previous => previous.filter(assignment => matchesById.has(assignment.matchId)));
+    updateRunningGameMatches(next, snapshot, isLegacySaveInFlightRef, setMatches, setAssignments);
   }
 
   function toggleAssignment(participantId: string, matchId: string): void {
-    if (supportsEditable) { assignmentPreview.toggleAssignment(participantId, matchId); return; }
-    if (isSaving || !activeParticipantIds.has(participantId) || matchId === snapshot.commonMatchId) return;
-    setAssignments(previous => {
-      const exists = previous.some(assignment => assignment.participantId === participantId && assignment.matchId === matchId);
-      if (exists) return previous.filter(assignment => assignment.participantId !== participantId || assignment.matchId !== matchId);
-      const target = supportsTargets ? targetsByParticipantId[participantId] : plan.effectivePerPlayer;
-      if (previous.filter(assignment => assignment.participantId === participantId).length >= target) return previous;
-      return [...previous, { participantId, matchId }];
-    });
+    toggleRunningGameAssignment({
+      supportsEditable, assignmentPreview, isSaving, activeParticipantIds, commonMatchId: snapshot.commonMatchId,
+      supportsTargets, targetsByParticipantId, effectivePerPlayer: plan.effectivePerPlayer, setAssignments,
+    }, participantId, matchId);
   }
 
-  async function save(acceptRelaxedSharing = false): Promise<RoomSnapshot | null> {
-    if (isLegacySaveInFlightRef.current || !snapshot.configurationToken) return null;
-    if (supportsTargets) return assignmentPreview.commit(acceptRelaxedSharing);
-    if (!plan.feasible || !isAssignmentDraftValid) return null;
-    const fingerprint = JSON.stringify(configuration);
-    if (legacySaveRequestRef.current?.fingerprint !== fingerprint) {
-      legacySaveRequestRef.current = { fingerprint, key: generateIdempotencyKey() };
-    }
-    isLegacySaveInFlightRef.current = true;
-    setIsSaving(true);
-    setError(null);
-    try {
-      return await getRoomRpcClient().saveRunningGameConfiguration({
-        sessionId: snapshot.sessionId, configuration, expectedToken: snapshot.configurationToken,
-        idempotencyKey: legacySaveRequestRef.current.key,
-      });
-    } catch (failure) {
-      const conflict = (failure as { message?: string })?.message === "configuration_conflict";
-      setHasConflict(conflict);
-      setError(conflict
-        ? "The room configuration changed while you were editing. Your draft has been kept. Reload the room to start again."
-        : "Changes could not be saved. Check your connection and try again. Your draft has been kept.");
-      return null;
-    } finally {
-      isLegacySaveInFlightRef.current = false;
-      setIsSaving(false);
-    }
+  function save(acceptRelaxedSharing = false): Promise<RoomSnapshot | null> {
+    return saveRunningGameDraft({
+      snapshot, supportsTargets, assignmentPreview, plan, isAssignmentDraftValid, configuration,
+      isLegacySaveInFlightRef, legacySaveRequestRef, setIsSaving, setError, setHasConflict,
+    }, acceptRelaxedSharing);
   }
 
   const randomizeRequested = useRef(false);
@@ -161,4 +130,90 @@ function buildDraftAssignmentPlan(
     feasible, startable: feasible,
     targetsByParticipantId: supportsTargets ? targetsByParticipantId : undefined,
   };
+}
+
+function updateRunningGameMatches(
+  next: Match[],
+  snapshot: RoomSnapshot,
+  isLegacySaveInFlightRef: MutableRefObject<boolean>,
+  setMatches: Dispatch<SetStateAction<Match[]>>,
+  setAssignments: Dispatch<SetStateAction<RoomAssignmentInput[]>>,
+): void {
+  if (isLegacySaveInFlightRef.current) return;
+  const matchesById = new Map(next.map(match => [match.id, match]));
+  for (const match of snapshot.matches) matchesById.set(match.id, toDisplayMatch(match));
+  setMatches([...matchesById.values()]);
+  setAssignments(previous => previous.filter(assignment => matchesById.has(assignment.matchId)));
+}
+
+function toggleRunningGameAssignment(
+  { supportsEditable, assignmentPreview, isSaving, activeParticipantIds, commonMatchId, supportsTargets,
+    targetsByParticipantId, effectivePerPlayer, setAssignments }: {
+    supportsEditable: boolean;
+    assignmentPreview: ReturnType<typeof useAssignmentPreview>;
+    isSaving: boolean;
+    activeParticipantIds: Set<string>;
+    commonMatchId: string | null;
+    supportsTargets: boolean;
+    targetsByParticipantId: Record<string, number>;
+    effectivePerPlayer: number;
+    setAssignments: Dispatch<SetStateAction<RoomAssignmentInput[]>>;
+  },
+  participantId: string,
+  matchId: string,
+): void {
+  if (supportsEditable) { assignmentPreview.toggleAssignment(participantId, matchId); return; }
+  if (isSaving || !activeParticipantIds.has(participantId) || matchId === commonMatchId) return;
+  setAssignments(previous => {
+    const exists = previous.some(assignment => assignment.participantId === participantId && assignment.matchId === matchId);
+    if (exists) return previous.filter(assignment => assignment.participantId !== participantId || assignment.matchId !== matchId);
+    const target = supportsTargets ? targetsByParticipantId[participantId] : effectivePerPlayer;
+    if (previous.filter(assignment => assignment.participantId === participantId).length >= target) return previous;
+    return [...previous, { participantId, matchId }];
+  });
+}
+
+async function saveRunningGameDraft(
+  { snapshot, supportsTargets, assignmentPreview, plan, isAssignmentDraftValid, configuration,
+    isLegacySaveInFlightRef, legacySaveRequestRef, setIsSaving, setError, setHasConflict }: {
+    snapshot: RoomSnapshot;
+    supportsTargets: boolean;
+    assignmentPreview: ReturnType<typeof useAssignmentPreview>;
+    plan: RoomSnapshot["assignmentPlan"];
+    isAssignmentDraftValid: boolean;
+    configuration: RunningGameConfiguration;
+    isLegacySaveInFlightRef: MutableRefObject<boolean>;
+    legacySaveRequestRef: MutableRefObject<{ fingerprint: string; key: string } | null>;
+    setIsSaving: Dispatch<SetStateAction<boolean>>;
+    setError: Dispatch<SetStateAction<string | null>>;
+    setHasConflict: Dispatch<SetStateAction<boolean>>;
+  },
+  acceptRelaxedSharing: boolean,
+): Promise<RoomSnapshot | null> {
+  if (isLegacySaveInFlightRef.current || !snapshot.configurationToken) return null;
+  if (supportsTargets) return assignmentPreview.commit(acceptRelaxedSharing);
+  if (!plan.feasible || !isAssignmentDraftValid) return null;
+  const fingerprint = JSON.stringify(configuration);
+  if (legacySaveRequestRef.current?.fingerprint !== fingerprint) {
+    legacySaveRequestRef.current = { fingerprint, key: generateIdempotencyKey() };
+  }
+  isLegacySaveInFlightRef.current = true;
+  setIsSaving(true);
+  setError(null);
+  try {
+    return await getRoomRpcClient().saveRunningGameConfiguration({
+      sessionId: snapshot.sessionId, configuration, expectedToken: snapshot.configurationToken,
+      idempotencyKey: legacySaveRequestRef.current.key,
+    });
+  } catch (failure) {
+    const conflict = (failure as { message?: string })?.message === "configuration_conflict";
+    setHasConflict(conflict);
+    setError(conflict
+      ? "The room configuration changed while you were editing. Your draft has been kept. Reload the room to start again."
+      : "Changes could not be saved. Check your connection and try again. Your draft has been kept.");
+    return null;
+  } finally {
+    isLegacySaveInFlightRef.current = false;
+    setIsSaving(false);
+  }
 }

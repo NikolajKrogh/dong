@@ -164,7 +164,7 @@ export const useRoomConfigure = (
   }, { editable: supportsEditable, poolIds: (snapshot?.matches ?? []).filter(m => m.id !== snapshot?.commonMatchId).map(m => m.id) });
 
   const run = useCallback(
-    async (action: (sessionId: string) => Promise<void>) => {
+    async (action: (sessionId: string) => Promise<void>, onFailure?: () => void) => {
       if (!snapshot) {
         return;
       }
@@ -175,6 +175,7 @@ export const useRoomConfigure = (
         await onMutated?.();
       } catch (actionError) {
         setError(friendlyMessage(actionError));
+        onFailure?.();
       } finally {
         setIsBusy(false);
       }
@@ -233,8 +234,8 @@ export const useRoomConfigure = (
     [run],
   );
 
-  const setAssignmentSettings = useCallback(
-    (settings: RoomAssignmentSettingsRequest) =>
+  const updateAssignmentSettings = useCallback(
+    (settings: RoomAssignmentSettingsRequest, onFailure?: () => void) =>
       run(async (sessionId) => {
         if (supportsTargets && snapshot?.configurationToken) {
           await getRoomRpcClient().setAssignmentConfiguration(sessionId, {
@@ -246,8 +247,12 @@ export const useRoomConfigure = (
           sessionId,
           settings,
         );
-      }),
+      }, onFailure),
     [run, supportsTargets, snapshot, overrides],
+  );
+  const setAssignmentSettings = useCallback(
+    (settings: RoomAssignmentSettingsRequest) => updateAssignmentSettings(settings),
+    [updateAssignmentSettings],
   );
 
   const setPlayerMatchCount = async (participantId: string, count: number | null) => {
@@ -261,9 +266,10 @@ export const useRoomConfigure = (
 
   const randomizeRequested = useRef(false);
   const randomizeAssignments = () => {
-    if (snapshot?.assignmentPlan.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) { void assignmentPreview.review(); return; }
+    if (!snapshot) return;
+    if (snapshot.assignmentPlan.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) { void assignmentPreview.review(); return; }
     randomizeRequested.current = true;
-    if (snapshot) void setAssignmentSettings({ matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer, sharedMatchesPerPair: DEFAULT_SHARED_MATCHES_PER_PAIR });
+    void updateAssignmentSettings({ matchesPerPlayer: snapshot.assignmentPlan.matchesPerPlayer, sharedMatchesPerPair: DEFAULT_SHARED_MATCHES_PER_PAIR }, () => { randomizeRequested.current = false; });
   };
   useEffect(() => {
     if (randomizeRequested.current && !isBusy && snapshot?.assignmentPlan.sharedMatchesPerPair === DEFAULT_SHARED_MATCHES_PER_PAIR) {

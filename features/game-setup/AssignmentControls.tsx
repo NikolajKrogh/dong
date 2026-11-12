@@ -51,20 +51,26 @@ export function AssignmentCounter({ label, description, value, min = 0, max = In
       {description ? <Text color="$colorMuted" fontSize={13} marginTop="$1">{description}</Text> : null}
     </YStack> : null}
     <XStack alignItems="center">
-      <ShellActionButton variant={subtle ? "text" : "primary"} widthMode="fit" width={44} height={44} padding={0}
-        borderRadius={subtle ? "$3" : 22} accessibilityLabel={`Decrease ${label.toLowerCase()}`}
-        testID={testID ? `${testID}-decrement` : undefined} disabled={disabled || value <= min}
-        onPress={() => onChange(Math.max(min, value - 1))}
-        icon={<Ionicons name="remove-outline" size={iconSize} color={iconColor} />} />
+      <AssignmentCounterAction direction="decrement" label={label} value={value} min={min} max={max}
+        disabled={disabled} subtle={subtle} testID={testID} iconColor={iconColor} iconSize={iconSize} onChange={onChange} />
       {valueContent ?? <Text testID={testID ? `${testID}-value` : undefined}
         color="$color" fontSize={16} fontWeight="bold" marginHorizontal="$2.5">{value}</Text>}
-      <ShellActionButton variant={subtle ? "text" : "primary"} widthMode="fit" width={44} height={44} padding={0}
-        borderRadius={subtle ? "$3" : 22} accessibilityLabel={`Increase ${label.toLowerCase()}`}
-        testID={testID ? `${testID}-increment` : undefined} disabled={disabled || value >= max}
-        onPress={() => onChange(Math.min(max, value + 1))}
-        icon={<Ionicons name="add-outline" size={iconSize} color={iconColor} />} />
+      <AssignmentCounterAction direction="increment" label={label} value={value} min={min} max={max}
+        disabled={disabled} subtle={subtle} testID={testID} iconColor={iconColor} iconSize={iconSize} onChange={onChange} />
     </XStack>
   </XStack>;
+}
+
+function AssignmentCounterAction({ direction, label, value, min, max, disabled, subtle, testID, iconColor, iconSize, onChange }:
+  { direction: "decrement" | "increment"; label: string; value: number; min: number; max: number; disabled: boolean;
+    subtle: boolean; testID?: string; iconColor: string; iconSize: number; onChange: (value: number) => void }): React.JSX.Element {
+  const decrement = direction === "decrement";
+  return <ShellActionButton variant={subtle ? "text" : "primary"} widthMode="fit" width={44} height={44} padding={0}
+    borderRadius={subtle ? "$3" : 22} accessibilityLabel={`${decrement ? "Decrease" : "Increase"} ${label.toLowerCase()}`}
+    testID={testID ? `${testID}-${direction}` : undefined}
+    disabled={disabled || (decrement ? value <= min : value >= max)}
+    onPress={() => onChange(decrement ? Math.max(min, value - 1) : Math.min(max, value + 1))}
+    icon={<Ionicons name={decrement ? "remove-outline" : "add-outline"} size={iconSize} color={iconColor} />} />;
 }
 
 export function AssignmentRandomizer({ value, max = MAX_ASSIGNMENT_COUNT, disabled, hasAssignments, onChange, onRandomize, testID }:

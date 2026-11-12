@@ -121,7 +121,7 @@ function RunningGameEditor({ snapshot, canEdit, onSaved, onReload, onCancel }: {
             {draft.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void save(true); }} /> : null}
             {!draft.plan.feasible ? <Text color="$danger">Add more matches or lower the assignment count before saving.</Text> : null}
             {!draft.supportsEditable && draft.supportsTargets ? <AssignmentPreviewPanel preview={draft.assignmentPreview.preview} participants={draft.participants} matches={selectable}
-              isBusy={controlsBusy} onReview={() => { void draft.assignmentPreview.review(); }} actionLabel="Save these assignments"
+              isBusy={controlsBusy} commitBusy={busy} onReview={() => { void draft.assignmentPreview.review(); }} actionLabel="Save these assignments"
               onCommit={accept => { void save(accept); }} /> : null}
           </YStack> },
       ]} />

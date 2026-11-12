@@ -44,6 +44,28 @@ export function AssignmentSettingsPanel({
   if (onRandomize) return <AssignmentRandomizer testID="lobby-assignment-settings" value={plan.matchesPerPlayer}
     disabled={isBusy} hasAssignments={hasRandomized} onRandomize={onRandomize}
     onChange={matchesPerPlayer => onChange({ matchesPerPlayer, sharedMatchesPerPair: DEFAULT_SHARED_MATCHES_PER_PAIR })} />;
+  return <DefaultAssignmentSettings
+    plan={plan}
+    mode={mode}
+    editing={editing}
+    isBusy={isBusy}
+    onChange={onChange}
+    styles={styles}
+    primaryColor={colors.primary}
+    showShared={showShared}
+    setShowShared={setShowShared}
+  />;
+}
+
+interface DefaultAssignmentSettingsProps extends Pick<AssignmentSettingsPanelProps, "plan" | "mode" | "editing" | "isBusy" | "onChange"> {
+  styles: ReturnType<typeof createSetupGameStyles>;
+  primaryColor: ReturnType<typeof useColors>["primary"];
+  showShared: boolean;
+  setShowShared: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+function DefaultAssignmentSettings({ plan, mode, editing, isBusy, onChange, styles, primaryColor, showShared, setShowShared }:
+  DefaultAssignmentSettingsProps): React.JSX.Element {
   return (
     <AssignmentPanel compact testID="lobby-assignment-settings">
       <AssignmentCounter
@@ -78,7 +100,7 @@ export function AssignmentSettingsPanel({
               <AppIcon
                 name={showShared ? "chevron-down" : "chevron-forward"}
                 size={18}
-                color={colors.primary}
+                color={primaryColor}
               />
               <Text style={styles.assignmentDescription}>
                 Shared matches · {plan.sharedMatchesPerPair} per pair
