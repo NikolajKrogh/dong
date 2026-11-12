@@ -57,6 +57,7 @@ interface SelectableMatchRowProps {
 }
 
 interface SelectableMatchRowVisualProps extends Omit<SelectableMatchRowProps, "compact"> {
+  density: "default" | "compact";
   colors: ReturnType<typeof useColors>;
   styles: ReturnType<typeof createSetupGameStyles>;
   homeTeamLogo: ReturnType<typeof getTeamLogoWithFallback>;

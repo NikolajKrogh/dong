@@ -72,7 +72,7 @@ type MatchSelectionCardHeaderProps = Pick<MatchSelectionCardProps,
   "badgeTestID" | "headerAction" | "renderBadge" | "flat"> & { theme: ReturnType<typeof useTheme> };
 
 function MatchSelectionCardHeader({ title, selectedCount, totalCount, collapsed, onToggleCollapsed, badgeLabel,
-  statusLabel, badgeTestID, headerAction, renderBadge, flat, theme }: MatchSelectionCardHeaderProps): React.JSX.Element {
+  statusLabel, badgeTestID, headerAction, renderBadge, flat = false, theme }: MatchSelectionCardHeaderProps): React.JSX.Element {
   const badge = <MatchSelectionBadge badgeLabel={badgeLabel} badgeTestID={badgeTestID} statusLabel={statusLabel}
     selectedCount={selectedCount} totalCount={totalCount} />;
   return <XStack gap="$2" alignItems="center" justifyContent="space-between" {...getMatchSelectionHeaderLayout(flat)}
