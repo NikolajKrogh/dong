@@ -371,6 +371,17 @@ function HostAssignmentContent({
         onToggleAllocation={configure.supportsEditable || assignment.assignmentMode === ASSIGNMENT_MODE.hostAssigned ? assignment.toggleAllocation : undefined}
         onSetPlayerMatchCount={configure.supportsTargets ? configure.setPlayerMatchCount : undefined}
       />
+      <LobbyHostAssignmentStatus configure={configure} assignment={assignment} onStartAnyway={handleStartAnyway} />
+    </>
+  );
+}
+
+function LobbyHostAssignmentStatus({ configure, assignment, onStartAnyway }: {
+  configure: RoomLobbyConfigure;
+  assignment: LobbyAssignmentController;
+  onStartAnyway: () => void;
+}): React.JSX.Element {
+  return <>
       {configure.supportsEditable ? <>
         {configure.error ? <Text accessibilityRole="alert" color="$danger">{configure.error}</Text> : null}
         {configure.assignmentPreview.issue === "confirmation_required" ? <ShellActionButton label="Accept relaxed sharing" onPress={() => { void configure.startGame(true); }} /> : null}
@@ -385,10 +396,9 @@ function HostAssignmentContent({
         isHostAssigned={assignment.assignmentMode === ASSIGNMENT_MODE.hostAssigned}
         error={configure.error}
         isBusy={configure.isBusy || configure.assignmentPreview.recoveryRequired}
-        onStartAnyway={handleStartAnyway}
+        onStartAnyway={onStartAnyway}
       />}
-    </>
-  );
+  </>;
 }
 
 function MemberAssignmentContent({

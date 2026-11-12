@@ -36,19 +36,10 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   const targetsByParticipantId = Object.fromEntries(participants.map(participant => [participant.id, playerMatchCounts[participant.id] ?? settings.matchesPerPlayer]));
   const plan = buildDraftAssignmentPlan(snapshot.assignmentPlan, settings, mode, targetsByParticipantId, participants.length, matches.length, supportsTargets);
   const matchIds = new Set(matches.map(match => match.id));
-  const isAssignmentDraftValid = mode === ASSIGNMENT_MODE.automatic || participants.every(participant => {
-    const selectedCount = assignments.filter(assignment =>
-      assignment.participantId === participant.id && matchIds.has(assignment.matchId),
-    ).length;
-    const target = supportsTargets ? targetsByParticipantId[participant.id] : plan.effectivePerPlayer;
-    return selectedCount === target;
-  });
-  const configuration: RunningGameConfiguration = {
-    assignmentMode: mode, ...settings,
-    ...(supportsTargets ? { assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable, playerMatchCounts } : {}),
-    newMatches: matches.filter(match => !fixedMatchIdSet.has(match.id)).map(match => ({ ...toAddRequest(match), clientId: match.id })),
-    assignments: assignments.filter(assignment => activeParticipantIds.has(assignment.participantId)),
-  };
+  const isAssignmentDraftValid = isRunningGameDraftValid(mode, participants, assignments, matchIds,
+    supportsTargets, targetsByParticipantId, plan.effectivePerPlayer);
+  const configuration = createRunningGameConfiguration(mode, settings, supportsTargets, playerMatchCounts,
+    matches, fixedMatchIdSet, assignments, activeParticipantIds);
   const assignmentPreview = useAssignmentPreview(snapshot.sessionId, ASSIGNMENT_PURPOSE.runningSave, {
     revision: currentSnapshot.configurationToken ?? "", expectedToken: snapshot.configurationToken ?? "",
     targetsByParticipantId, configuration,
@@ -86,23 +77,87 @@ export function useRunningGameDraft(snapshot: RoomSnapshot, currentSnapshot = sn
   }, [settings.sharedMatchesPerPair, assignmentPreview]);
 
   function setPlayerMatchCount(id: string, count: number | null): void {
-    setPlayerMatchCounts(previous => {
-      const next = { ...previous };
-      if (count === null) delete next[id];
-      else next[id] = count;
-      return next;
-    });
+    setPlayerMatchCounts(previous => updatePlayerMatchCounts(previous, id, count));
   }
+
+  const draftParticipants = getRunningGameDraftParticipants(supportsTargets, participants, playerMatchCounts);
+  const canSave = canSaveRunningGameDraft(snapshot, plan, supportsEditable, assignmentPreview, isAssignmentDraftValid, hasConflict);
 
   return {
     supportsEditable, randomizeAssignments, supportsTargets, assignmentPreview, setPlayerMatchCount,
     matches, updateMatches, mode, setMode, settings, setSettings, plan,
-    participants: supportsTargets ? participants.map(participant => ({ ...participant, additionalMatchCount: playerMatchCounts[participant.id] ?? null })) : participants,
+    participants: draftParticipants,
     fixedMatchIds,
     assignments: supportsEditable ? assignmentPreview.assignments : assignments, toggleAssignment, isSaving: isSaving || assignmentPreview.isBusy,
     error: error ?? assignmentPreview.error, hasConflict: hasConflict || assignmentPreview.issue === "stale", save,
-    canSave: Boolean(snapshot.configurationToken) && plan.feasible && (supportsEditable ? assignmentPreview.valid : isAssignmentDraftValid) && !hasConflict && assignmentPreview.issue !== "stale",
+    canSave,
   };
+}
+
+function isRunningGameDraftValid(
+  mode: RunningGameConfiguration["assignmentMode"],
+  participants: ReturnType<typeof roomSnapshotToActiveRoster>,
+  assignments: RoomAssignmentInput[],
+  matchIds: Set<string>,
+  supportsTargets: boolean,
+  targetsByParticipantId: Record<string, number>,
+  effectivePerPlayer: number,
+): boolean {
+  if (mode === ASSIGNMENT_MODE.automatic) return true;
+  return participants.every(participant => {
+    const selectedCount = assignments.filter(assignment =>
+      assignment.participantId === participant.id && matchIds.has(assignment.matchId),
+    ).length;
+    const target = supportsTargets ? targetsByParticipantId[participant.id] : effectivePerPlayer;
+    return selectedCount === target;
+  });
+}
+
+function createRunningGameConfiguration(
+  assignmentMode: RunningGameConfiguration["assignmentMode"],
+  settings: Pick<RunningGameConfiguration, "matchesPerPlayer" | "sharedMatchesPerPair">,
+  supportsTargets: boolean,
+  playerMatchCounts: Record<string, number>,
+  matches: Match[],
+  fixedMatchIds: Set<string>,
+  assignments: RoomAssignmentInput[],
+  activeParticipantIds: Set<string>,
+): RunningGameConfiguration {
+  return {
+    assignmentMode, ...settings,
+    ...(supportsTargets ? { assignmentPolicyVersion: ASSIGNMENT_POLICY_VERSION.editable, playerMatchCounts } : {}),
+    newMatches: matches.filter(match => !fixedMatchIds.has(match.id)).map(match => ({ ...toAddRequest(match), clientId: match.id })),
+    assignments: assignments.filter(assignment => activeParticipantIds.has(assignment.participantId)),
+  };
+}
+
+function updatePlayerMatchCounts(previous: Record<string, number>, id: string, count: number | null): Record<string, number> {
+  const next = { ...previous };
+  if (count === null) delete next[id];
+  else next[id] = count;
+  return next;
+}
+
+function getRunningGameDraftParticipants(
+  supportsTargets: boolean,
+  participants: ReturnType<typeof roomSnapshotToActiveRoster>,
+  playerMatchCounts: Record<string, number>,
+) {
+  return supportsTargets
+    ? participants.map(participant => ({ ...participant, additionalMatchCount: playerMatchCounts[participant.id] ?? null }))
+    : participants;
+}
+
+function canSaveRunningGameDraft(
+  snapshot: RoomSnapshot,
+  plan: RoomSnapshot["assignmentPlan"],
+  supportsEditable: boolean,
+  assignmentPreview: ReturnType<typeof useAssignmentPreview>,
+  isAssignmentDraftValid: boolean,
+  hasConflict: boolean,
+): boolean {
+  const assignmentsValid = supportsEditable ? assignmentPreview.valid : isAssignmentDraftValid;
+  return Boolean(snapshot.configurationToken) && plan.feasible && assignmentsValid && !hasConflict && assignmentPreview.issue !== "stale";
 }
 
 function buildDraftAssignmentPlan(
