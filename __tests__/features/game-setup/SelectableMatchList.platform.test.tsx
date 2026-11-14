@@ -69,7 +69,8 @@ jest.mock("../../../features/game-setup/setupGameStyles", () => ({
 }));
 
 jest.mock("../../../features/football-matches/teamLogos", () => ({
-  getTeamLogoWithFallback: () => null,
+  getHardcodedTeamLogoOnly: jest.fn(() => null),
+  getTeamLogo: jest.fn().mockResolvedValue(null),
 }));
 
 const MATCHES = [
