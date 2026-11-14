@@ -53,6 +53,8 @@ export interface Match {
   catalogSnapshot?: import("../../types/footballMatch").SavedMatch;
   id: string;
   homeTeam: string;
+  homeTeamDetails?: import("../../types/footballMatch").SavedMatchTeam;
+  awayTeamDetails?: import("../../types/footballMatch").SavedMatchTeam;
   awayTeam: string;
   homeGoals: number;
   awayGoals: number;

@@ -351,17 +351,19 @@ export function createGameProgressStyles(colors: Colors) {
       borderWidth: 1,
       borderColor: colors.borderLight,
     },
-    gridItem: {
+    gameplayMatchCard: {
       ...baseCard,
-      flex: 1,
       margin: 6,
-      height: 90,
       padding: 10,
       borderWidth: 1,
       borderColor: colors.borderLight,
       boxShadow: `0px 1px 1.5px ${hexWithAlpha(colors.textPrimary, 0.1)}`,
       ...androidElevationFallback(1),
       position: "relative",
+    },
+    gridItem: {
+      flex: 1,
+      height: 90,
     },
 
     // ============ Match Header & Content Styles ============
@@ -1107,10 +1109,7 @@ export function createGameProgressStyles(colors: Colors) {
 
     // ============ Footer Button Styles ============
     footerContainer: {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
+      flexShrink: 0,
       flexDirection: "row",
       justifyContent: "space-between",
       padding: 8,
@@ -1160,7 +1159,9 @@ export function createGameProgressStyles(colors: Colors) {
 
     // ============ Match List Item Styles ============
     matchListItemCard: {
-      height: 120,
+      alignSelf: "stretch",
+      flexShrink: 0,
+      minHeight: 120,
     },
     commonMatchIndicator: {
       position: "absolute",
@@ -1181,7 +1182,6 @@ export function createGameProgressStyles(colors: Colors) {
     matchList_LogoImage: {
       width: 45,
       height: 45,
-      resizeMode: "contain",
     },
     matchList_HomeLogoWrapper: {
       width: 40,

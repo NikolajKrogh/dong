@@ -4,721 +4,824 @@
     "name": "Premier League",
     "category": "Europe",
     "defaultOrder": 0,
-    "selectedByDefault": true
+    "selectedByDefault": true,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/23.png"
   },
   {
     "code": "eng.2",
     "name": "Championship",
     "category": "Europe",
     "defaultOrder": 1,
-    "selectedByDefault": true
+    "selectedByDefault": true,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/24.png"
   },
   {
     "code": "eng.3",
     "name": "League One",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/25.png"
   },
   {
     "code": "eng.4",
     "name": "League Two",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/26.png"
   },
   {
     "code": "eng.league_cup",
     "name": "Carabao Cup",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/41.png"
   },
   {
     "code": "eng.fa",
     "name": "FA Cup",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/40.png"
   },
   {
     "code": "esp.1",
     "name": "La Liga",
     "category": "Europe",
     "defaultOrder": 3,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/15.png"
   },
   {
     "code": "esp.2",
     "name": "LALIGA 2",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/107.png"
   },
   {
     "code": "esp.copa_del_rey",
     "name": "Spanish Copa del Rey",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/80.png"
   },
   {
     "code": "ger.1",
     "name": "Bundesliga",
     "category": "Europe",
     "defaultOrder": 2,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/10.png"
   },
   {
     "code": "ger.2",
     "name": "German 2. Bundesliga",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/97.png"
   },
   {
     "code": "ger.dfb_pokal",
     "name": "DFB Pokal",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2061.png"
   },
   {
     "code": "ita.1",
     "name": "Serie A",
     "category": "Europe",
     "defaultOrder": 4,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/12.png"
   },
   {
     "code": "ita.2",
     "name": "Serie B",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/99.png"
   },
   {
     "code": "ita.coppa_italia",
     "name": "Coppa Italia",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2192.png"
   },
   {
     "code": "fra.1",
     "name": "Ligue 1",
     "category": "Europe",
     "defaultOrder": 5,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/9.png"
   },
   {
     "code": "fra.2",
     "name": "Ligue 2",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/96.png"
   },
   {
     "code": "fra.coupe_de_france",
     "name": "Coupe de France",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/182.png"
   },
   {
     "code": "por.1",
     "name": "Portuguese Primeira Liga",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/14.png"
   },
   {
     "code": "ned.1",
     "name": "Eredivisie",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/11.png"
   },
   {
     "code": "ned.cup",
     "name": "Dutch KNVB Beker",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2196.png"
   },
   {
     "code": "sco.1",
     "name": "Scottish Premiership",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/45.png"
   },
   {
     "code": "sco.3",
     "name": "Scottish League One",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/47.png"
   },
   {
     "code": "sco.4",
     "name": "Scottish League Two",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/48.png"
   },
   {
     "code": "bel.1",
     "name": "Belgian Pro League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/6.png"
   },
   {
     "code": "rus.1",
     "name": "Russian Premier League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/106.png"
   },
   {
     "code": "tur.1",
     "name": "Turkish Super Lig",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/18.png"
   },
   {
     "code": "gre.1",
     "name": "Greek Super League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/98.png"
   },
   {
     "code": "sui.1",
     "name": "Swiss Super League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/17.png"
   },
   {
     "code": "aut.1",
     "name": "Austrian Bundesliga",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/5.png"
   },
   {
     "code": "den.1",
     "name": "Superliga",
     "category": "Europe",
     "defaultOrder": 6,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/default-team-logo-500.png&w=100&h=100"
   },
   {
     "code": "nor.1",
     "name": "Norwegian Eliteserien",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/default-team-logo-500.png&w=100&h=100"
   },
   {
     "code": "swe.1",
     "name": "Swedish Allsvenskan",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/16.png"
   },
   {
     "code": "irl.1",
     "name": "Irish Premier Division",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/116.png"
   },
   {
     "code": "uefa.champions",
     "name": "UEFA Champions League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2.png"
   },
   {
     "code": "uefa.europa",
     "name": "UEFA Europa League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2310.png"
   },
   {
     "code": "uefa.europa.conf",
     "name": "UEFA Conference League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/20296.png"
   },
   {
     "code": "uefa.wchampions",
     "name": "UEFA Women's Champions League",
     "category": "Europe",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2408.png"
   },
   {
     "code": "usa.1",
     "name": "MLS",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/19.png"
   },
   {
     "code": "usa.nwsl",
     "name": "NWSL",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2323.png"
   },
   {
     "code": "usa.usl.1",
     "name": "USL Championship",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2292.png"
   },
   {
     "code": "usa.usl.l1",
     "name": "USL League One",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2452.png"
   },
   {
     "code": "usa.open",
     "name": "U.S. Open Cup",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/69.png"
   },
   {
     "code": "usa.nwsl.cup",
     "name": "NWSL Challenge Cup",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2445.png"
   },
   {
     "code": "mex.1",
     "name": "Mexican Liga BBVA MX",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/22.png"
   },
   {
     "code": "mex.2",
     "name": "Mexican Liga de Expansión MX",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2306.png"
   },
   {
     "code": "mex.copa_mx",
     "name": "Mexican Copa MX",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2321.png"
   },
   {
     "code": "concacaf.champions",
     "name": "Concacaf Champions Cup",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2298.png"
   },
   {
     "code": "concacaf.gold",
     "name": "Concacaf Gold Cup",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/59.png"
   },
   {
     "code": "crc.1",
     "name": "Costa Rican Primera Division",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2245.png"
   },
   {
     "code": "hon.1",
     "name": "Honduran Liga Nacional",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2247.png"
   },
   {
     "code": "gua.1",
     "name": "Guatemalan Liga Nacional",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2248.png"
   },
   {
     "code": "slv.1",
     "name": "Salvadoran Primera Division",
     "category": "USA, Mexico & CONCACAF",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2244.png"
   },
   {
     "code": "bra.1",
     "name": "Brazilian Serie A",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/85.png"
   },
   {
     "code": "bra.2",
     "name": "Brazilian Serie B",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2299.png"
   },
   {
     "code": "bra.copa_do_brazil",
     "name": "Copa do Brasil",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/528.png"
   },
   {
     "code": "bra.camp.gaucho",
     "name": "Brazilian Campeonato Gaucho",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2272.png"
   },
   {
     "code": "bra.camp.paulista",
     "name": "Brazilian Campeonato Paulista",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2322.png"
   },
   {
     "code": "bra.camp.carioca",
     "name": "Brazilian Campeonato Carioca",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2265.png"
   },
   {
     "code": "bra.camp.mineiro",
     "name": "Brazilian Campeonato Mineiro",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2360.png"
   },
   {
     "code": "arg.1",
     "name": "Argentine Liga Profesional de Fútbol",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1.png"
   },
   {
     "code": "arg.2",
     "name": "Argentine Nacional B",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2294.png"
   },
   {
     "code": "arg.3",
     "name": "Argentine Primera B",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2308.png"
   },
   {
     "code": "arg.4",
     "name": "Argentine Primera C",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2301.png"
   },
   {
     "code": "arg.5",
     "name": "Argentine Primera D",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2304.png"
   },
   {
     "code": "arg.copa",
     "name": "Copa Argentina",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2320.png"
   },
   {
     "code": "arg.copa_lpf",
     "name": "Argentine Copa de la Liga Profesional",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/20243.png"
   },
   {
     "code": "col.1",
     "name": "Colombian Primera A",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1543.png"
   },
   {
     "code": "col.2",
     "name": "Colombian Primera B",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2295.png"
   },
   {
     "code": "col.copa",
     "name": "Copa Colombia",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2332.png"
   },
   {
     "code": "chi.1",
     "name": "Chilean Primera División",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/86.png"
   },
   {
     "code": "chi.copa_chi",
     "name": "Copa Chile",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2331.png"
   },
   {
     "code": "ecu.1",
     "name": "LigaPro Ecuador",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1944.png"
   },
   {
     "code": "uru.1",
     "name": "Liga UAF Uruguaya",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1592.png"
   },
   {
     "code": "ven.1",
     "name": "Venezuelan Primera División",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1947.png"
   },
   {
     "code": "par.1",
     "name": "Paraguayan Primera División",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1892.png"
   },
   {
     "code": "per.1",
     "name": "Peruvian Liga 1",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1813.png"
   },
   {
     "code": "bol.1",
     "name": "Bolivian Liga Profesional",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1949.png"
   },
   {
     "code": "conmebol.libertadores",
     "name": "CONMEBOL Libertadores",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/58.png"
   },
   {
     "code": "conmebol.sudamericana",
     "name": "CONMEBOL Sudamericana",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1208.png"
   },
   {
     "code": "conmebol.america",
     "name": "Copa América",
     "category": "South America",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/83.png"
   },
   {
     "code": "fifa.world",
     "name": "FIFA World Cup",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/4.png"
   },
   {
     "code": "fifa.cwc",
     "name": "FIFA Club World Cup",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1932.png"
   },
   {
     "code": "fifa.worldq.uefa",
     "name": "FIFA World Cup Qualifying - UEFA",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/67.png"
   },
   {
     "code": "fifa.worldq.concacaf",
     "name": "FIFA World Cup Qualifying - Concacaf",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/64.png"
   },
   {
     "code": "fifa.worldq.conmebol",
     "name": "FIFA World Cup Qualifying - CONMEBOL",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/65.png"
   },
   {
     "code": "fifa.worldq.afc",
     "name": "FIFA World Cup Qualifying - AFC",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/62.png"
   },
   {
     "code": "fifa.worldq.caf",
     "name": "FIFA World Cup Qualifying - CAF",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/63.png"
   },
   {
     "code": "fifa.worldq.ofc",
     "name": "FIFA World Cup Qualifying - OFC",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/66.png"
   },
   {
     "code": "fifa.wwc",
     "name": "FIFA Women's World Cup",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/60.png"
   },
   {
     "code": "fifa.world.u20",
     "name": "FIFA Under-20 World Cup",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2285.png"
   },
   {
     "code": "fifa.world.u17",
     "name": "FIFA Under-17 World Cup",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2288.png"
   },
   {
     "code": "fifa.olympics",
     "name": "Men's Olympic Soccer Tournament",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/71.png"
   },
   {
     "code": "fifa.w.olympics",
     "name": "Women's Olympic Soccer Tournament",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/84.png"
   },
   {
     "code": "fifa.friendly",
     "name": "International Friendly",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/53.png"
   },
   {
     "code": "fifa.friendly.w",
     "name": "Women's International Friendly",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/70.png"
   },
   {
     "code": "uefa.euro",
     "name": "UEFA European Championship",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/74.png"
   },
   {
     "code": "uefa.nations",
     "name": "UEFA Nations League",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2395.png"
   },
   {
     "code": "uefa.euro_u21",
     "name": "UEFA European Under-21 Championship",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2284.png"
   },
   {
     "code": "uefa.euro.u19",
     "name": "UEFA European Under-19 Championship",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2297.png"
   },
   {
     "code": "uefa.euroq",
     "name": "UEFA European Championship Qualifying",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/56.png"
   },
   {
     "code": "uefa.weuro",
     "name": "UEFA Women's European Championship",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2381.png"
   },
   {
     "code": "concacaf.womens.championship",
     "name": "Concacaf W Championship",
     "category": "Internationals",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/18969.png"
   },
   {
     "code": "club.friendly",
@@ -732,118 +835,135 @@
     "name": "AFC Champions League Elite",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2200.png"
   },
   {
     "code": "afc.cup",
     "name": "AFC Champions League Two",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2243.png"
   },
   {
     "code": "afc.asian.cup",
     "name": "AFC Asian Cup",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/combiner/i?img=/i/leaguelogos/soccer/500/2243.png"
   },
   {
     "code": "afc.cupq",
     "name": "AFC Asian Cup Qualifiers",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2246.png"
   },
   {
     "code": "ksa.1",
     "name": "Saudi Pro League",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2488.png"
   },
   {
     "code": "aus.1",
     "name": "Australian A-League Men",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/1308.png"
   },
   {
     "code": "aus.w.1",
     "name": "Australian A-League Women",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2402.png"
   },
   {
     "code": "jpn.1",
     "name": "Japanese J.League",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2199.png"
   },
   {
     "code": "chn.1",
     "name": "Chinese Super League",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2350.png"
   },
   {
     "code": "ind.1",
     "name": "Indian Super League",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2334.png"
   },
   {
     "code": "idn.1",
     "name": "Indonesian Liga 1",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2336.png"
   },
   {
     "code": "mys.1",
     "name": "Malaysian Super League",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2340.png"
   },
   {
     "code": "sgp.1",
     "name": "Singaporean Premier League",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2338.png"
   },
   {
     "code": "tha.1",
     "name": "Thai League 1",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2341.png"
   },
   {
     "code": "aff.championship",
     "name": "ASEAN Championship",
     "category": "Asia",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2261.png"
   },
   {
     "code": "caf.champions",
     "name": "CAF Champions League",
     "category": "Africa",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/2391.png"
   },
   {
     "code": "caf.nations",
     "name": "Africa Cup of Nations",
     "category": "Africa",
     "defaultOrder": null,
-    "selectedByDefault": false
+    "selectedByDefault": false,
+    "logoUrl": "https://a.espncdn.com/i/leaguelogos/soccer/500/76.png"
   }
 ]

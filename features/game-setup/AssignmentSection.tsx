@@ -234,6 +234,9 @@ const AssignmentSection: React.FC<AssignmentSectionProps> = ({
       id: match.id,
       homeTeam: match.homeTeam,
       awayTeam: match.awayTeam,
+      homeTeamDetails: match.homeTeamDetails,
+      awayTeamDetails: match.awayTeamDetails,
+      catalogSnapshot: match.catalogSnapshot,
       startTime: match.startTime,
     }),
   );

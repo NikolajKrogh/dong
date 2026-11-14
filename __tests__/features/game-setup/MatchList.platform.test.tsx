@@ -242,7 +242,7 @@ describe("MatchList platform adoption", () => {
     });
     mockMatchDataState.isInitialLoading = true;
     mockMatchDataState.isUpdating = false;
-    mockMatchDataState.leagueStates = [];
+    mockMatchDataState.leagueStates = [{ leagueCode: "eng.1", status: "empty", message: null, retryAt: null }];
   });
 
   it("uses the shared animation adapter for loading feedback", () => {
@@ -275,7 +275,8 @@ describe("MatchList platform adoption", () => {
     const renderer = renderMatchList({ matches: [], setGlobalMatches, setHomeTeam, setAwayTeam });
 
     if (status === "failed") {
-      const retry = renderer.root.findByProps({ accessibilityLabel: "Retry loading matches" });
+      expect(renderer.root.findAllByProps({ testID: "MatchListEmptyState" })).toHaveLength(0);
+      const retry = renderer.root.findByProps({ accessibilityLabel: "Try again" });
       expect(retry.props.disabled).toBe(false);
       TestRenderer.act(() => retry.props.onPress());
       expect(mockRetryMatchDiscovery).toHaveBeenCalledTimes(1);
@@ -480,7 +481,7 @@ describe("MatchList platform adoption", () => {
     const props = renderer.root.findByType(MatchList).props;
     TestRenderer.act(() => renderer.update(React.createElement(MatchList, { ...props, matches: [] })));
     expect(renderer.root.findAllByProps({ testID: "SelectableMatchList" })).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ testID: "MatchListEmptyState" })).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ testID: "MatchListEmptyState" })).toHaveLength(0);
     TestRenderer.act(() => renderer.unmount());
   });
 

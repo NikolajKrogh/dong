@@ -63,6 +63,8 @@ export interface MatchData {
   /** Stable provider league code used by trusted score ingestion. */
   leagueCode?: string;
   team1: string;
+  homeTeamDetails?: import("../../types/footballMatch").SavedMatchTeam;
+  awayTeamDetails?: import("../../types/footballMatch").SavedMatchTeam;
   team2: string;
   score?: {
     ft: [number, number];

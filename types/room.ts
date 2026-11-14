@@ -45,6 +45,8 @@ export interface RoomMatchSummary {
   id: string;
   catalogMatchId?: string | null;
   catalogSnapshot?: import("./footballMatch").SavedMatch | null;
+  homeTeamDetails?: import("./footballMatch").SavedMatchTeam;
+  awayTeamDetails?: import("./footballMatch").SavedMatchTeam;
   sourceProvider: string;
   sourceMatchId: string | null;
   sourceLeagueCode?: string | null;

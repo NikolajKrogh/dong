@@ -21,11 +21,11 @@ const HARDCODED_LOGO = { testUri: "hardcoded-arsenal" } as ImageSourcePropType;
 // Drain both the lookup promise and React Query's scheduled observer notification.
 const flushQuery = () => jest.runAllTimersAsync();
 
-const renderHookProbe = (teamName: string) => {
+const renderHookProbe = (teamName: string, team?: Parameters<typeof useTeamLogo>[1]) => {
   let latest: ImageSourcePropType | undefined;
 
   const Probe = ({ name }: { name: string }) => {
-    latest = useTeamLogo(name);
+    latest = useTeamLogo(name, team);
     return null;
   };
 
@@ -107,6 +107,19 @@ describe("useTeamLogo", () => {
     TestRenderer.act(() => {
       renderer.unmount();
     });
+  });
+
+  it("uses a persisted logo when an identified provider team has no URL", async () => {
+    mockGetHardcodedTeamLogoOnly.mockReturnValue(null);
+    const uri = "https://a.espncdn.com/i/teamlogos/soccer/500/3129.png";
+    mockGetTeamLogo.mockResolvedValue(uri);
+    const { renderer, getLatest } = renderHookProbe("Bromley", {
+      name: "Bromley", sourceTeamId: "3129", shortName: null, logoUrl: null,
+    });
+
+    await TestRenderer.act(async () => { await flushQuery(); });
+    expect(getLatest()).toEqual({ uri });
+    TestRenderer.act(() => { renderer.unmount(); });
   });
 
   it("stays on the default logo when no persisted logo is found", async () => {

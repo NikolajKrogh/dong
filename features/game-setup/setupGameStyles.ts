@@ -626,16 +626,22 @@ const createSetupGameStyles = (colors: ReturnType<typeof useColors>) =>
       alignItems: "center",
       justifyContent: "center",
     },
-    errorContainer: {
-      padding: 20,
-      alignItems: "center",
-      justifyContent: "center",
+    fixtureNotice: {
       flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      columnGap: 12,
+      paddingHorizontal: 8,
     },
-    errorText: {
-      marginLeft: 8,
-      color: colors.danger,
+    fixtureNoticeText: {
+      color: colors.textPrimary,
       fontSize: 14,
+      lineHeight: 20,
+      flexShrink: 1,
+    },
+    fixtureRetry: {
+      minHeight: 44,
+      justifyContent: "center",
     },
     dropdownBox: {
       ...makeBaseInput(colors),

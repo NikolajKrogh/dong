@@ -18,6 +18,8 @@ export interface NormalizedMatch {
   catalogMatchId?: string;
   league: string;
   homeTeam: string;
+  homeTeamDetails?: import("../../types/footballMatch").SavedMatchTeam;
+  awayTeamDetails?: import("../../types/footballMatch").SavedMatchTeam;
   awayTeam: string;
   startDateTime: string;
   status: NormalizedMatchStatus;
@@ -50,6 +52,8 @@ export const createMatchDiscoveryApiClient = (
         league: match.identity.leagueCode,
         homeTeam: match.homeTeam.name,
         awayTeam: match.awayTeam.name,
+        homeTeamDetails: match.homeTeam,
+        awayTeamDetails: match.awayTeam,
         startDateTime: match.kickoffAt ?? "",
         status: match.lifecycle,
         ...(match.homeScore !== null || match.awayScore !== null ? { score: { home: match.homeScore, away: match.awayScore } } : {}),

@@ -2,8 +2,13 @@ import React from "react";
 import { Animated } from "react-native";
 import TestRenderer from "react-test-renderer";
 
-import { actCreate } from "../../../test-utils/render";
+import { actCreate as createRenderer } from "../../../test-utils/render";
+import { TamaguiTestProvider } from "../../../test-utils/tamagui";
 import FooterButtons from "../../../features/game-progress/FooterButtons";
+
+function actCreate(element: React.ReactElement): TestRenderer.ReactTestRenderer {
+  return createRenderer(React.createElement(TamaguiTestProvider, null, element));
+}
 
 jest.mock("../../../platform/navigation/taskNavigation", () => ({
   TaskOverlay: ({ open, onClose, children }: any) => children({
@@ -26,6 +31,7 @@ jest.mock("@expo/vector-icons", () => ({
 }));
 
 jest.mock("../../../styles/theme", () => ({
+  ...jest.requireActual("../../../styles/theme"),
   useColors: () => ({
     backgroundModalOverlay: "rgba(0,0,0,.5)",
     surface: "#fff",

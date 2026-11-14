@@ -38,6 +38,8 @@ export interface GuestRoomParticipantSummary {
 interface GuestRoomMatchSummary {
   catalogMatchId?: string | null;
   catalogSnapshot?: import("./footballMatch").SavedMatch | null;
+  homeTeamDetails?: import("./footballMatch").SavedMatchTeam;
+  awayTeamDetails?: import("./footballMatch").SavedMatchTeam;
   id: string;
   sourceProvider: string | null;
   sourceMatchId: string | null;

@@ -3,6 +3,7 @@
  * @description Modal for quick match actions and stat visualizations (progress bars, possession circle) for a selected match.
  */
 
+import { teamLogoDetails } from "../../football-matches/teamLogoDetails";
 import React, { useMemo, useState } from "react";
 import {
   Animated,
@@ -15,7 +16,7 @@ import {
 } from "react-native";
 import { Player } from "../../../store/gameStore";
 import { useColors } from "../../../styles/theme";
-import { useTeamLogo } from "../../football-matches/useTeamLogo";
+import type { SavedMatchTeam } from "../../../types/footballMatch";
 import { useMatchQuickActionsAnimations } from "../useMatchQuickActionsAnimations";
 import { GoalScorersSection } from "./GoalScorersSection";
 import { MatchHeader } from "./MatchHeader";
@@ -219,8 +220,8 @@ interface MatchQuickActionsModalViewProps {
   isVisible: boolean;
   onClose: () => void;
   match: TrackedMatch | null;
-  homeTeamLogo: ReturnType<typeof useTeamLogo>;
-  awayTeamLogo: ReturnType<typeof useTeamLogo>;
+  homeTeamDetails?: SavedMatchTeam;
+  awayTeamDetails?: SavedMatchTeam;
   isCommonMatch: boolean;
   showStatisticsTab: boolean;
   scoreControls: ScoreControlValues | null;
@@ -236,8 +237,8 @@ const MatchQuickActionsModalView = ({
   isVisible,
   onClose,
   match,
-  homeTeamLogo,
-  awayTeamLogo,
+  homeTeamDetails,
+  awayTeamDetails,
   isCommonMatch,
   showStatisticsTab,
   scoreControls,
@@ -294,8 +295,8 @@ const MatchQuickActionsModalView = ({
                 <MatchHeader
                   homeTeam={match.homeTeam}
                   awayTeam={match.awayTeam}
-                  homeTeamLogo={homeTeamLogo}
-                  awayTeamLogo={awayTeamLogo}
+                  homeTeamDetails={homeTeamDetails}
+                  awayTeamDetails={awayTeamDetails}
                   isCommonMatch={isCommonMatch}
                   styles={styles}
                 />
@@ -382,8 +383,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   );
 
   // Get team logos with async fallback support
-  const homeTeamLogo = useTeamLogo(match?.homeTeam || "");
-  const awayTeamLogo = useTeamLogo(match?.awayTeam || "");
+  const homeTeamDetails = teamLogoDetails(match?.catalogSnapshot?.homeTeam, match?.homeTeamDetails);
+  const awayTeamDetails = teamLogoDetails(match?.catalogSnapshot?.awayTeam, match?.awayTeamDetails);
 
   /** Live data for selected match (if present). */
   const liveMatchData = useMemo(
@@ -453,8 +454,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
       isVisible={isVisible}
       onClose={onClose}
       match={match}
-      homeTeamLogo={homeTeamLogo}
-      awayTeamLogo={awayTeamLogo}
+      homeTeamDetails={homeTeamDetails}
+      awayTeamDetails={awayTeamDetails}
       isCommonMatch={isCommonMatch}
       showStatisticsTab={showStatisticsTab}
       scoreControls={scoreControls}

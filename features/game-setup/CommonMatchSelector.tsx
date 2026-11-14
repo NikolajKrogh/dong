@@ -1,8 +1,8 @@
+import { teamLogoDetails } from "../football-matches/teamLogoDetails";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
-  Image,
   Modal,
   Text,
   TouchableOpacity,
@@ -13,7 +13,7 @@ import { isWideLayout as isWideViewport } from "../../styles/responsive";
 import createSetupGameStyles from "./setupGameStyles";
 import { useColors } from "../../styles/theme";
 import { Match } from "../../store/gameStore";
-import { getTeamLogoWithFallback } from "../football-matches/teamLogos";
+import { TeamBadge } from "../football-matches/TeamBadge";
 
 /**
  * Props for common match selector.
@@ -111,8 +111,6 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
         >
           {matches.map((item) => {
             const isSelected = selectedCommonMatch === item.id;
-            const homeTeamLogo = getTeamLogoWithFallback(item.homeTeam);
-            const awayTeamLogo = getTeamLogoWithFallback(item.awayTeam);
 
             return (
               <View
@@ -148,18 +146,7 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
                       {/* Home team column */}
                       <View style={styles.matchTeamColumn}>
                         <View style={styles.logoContainer}>
-                          {homeTeamLogo ? (
-                            <Image
-                              source={homeTeamLogo}
-                              style={styles.teamLogo}
-                            />
-                          ) : (
-                            <View style={styles.teamLogoPlaceholder}>
-                              <Text style={styles.teamLogoPlaceholderText}>
-                                {item.homeTeam.charAt(0)}
-                              </Text>
-                            </View>
-                          )}
+                          <TeamBadge teamName={item.homeTeam} team={teamLogoDetails(item.catalogSnapshot?.homeTeam, item.homeTeamDetails)} style={styles.teamLogo} />
                         </View>
                         <Text
                           style={styles.teamName}
@@ -178,18 +165,7 @@ const CommonMatchSelector: React.FC<CommonMatchSelectorProps> = ({
                       {/* Away team column */}
                       <View style={styles.matchTeamColumn}>
                         <View style={styles.logoContainer}>
-                          {awayTeamLogo ? (
-                            <Image
-                              source={awayTeamLogo}
-                              style={styles.teamLogo}
-                            />
-                          ) : (
-                            <View style={styles.teamLogoPlaceholder}>
-                              <Text style={styles.teamLogoPlaceholderText}>
-                                {item.awayTeam.charAt(0)}
-                              </Text>
-                            </View>
-                          )}
+                          <TeamBadge teamName={item.awayTeam} team={teamLogoDetails(item.catalogSnapshot?.awayTeam, item.awayTeamDetails)} style={styles.teamLogo} />
                         </View>
                         <Text
                           style={styles.teamName}

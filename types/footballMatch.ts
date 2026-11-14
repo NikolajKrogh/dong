@@ -15,7 +15,8 @@ interface MatchIdentity {
   sourceCompetitionId: string | null;
 }
 
-interface SavedMatchTeam {
+export interface SavedMatchTeam {
+  logoUrl?: string | null;
   sourceTeamId: string | null;
   name: string;
   shortName: string | null;

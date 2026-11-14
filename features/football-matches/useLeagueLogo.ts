@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ImageSourcePropType } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import leagueCatalog from "../../constants/leagueCatalog.json";
 
 /** Map of league name -> local logo asset. */
 interface LeagueLogos {
@@ -30,12 +31,13 @@ const loadLeagueLogo = async (
   return null;
 };
 
-/** Resolve bundled or already cached logos without acquiring a scoreboard for an image. */
+/** Resolve bundled, catalog, or previously cached logos. */
 export function useLeagueLogo(leagueName: string, leagueCode?: string) {
-  const localLogo = LEAGUE_LOGOS[leagueName];
-  const { data: remoteLogo, isLoading } = useQuery({
+  const catalogUrl = leagueCatalog.find((league) => league.code === leagueCode)?.logoUrl;
+  const knownLogo = LEAGUE_LOGOS[leagueName] ?? (catalogUrl ? { uri: catalogUrl } : undefined);
+  const { data: cachedLogo, isLoading } = useQuery({
     queryKey: ["league-logo", leagueName, leagueCode],
-    enabled: !localLogo,
+    enabled: !knownLogo,
     queryFn: () => loadLeagueLogo(leagueName),
     staleTime: 0,
     gcTime: 0,
@@ -46,7 +48,7 @@ export function useLeagueLogo(leagueName: string, leagueCode?: string) {
   });
 
   return {
-    logoSource: localLogo ?? remoteLogo ?? undefined,
-    isLoading: localLogo ? false : isLoading,
+    logoSource: knownLogo ?? cachedLogo ?? undefined,
+    isLoading: !knownLogo && isLoading,
   };
 }
