@@ -1,3 +1,4 @@
+import { teamLogoDetails } from "../../football-matches/teamLogoDetails";
 import React, { useMemo } from "react";
 import { Platform, Text, TouchableOpacity, View } from "react-native";
 import AppIcon from "../../../components/ui/AppIcon";
@@ -96,7 +97,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         <View style={styles.logosRow}>
           {/* Home team: Logo on LEFT */}
           <View style={styles.matchList_HomeLogoWrapper}>
-            <TeamBadge accessibilityLabel={match.homeTeam} teamName={match.homeTeam} team={match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails} resizeMode="contain" style={styles.matchList_LogoImage} />
+            <TeamBadge accessibilityLabel={match.homeTeam} teamName={match.homeTeam} team={teamLogoDetails(match.catalogSnapshot?.homeTeam, match.homeTeamDetails)} resizeMode="contain" style={styles.matchList_LogoImage} />
           </View>
 
           <View
@@ -113,7 +114,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 
           {/* Away team: Logo on RIGHT */}
           <View style={styles.matchList_AwayLogoWrapper}>
-            <TeamBadge accessibilityLabel={match.awayTeam} teamName={match.awayTeam} team={match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails} resizeMode="contain" style={styles.matchList_LogoImage} />
+            <TeamBadge accessibilityLabel={match.awayTeam} teamName={match.awayTeam} team={teamLogoDetails(match.catalogSnapshot?.awayTeam, match.awayTeamDetails)} resizeMode="contain" style={styles.matchList_LogoImage} />
           </View>
         </View>
 

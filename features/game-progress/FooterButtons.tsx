@@ -102,6 +102,7 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
       boxShadow={`0px 2px 3px ${hexWithAlpha(colors.black, 0.2)}`}
       style={androidElevationFallback(3)}
       pressStyle={{ opacity: 0.2 }}
+      focusVisibleStyle={{ outlineColor: "$primaryFocus", outlineWidth: 2, outlineStyle: "solid", outlineOffset: 2 }}
       onPress={onPress}
       {...(Platform.OS === "web"
         ? {

@@ -143,5 +143,35 @@ update private.provider_budget_state set daily_count=0,cooldown_until=clock_time
 select is(private.prepare_match_discovery(array['fra.1'],current_date)#>>'{result,groups,0,reason}','provider_cooldown','provider cooldown survives a new discovery request');
 select is((select count(*)::integer from private.provider_request_groups where league_id=(select id from private.provider_leagues where league_code='fra.1')),0,'a cooldown-denied request does not enqueue a cold group');
 
+-- Use the observed match as a frozen history fixture and a second session
+-- with the same catalog reference but conflicting frozen team identity.
+update private.provider_teams set logo_url='https://a.espncdn.com/'||source_team_id||'.png'
+where provider='espn' and source_team_id in ('h','a');
+create temporary table frozen_logo_fixture as
+  select catalog_snapshot as snapshot from public.matches where id='00000000-0000-4030-8000-000000000401';
+update public.game_sessions set state='completed', completed_at=now()
+where id='00000000-0000-4030-8000-000000000201';
+
+insert into public.game_sessions(id,owner_account_id,join_code,state)
+values('00000000-0000-4030-8000-000000000291','00000000-0000-4030-8000-000000000101','LOGOMISM','in_progress');
+insert into public.matches(id,session_id,source_provider,source_match_id,source_league_code,home_team_name,away_team_name,catalog_match_id,catalog_snapshot)
+select '00000000-0000-4030-8000-000000000491','00000000-0000-4030-8000-000000000291',
+  'espn','catalog-event','eng.1','Home','Away',(select id::bigint from catalog_fixture),
+  jsonb_set(snapshot,'{homeTeam,sourceTeamId}','"different-team"') from frozen_logo_fixture;
+select ok(private.build_guest_room_snapshot('00000000-0000-4030-8000-000000000291')
+  #>'{matches,0,homeTeamDetails,shortName}' = 'null'::jsonb,'room team details include null short names');
+update public.game_sessions set state='completed', completed_at=now()
+where id='00000000-0000-4030-8000-000000000291';
+
+select is(private.backfill_history_team_logos(),1::bigint,'enriches only the exact frozen match');
+select is((select catalog_snapshot from public.matches where id='00000000-0000-4030-8000-000000000401'),
+  (select jsonb_set(jsonb_set(snapshot,'{homeTeam,logoUrl}','"https://a.espncdn.com/h.png"'),
+    '{awayTeam,logoUrl}','"https://a.espncdn.com/a.png"') from frozen_logo_fixture),
+  'adds both logos without changing other frozen data');
+select is((select catalog_snapshot from public.matches where id='00000000-0000-4030-8000-000000000491'),
+  (select jsonb_set(snapshot,'{homeTeam,sourceTeamId}','"different-team"') from frozen_logo_fixture),
+  'does not enrich a mismatched frozen identity');
+select is(private.backfill_history_team_logos(),0::bigint,'repeat backfill leaves snapshots intact');
+
 select * from finish();
 rollback;

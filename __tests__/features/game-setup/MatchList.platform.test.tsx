@@ -481,7 +481,7 @@ describe("MatchList platform adoption", () => {
     const props = renderer.root.findByType(MatchList).props;
     TestRenderer.act(() => renderer.update(React.createElement(MatchList, { ...props, matches: [] })));
     expect(renderer.root.findAllByProps({ testID: "SelectableMatchList" })).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ testID: "MatchListEmptyState" })).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ testID: "MatchListEmptyState" })).toHaveLength(0);
     TestRenderer.act(() => renderer.unmount());
   });
 

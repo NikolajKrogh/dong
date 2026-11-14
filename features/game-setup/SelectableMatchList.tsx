@@ -1,3 +1,4 @@
+import { teamLogoDetails } from "../football-matches/teamLogoDetails";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
@@ -142,9 +143,9 @@ function CompactSelectableMatchRow({ match, index, selected, disabled, testID, d
       <Ionicons name={selected ? "checkmark-circle" : "ellipse-outline"} size={14} color={selected ? colors.primary : colors.border} />
     </View> : null}
     <View style={styles.compactTeamsContainer}>
-      <CompactTeamLogo matchName={match.homeTeam} team={match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails} styles={styles} />
+      <CompactTeamLogo matchName={match.homeTeam} team={teamLogoDetails(match.catalogSnapshot?.homeTeam, match.homeTeamDetails)} styles={styles} />
       <Text style={styles.compactVsText}>vs</Text>
-      <CompactTeamLogo matchName={match.awayTeam} team={match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails} styles={styles} />
+      <CompactTeamLogo matchName={match.awayTeam} team={teamLogoDetails(match.catalogSnapshot?.awayTeam, match.awayTeamDetails)} styles={styles} />
     </View>
   </TouchableOpacity>;
 }
@@ -167,9 +168,9 @@ function DetailedSelectableMatchRow({ match, index, selected, disabled, testID, 
     <LinearGradient colors={gradientColors} start={gradientStart} end={gradientEnd}
       style={[styles.matchCardGradient, density === "compact" && styles.assignmentCardGradient]}>
       <View style={styles.matchTeamsContainer}>
-        <DetailedTeamColumn matchName={match.homeTeam} team={match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails} density={density} styles={styles} />
+        <DetailedTeamColumn matchName={match.homeTeam} team={teamLogoDetails(match.catalogSnapshot?.homeTeam, match.homeTeamDetails)} density={density} styles={styles} />
         <View style={styles.vsDividerHorizontal}><Text style={styles.vsText}>VS</Text></View>
-        <DetailedTeamColumn matchName={match.awayTeam} team={match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails} density={density} styles={styles} />
+        <DetailedTeamColumn matchName={match.awayTeam} team={teamLogoDetails(match.catalogSnapshot?.awayTeam, match.awayTeamDetails)} density={density} styles={styles} />
       </View>
       {kickoff ? <View style={[styles.matchTimeHeader, density === "compact" && styles.assignmentCardKickoff]}>
         <AppIcon name="time-outline" size={16} color={density === "compact" ? colors.primaryDark : colors.primary} />

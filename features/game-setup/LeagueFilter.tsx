@@ -27,6 +27,8 @@ interface LeagueFilterProps {
  */
 const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
   const { logoSource, isLoading } = useLeagueLogo(league.name, league.code);
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const logoUrl = logoSource && typeof logoSource === "object" && "uri" in logoSource ? logoSource.uri : undefined;
   const colors = useColors();
   const styles = React.useMemo(() => createSetupGameStyles(colors), [colors]);
 
@@ -40,8 +42,8 @@ const LeagueBadge = ({ league }: { league: LeagueEndpoint }) => {
             color={colors.textMuted}
           />
         </View>
-      ) : logoSource ? (
-        <Image source={logoSource} style={summaryStyles.logo} />
+      ) : logoSource && (!logoUrl || failedUrl !== logoUrl) ? (
+        <Image source={logoSource} style={summaryStyles.logo} onError={() => setFailedUrl(logoUrl)} />
       ) : (
         // Fallback to text if logo is not available or still loading
         <Text

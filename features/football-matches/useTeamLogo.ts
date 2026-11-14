@@ -9,7 +9,7 @@ const DEFAULT_LOGO = require("../../assets/images/teams/default.png");
 export function useTeamLogo(teamName: string, team?: SavedMatchTeam): ImageSourcePropType {
   const hardcodedLogo = teamName.trim() ? getHardcodedTeamLogoOnly(teamName) : null;
   const remoteUrl = team?.logoUrl;
-  const legacyName = !hardcodedLogo && !remoteUrl && !team?.sourceTeamId && teamName.trim()
+  const legacyName = !hardcodedLogo && !remoteUrl && teamName.trim()
     ? teamName
     : null;
   const [cached, setCached] = useState<{ name: string; uri: string }>();

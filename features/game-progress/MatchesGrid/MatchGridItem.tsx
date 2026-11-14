@@ -1,3 +1,4 @@
+import { teamLogoDetails } from "../../football-matches/teamLogoDetails";
 import React, { useMemo } from "react";
 import { Platform, Text, TouchableOpacity, View } from "react-native";
 import AppIcon from "../../../components/ui/AppIcon";
@@ -98,7 +99,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           <View style={styles.teamLogoContainer}>
             <TeamBadge
               accessibilityLabel={match.homeTeam}
-              teamName={match.homeTeam} team={match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails}
+              teamName={match.homeTeam} team={teamLogoDetails(match.catalogSnapshot?.homeTeam, match.homeTeamDetails)}
               style={styles.teamLogo}
               resizeMode="contain"
             />
@@ -116,7 +117,7 @@ const MatchGridItem: React.FC<MatchItemProps> = ({
           <View style={styles.teamLogoContainer}>
             <TeamBadge
               accessibilityLabel={match.awayTeam}
-              teamName={match.awayTeam} team={match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails}
+              teamName={match.awayTeam} team={teamLogoDetails(match.catalogSnapshot?.awayTeam, match.awayTeamDetails)}
               style={styles.teamLogo}
               resizeMode="contain"
             />

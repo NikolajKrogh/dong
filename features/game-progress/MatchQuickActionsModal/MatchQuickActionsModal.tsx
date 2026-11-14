@@ -3,6 +3,7 @@
  * @description Modal for quick match actions and stat visualizations (progress bars, possession circle) for a selected match.
  */
 
+import { teamLogoDetails } from "../../football-matches/teamLogoDetails";
 import React, { useMemo, useState } from "react";
 import {
   Animated,
@@ -382,8 +383,8 @@ const MatchQuickActionsModal: React.FC<MatchQuickActionsModalProps> = ({
   );
 
   // Get team logos with async fallback support
-  const homeTeamDetails = match?.catalogSnapshot?.homeTeam ?? match?.homeTeamDetails;
-  const awayTeamDetails = match?.catalogSnapshot?.awayTeam ?? match?.awayTeamDetails;
+  const homeTeamDetails = teamLogoDetails(match?.catalogSnapshot?.homeTeam, match?.homeTeamDetails);
+  const awayTeamDetails = teamLogoDetails(match?.catalogSnapshot?.awayTeam, match?.awayTeamDetails);
 
   /** Live data for selected match (if present). */
   const liveMatchData = useMemo(

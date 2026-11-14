@@ -59,6 +59,7 @@ interface MatchListProps {
 }
 
 interface MatchListViewProps {
+  hasFilteredFixtures: boolean;
   fixedMatchIds: string[];
   matches: Match[];
   poolMatchIds: string[];
@@ -153,6 +154,7 @@ function MatchDiscoveryFeedback({
 }
 
 function MatchListView({
+  hasFilteredFixtures,
   fixedMatchIds,
   matches,
   poolMatchIds,
@@ -202,7 +204,7 @@ function MatchListView({
             disabledMatchIds={fixedMatchIds.length ? fixedMatchIds : undefined}
             onToggleMatch={onToggleMatch}
           />
-        ) : leagueStates.length > 0 && leagueStates.every(state => state.status === "empty" || state.status === "available") ? (
+        ) : !hasFilteredFixtures && leagueStates.length > 0 && leagueStates.every(state => state.status === "empty" || state.status === "available") ? (
           <View
             testID="MatchListEmptyState"
             style={styles.matchEmptyListContainer}
@@ -481,6 +483,7 @@ function MatchList({
 
   return (
     <MatchListView
+      hasFilteredFixtures={filteredMatches.length > 0}
       matches={matches}
       fixedMatchIds={fixedMatchIds}
       poolMatchIds={poolMatchIds}
