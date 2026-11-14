@@ -75,23 +75,34 @@ interface MatchListViewProps {
   colors: ReturnType<typeof useColors>;
 }
 
-function MatchListView({
-  fixedMatchIds,
-  matches,
-  poolMatchIds,
-  disableSelection,
-  showSectionTitle,
-  manualEntry,
-  processingState,
+function getDiscoveryMessages(
+  leagueStates: MatchListViewProps["discovery"]["leagueStates"],
+  availableLeagues: MatchListViewProps["leagueFilterProps"]["availableLeagues"],
+): string[] {
+  const namesByCode = new Map<string, string>();
+  for (const { code, name } of availableLeagues) {
+    if (!namesByCode.has(code)) namesByCode.set(code, name);
+  }
+
+  const leaguesByMessage = new Map<string, string[]>();
+  for (const state of leagueStates) {
+    if (!state.message) continue;
+    const leagueName = namesByCode.get(state.leagueCode) ?? state.leagueCode;
+    const leagueNames = leaguesByMessage.get(state.message) ?? [];
+    leagueNames.push(leagueName);
+    leaguesByMessage.set(state.message, leagueNames);
+  }
+  return Array.from(leaguesByMessage, ([message, leagueNames]) =>
+    leagueNames.length === leagueStates.length ? message : `${leagueNames.join(", ")}: ${message}`
+  );
+}
+
+function MatchDiscoveryFeedback({
   discovery,
   leagueFilterProps,
-  matchFilterProps,
-  onToggleMatch,
-  onClearAll,
   styles,
   colors,
-}: MatchListViewProps): React.JSX.Element {
-  const fixedIds = new Set(fixedMatchIds);
+}: Pick<MatchListViewProps, "discovery" | "leagueFilterProps" | "styles" | "colors">): React.JSX.Element {
   const { isInitialLoading, isUpdating, leagueStates, retry } = discovery;
   let loadingFeedback: React.ReactNode = null;
   if (isInitialLoading) {
@@ -112,20 +123,10 @@ function MatchListView({
     );
   }
 
-  const leaguesByMessage = new Map<string, string[]>();
-  for (const state of leagueStates) {
-    if (!state.message) continue;
-    const leagueName = leagueFilterProps.availableLeagues.find(league => league.code === state.leagueCode)?.name ?? state.leagueCode;
-    const leagueNames = leaguesByMessage.get(state.message) ?? [];
-    leagueNames.push(leagueName);
-    leaguesByMessage.set(state.message, leagueNames);
-  }
-  const discoveryMessages = Array.from(leaguesByMessage, ([message, leagueNames]) =>
-    leagueNames.length === leagueStates.length ? message : `${leagueNames.join(", ")}: ${message}`
-  );
+  const discoveryMessages = getDiscoveryMessages(leagueStates, leagueFilterProps.availableLeagues);
   const shouldShowRetry = leagueStates.some(state => !["initial", "available", "empty", "updating", "date_out_of_range"].includes(state.status));
   const isRetryDisabled = isInitialLoading || isUpdating;
-  const discoveryFeedback = <>
+  return (<>
     {loadingFeedback}
     {leagueFilterProps.selectedLeagues.length === 0 ? <Text style={{ color: colors.textMuted }}>Select a league to find fixtures.</Text> : null}
     {discoveryMessages.length ? (
@@ -147,7 +148,28 @@ function MatchListView({
         ) : null}
       </View>
     ) : null}
-  </>;
+  </>);
+
+}
+
+function MatchListView({
+  fixedMatchIds,
+  matches,
+  poolMatchIds,
+  disableSelection,
+  showSectionTitle,
+  manualEntry,
+  processingState,
+  discovery,
+  leagueFilterProps,
+  matchFilterProps,
+  onToggleMatch,
+  onClearAll,
+  styles,
+  colors,
+}: MatchListViewProps): React.JSX.Element {
+  const fixedIds = new Set(fixedMatchIds);
+  const { leagueStates } = discovery;
 
   return (
   <View style={styles.tabContent}>
@@ -170,7 +192,7 @@ function MatchListView({
       </View>
 
       <View testID="MatchListResults" style={styles.matchListResults}>
-        {discoveryFeedback}
+        <MatchDiscoveryFeedback discovery={discovery} leagueFilterProps={leagueFilterProps} styles={styles} colors={colors} />
         {/* The shared list keeps solo and multiplayer match cards visually aligned. */}
         {matches.length > 0 ? (
           <LeagueMatchSections

@@ -1,4 +1,6 @@
-import leagueCatalog from "../constants/leagueCatalog.json" with { type: "json" };
+import { readFileSync } from "node:fs";
+
+const leagueCatalog = JSON.parse(readFileSync(new URL("../constants/leagueCatalog.json", import.meta.url), "utf8"));
 
 // Emit SQL for review and execution by the database operator.
 const codes = [...new Set(process.argv.slice(2))];
