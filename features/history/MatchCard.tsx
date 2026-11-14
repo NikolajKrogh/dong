@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useColors } from "../../styles/theme";
 import { MATCH_LIFECYCLE_LABELS, formatMatchScore } from "../football-matches/matchPresentation";
 import HistoryTeamBadge from "./HistoryTeamBadge";
+import { TeamBadge } from "../football-matches/TeamBadge";
 import { Match } from "./historyTypes";
 
 interface MatchCardProps {
@@ -103,7 +104,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
       {match.catalogSnapshot ? <Text style={styles.teamName}>{MATCH_LIFECYCLE_LABELS[match.catalogSnapshot.lifecycle]}</Text> : null}
       <View style={styles.teams}>
         <View style={styles.team}>
-          <HistoryTeamBadge teamName={match.homeTeam} size={30} />
+          {(match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails)?.logoUrl ? (
+            <TeamBadge teamName={match.homeTeam} team={match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails} style={{ width: 30, height: 30 }} />
+          ) : <HistoryTeamBadge teamName={match.homeTeam} size={30} /> }
           <Text style={styles.teamName} numberOfLines={compact ? 1 : undefined}>
             {match.homeTeam}
           </Text>
@@ -114,7 +117,9 @@ const MatchCard: React.FC<MatchCardProps> = ({
           <Text style={styles.scoreValue}>{formatMatchScore(match.catalogSnapshot ? match.catalogSnapshot.awayScore : match.awayGoals)}</Text>
         </View>
         <View style={styles.team}>
-          <HistoryTeamBadge teamName={match.awayTeam} size={30} />
+          {(match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails)?.logoUrl ? (
+            <TeamBadge teamName={match.awayTeam} team={match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails} style={{ width: 30, height: 30 }} />
+          ) : <HistoryTeamBadge teamName={match.awayTeam} size={30} /> }
           <Text style={styles.teamName} numberOfLines={compact ? 1 : undefined}>
             {match.awayTeam}
           </Text>

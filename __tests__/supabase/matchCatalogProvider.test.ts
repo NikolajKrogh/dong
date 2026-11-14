@@ -16,6 +16,18 @@ describe('compact ESPN projection', () => {
     });
   });
 
+  it('keeps exact ESPN badge URLs and rejects unrelated image hosts', () => {
+    const board = structuredClone(liveBoard);
+    const [home, away] = board.events[0].competitions[0].competitors;
+    const logoUrl = 'https://a.espncdn.com/i/teamlogos/soccer/500/3129.png';
+    Object.assign(home.team, { logo: logoUrl });
+    Object.assign(away.team, { logo: 'https://images.example.test/badge.png' });
+
+    const [match] = normalizeEspnScoreboard(board, 'eng.1').matches;
+    expect(match.homeTeam.logoUrl).toBe(logoUrl);
+    expect(match.awayTeam.logoUrl).toBeNull();
+  });
+
   it('accepts valid empty boards, future fixtures and explicit completion without inferring terminal status', () => {
     expect(normalizeEspnScoreboard(emptyBoard, 'eng.1')).toEqual({ matches: [], isPartial: false });
     expect(normalizeEspnScoreboard(futureBoard, 'eng.1').matches[0].lifecycle).toBe('scheduled');

@@ -121,7 +121,7 @@ select ok(not has_function_privilege('match_catalog_backend','private.claim_prov
 
 insert into private.provider_leagues(provider,league_code,display_name) values('espn','ger.1','Bundesliga') on conflict do nothing;
 select is(private.prepare_match_discovery(array['../../bad'],current_date)->>'code','unsupported_league','unsupported discovery never falls back to a sweep');
-select is(private.prepare_match_discovery(array['eng.1'],current_date+8)->>'code','date_out_of_range','discovery calendar range is bounded by database UTC day');
+select is(private.prepare_match_discovery(array['eng.1'],current_date+365)#>>'{selection,date}',(current_date+365)::text,'discovery accepts fixtures a year ahead');
 select is(private.prepare_match_discovery(array[]::text[],current_date)#>>'{result,availability}','available','empty explicit discovery succeeds without source work');
 create temporary table cold_discovery as select private.prepare_match_discovery(array[' ger.1 ','ger.1'],current_date) as result;
 select is((select result#>>'{result,availability}' from cold_discovery),'pending','cold data is pending rather than a successfully empty match day');

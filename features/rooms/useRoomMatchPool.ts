@@ -51,6 +51,8 @@ export const toDisplayMatch = (match: RoomMatchSummary): Match => ({
   id: match.id,
   catalogMatchId: match.catalogMatchId ?? undefined,
   catalogSnapshot: match.catalogSnapshot ?? undefined,
+  homeTeamDetails: match.homeTeamDetails,
+  awayTeamDetails: match.awayTeamDetails,
   homeTeam: match.homeTeamName,
   awayTeam: match.awayTeamName,
   homeGoals: match.homeScore,

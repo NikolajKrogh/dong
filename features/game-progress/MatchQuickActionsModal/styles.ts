@@ -61,7 +61,6 @@ export const createStyles = (
     matchTeamLogo: {
       width: 50,
       height: 50,
-      resizeMode: "contain",
       marginBottom: 8,
     },
     matchTeamName: {

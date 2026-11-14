@@ -427,8 +427,8 @@ function scoreboardTeams(competition: Record<string, unknown>): {
   if (!homeName || !awayName || (homeId !== null && homeId === awayId)) return null;
   return {
     home: home[0], away: away[0],
-    homeTeam: { sourceTeamId: homeId, name: homeName, shortName: text(homeTeam.abbreviation, 40) },
-    awayTeam: { sourceTeamId: awayId, name: awayName, shortName: text(awayTeam.abbreviation, 40) },
+    homeTeam: { sourceTeamId: homeId, name: homeName, shortName: text(homeTeam.abbreviation, 40), logoUrl: espnTeamLogo(homeTeam.logo) },
+    awayTeam: { sourceTeamId: awayId, name: awayName, shortName: text(awayTeam.abbreviation, 40), logoUrl: espnTeamLogo(awayTeam.logo) },
   };
 }
 
@@ -526,4 +526,9 @@ export function normalizeEspnScoreboard(payload: unknown, leagueCode: string): N
     matches.push(match);
   }
   return { matches, isPartial };
+}
+
+function espnTeamLogo(value: unknown): string | null {
+  if (typeof value !== "string" || value.length > 2048) return null;
+  return /^https:\/\/(?:[a-z0-9-]+\.)*espncdn\.com\/[^\s]+$/i.test(value) ? value : null;
 }

@@ -4,6 +4,7 @@ import {
 } from '@tanstack/react-query';
 import type { MatchDiscoveryApiClient, NormalizedMatch } from './matchDiscoveryAdapter';
 import { normalizeDiscoverySelection } from './footballMatchSchemas';
+import { FootballMatchError } from './FootballMatchError';
 
 type DiscoveryResult = Awaited<ReturnType<MatchDiscoveryApiClient['discoverMatches']>>;
 type DiscoveryGroup = DiscoveryResult['groups'][number];
@@ -14,7 +15,7 @@ export interface DiscoverySelection {
 }
 export interface LeagueDiscoveryState {
   leagueCode: string;
-  status: 'initial' | 'available' | 'empty' | 'updating' | 'partial' | 'pending' | 'deferred' | 'outdated' | 'offline' | 'error';
+  status: 'initial' | 'available' | 'empty' | 'updating' | 'partial' | 'pending' | 'deferred' | 'outdated' | 'offline' | 'error' | 'date_out_of_range';
   message: string | null;
   retryAt: number | null;
 }
@@ -49,7 +50,7 @@ const MAX_CHECKS_PER_CYCLE = 3;
 const FIXTURE_REUSE_WINDOW_MS = 60_000;
 const MIN_PENDING_RETRY_SECONDS = 15;
 const MAX_AUTOMATIC_RETRY_DELAY_SECONDS = 60;
-const DISCOVERY_UNAVAILABLE_MESSAGE = 'Match discovery is temporarily unavailable. Available matches are still shown.';
+const DISCOVERY_UNAVAILABLE_MESSAGE = 'Couldn’t load fixtures.';
 const DISCOVERY_STATUS_MESSAGES: Record<LeagueDiscoveryState['status'], string | null> = {
   initial: null,
   available: null,
@@ -58,9 +59,10 @@ const DISCOVERY_STATUS_MESSAGES: Record<LeagueDiscoveryState['status'], string |
   partial: 'Some fixtures may be missing. Available matches are still shown.',
   pending: 'Fixtures are still pending. Retry to check again.',
   deferred: 'Fixtures are temporarily deferred. Retry after the waiting period.',
-  outdated: 'Fixtures may be out of date. Retry to update them.',
+  outdated: 'Fixtures may be out of date.',
   offline: 'You are offline. Retained fixtures are still available.',
   error: DISCOVERY_UNAVAILABLE_MESSAGE,
+  date_out_of_range: 'Fixture search covers dates within 7 days of today. Choose another date or add a match manually.',
 };
 
 function getDiscoveryQueryKey(date: string, code: string): readonly ['match-discovery', string, string] {
@@ -146,9 +148,11 @@ export function createMatchDiscoveryQueries({ queryClient, discoverOnce }: {
         const matches = result.matches.filter(match => match.league === job.code);
         job.resolve(createUpdatedSnapshot(job.snapshot, groups[0], matches, result.retryAfterSeconds));
       }
-    } catch {
-      // Whole-response parsing remains owned by the injected, validated discovery adapter.
-      jobs.forEach(job => job.reject(new Error(DISCOVERY_UNAVAILABLE_MESSAGE)));
+    } catch (error) {
+      const failure = error instanceof FootballMatchError && error.code === 'date_out_of_range'
+        ? error
+        : new Error(DISCOVERY_UNAVAILABLE_MESSAGE);
+      jobs.forEach(job => job.reject(failure));
     }
   }
 
@@ -204,13 +208,18 @@ export function createMatchDiscoveryQueries({ queryClient, discoverOnce }: {
       const availability = snapshot.group?.availability;
       let status: LeagueDiscoveryState['status'];
       if (!onlineManager.isOnline() || result.isPaused) status = 'offline';
+      else if (result.error instanceof FootballMatchError && result.error.code === 'date_out_of_range') status = 'date_out_of_range';
       else if (result.isError) status = 'error';
       else if (!snapshot.group) status = 'initial';
       else if (result.isFetching) status = 'updating';
       else if (availability === 'pending' || availability === 'partial' || availability === 'deferred') status = availability;
       else if (availability === 'unavailable') status = 'error';
-      // The reuse deadline schedules another check; the server decides whether returned fixtures are outdated.
-      else if (snapshot.reuseExpiresAt === 0) status = 'outdated';
+      else if (
+        snapshot.group.isStale ||
+        !Number.isFinite(Date.parse(snapshot.group.lastSuccessfulCheckAt ?? ''))
+      ) {
+        status = 'outdated';
+      }
       else status = snapshot.matches.length ? 'available' : 'empty';
       let message = DISCOVERY_STATUS_MESSAGES[status];
       if (status === 'pending' && snapshot.canAutomaticallyRetry) {

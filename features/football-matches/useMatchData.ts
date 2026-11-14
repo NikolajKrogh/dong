@@ -50,6 +50,8 @@ function mapNormalizedMatchesToApiData(
         leagueCode: match.league,
         team1: match.homeTeam,
         team2: match.awayTeam,
+        homeTeamDetails: match.homeTeamDetails,
+        awayTeamDetails: match.awayTeamDetails,
         date: match.startDateTime.split("T")[0] || "",
         time: new Date(match.startDateTime).toTimeString().substring(0, 5),
         // Kept alongside the lossy display pair above so downstream consumers that

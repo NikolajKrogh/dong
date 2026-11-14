@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
-import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import { Animated, Platform } from "react-native";
+import { Button, XStack, YStack } from "tamagui";
 import { useColors } from "../../styles/theme";
 import { androidElevationFallback, hexWithAlpha } from "../../styles/shadows";
 import GameActionsSheet from "./GameActionsSheet";
@@ -48,7 +49,6 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   const router = useRouter();
   const colors = useColors();
   const reduceMotion = useReducedMotion();
-  const styles = React.useMemo(() => createStyles(colors), [colors]);
   const [menuVisible, setMenuVisible] = useState(false);
   const [sheetPosition, setSheetPosition] = useState(0);
   const rotationRef = useRef<Animated.Value | null>(null);
@@ -90,24 +90,40 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
   });
 
   const renderToggle = (inSheet: boolean, onPress = toggleMenu) => (
-    <TouchableOpacity
+    <Button
+      unstyled
       testID={inSheet ? "GameProgressSheetMenuButton" : "GameProgressMenuButton"}
-      style={styles.menuButton}
+      width={50}
+      height={50}
+      borderRadius={32}
+      backgroundColor={colors.primary}
+      justifyContent="center"
+      alignItems="center"
+      boxShadow={`0px 2px 3px ${hexWithAlpha(colors.black, 0.2)}`}
+      style={androidElevationFallback(3)}
+      pressStyle={{ opacity: 0.2 }}
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={inSheet ? "Close game actions" : "Open game actions"}
-      accessibilityElementsHidden={!inSheet && menuVisible}
-      importantForAccessibility={!inSheet && menuVisible ? "no-hide-descendants" : "auto"}
+      {...(Platform.OS === "web"
+        ? {
+            "aria-label": inSheet ? "Close game actions" : "Open game actions",
+            "aria-hidden": !inSheet && menuVisible,
+          }
+        : {
+            accessibilityRole: "button",
+            accessibilityLabel: inSheet ? "Close game actions" : "Open game actions",
+            accessibilityElementsHidden: !inSheet && menuVisible,
+            importantForAccessibility: !inSheet && menuVisible ? "no-hide-descendants" : "auto",
+          })}
       disabled={!inSheet && menuVisible}
     >
       <Animated.View style={{ transform: [{ rotate: rotateInterpolate }] }}>
         <Ionicons name="add" size={24} color={colors.white} />
       </Animated.View>
-    </TouchableOpacity>
+    </Button>
   );
 
   return (
-    <View style={styles.container}>
+    <YStack position="relative">
       <TaskOverlay open={menuVisible} onClose={closeMenu} fallbackHref="/gameProgress"
         returnFocusId="GameProgressMenuButton">
         {({ open, dismiss, runAfterDismiss }) => <GameActionsSheet
@@ -130,35 +146,11 @@ const FooterButtons: React.FC<FooterButtonsProps> = ({
         />}
       </TaskOverlay>
 
-      {/* Menu toggle button */}
-      <View style={styles.footer}>
+      <XStack paddingVertical={12} paddingHorizontal={24}>
         {renderToggle(false)}
-      </View>
-    </View>
+      </XStack>
+    </YStack>
   );
 };
-
-const createStyles = (colors: ReturnType<typeof useColors>) =>
-  StyleSheet.create({
-    container: {
-      position: "relative",
-    },
-    footer: {
-      flexDirection: "row",
-      justifyContent: "flex-start",
-      paddingVertical: 12,
-      paddingHorizontal: 24,
-    },
-    menuButton: {
-      width: 50,
-      height: 50,
-      borderRadius: 32,
-      backgroundColor: colors.primary,
-      justifyContent: "center",
-      alignItems: "center",
-      boxShadow: `0px 2px 3px ${hexWithAlpha(colors.black, 0.2)}`,
-      ...androidElevationFallback(3),
-    },
-  });
 
 export default FooterButtons;

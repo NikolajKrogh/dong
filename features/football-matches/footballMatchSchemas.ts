@@ -32,6 +32,7 @@ const positiveVersionSchema = z.number().int().positive().max(Number.MAX_SAFE_IN
 const retryAfterSecondsSchema = z.preprocess(parseRetryAfterSeconds, z.number().nullable());
 
 const teamSchema = z.looseObject({
+  logoUrl: z.string().nullable().optional(),
   sourceTeamId: nullableTextSchema,
   name: z.string(),
   shortName: nullableTextSchema,

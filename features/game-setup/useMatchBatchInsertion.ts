@@ -89,6 +89,8 @@ export function useMatchBatchInsertion(
           catalogMatchId: match.catalogMatchId,
           homeTeam: match.team1,
           awayTeam: match.team2,
+          homeTeamDetails: match.homeTeamDetails,
+          awayTeamDetails: match.awayTeamDetails,
           homeGoals: 0,
           awayGoals: 0,
           startTime: match.time,

@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
-import { Image, Platform, Text, TouchableOpacity, View } from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 import AppIcon from "../../../components/ui/AppIcon";
 import { useColors } from "../../../styles/theme";
 import { formatMatchScore, getMatchPresentation } from "../../football-matches/matchPresentation";
-import { useTeamLogo } from "../../football-matches/useTeamLogo";
+import { TeamBadge } from "../../football-matches/TeamBadge";
 import { createGameProgressStyles } from "../gameProgressStyles";
 import { MatchItemProps } from "./types";
 
@@ -24,9 +24,6 @@ const MatchListItem: React.FC<MatchItemProps> = ({
   const colors = useColors();
   const styles = useMemo(() => createGameProgressStyles(colors), [colors]);
 
-  // Get team logos with async fallback support
-  const homeTeamLogo = useTeamLogo(match.homeTeam);
-  const awayTeamLogo = useTeamLogo(match.awayTeam);
 
   const { homeScore, awayScore, displayStatus, showStatus } = getMatchPresentation(match, liveMatch);
   const statusDisplay =
@@ -81,7 +78,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
   return (
     <TouchableOpacity
       testID={`GameProgressMatchCard-${match.id}`}
-      style={[styles.gridItem, styles.matchListItemCard]}
+      style={[styles.gameplayMatchCard, styles.matchListItemCard]}
       onPress={() => openQuickActions(match.id)}
       activeOpacity={0.7}
       accessibilityRole="button"
@@ -99,7 +96,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
         <View style={styles.logosRow}>
           {/* Home team: Logo on LEFT */}
           <View style={styles.matchList_HomeLogoWrapper}>
-            <Image accessibilityLabel={match.homeTeam} source={homeTeamLogo} style={styles.matchList_LogoImage} />
+            <TeamBadge accessibilityLabel={match.homeTeam} teamName={match.homeTeam} team={match.catalogSnapshot?.homeTeam ?? match.homeTeamDetails} resizeMode="contain" style={styles.matchList_LogoImage} />
           </View>
 
           <View
@@ -116,7 +113,7 @@ const MatchListItem: React.FC<MatchItemProps> = ({
 
           {/* Away team: Logo on RIGHT */}
           <View style={styles.matchList_AwayLogoWrapper}>
-            <Image accessibilityLabel={match.awayTeam} source={awayTeamLogo} style={styles.matchList_LogoImage} />
+            <TeamBadge accessibilityLabel={match.awayTeam} teamName={match.awayTeam} team={match.catalogSnapshot?.awayTeam ?? match.awayTeamDetails} resizeMode="contain" style={styles.matchList_LogoImage} />
           </View>
         </View>
 

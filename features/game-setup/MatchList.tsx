@@ -112,28 +112,37 @@ function MatchListView({
     );
   }
 
-  const discoveryMessages = leagueStates.filter(state => state.message).map(state => {
+  const leaguesByMessage = new Map<string, string[]>();
+  for (const state of leagueStates) {
+    if (!state.message) continue;
     const leagueName = leagueFilterProps.availableLeagues.find(league => league.code === state.leagueCode)?.name ?? state.leagueCode;
-    return `${leagueName}: ${state.message}`;
-  });
-  const shouldShowRetry = leagueStates.some(state => !["initial", "available", "empty", "updating"].includes(state.status));
+    const leagueNames = leaguesByMessage.get(state.message) ?? [];
+    leagueNames.push(leagueName);
+    leaguesByMessage.set(state.message, leagueNames);
+  }
+  const discoveryMessages = Array.from(leaguesByMessage, ([message, leagueNames]) =>
+    leagueNames.length === leagueStates.length ? message : `${leagueNames.join(", ")}: ${message}`
+  );
+  const shouldShowRetry = leagueStates.some(state => !["initial", "available", "empty", "updating", "date_out_of_range"].includes(state.status));
   const isRetryDisabled = isInitialLoading || isUpdating;
   const discoveryFeedback = <>
     {loadingFeedback}
     {leagueFilterProps.selectedLeagues.length === 0 ? <Text style={{ color: colors.textMuted }}>Select a league to find fixtures.</Text> : null}
     {discoveryMessages.length ? (
-      <View style={styles.errorContainer}>
-        <Text accessibilityRole="alert" style={styles.errorText}>{discoveryMessages.join("\n")}</Text>
+      <View style={styles.fixtureNotice}>
+        <Text accessibilityLiveRegion="polite" role="status" style={styles.fixtureNoticeText}>
+          {discoveryMessages.join("\n")}
+        </Text>
         {shouldShowRetry ? (
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel="Retry loading matches"
+            accessibilityLabel="Try again"
             disabled={isRetryDisabled}
             accessibilityState={{ disabled: isRetryDisabled }}
             onPress={() => { void retry(); }}
-            style={{ minHeight: 48, justifyContent: "center" }}
+            style={[styles.fixtureRetry, isRetryDisabled && { opacity: 0.5 }]}
           >
-            <Text style={{ color: colors.primary }}>Retry</Text>
+            <Text style={{ color: colors.primaryDark, fontWeight: "600" }}>Try again</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -148,7 +157,6 @@ function MatchListView({
       <View testID="MatchListControls" style={styles.matchListControls}>
         <LeagueFilter {...leagueFilterProps} />
         <MatchFilter {...matchFilterProps} />
-        {discoveryFeedback}
 
         {processingState.isProcessing && (
           <View style={styles.processingIndicator}>
@@ -162,19 +170,9 @@ function MatchListView({
       </View>
 
       <View testID="MatchListResults" style={styles.matchListResults}>
+        {discoveryFeedback}
         {/* The shared list keeps solo and multiplayer match cards visually aligned. */}
-        {matches.length === 0 ? (
-          <View
-            testID="MatchListEmptyState"
-            style={styles.matchEmptyListContainer}
-          >
-            <AppIcon name="football-outline" size={48} color={colors.textMuted} />
-            <Text style={styles.emptyListTitleText}>No matches added yet!</Text>
-            <Text style={styles.emptyListSubtitleText}>
-              Use the filters above to find matches, or add a match manually below.
-            </Text>
-          </View>
-        ) : (
+        {matches.length > 0 ? (
           <LeagueMatchSections
             matches={matches}
             selectedMatchIds={poolMatchIds}
@@ -182,7 +180,19 @@ function MatchListView({
             disabledMatchIds={fixedMatchIds.length ? fixedMatchIds : undefined}
             onToggleMatch={onToggleMatch}
           />
-        )}
+        ) : leagueStates.length > 0 && leagueStates.every(state => state.status === "empty" || state.status === "available") ? (
+          <View
+            testID="MatchListEmptyState"
+            style={styles.matchEmptyListContainer}
+          >
+            <AppIcon name="football-outline" size={48} color={colors.textMuted} />
+            <Text style={styles.emptyListTitleText}>
+              {leagueStates.every(state => state.status === "empty")
+                ? "No fixtures found for this date."
+                : "No matches for these filters."}
+            </Text>
+          </View>
+        ) : null}
 
         {matches.some(match => !fixedIds.has(match.id)) && (
           <TouchableOpacity style={styles.clearAllButton} onPress={onClearAll}>

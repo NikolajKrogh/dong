@@ -1,12 +1,14 @@
 import React from "react";
-import { Image, ImageSourcePropType, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { TeamBadge } from "../../football-matches/TeamBadge";
+import type { SavedMatchTeam } from "../../../types/footballMatch";
 import { createStyles } from "./styles";
 
 interface MatchHeaderProps {
   homeTeam: string;
   awayTeam: string;
-  homeTeamLogo: ImageSourcePropType;
-  awayTeamLogo: ImageSourcePropType;
+  homeTeamDetails?: SavedMatchTeam;
+  awayTeamDetails?: SavedMatchTeam;
   isCommonMatch: boolean;
   styles: ReturnType<typeof createStyles>;
 }
@@ -15,8 +17,8 @@ interface MatchHeaderProps {
 export const MatchHeader = ({
   homeTeam,
   awayTeam,
-  homeTeamLogo,
-  awayTeamLogo,
+  homeTeamDetails,
+  awayTeamDetails,
   isCommonMatch,
   styles,
 }: MatchHeaderProps) => {
@@ -25,7 +27,7 @@ export const MatchHeader = ({
       <View style={styles.matchHeaderSection}>
         {/* Home team */}
         <View style={styles.matchTeamContainer}>
-          <Image source={homeTeamLogo} style={styles.matchTeamLogo} />
+          <TeamBadge teamName={homeTeam} team={homeTeamDetails} resizeMode="contain" style={styles.matchTeamLogo} />
           <Text style={styles.matchTeamName} numberOfLines={2}>
             {homeTeam}
           </Text>
@@ -38,7 +40,7 @@ export const MatchHeader = ({
 
         {/* Away team */}
         <View style={styles.matchTeamContainer}>
-          <Image source={awayTeamLogo} style={styles.matchTeamLogo} />
+          <TeamBadge teamName={awayTeam} team={awayTeamDetails} resizeMode="contain" style={styles.matchTeamLogo} />
           <Text style={styles.matchTeamName} numberOfLines={2}>
             {awayTeam}
           </Text>

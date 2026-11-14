@@ -77,6 +77,10 @@ const LeagueItem = React.memo(function LeagueItem({
     [colors]
   );
   const { logoSource, isLoading: isLogoLoading } = useLeagueLogo(league.name, league.code);
+  const logoKey = logoSource && typeof logoSource === "object" && "uri" in logoSource
+    ? logoSource.uri
+    : String(logoSource);
+  const [failedLogoKey, setFailedLogoKey] = React.useState<string>();
   const handlePress = React.useCallback(
     () => onToggleLeague(league),
     [league, onToggleLeague],
@@ -97,10 +101,11 @@ const LeagueItem = React.memo(function LeagueItem({
     </View>
   );
   let logoContent = logoPlaceholder;
-  if (!isLogoLoading && logoSource) {
+  if (!isLogoLoading && logoSource && failedLogoKey !== logoKey) {
     logoContent = (
       <Image
         source={logoSource}
+        onError={() => setFailedLogoKey(logoKey)}
         style={addLeagueModalStyles.leagueLogo}
         resizeMode="contain"
       />

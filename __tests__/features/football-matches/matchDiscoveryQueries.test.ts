@@ -215,7 +215,6 @@ it('collects unobserved entries after 30 minutes and keeps active entries', asyn
 
 it.each([
   ["server stale", { isStale: true }],
-  ["future source", { lastSuccessfulCheckAt: new Date(now+1).toISOString() }],
   ["invalid source", { lastSuccessfulCheckAt: "invalid" }],
 ])("vetoes reuse for %s group facts", async (_label, facts) => {
   const { watch, discover } = harness();
@@ -223,6 +222,17 @@ it.each([
   discover.mockResolvedValue(response);
   const first = watch(['A']); await flush(); first.close();
   expect(first.read().leagueStates[0].status).toBe('outdated');
+  watch(['A']); await flush();
+  expect(discover).toHaveBeenCalledTimes(2);
+});
+
+it('does not report fresh fixtures as outdated when the device clock is behind', async () => {
+  const { watch, discover } = harness();
+  const response = result(['A']);
+  response.groups[0].lastSuccessfulCheckAt = new Date(now + 1).toISOString();
+  discover.mockResolvedValue(response);
+  const first = watch(['A']); await flush(); first.close();
+  expect(first.read().leagueStates[0]).toMatchObject({ status: 'available', message: null });
   watch(['A']); await flush();
   expect(discover).toHaveBeenCalledTimes(2);
 });

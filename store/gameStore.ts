@@ -51,6 +51,8 @@ export interface Match {
   catalogSnapshot?: SavedMatch;
   /** Name of the home team. */
   homeTeam: string;
+  homeTeamDetails?: import("../types/footballMatch").SavedMatchTeam;
+  awayTeamDetails?: import("../types/footballMatch").SavedMatchTeam;
   /** Name of the away team. */
   awayTeam: string;
   /** Number of goals scored by the home team. */

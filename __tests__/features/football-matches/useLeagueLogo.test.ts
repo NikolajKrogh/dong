@@ -79,13 +79,13 @@ describe("useLeagueLogo", () => {
     });
   });
 
-  it("leaves uncached logos to the existing placeholder without fetching a scoreboard", async () => {
+  it("resolves an uncached catalog logo without fetching a scoreboard", async () => {
     const fetchMock = jest.fn();
     (globalThis as { fetch: unknown }).fetch = fetchMock;
-    const { renderer, getLatest } = renderHookProbe("Eredivisie", "ned.1");
+    const { renderer, getLatest } = renderHookProbe("League One", "eng.3");
     await TestRenderer.act(async () => { await flushQuery(); });
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(getLatest()?.logoSource).toBeUndefined();
+    expect(getLatest()?.logoSource).toEqual({ uri: "https://a.espncdn.com/i/leaguelogos/soccer/500/25.png" });
     expect(getLatest()?.isLoading).toBe(false);
     TestRenderer.act(() => { renderer.unmount(); });
   });
