@@ -41,7 +41,7 @@ interface CommitRequest extends AssignmentRequest {
   assignmentOverrides?: RoomAssignmentInput[];
 }
 export interface AssignmentTransport {
-  prepare(request: AssignmentRequest): Promise<PreparedAssignmentPreview | PendingPreview>;
+  prepare(request: AssignmentRequest & { drawId?: string }): Promise<PreparedAssignmentPreview | PendingPreview>;
   commit(request: CommitRequest): Promise<RoomSnapshot | { code: "room_processing_pending"; retryAfterSeconds: number }>;
 }
 
@@ -82,7 +82,7 @@ export function createRoomAssignments(
     const existingPreviewRequest = inFlightPreviewsByContext.get(contextKey);
     if (existingPreviewRequest) return existingPreviewRequest;
     const previewGeneration = ++latestPreviewGeneration;
-    const request: AssignmentRequest = createFrozenCopy({ sessionId, purpose, context });
+    const request = createFrozenCopy({ sessionId, purpose, context, drawId: newKey() });
     const previewOperation = previewRequestQueue.then(async (): Promise<AssignmentPreview | AssignmentIssue> => {
       const isCurrent = () => latestPreviewGeneration === previewGeneration && serializeContext(readContext()) === contextKey;
       if (!isCurrent()) return { issue: "stale" };

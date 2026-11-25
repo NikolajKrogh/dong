@@ -22,7 +22,7 @@ it("starts Players pick without review and preserves the request when retrying a
   expect(first).not.toHaveProperty("assignmentOverrides");
   expect(transport.prepare).not.toHaveBeenCalled();
 });
-function fixture() {
+function fixture(newKey = () => "key") {
   let context: AssignmentContext = { revision: "one", expectedToken: "token", configuration: {
     assignmentMode: "automatic", assignmentPolicyVersion: 2, matchesPerPlayer: 1,
     sharedMatchesPerPair: 0, playerMatchCounts: {}, assignments: [], newMatches: [],
@@ -31,7 +31,7 @@ function fixture() {
     prepare: jest.fn(async () => prepared),
     commit: jest.fn(async () => ({ sessionId: "room" }) as never),
   };
-  const controller = createRoomAssignments("room", "start", () => context, transport, { newKey: () => "key", wait: async () => {} });
+  const controller = createRoomAssignments("room", "start", () => context, transport, { newKey, wait: async () => {} });
   return { controller, transport, change: () => { context = { ...context, revision: "two" }; } };
 }
 
@@ -106,4 +106,14 @@ it("retries processing with the identical accepted business request", async () =
   const reviewed = await controller.preview();
   expect(await controller.commit(reviewed)).toMatchObject({ sessionId: "room" });
   expect(jest.mocked(transport.commit).mock.calls[0][0]).toBe(jest.mocked(transport.commit).mock.calls[1][0]);
+});
+
+it("reuses the draw ID on retry and gives the next randomization a fresh ID", async () => {
+  let sequence = 0;
+  const { controller, transport } = fixture(() => String(++sequence));
+  const prepare = jest.mocked(transport.prepare);
+  prepare.mockResolvedValueOnce({ issue: "preview_pending", retryAfterSeconds: 0 });
+  await controller.preview();
+  await controller.preview();
+  expect(prepare.mock.calls.map(([request]) => request.drawId)).toEqual(["1", "1", "2"]);
 });
