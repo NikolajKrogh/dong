@@ -34,6 +34,14 @@ SELECT throws_ok($$SELECT public.store_room_assignment_proposal(second_id,jsonb_
 UPDATE proposal_context SET response=public.store_room_assignment_proposal(second_id,jsonb_build_object(participant::text,jsonb_build_array('00000000-0000-4031-9000-000000000011')),'{"quality":"fallback","summaryComplete":true,"totalDeviation":0,"exactPreferenceAchieved":true,"reason":null}');
 SET LOCAL ROLE authenticated;
 SELECT is((SELECT public.prepare_room_assignment_preview(room,'start',config,token)->>'proposalId' FROM proposal_context),(SELECT second_id::text FROM proposal_context),'identical ready input reuses actual assignments');
+SAVEPOINT before_reroll;
+RESET ROLE;
+UPDATE private.assignment_proposals SET created_at=clock_timestamp()-interval '3 seconds' WHERE id=(SELECT second_id FROM proposal_context);
+SET LOCAL ROLE authenticated;
+UPDATE proposal_context SET config=config||jsonb_build_object('drawId',gen_random_uuid());
+SELECT ok((SELECT public.prepare_room_assignment_preview(room,'start',config,token) ? 'input' FROM proposal_context),'randomizing unchanged settings starts a fresh draw');
+SELECT is((SELECT public.prepare_room_assignment_preview(room,'start',config,token)->>'issue' FROM proposal_context),'preview_pending','retry joins the same draw');
+ROLLBACK TO before_reroll;
 UPDATE proposal_context SET response=public.start_game_session_v2(room,second_id,token,key,false);
 SELECT is((SELECT response->>'state' FROM proposal_context),'in_progress','v2 start accepts the reviewed proposal');
 RESET ROLE;

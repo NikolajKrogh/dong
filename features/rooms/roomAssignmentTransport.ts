@@ -10,7 +10,7 @@ import { ASSIGNMENT_PURPOSE } from "./roomAssignments";
 /** The lifecycle module owns retries; this adapter makes exactly one remote call. */
 export function createRoomAssignmentTransport(supabase?: SupabaseClient<Database>): AssignmentTransport {
   return {
-    async prepare({ sessionId, purpose, context }) {
+    async prepare({ sessionId, purpose, context, drawId }) {
       if (context.configuration.assignmentMode !== ASSIGNMENT_MODE.automatic) {
         const targetsByParticipantId = context.targetsByParticipantId ?? {};
         return {
@@ -23,7 +23,7 @@ export function createRoomAssignmentTransport(supabase?: SupabaseClient<Database
       }
       const client = supabase ?? getSupabaseClient();
       const { data, error } = await client.functions.invoke("room-assignment-preview", {
-        body: { sessionId, purpose, expectedToken: context.expectedToken, configuration: context.configuration },
+        body: { sessionId, purpose, expectedToken: context.expectedToken, configuration: { ...context.configuration, drawId } },
       });
       if (error) {
         const response = (error as { context?: Response }).context;
